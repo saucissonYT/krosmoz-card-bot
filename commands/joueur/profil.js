@@ -6,7 +6,7 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { getUser } = require("../../systems/usersystem")
+const { getUser } = require("../../systems/userSystem")
 const { achievements } = require("../../systems/achievementSystem")
 const { getRank } = require("../../systems/rankSystem")
 const { getProgression } = require("../../systems/progressionSystem")

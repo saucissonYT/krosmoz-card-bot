@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { achievements, giveAchievement } = require("../../systems/achievementSystem")
 
 module.exports = {

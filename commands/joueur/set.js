@@ -10,7 +10,7 @@ const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
 const sets = require("../../cards/sets.json")
 const { playerSetProgress } = require("../../systems/setSystem")
-const { getUser } = require("../../systems/usersystem")
+const { getUser } = require("../../systems/userSystem")
 
 const rarityEmoji={
  C:"⚪",

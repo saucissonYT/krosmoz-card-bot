@@ -3,7 +3,7 @@ const { EmbedBuilder } = require("discord.js")
 const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { checkAchievements } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 

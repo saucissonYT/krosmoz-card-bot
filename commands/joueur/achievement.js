@@ -6,7 +6,7 @@ const {
 } = require("discord.js")
 
 const { achievements } = require("../../systems/achievementSystem")
-const { getUser } = require("../../systems/usersystem")
+const { getUser } = require("../../systems/userSystem")
 
 module.exports={
 

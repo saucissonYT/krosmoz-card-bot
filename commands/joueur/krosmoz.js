@@ -7,7 +7,7 @@ const {
 
 const sets = require("../../cards/sets.json")
 const { generatePack } = require("../../systems/pack")
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { rewardKamas } = require("../../systems/rewards")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { addXP } = require("../../systems/progressionSystem")

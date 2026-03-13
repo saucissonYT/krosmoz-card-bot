@@ -10,7 +10,7 @@ const {
 const cardsData = require("../../cards/cards.json")
 const cards = cardsData.cards
 
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 
 /* ---------------- MEMORY ---------------- */
 

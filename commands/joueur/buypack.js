@@ -5,7 +5,7 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { giveAchievement } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 

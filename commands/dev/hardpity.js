@@ -6,7 +6,7 @@ const {
 } = require("discord.js")
 
 const { isDev } = require("../../systems/devSystem")
-const { getUsers, save } = require("../../systems/usersystem")
+const { getUsers, save } = require("../../systems/userSystem")
 const sets = require("../../cards/sets.json")
 
 module.exports = {

@@ -4,7 +4,7 @@ const {
  ActionRowBuilder
 } = require("discord.js")
 
-const { getUser } = require("../../systems/usersystem")
+const { getUser } = require("../../systems/userSystem")
 
 module.exports = {
 

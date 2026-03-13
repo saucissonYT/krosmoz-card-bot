@@ -8,7 +8,7 @@ const {
 const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
-const { getUser } = require("../../systems/usersystem")
+const { getUser } = require("../../systems/userSystem")
 
 const cardsById={}
 for(const c of cards){

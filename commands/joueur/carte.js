@@ -12,7 +12,7 @@ const cardsData=require("../../cards/cards.json")
 const cards=Array.isArray(cardsData)?cardsData:cardsData.cards
 
 const { addListing } = require("../../systems/market")
-const { getUser, save } = require("../../systems/usersystem")
+const { getUser, save } = require("../../systems/userSystem")
 
 const cardsById={}
 for(const c of cards){
