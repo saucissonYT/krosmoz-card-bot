@@ -5,7 +5,10 @@ const {
 } = require("discord.js")
 
 const { generatePack } = require("../../systems/pack")
-const sets = require("../../cards/sets.json")
+
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
+
 const { rewardKamas } = require("../../systems/rewards")
 
 module.exports = {

@@ -8,7 +8,8 @@ const {
 const {generatePack,packText,rarityEmoji,giveCard} = require("../../systems/pack")
 const {rewardKamas} = require("../../systems/economy")
 
-const sets = require("../../cards/sets.json")
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const OWNER_ID="231419667179241472"
 
@@ -108,4 +109,5 @@ module.exports={
   })
 
  }
+
 }

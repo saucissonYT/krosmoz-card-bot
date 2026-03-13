@@ -1,7 +1,11 @@
 const { EmbedBuilder } = require("discord.js")
 
-const cards = require("../../cards/cards.json")
-const sets = require("../../cards/sets.json")
+const cardsData = require("../../cards/cards.json")
+const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
+
 const { isDev } = require("../../systems/devSystem")
 
 const rarityList = ["C","U","R","SR","HR","UR","S","SSR"]

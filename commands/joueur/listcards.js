@@ -1,7 +1,9 @@
 const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
-const sets = require("../../cards/sets.json")
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
+
 const { isDev } = require("../../systems/devSystem")
 
 const rarityOrder = {
