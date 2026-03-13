@@ -1,6 +1,8 @@
 const fs = require("fs")
 
-const PATH = "./database/users.json"
+const PATH = process.env.RAILWAY
+ ? "/data/users.json"
+ : "./database/users.json"
 
 let users = {}
 
@@ -168,23 +170,11 @@ function migrateUsers(){
    changed = true
   }
 
-  /* -------- DAILY STREAK MIGRATION -------- */
-
   if(!user.daily){
    user.daily = {
     streak:0,
     lastDaily:0
    }
-   changed = true
-  }
-
-  if(user.pityUR !== undefined){
-   delete user.pityUR
-   changed = true
-  }
-
-  if(user.pitySSR !== undefined){
-   delete user.pitySSR
    changed = true
   }
 
@@ -239,101 +229,6 @@ function queueSave(){
 
 /* ---------------- USER MANAGEMENT ---------------- */
 
-function fixUser(user){
-
- let changed = false
-
- if(!user.cards){
-  user.cards = {}
-  changed = true
- }
-
- if(user.kamas === undefined){
-  user.kamas = 0
-  changed = true
- }
-
- if(user.packs === undefined){
-  user.packs = 0
-  changed = true
- }
-
- if(user.lastPack === undefined){
-  user.lastPack = 0
-  changed = true
- }
-
- if(user.lastClaim === undefined){
-  user.lastClaim = 0
-  changed = true
- }
-
- if(!user.pity){
-  user.pity = {}
-  changed = true
- }
-
- if(!user.achievements){
-  user.achievements = []
-  changed = true
- }
-
- if(!user.titles){
-  user.titles = ["Nouveau"]
-  changed = true
- }
-
- if(!user.title){
-  user.title = "Nouveau"
-  changed = true
- }
-
- if(!user.progression){
-  user.progression={
-   level:1,
-   xp:0,
-   totalXp:0
-  }
-  changed = true
- }
-
- if(!user.stats){
-  user.stats = {
-   cardsSold:0,
-   ssrPulled:0,
-   fusions:0,
-   fusionCrit:0,
-   fusionDouble:0,
-   packsOpened:0,
-   packsBought:0
-  }
-  changed = true
- }
-
- /* -------- DAILY STREAK FIX -------- */
-
- if(!user.daily){
-  user.daily = {
-   streak:0,
-   lastDaily:0
-  }
-  changed = true
- }
-
- if(user.pityUR !== undefined){
-  delete user.pityUR
-  changed = true
- }
-
- if(user.pitySSR !== undefined){
-  delete user.pitySSR
-  changed = true
- }
-
- return changed
-
-}
-
 function getUser(id){
 
  if(!users[id]){
@@ -362,25 +257,17 @@ function getUser(id){
     packsOpened:0,
     packsBought:0
    },
-
    daily:{
     streak:0,
     lastDaily:0
    }
-
   }
 
   queueSave()
 
  }
 
- const user = users[id]
-
- if(fixUser(user)){
-  queueSave()
- }
-
- return user
+ return users[id]
 
 }
 

@@ -1,7 +1,12 @@
 const fs = require("fs")
 
-const MARKET_PATH = "./database/market.json"
-const USERS_PATH = "./database/users.json"
+const MARKET_PATH = process.env.RAILWAY
+ ? "/data/market.json"
+ : "./database/market.json"
+
+const USERS_PATH = process.env.RAILWAY
+ ? "/data/users.json"
+ : "./database/users.json"
 
 /* LOAD */
 
@@ -146,42 +151,10 @@ function getUserListings(userId){
  return market.filter(l=>l.seller === userId)
 }
 
-/* PRICE STATS */
-
-function getAveragePrices(){
-
- const market = loadMarket()
-
- const stats={}
-
- for(const l of market){
-
-  if(!stats[l.card])
-   stats[l.card]=[]
-
-  stats[l.card].push(l.price)
-
- }
-
- const averages={}
-
- for(const card in stats){
-
-  const arr = stats[card]
-  const avg = arr.reduce((a,b)=>a+b,0)/arr.length
-
-  averages[card]=Math.floor(avg)
-
- }
-
- return averages
-}
-
 module.exports={
  addListing,
  buyCard,
  getMarket,
  removeListing,
- getUserListings,
- getAveragePrices
+ getUserListings
 }

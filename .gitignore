@@ -1,5 +1,4 @@
 node_modules
 .env
 config.json
-database/users.json
-database/market.json
+database/
