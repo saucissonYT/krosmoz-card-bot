@@ -415,6 +415,26 @@ Projet créé par :
 
 ---
 
+## 📸 Screenshots
+
+### 🎴 Ouverture de pack
+![Pack](screenshots/pack.PNG)
+
+### 👤 Profil joueur
+![Profil](screenshots/profil.PNG)
+
+### 🎴 Carte
+![Carte](screenshots/carte.PNG)
+
+### 🎁 Daily reward
+![Daily](screenshots/daily.PNG)
+
+### 🏆 Succès
+![Succès](screenshots/succès.PNG)
+
+
+---
+
 # 📜 Licence
 
 Rédaction
