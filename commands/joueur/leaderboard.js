@@ -5,8 +5,10 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const users=require("../../database/users.json")
+const { getUsers } = require("../../systems/userSystem")
 const cards=require("../../cards/cards.json")
+
+const users=getUsers()
 
 const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
 

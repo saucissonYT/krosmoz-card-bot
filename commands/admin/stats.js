@@ -1,6 +1,6 @@
-const users = require("../../database/users.json")
+const { getUsers } = require("../../systems/userSystem")
 const cards = require("../../cards/cards.json")
-const {isDev} = require("../../systems/devSystem")
+const { isDev } = require("../../systems/devSystem")
 
 module.exports = {
 
@@ -13,6 +13,8 @@ module.exports = {
     content:"Commande dev.",
     ephemeral:true
    })
+
+  const users = getUsers()
 
   const totalUsers = Object.keys(users).length
 

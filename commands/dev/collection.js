@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js")
 
-const users = require("../../database/users.json")
+const { getUsers } = require("../../systems/userSystem")
 const cards = require("../../cards/cards.json")
 const { isDev } = require("../../systems/devSystem")
 
@@ -16,6 +16,8 @@ module.exports = {
     content:"Commande dev.",
     ephemeral:true
    })
+
+  const users = getUsers()
 
   const totalUsers = Object.keys(users).length
 
@@ -61,26 +63,10 @@ module.exports = {
   const embed = new EmbedBuilder()
    .setTitle("📊 Statistiques des collections")
    .addFields(
-    {
-     name:"👥 Joueurs",
-     value:`${totalUsers}`,
-     inline:true
-    },
-    {
-     name:"🎴 Cartes possédées",
-     value:`${totalOwnedCards}`,
-     inline:true
-    },
-    {
-     name:"🃏 Cartes existantes",
-     value:`${totalCardsExisting}`,
-     inline:true
-    },
-    {
-     name:"📚 Cartes uniques collectées",
-     value:`${uniqueCollected} (${completion}%)`,
-     inline:false
-    },
+    {name:"👥 Joueurs",value:`${totalUsers}`,inline:true},
+    {name:"🎴 Cartes possédées",value:`${totalOwnedCards}`,inline:true},
+    {name:"🃏 Cartes existantes",value:`${totalCardsExisting}`,inline:true},
+    {name:"📚 Cartes uniques collectées",value:`${uniqueCollected} (${completion}%)`,inline:false},
     {
      name:"🏆 Plus grosse collection",
      value: topUser

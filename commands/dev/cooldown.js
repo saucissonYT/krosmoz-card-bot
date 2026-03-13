@@ -1,15 +1,6 @@
-const devData = require("../../database/devs.json")
-
 let cooldownDisabled = false
 
-function isDev(id){
-
- return (
-  devData.owners.includes(id) ||
-  devData.devs.includes(id)
- )
-
-}
+const { isDev } = require("../../systems/devSystem")
 
 module.exports = {
 
