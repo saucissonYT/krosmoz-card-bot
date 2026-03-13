@@ -432,6 +432,9 @@ Projet créé par :
 ### 🏆 Succès
 ![Succès](screenshots/succès.PNG)
 
+---
+
+bot hébergé pour l'instant sur railway
 
 ---
 
