@@ -1,7 +1,7 @@
 const cardsData = require("../cards/cards.json")
 const cards = cardsData.cards
 
-const { save } = require("./usersystem")
+const { save } = require("./userSystem")
 const { giveAchievement, notifyAchievement } = require("./achievementSystem")
 
 const DAY = 86400000

@@ -79,7 +79,7 @@ Le bot est divisé en **systèmes indépendants** :
 | rewards           | récompenses                   |
 | setSystem         | sets et collections           |
 | tradeSystem       | échanges joueurs              |
-| usersystem        | gestion base utilisateurs     |
+| userSystem        | gestion base utilisateurs     |
 
 ---
 
