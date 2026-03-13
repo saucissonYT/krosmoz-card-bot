@@ -8,6 +8,19 @@ const USERS_PATH = process.env.RAILWAY
  ? "/data/users.json"
  : "./database/users.json"
 
+/* ---------- CREATE FILE IF MISSING ---------- */
+
+if(!fs.existsSync(MARKET_PATH)){
+
+ const dir = MARKET_PATH.split("/").slice(0,-1).join("/")
+
+ if(!fs.existsSync(dir))
+  fs.mkdirSync(dir,{recursive:true})
+
+ fs.writeFileSync(MARKET_PATH,"[]")
+
+}
+
 /* LOAD */
 
 function loadMarket(){
