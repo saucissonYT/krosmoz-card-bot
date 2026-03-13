@@ -5,7 +5,9 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const sets = require("../../cards/sets.json")
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
+
 const { generatePack } = require("../../systems/pack")
 const { getUser, save } = require("../../systems/userSystem")
 const { rewardKamas } = require("../../systems/rewards")
@@ -184,8 +186,6 @@ ${getCooldownText(user)}`,
   await achievementCheck(interaction,user)
 
   save()
-
-  /* -------- PITY DISPLAY -------- */
 
   const pity=user.pity?.[setId] || {SSR:0,UR:0}
 

@@ -1,176 +1,191 @@
-const cardsData = require("../cards/cards.json")
+const fs = require("fs")
 
-const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+const MARKET_PATH = process.env.RAILWAY
+ ? "/data/market.json"
+ : "./database/market.json"
 
-const { giveAchievement } = require("./achievementSystem")
+const USERS_PATH = process.env.RAILWAY
+ ? "/data/users.json"
+ : "./database/users.json"
 
-const cardsBySet = {}
+/* ---------------- CACHE ---------------- */
 
-for(const card of cards){
+let marketCache = null
+let usersCache = null
 
- if(!cardsBySet[card.set])
-  cardsBySet[card.set] = []
+/* ---------------- LOAD ---------------- */
 
- cardsBySet[card.set].push(card)
+function loadMarket(){
 
+ if(marketCache) return marketCache
+
+ marketCache = JSON.parse(
+  fs.readFileSync(MARKET_PATH,"utf8")
+ )
+
+ return marketCache
 }
 
-const BASE_RATES = {
- C:0.50,
- U:0.25,
- R:0.13,
- SR:0.06,
- HR:0.03,
- UR:0.008,
- S:0.004,
- SSR:0.004
+function loadUsers(){
+
+ if(usersCache) return usersCache
+
+ usersCache = JSON.parse(
+  fs.readFileSync(USERS_PATH,"utf8")
+ )
+
+ return usersCache
 }
 
-function rollRarity(rates){
+/* ---------------- SAVE ---------------- */
 
- const roll = Math.random()
+function saveMarket(data){
 
- let cumulative = 0
+ marketCache = data
 
- for(const rarity of Object.keys(rates)){
-
-  cumulative += rates[rarity]
-
-  if(roll <= cumulative)
-   return rarity
-
- }
-
- return "C"
-
+ fs.writeFileSync(
+  MARKET_PATH,
+  JSON.stringify(data,null,2)
+ )
 }
 
-function getRandomCard(setId,rarity){
+function saveUsers(data){
 
- const setCards = cardsBySet[setId] || []
+ usersCache = data
 
- const pool = setCards.filter(c => c.rarity === rarity)
-
- if(!pool.length){
-
-  if(setCards.length === 0) return null
-
-  return setCards[Math.floor(Math.random()*setCards.length)]
-
- }
-
- return pool[Math.floor(Math.random()*pool.length)]
-
+ fs.writeFileSync(
+  USERS_PATH,
+  JSON.stringify(data,null,2)
+ )
 }
 
-function applySoftPity(rates,pity){
+/* ---------------- ADD LISTING ---------------- */
 
- const modified={...rates}
+function addListing(sellerId,cardId,price){
 
- if(pity.SSR >= 30)
-  modified.SSR += 0.01
+ const market = loadMarket()
+ const users = loadUsers()
 
- if(pity.SSR >= 40)
-  modified.SSR += 0.02
+ const seller = users[sellerId]
 
- if(pity.UR >= 7)
-  modified.UR += 0.01
+ if(!seller)
+  return {error:"Utilisateur introuvable"}
 
- if(pity.UR >= 9)
-  modified.UR += 0.03
+ if(!seller.cards || !seller.cards[cardId] || seller.cards[cardId] <= 0)
+  return {error:"Tu ne possèdes pas cette carte"}
 
- return modified
+ const id = Date.now()
 
+ const listing={
+  id,
+  seller:sellerId,
+  card:cardId,
+  price,
+  timestamp:id
+ }
+
+ seller.cards[cardId]--
+
+ if(seller.cards[cardId] <= 0)
+  delete seller.cards[cardId]
+
+ market.push(listing)
+
+ saveMarket(market)
+ saveUsers(users)
+
+ return listing
 }
 
-function generatePack(user,setId,size=5){
+/* ---------------- BUY CARD ---------------- */
 
- const pack=[]
+function buyCard(buyerId,listingId){
 
- let luckyPack=false
+ const market = loadMarket()
+ const users = loadUsers()
 
- if(Math.random() < 0.02){
+ const listing = market.find(l=>l.id===listingId)
 
-  size++
-  luckyPack=true
+ if(!listing)
+  return {error:"Annonce introuvable"}
 
- }
+ if(listing.seller === buyerId)
+  return {error:"Tu ne peux pas acheter ta propre carte"}
 
- if(!user.pity) user.pity={}
- if(!user.pity[setId]) user.pity[setId]={SSR:0,UR:0}
+ const seller = users[listing.seller]
+ const buyer = users[buyerId]
 
- const pity=user.pity[setId]
+ if(!seller || !buyer)
+  return {error:"Utilisateur introuvable"}
 
- let ssrCount = 0
+ if(buyer.kamas < listing.price)
+  return {error:"Kamas insuffisants"}
 
- for(let i=0;i<size;i++){
+ const tax = Math.floor(listing.price * 0.05)
 
-  let rarity
+ buyer.kamas -= listing.price
+ seller.kamas += listing.price - tax
 
-  if(i === size-1){
+ if(!buyer.cards) buyer.cards={}
 
-   if(pity.SSR >= 49){
+ buyer.cards[listing.card]=(buyer.cards[listing.card]||0)+1
 
-    rarity="SSR"
-    pity.SSR = 0
+ const newMarket = market.filter(l=>l.id!==listingId)
 
-   }
+ saveMarket(newMarket)
+ saveUsers(users)
 
-   else if(pity.UR >= 9){
+ return {success:true}
+}
 
-    rarity="UR"
-    pity.UR = 0
+/* ---------------- REMOVE LISTING ---------------- */
 
-   }
+function removeListing(userId,listingId){
 
-   else{
+ const market = loadMarket()
+ const users = loadUsers()
 
-    const rates = applySoftPity(BASE_RATES,pity)
+ const listing = market.find(l=>l.id===listingId)
 
-    rarity = rollRarity(rates)
+ if(!listing)
+  return {error:"Annonce introuvable"}
 
-    if(rarity === "SSR") pity.SSR = 0
-    else pity.SSR++
+ if(listing.seller !== userId)
+  return {error:"Cette annonce ne t'appartient pas"}
 
-    if(rarity === "UR") pity.UR = 0
-    else pity.UR++
+ const user = users[userId]
 
-   }
+ if(!user.cards) user.cards={}
 
-  }
+ user.cards[listing.card]=(user.cards[listing.card]||0)+1
 
-  else{
+ const newMarket = market.filter(l=>l.id!==listingId)
 
-   rarity = rollRarity(BASE_RATES)
+ saveMarket(newMarket)
+ saveUsers(users)
 
-  }
+ return {success:true}
+}
 
-  const card = getRandomCard(setId,rarity)
+/* ---------------- GET MARKET ---------------- */
 
-  if(card){
+function getMarket(){
+ return loadMarket()
+}
 
-   pack.push(card)
+/* ---------------- USER LISTINGS ---------------- */
 
-   if(card.rarity === "SSR"){
-    ssrCount++
-    user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
-   }
+function getUserListings(userId){
 
-  }
+ const market = loadMarket()
 
- }
-
- if(ssrCount >= 2){
-  giveAchievement(user,"doubleSSR")
- }
-
- return {
-  pack,
-  luckyPack
- }
-
+ return market.filter(l=>l.seller === userId)
 }
 
 module.exports={
- generatePack
+ addListing,
+ buyCard,
+ getMarket,
+ removeListing,
+ getUserListings
 }

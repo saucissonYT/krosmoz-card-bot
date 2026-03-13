@@ -8,13 +8,28 @@ let users = {}
 
 /* ---------------- LOAD USERS ---------------- */
 
-if(fs.existsSync(PATH)){
+try{
 
- users = JSON.parse(fs.readFileSync(PATH,"utf8"))
+ if(fs.existsSync(PATH)){
 
- migrateInventories()
- migratePacks()
- migrateUsers()
+  const raw = fs.readFileSync(PATH,"utf8")
+
+  users = raw ? JSON.parse(raw) : {}
+
+ }else{
+
+  console.log("users.json absent, création")
+
+  fs.writeFileSync(PATH,JSON.stringify({},null,2))
+  users = {}
+
+ }
+
+}catch(err){
+
+ console.error("Erreur lecture users.json",err)
+
+ users = {}
 
 }
 
@@ -189,6 +204,12 @@ function migrateUsers(){
  }
 
 }
+
+/* LANCEMENT MIGRATIONS */
+
+migrateInventories()
+migratePacks()
+migrateUsers()
 
 /* ---------------- SAVE QUEUE ---------------- */
 

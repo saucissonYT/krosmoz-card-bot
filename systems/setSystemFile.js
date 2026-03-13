@@ -4,13 +4,23 @@ const SETS_PATH = "./cards/sets.json"
 
 function loadSets(){
 
- return JSON.parse(
+ const data = JSON.parse(
   fs.readFileSync(SETS_PATH,"utf8")
  )
 
+ if(Array.isArray(data))
+  return data
+
+ if(data.sets)
+  return data.sets
+
+ return []
+
 }
 
-function saveSets(data){
+function saveSets(list){
+
+ const data = { sets:list }
 
  fs.writeFileSync(
   SETS_PATH,
@@ -25,7 +35,7 @@ function addSet(name,reward){
 
  const id = name.toLowerCase().replace(/\s+/g,"")
 
- if(sets.sets.find(s=>s.id===id))
+ if(sets.find(s=>s.id===id))
   return {error:"Set déjà existant"}
 
  const newSet = {
@@ -34,7 +44,7 @@ function addSet(name,reward){
   reward
  }
 
- sets.sets.push(newSet)
+ sets.push(newSet)
 
  saveSets(sets)
 
@@ -46,12 +56,12 @@ function deleteSet(id){
 
  const sets = loadSets()
 
- const index = sets.sets.findIndex(s=>s.id===id)
+ const index = sets.findIndex(s=>s.id===id)
 
  if(index === -1)
   return {error:"Set introuvable"}
 
- const removed = sets.sets.splice(index,1)[0]
+ const removed = sets.splice(index,1)[0]
 
  saveSets(sets)
 
@@ -63,7 +73,7 @@ function editSetName(id,newName){
 
  const sets = loadSets()
 
- const set = sets.sets.find(s=>s.id===id)
+ const set = sets.find(s=>s.id===id)
 
  if(!set)
   return {error:"Set introuvable"}
@@ -80,7 +90,7 @@ function editSetReward(id,reward){
 
  const sets = loadSets()
 
- const set = sets.sets.find(s=>s.id===id)
+ const set = sets.find(s=>s.id===id)
 
  if(!set)
   return {error:"Set introuvable"}
