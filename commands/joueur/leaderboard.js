@@ -131,6 +131,8 @@ module.exports={
     })
     .setColor("#f1c40f")
 
+   /* ---------- MODES (ligne 1) ---------- */
+
    const row1=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
@@ -156,7 +158,13 @@ module.exports={
     new ButtonBuilder()
      .setCustomId("achievements")
      .setLabel("🏆")
-     .setStyle(ButtonStyle.Secondary),
+     .setStyle(ButtonStyle.Secondary)
+
+   )
+
+   /* ---------- MODES (ligne 2) ---------- */
+
+   const rowMode2=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("level")
@@ -164,6 +172,8 @@ module.exports={
      .setStyle(ButtonStyle.Secondary)
 
    )
+
+   /* ---------- PAGINATION ---------- */
 
    const row2=new ActionRowBuilder().addComponents(
 
@@ -181,7 +191,7 @@ module.exports={
 
    )
 
-   return {embed,components:[row1,row2],maxPage}
+   return {embed,components:[row1,rowMode2,row2],maxPage}
 
   }
 
