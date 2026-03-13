@@ -27,7 +27,7 @@ module.exports={
 
   }
 
-  const result=claimDaily(user)
+  const result = await claimDaily(interaction,user)
 
   const embed=new EmbedBuilder()
    .setTitle("🎁 Récompense quotidienne")
@@ -75,35 +75,6 @@ Carte SSR obtenue :
     value:"Tes récompenses ont été **doublées**.",
     inline:false
    })
-
-  }
-
-  if(result.assiduUnlocked){
-
-   embed.addFields({
-    name:"🏆 Succès débloqué",
-    value:"**Assidu**",
-    inline:false
-   })
-
-  }
-
-  if(result.dailyAchievements && result.dailyAchievements.length){
-
-   for(const ach of result.dailyAchievements){
-
-    embed.addFields({
-     name:"🏆 Succès Daily",
-     value:
-`**${ach.name}**
-
-Titre : ${ach.title}
-+${ach.xp} XP
-+${ach.kamas} kamas`,
-     inline:false
-    })
-
-   }
 
   }
 

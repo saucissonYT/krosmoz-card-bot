@@ -15,6 +15,8 @@ function getRandom(arr){
 
 function giveSSR(user){
 
+ if(!user || !user.cards) return null
+
  const ssrCards = cards.filter(c => c.rarity === "SSR")
 
  if(!ssrCards.length) return null
@@ -34,12 +36,7 @@ function getStreakBar(streak){
  let bar=""
 
  for(let i=1;i<=total;i++){
-
-  if(i<=streak)
-   bar+="🟩"
-  else
-   bar+="⬜"
-
+  bar += i<=streak ? "🟩" : "⬜"
  }
 
  return bar
@@ -88,12 +85,7 @@ async function claimDaily(interaction,user){
  const now=Date.now()
 
  if(!user.daily){
-
-  user.daily={
-   streak:0,
-   lastDaily:0
-  }
-
+  user.daily={streak:0,lastDaily:0}
  }
 
  let reset=false
@@ -103,10 +95,8 @@ async function claimDaily(interaction,user){
   const diff=now-user.daily.lastDaily
 
   if(diff>DAY+TOLERANCE){
-
    user.daily.streak=0
    reset=true
-
   }
 
  }
@@ -119,10 +109,7 @@ async function claimDaily(interaction,user){
 
  user.stats.dailyClaims++
 
- let reward={
-  type:null,
-  value:null
- }
+ let reward={type:null,value:null}
 
  let doubleReward=false
 
@@ -132,55 +119,40 @@ async function claimDaily(interaction,user){
  /* -------- REWARDS -------- */
 
  if(user.daily.streak===1){
-
   user.packs++
   reward={type:"pack",value:1}
-
  }
 
  else if(user.daily.streak===2){
-
   user.kamas+=500
   reward={type:"kamas",value:500}
-
  }
 
  else if(user.daily.streak===3){
-
   user.packs++
   reward={type:"pack",value:1}
-
  }
 
  else if(user.daily.streak===4){
-
   user.kamas+=1000
   reward={type:"kamas",value:1000}
-
  }
 
  else if(user.daily.streak===5){
-
   user.packs+=2
   reward={type:"pack",value:2}
-
  }
 
  else if(user.daily.streak===6){
-
   user.kamas+=2000
   reward={type:"kamas",value:2000}
-
  }
 
  else if(user.daily.streak>=7){
 
   const card=giveSSR(user)
 
-  reward={
-   type:"ssr",
-   value:card
-  }
+  reward={type:"ssr",value:card}
 
   const gained=giveAchievement(user,"assidu")
 
@@ -196,17 +168,13 @@ async function claimDaily(interaction,user){
  if(doubleReward){
 
   if(reward.type==="pack"){
-
    user.packs+=reward.value
    reward.value*=2
-
   }
 
   if(reward.type==="kamas"){
-
    user.kamas+=reward.value
    reward.value*=2
-
   }
 
  }
@@ -215,16 +183,14 @@ async function claimDaily(interaction,user){
 
  save()
 
- const realStreak = user.daily.streak
+ const realStreak=user.daily.streak
 
  return{
-
   streak:realStreak,
   reward,
   reset,
   doubleReward,
   streakBar:getStreakBar(realStreak)
-
  }
 
 }

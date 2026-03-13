@@ -20,7 +20,7 @@ module.exports={
 
   /* force le daily */
 
-  const result=claimDaily(user)
+  const result = await claimDaily(interaction,user)
 
   const embed=new EmbedBuilder()
    .setTitle("🧪 DEV DAILY")
