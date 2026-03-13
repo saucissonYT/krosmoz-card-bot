@@ -65,9 +65,18 @@ module.exports={
 
   const user=getUser(interaction.user.id)
 
-  /* FIX: Discord limite les menus à 25 options */
+  /* FIX menu discord */
 
-  const options=sets
+  if(!sets || sets.length===0){
+
+   return interaction.reply({
+    content:"❌ Aucun set disponible.",
+    ephemeral:true
+   })
+
+  }
+
+  const options = sets
    .slice(0,25)
    .map(set=>({
     label:set.name,
