@@ -65,10 +65,14 @@ module.exports={
 
   const user=getUser(interaction.user.id)
 
-  const options=sets.map(set=>({
-   label:set.name,
-   value:set.id
-  }))
+  /* FIX: Discord limite les menus à 25 options */
+
+  const options=sets
+   .slice(0,25)
+   .map(set=>({
+    label:set.name,
+    value:set.id
+   }))
 
   const menu=new StringSelectMenuBuilder()
    .setCustomId("krosmoz_set")
