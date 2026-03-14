@@ -7,14 +7,21 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const { data } = require("../../systems/dataManager")
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
-
-const { isDev } = require("../../systems/devSystem")
+const { getCards } = require("../../systems/cardRegistry")
 
 const rarityOrder={
  SSR:8,S:7,UR:6,HR:5,SR:4,R:3,U:2,C:1
+}
+
+const rarityEmoji={
+ C:"⚪",
+ U:"🟢",
+ R:"🔵",
+ SR:"🟣",
+ HR:"🔴",
+ UR:"🟡",
+ S:"✨",
+ SSR:"🌈"
 }
 
 const PAGE_SIZE=15
@@ -23,45 +30,43 @@ module.exports={
 
  data:new SlashCommandBuilder()
   .setName("listcards")
-  .setDescription("Lister les cartes par set"),
+  .setDescription("Voir les cartes par set"),
 
  async execute(interaction){
 
-  if(!isDev(interaction.user.id))
+  const cards=getCards()
+
+  if(cards.length===0)
    return interaction.reply({
-    content:"Commande dev.",
+    content:"❌ Aucune carte disponible.",
     ephemeral:true
    })
 
-  const cards=data.cards||[]
+  /* ---------- sets ---------- */
 
-  const availableSets=sets.filter(set=>
-   cards.some(card=>card.set===set.id)
-  )
-
-  if(availableSets.length===0)
-   return interaction.reply({
-    content:"❌ Aucun set contenant des cartes.",
-    ephemeral:true
-   })
+  const sets=[...new Set(cards.map(c=>c.set))]
 
   const menu=new StringSelectMenuBuilder()
    .setCustomId("listcards_select")
    .setPlaceholder("Choisir un set")
    .addOptions(
-    availableSets.map(s=>({
-     label:s.name,
-     value:s.id
+    sets.map(set=>({
+     label:set,
+     value:set
     }))
    )
 
   const menuRow=new ActionRowBuilder().addComponents(menu)
 
   const setsEmbed=new EmbedBuilder()
-   .setTitle("📦 Liste des sets")
+   .setTitle("📦 Sets disponibles")
    .setDescription(
-    availableSets.map(s=>`• ${s.name}`).join("\n")
+    sets.map(s=>{
+     const count=cards.filter(c=>c.set===s).length
+     return `• **${s}** (${count} cartes)`
+    }).join("\n")
    )
+   .setColor(0xF1C40F)
 
   await interaction.reply({
    embeds:[setsEmbed],
@@ -125,21 +130,28 @@ module.exports={
 
    }
 
+   const totalPages=Math.max(1,Math.ceil(setCards.length/PAGE_SIZE))
+
+   page=Math.max(0,Math.min(page,totalPages-1))
+
    const start=page*PAGE_SIZE
    const slice=setCards.slice(start,start+PAGE_SIZE)
 
-   const lines=slice.map(c=>
-    `#${c.id} • ${c.name} • ${c.rarity}`
-   )
+   const lines=slice.map(c=>{
 
-   const setData=sets.find(s=>s.id===selectedSet)
+    const emoji=rarityEmoji[c.rarity]||""
+
+    return `#${c.id} • ${emoji} **${c.name}**`
+
+   })
 
    const cardsEmbed=new EmbedBuilder()
-    .setTitle(`📦 ${setData.name}`)
+    .setTitle(`📦 Set : ${selectedSet}`)
     .setDescription(lines.join("\n")||"Aucune carte.")
     .setFooter({
-     text:`Page ${page+1}/${Math.ceil(setCards.length/PAGE_SIZE)}`
+     text:`${setCards.length} cartes • Page ${page+1}/${totalPages}`
     })
+    .setColor(0x3498DB)
 
    const buttons=new ActionRowBuilder().addComponents(
 
@@ -153,7 +165,7 @@ module.exports={
      .setCustomId("list_next")
      .setLabel("➡")
      .setStyle(ButtonStyle.Secondary)
-     .setDisabled(start+PAGE_SIZE>=setCards.length),
+     .setDisabled(page===totalPages-1),
 
     new ButtonBuilder()
      .setCustomId("list_back")

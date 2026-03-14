@@ -21,8 +21,7 @@ Choisis une catégorie ci-dessous.`
   )
   .setColor(0xF1C40F)
 
- const row = new ActionRowBuilder()
-  .addComponents(
+ const row = new ActionRowBuilder().addComponents(
 
    new ButtonBuilder()
     .setCustomId("help_cards")
@@ -56,14 +55,13 @@ Choisis une catégorie ci-dessous.`
 
 function backButton(){
 
- return new ActionRowBuilder()
-  .addComponents(
+ return new ActionRowBuilder().addComponents(
    new ButtonBuilder()
     .setCustomId("help_back")
     .setLabel("Retour")
     .setEmoji("⬅")
     .setStyle(ButtonStyle.Secondary)
-  )
+ )
 
 }
 
@@ -91,9 +89,9 @@ module.exports = {
 
   /* RETOUR */
 
-  if(interaction.customId === "help_back"){
+  if(interaction.customId==="help_back"){
 
-   const menu = mainMenu()
+   const menu=mainMenu()
 
    return interaction.update({
     embeds:[menu.embed],
@@ -104,93 +102,85 @@ module.exports = {
 
   /* CARTES */
 
-  if(interaction.customId === "help_cards"){
+  if(interaction.customId==="help_cards"){
 
-   embed = new EmbedBuilder()
+   embed=new EmbedBuilder()
     .setTitle("🎴 Commandes Cartes")
     .setDescription(
 `/krosmoz → Ouvrir un pack
-/krosmoz set:<nom> → Ouvrir un pack d'un set
 
 /inventaire → Voir ton inventaire
-/carte numero:<n> → Voir une carte
+/carte numero:<id> → Voir une carte
 
-/listcards → Voir toutes les cartes
+/listcards → Voir les cartes par set
 
-/fusion → Fusionner 5 cartes pour obtenir une carte plus rare
-
-/trade → Échanger une carte avec un joueur`
+/fusion → Fusionner des cartes
+/trade → Échanger des cartes`
     )
     .setColor(0x3498DB)
 
-   row = backButton()
+   row=backButton()
 
   }
 
   /* ECONOMIE */
 
-  if(interaction.customId === "help_economy"){
+  if(interaction.customId==="help_economy"){
 
-   embed = new EmbedBuilder()
+   embed=new EmbedBuilder()
     .setTitle("💰 Économie")
     .setDescription(
-`/balance → Voir tes kamas
-
-/buypack → Acheter un pack
+`/buypack → Acheter un pack
 
 /sellcard → Vendre une carte
-/sellall → Vendre tout
+/sellall → Vendre toutes tes cartes
 /sellduplicates → Vendre les doublons
 
-/market → Voir le marché`
+/market → Accéder au marché`
     )
     .setColor(0x2ECC71)
 
-   row = backButton()
+   row=backButton()
 
   }
 
   /* COLLECTION */
 
-  if(interaction.customId === "help_collection"){
+  if(interaction.customId==="help_collection"){
 
-   embed = new EmbedBuilder()
+   embed=new EmbedBuilder()
     .setTitle("📚 Collection")
     .setDescription(
-`/sets → Voir tous les sets
+`/inventaire → Voir ta collection
 
-/set nom:<set> → Voir les cartes d'un set
+/listcards → Explorer toutes les cartes
 
-/pity → Voir ta progression pity
+/carte numero:<id> → Voir une carte précise
 
 /achievements → Voir tes succès`
     )
     .setColor(0x9B59B6)
 
-   row = backButton()
+   row=backButton()
 
   }
 
   /* PROGRESSION */
 
-  if(interaction.customId === "help_progress"){
+  if(interaction.customId==="help_progress"){
 
-   embed = new EmbedBuilder()
+   embed=new EmbedBuilder()
     .setTitle("⭐ Progression")
     .setDescription(
-`/profil → Voir ton profil
-
-/leaderboard → Classement des joueurs
+`/profil → Voir ton profil joueur
 
 /daily → Récompense quotidienne
 
-/titre → Choisir ton titre
-
-/kroshelp → Afficher l'aide`
+/kroshelp → Afficher cette aide`
     )
     .setColor(0xE74C3C)
 
-   row = backButton()
+   row=backButton()
 
   }
 
