@@ -97,6 +97,16 @@ ${getCooldownText(user)}`,
   const setId=interaction.values[0]
   const user=getUser(interaction.user.id)
 
+  /* -------- FIX PITY INITIALISATION -------- */
+
+  if(!user.pity)
+   user.pity={}
+
+  if(!user.pity[setId])
+   user.pity[setId]={SSR:0,UR:0}
+
+  /* ---------------------------------------- */
+
   const now=Date.now()
 
   let freePack=false
@@ -164,7 +174,7 @@ ${getCooldownText(user)}`,
 
   save()
 
-  const pity=user.pity?.[setId] || {SSR:0,UR:0}
+  const pity=user.pity[setId]
 
   const finalEmbed=new EmbedBuilder()
    .setTitle("🎴 Pack ouvert !")
