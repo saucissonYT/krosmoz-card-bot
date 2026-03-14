@@ -339,64 +339,6 @@ Exemples :
 
 ---
 
-# 🚀 Installation
-
-### 1️⃣ Cloner le repo
-
-```
-git clone https://github.com/saucissonYT/krosmoz-card-bot.git
-```
-
----
-
-### 2️⃣ Installer les dépendances
-
-```
-npm install
-```
-
----
-
-### 3️⃣ Créer `.env`
-
-```
-TOKEN=discord_token
-CLIENT_ID=discord_client_id
-```
-
----
-
-### 4️⃣ Déployer les commandes
-
-```
-node deployCommands.js
-```
-
----
-
-### 5️⃣ Lancer le bot
-
-```
-node index.js
-```
-
----
-
-# 🔒 Sécurité
-
-Le fichier `.env` est ignoré via `.gitignore`.
-
-Ne jamais publier :
-
-```
-.env
-node_modules
-database/users.json
-database/market.json
-```
-
----
-
 # 🛣 Roadmap
 
 Fonctionnalités prévues :
@@ -432,6 +374,9 @@ Projet créé par :
 ### 🏆 Succès
 ![Succès](screenshots/succès.PNG)
 
+---
+
+bot hébergé pour l'instant sur railway
 
 ---
 
