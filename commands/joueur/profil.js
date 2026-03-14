@@ -105,63 +105,19 @@ module.exports = {
 
    .addFields(
 
-    {
-     name:"👤 Joueur",
-     value:`${target.username}`,
-     inline:true
-    },
+    {name:"🏅 Rang",value:`${rank.emoji} ${rank.name}`,inline:true},
+    {name:"👑 Titre",value:user.title || "Nouveau",inline:true},
+    {name:"🏆 Succès",value:String(user.achievements?.length || 0),inline:true},
 
-    {
-     name:"🏅 Rang",
-     value:`${rank.emoji} ${rank.name}`,
-     inline:true
-    },
+    {name:"⭐ Niveau",value:`${progression.level}`,inline:true},
+    {name:"📈 XP",value:`${progression.xp} / ${progression.required}`,inline:true},
 
-    {
-     name:"👑 Titre",
-     value:user.title || "Nouveau",
-     inline:true
-    },
+    {name:"📊 Progression XP",value:xpBar},
 
-    {
-     name:"🏆 Succès",
-     value:String(user.achievements?.length || 0),
-     inline:true
-    },
+    {name:"💰 Kamas",value:String(user.kamas || 0),inline:true},
+    {name:"📦 Cartes",value:`${ownedCards}/${totalCards}`,inline:true},
 
-    {
-     name:"⭐ Niveau",
-     value:`${progression.level}`,
-     inline:true
-    },
-
-    {
-     name:"📈 XP",
-     value:`${progression.xp} / ${progression.required}`,
-     inline:true
-    },
-
-    {
-     name:"📊 Progression XP",
-     value:xpBar
-    },
-
-    {
-     name:"💰 Kamas",
-     value:String(user.kamas || 0),
-     inline:true
-    },
-
-    {
-     name:"📦 Cartes",
-     value:`${ownedCards}/${totalCards}`,
-     inline:true
-    },
-
-    {
-     name:"📊 Collection",
-     value:collectionBar
-    },
+    {name:"📊 Collection",value:collectionBar},
 
     {
      name:"📊 Statistiques",
@@ -172,10 +128,7 @@ module.exports = {
 📅 Daily : ${stats.dailyClaims || 0}`
     },
 
-    {
-     name:"🎖 Badges",
-     value:badges
-    }
+    {name:"🎖 Badges",value:badges}
 
    )
 
@@ -236,13 +189,19 @@ module.exports = {
 
     if(i.customId === "profil_sets"){
 
-     const command = interaction.client.commands.get("sets")
+ const command = interaction.client.commands.get("setlist")
 
-     i.options = fakeOptions()
+ if(!command)
+  return i.reply({
+   content:"Commande setlist introuvable.",
+   ephemeral:true
+  })
 
-     return command.execute(i)
+ i.options = fakeOptions()
 
-    }
+ return command.execute(i)
+
+}
 
     if(i.customId === "profil_achievements"){
 
