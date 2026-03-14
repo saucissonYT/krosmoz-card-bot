@@ -1,14 +1,12 @@
 const { data } = require("./dataManager")
 
+let registry = null
+
 /* ---------------- BUILD REGISTRY ---------------- */
 
 function buildRegistry(){
 
- const cardsData = data.cards || []
-
- const cards = Array.isArray(cardsData)
-  ? cardsData
-  : cardsData.cards || []
+ const cards = data.cards || []
 
  const cardsById = Object.fromEntries(
   cards.map(c => [String(c.id), c])
@@ -25,7 +23,7 @@ function buildRegistry(){
 
  }
 
- return {
+ registry = {
   cards,
   cardsById,
   cardsBySet
@@ -33,32 +31,50 @@ function buildRegistry(){
 
 }
 
+/* ---------------- GET REGISTRY ---------------- */
+
+function getRegistry(){
+
+ if(!registry) buildRegistry()
+
+ return registry
+
+}
+
+/* ---------------- RESET ---------------- */
+
+function resetRegistry(){
+
+ registry = null
+
+}
+
 /* ---------------- GETTERS ---------------- */
 
 function getCard(id){
 
- const { cardsById } = buildRegistry()
+ const { cardsById } = getRegistry()
  return cardsById[String(id)]
 
 }
 
 function getCards(){
 
- const { cards } = buildRegistry()
+ const { cards } = getRegistry()
  return cards
 
 }
 
 function getCardsBySet(setId){
 
- const { cardsBySet } = buildRegistry()
+ const { cardsBySet } = getRegistry()
  return cardsBySet[setId] || []
 
 }
 
 function getCardsById(){
 
- const { cardsById } = buildRegistry()
+ const { cardsById } = getRegistry()
  return cardsById
 
 }
@@ -69,5 +85,6 @@ module.exports = {
  getCard,
  getCards,
  getCardsBySet,
- getCardsById
+ getCardsById,
+ resetRegistry
 }
