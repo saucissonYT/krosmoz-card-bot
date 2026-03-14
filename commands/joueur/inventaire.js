@@ -5,24 +5,13 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { cardsById } = require("../../systems/cardRegistry")
+const { getCardsById } = require("../../systems/cardRegistry")
 
 const { getUser, save } = require("../../systems/userSystem")
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-const rarityNames={
- C:"Commune",
- U:"Peu commune",
- R:"Rare",
- SR:"Super Rare",
- HR:"Hyper Rare",
- UR:"Ultra Rare",
- S:"Chromatique",
- SSR:"Super Chromatique"
 }
 
 const rarityOrder={
@@ -57,6 +46,8 @@ module.exports={
  ],
 
  async execute(interaction){
+
+  const cardsById = getCardsById()
 
   const user=getUser(interaction.user.id)
 
@@ -133,9 +124,8 @@ module.exports={
    const lines=data.map(e=>{
 
     const emoji=rarityEmoji[e.card.rarity]||""
-    const rarity=rarityNames[e.card.rarity]||""
 
-    return `#${e.card.id} • ${emoji} **${rarity}** • ${e.card.name} (x${e.count})`
+    return `#${e.card.id} • ${emoji} ${e.card.name} - x${e.count}`
 
    })
 
