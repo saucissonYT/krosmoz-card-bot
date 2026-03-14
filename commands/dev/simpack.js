@@ -71,11 +71,13 @@ module.exports = {
 
    const user = pity ? fakeUser : { pity:{} }
 
-   const pack = generatePack(user, setId)
+   const result = generatePack(user, setId)
+   const pack = result.pack
 
    for (const card of pack) {
 
-    rarityCount[card.rarity]++
+    if(rarityCount[card.rarity] !== undefined)
+     rarityCount[card.rarity]++
 
     totalKamas += rewardKamas(
      { kamas:0 },

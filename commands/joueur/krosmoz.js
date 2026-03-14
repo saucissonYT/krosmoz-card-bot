@@ -8,11 +8,9 @@ const {
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
-const { generatePack } = require("../../systems/pack")
+const { openPack } = require("../../systems/packEngine")
 const { getUser, save } = require("../../systems/userSystem")
-const { rewardKamas } = require("../../systems/rewards")
 const { achievementCheck } = require("../../systems/achievementCheck")
-const { addXP } = require("../../systems/progressionSystem")
 const cooldownDev = require("../dev/cooldown")
 
 const rarityEmoji={
@@ -24,12 +22,6 @@ const rarityColor={
  C:"#95a5a6",U:"#2ecc71",R:"#3498db",
  SR:"#9b59b6",HR:"#e74c3c",
  UR:"#f1c40f",S:"#ecf0f1",SSR:"#ffcc00"
-}
-
-const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
-
-const rarityXP={
- C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
 
 function sleep(ms){
@@ -65,15 +57,11 @@ module.exports={
 
   const user=getUser(interaction.user.id)
 
-  /* FIX menu discord */
-
   if(!sets || sets.length===0){
-
    return interaction.reply({
     content:"❌ Aucun set disponible.",
     ephemeral:true
    })
-
   }
 
   const options = sets
@@ -120,6 +108,7 @@ ${getCooldownText(user)}`,
 
   if(!freePack && (!user.packs || user.packs<=0)){
    const remain=Math.ceil((3600000-(now-user.lastPack))/60000)
+
    return interaction.editReply(
 `❌ Aucun pack disponible.
 ⏳ Prochain pack gratuit : **${remain} min**`
@@ -131,23 +120,17 @@ ${getCooldownText(user)}`,
 
   user.stats.packsOpened=(user.stats.packsOpened||0)+1
 
-  const result=generatePack(user,setId)
+  const result=openPack(user,setId)
+
   const pack=result.pack
   const luckyPack=result.luckyPack
-
-  const today=new Date().toDateString()
-  let xpGain=20
-  let dailyBonus=false
-
-  if(user.dailyXP!==today){
-   xpGain*=2
-   user.dailyXP=today
-   dailyBonus=true
-  }
+  const discovered=result.discovered
+  const kamasGain=result.kamasGain
+  const xpGain=result.xpGain
+  const best=result.best
+  const dailyBonus=result.dailyBonus
 
   let revealed=[]
-  let kamasGain=0
-  let discovered=[]
 
   await interaction.editReply("🎴 **Ouverture du pack...**")
 
@@ -168,12 +151,6 @@ ${getCooldownText(user)}`,
 
    revealed.push(line)
 
-   kamasGain+=rewardKamas(user,card.rarity)
-
-   if(!user.cards[card.id]) discovered.push(card)
-
-   user.cards[card.id]=(user.cards[card.id]||0)+1
-
    const revealEmbed=new EmbedBuilder()
     .setTitle("🎴 Ouverture du pack")
     .setDescription(revealed.join("\n"))
@@ -182,19 +159,6 @@ ${getCooldownText(user)}`,
    await message.edit({embeds:[revealEmbed]})
    await sleep(800)
   }
-
-  let best=pack[0]
-
-  for(const card of pack){
-   if(rarityOrder.indexOf(card.rarity)>
-      rarityOrder.indexOf(best.rarity)){
-    best=card
-   }
-  }
-
-  xpGain+=rarityXP[best.rarity]
-
-  addXP(user,xpGain)
 
   await achievementCheck(interaction,user)
 

@@ -1,10 +1,13 @@
 const { EmbedBuilder } = require("discord.js")
-const cards = require("../../cards/cards.json")
+
+const { getCards } = require("../../systems/cardRegistry")
 
 const { getUser, save } = require("../../systems/userSystem")
-const { checkAchievements, giveAchievement } = require("../../systems/achievementSystem")
+const { giveAchievement } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { addXP } = require("../../systems/progressionSystem")
+
+const cards = getCards()
 
 const rarityOrder=[
  "C","U","R","SR","HR","UR","S","SSR"
@@ -27,11 +30,7 @@ module.exports={
  description:"Fusionner 5 cartes pour obtenir une rareté supérieure",
 
  options:[
-  {
-   name:"set",
-   type:3,
-   required:true
-  },
+  {name:"set",type:3,required:true},
   {
    name:"rarete",
    type:3,
@@ -59,12 +58,10 @@ module.exports={
   if(index === -1)
    return interaction.reply("Rareté invalide.")
 
-  /* INTERDICTION FUSION UR */
-
   if(rarity === "UR")
    return interaction.reply("❌ Impossible de fusionner des UR.")
 
-  const pool = cards.cards.filter(c =>
+  const pool = cards.filter(c =>
    c.set === setName &&
    c.rarity === rarity
   )
@@ -106,8 +103,6 @@ module.exports={
   let message=""
   let xpGain = 15
 
-  /* FUSION CRITIQUE */
-
   if(roll < 0.10){
 
    rarityGain = 2
@@ -116,18 +111,11 @@ module.exports={
 
    user.stats.fusionCrit = (user.stats.fusionCrit || 0) + 1
 
-   if(user.stats.fusionCrit === 1)
-    giveAchievement(user,"fusionCrit")
-
-   if(user.stats.fusionCrit === 10)
-    giveAchievement(user,"fusionCrit10")
-
-   if(user.stats.fusionCrit === 100)
-    giveAchievement(user,"fusionCrit100")
+   if(user.stats.fusionCrit === 1) giveAchievement(user,"fusionCrit")
+   if(user.stats.fusionCrit === 10) giveAchievement(user,"fusionCrit10")
+   if(user.stats.fusionCrit === 100) giveAchievement(user,"fusionCrit100")
 
   }
-
-  /* FUSION DOUBLE */
 
   else if(roll < 0.20){
 
@@ -137,22 +125,13 @@ module.exports={
 
    user.stats.fusionDouble = (user.stats.fusionDouble || 0) + 1
 
-   if(user.stats.fusionDouble === 1)
-    giveAchievement(user,"fusionDouble")
-
-   if(user.stats.fusionDouble === 10)
-    giveAchievement(user,"fusionDouble10")
-
-   if(user.stats.fusionDouble === 100)
-    giveAchievement(user,"fusionDouble100")
+   if(user.stats.fusionDouble === 1) giveAchievement(user,"fusionDouble")
+   if(user.stats.fusionDouble === 10) giveAchievement(user,"fusionDouble10")
+   if(user.stats.fusionDouble === 100) giveAchievement(user,"fusionDouble100")
 
   }
 
-  /* CALCUL RARETE CIBLE */
-
   let targetIndex = index + rarityGain
-
-  /* LIMITATION MAX = S */
 
   const maxIndex = rarityOrder.indexOf("S")
 
@@ -161,7 +140,7 @@ module.exports={
 
   const targetRarity = rarityOrder[targetIndex]
 
-  const rewardPool = cards.cards.filter(c =>
+  const rewardPool = cards.filter(c =>
    c.set === setName &&
    c.rarity === targetRarity
   )
@@ -179,9 +158,6 @@ module.exports={
 
    rewards.push(card)
 
-   if(!user.cards)
-    user.cards={}
-
    user.cards[card.id] =
     (user.cards[card.id]||0)+1
 
@@ -198,9 +174,7 @@ module.exports={
   )
 
   const embed = new EmbedBuilder()
-
    .setTitle("⚗️ Fusion de cartes")
-
    .setDescription(
 `${message}
 

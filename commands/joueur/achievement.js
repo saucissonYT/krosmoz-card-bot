@@ -21,13 +21,12 @@ module.exports={
 
   let page=1
   const perPage=8
+  const maxPage=Math.max(1,Math.ceil(list.length/perPage))
 
   function build(){
 
    const start=(page-1)*perPage
    const slice=list.slice(start,start+perPage)
-
-   const maxPage=Math.ceil(list.length/perPage)
 
    const lines=slice.map(([id,data])=>{
 
@@ -38,15 +37,11 @@ module.exports={
    })
 
    const embed=new EmbedBuilder()
-
     .setTitle("🏆 Succès")
-
-    .setDescription(lines.join("\n"))
-
+    .setDescription(lines.join("\n") || "Aucun succès.")
     .setFooter({
      text:`Page ${page}/${maxPage}`
     })
-
     .setColor("#f1c40f")
 
    const row=new ActionRowBuilder().addComponents(
@@ -55,17 +50,17 @@ module.exports={
      .setCustomId("prev")
      .setLabel("⬅️")
      .setStyle(ButtonStyle.Primary)
-     .setDisabled(page===1),
+     .setDisabled(page<=1),
 
     new ButtonBuilder()
      .setCustomId("next")
      .setLabel("➡️")
      .setStyle(ButtonStyle.Primary)
-     .setDisabled(page===maxPage)
+     .setDisabled(page>=maxPage)
 
    )
 
-   return {embed,row,maxPage}
+   return {embed,row}
 
   }
 
@@ -89,9 +84,9 @@ module.exports={
    if(i.customId==="next") page++
    if(i.customId==="prev") page--
 
-   const {embed,row,maxPage}=build()
-
    page=Math.max(1,Math.min(page,maxPage))
+
+   const {embed,row}=build()
 
    await i.update({
     embeds:[embed],

@@ -6,9 +6,7 @@ const {
 } = require("discord.js")
 
 const { getUsers } = require("../../systems/userSystem")
-const cards=require("../../cards/cards.json")
-
-const users=getUsers()
+const { getCards } = require("../../systems/cardRegistry")
 
 const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
 
@@ -19,6 +17,9 @@ module.exports={
 
  async execute(interaction){
 
+  const users=getUsers()
+  const cards=getCards()
+
   const collection=[]
   const wealth=[]
   const ssr=[]
@@ -26,7 +27,7 @@ module.exports={
   const achievements=[]
   const level=[]
 
-  const ssrIds = cards.cards
+  const ssrIds = cards
    .filter(c=>c.rarity==="SSR")
    .map(c=>Number(c.id))
 
@@ -119,7 +120,6 @@ module.exports={
    }
 
    const embed=new EmbedBuilder()
-
     .setTitle(`🏆 Leaderboard — ${titles[mode]}`)
     .setDescription(lines.join("\n") || "Aucun joueur")
     .addFields({
@@ -131,51 +131,7 @@ module.exports={
     })
     .setColor("#f1c40f")
 
-   /* ---------- MODES (ligne 1) ---------- */
-
-   const row1=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("collection")
-     .setLabel("📚")
-     .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-     .setCustomId("wealth")
-     .setLabel("💰")
-     .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-     .setCustomId("ssr")
-     .setLabel("🌈")
-     .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-     .setCustomId("packs")
-     .setLabel("📦")
-     .setStyle(ButtonStyle.Secondary),
-
-    new ButtonBuilder()
-     .setCustomId("achievements")
-     .setLabel("🏆")
-     .setStyle(ButtonStyle.Secondary)
-
-   )
-
-   /* ---------- MODES (ligne 2) ---------- */
-
-   const rowMode2=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("level")
-     .setLabel("⭐")
-     .setStyle(ButtonStyle.Secondary)
-
-   )
-
-   /* ---------- PAGINATION ---------- */
-
-   const row2=new ActionRowBuilder().addComponents(
+   const row=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("prev")
@@ -191,15 +147,15 @@ module.exports={
 
    )
 
-   return {embed,components:[row1,rowMode2,row2],maxPage}
+   return {embed,row,maxPage}
 
   }
 
-  const {embed,components}=build()
+  const {embed,row}=build()
 
   const msg=await interaction.reply({
    embeds:[embed],
-   components,
+   components:[row],
    fetchReply:true
   })
 
@@ -212,21 +168,16 @@ module.exports={
    if(i.user.id!==interaction.user.id)
     return i.reply({content:"Pas ton menu.",ephemeral:true})
 
-   if(["collection","wealth","ssr","packs","achievements","level"].includes(i.customId)){
-    mode=i.customId
-    page=1
-   }
-
    if(i.customId==="next") page++
    if(i.customId==="prev") page--
 
-   const {embed,components,maxPage}=build()
+   const {embed,row,maxPage}=build()
 
    page=Math.max(1,Math.min(page,maxPage))
 
    await i.update({
     embeds:[embed],
-    components
+    components:[row]
    })
 
   })
