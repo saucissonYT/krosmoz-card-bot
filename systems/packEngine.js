@@ -1,4 +1,4 @@
-const { generatePack } = require("./pack")
+const generatePack = require("./pack")
 const { rewardKamas } = require("./rewards")
 const { addXP } = require("./progressionSystem")
 
