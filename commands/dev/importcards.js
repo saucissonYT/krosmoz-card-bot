@@ -9,9 +9,9 @@ const sets = Array.isArray(setsData) ? setsData : setsData.sets
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 
-const allowedRarities=["C","U","R","SR","HR","UR","S","SSR"]
+const allowedRarities = ["C","U","R","SR","HR","UR","S","SSR"]
 
-module.exports={
+module.exports = {
 
  name:"importcards",
  description:"Importer des cartes",
@@ -23,40 +23,49 @@ module.exports={
 
   const importFolder="./cards/import"
 
-  const files=fs.readdirSync(importFolder)
+  if(!fs.existsSync(importFolder))
+   return interaction.reply("❌ Dossier `cards/import` introuvable.")
 
-  let imported=0
+  const files = fs.readdirSync(importFolder)
+   .filter(f => f.toLowerCase().endsWith(".png"))
+
+  let imported = 0
 
   for(const file of files){
 
-   const base=file.split(".")[0]
-   const split=base.split("_")
+   const base = file.split(".")[0]
+   const split = base.split("_")
 
-   const rarity=split.pop()
-   const set=split.pop().toLowerCase()
+   if(split.length < 3)
+    continue
 
-   const name=split.join(" ")
+   const rarity = split.pop().toUpperCase()
+   const set = split.pop().toLowerCase()
+   const name = split.join(" ")
 
    if(!allowedRarities.includes(rarity))
     continue
 
-   const setExists = sets.find(s=>s.id===set)
+   const setExists = sets.find(s => s.id === set)
 
    if(!setExists)
     continue
 
-   const id=getNextCardId()
+   const id = getNextCardId()
 
-   const setFolder=`./cards/images/${set}`
+   const setFolder = `./cards/images/${set}`
 
    if(!fs.existsSync(setFolder))
     fs.mkdirSync(setFolder,{recursive:true})
 
-   const newFile=`${id}_${name.replace(/\s/g,"_").toLowerCase()}_${rarity}.png`
+   const newFile = `${id}_${name.replace(/\s/g,"_").toLowerCase()}_${rarity}.png`
 
    await sharp(`${importFolder}/${file}`)
     .png()
     .toFile(`${setFolder}/${newFile}`)
+
+   if(!cards.cards)
+    cards.cards = []
 
    cards.cards.push({
     id,
