@@ -7,6 +7,8 @@ function getRandom(arr){
  return arr[Math.floor(Math.random()*arr.length)]
 }
 
+/* ---------------- GIVE SSR ---------------- */
+
 function giveSSR(user){
 
  const ssrCards = cards.filter(c => c.rarity === "SSR")
@@ -14,6 +16,21 @@ function giveSSR(user){
  if(!ssrCards.length) return null
 
  const card = getRandom(ssrCards)
+
+ user.cards[card.id] = (user.cards[card.id] || 0) + 1
+
+ return card
+}
+
+/* ---------------- GIVE UR ---------------- */
+
+function giveUR(user){
+
+ const urCards = cards.filter(c => c.rarity === "UR")
+
+ if(!urCards.length) return null
+
+ const card = getRandom(urCards)
 
  user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
@@ -51,10 +68,20 @@ async function claimDaily(interaction,user){
  user.daily.streak++
 
  let reward=null
+ let doubleReward=false
 
- /* SSR streak 7 */
+ const today=new Date().getDay()
 
- if(user.daily.streak >= 7){
+ const weekend = (today===0 || today===6)
+
+ /* ---------- DOUBLE REWARD ---------- */
+
+ if(Math.random()<0.10)
+  doubleReward=true
+
+ /* ---------- STREAK REWARDS ---------- */
+
+ if(user.daily.streak === 30){
 
   const card = giveSSR(user)
 
@@ -65,11 +92,25 @@ async function claimDaily(interaction,user){
 
   user.daily.streak = 0
 
+ }else if(user.daily.streak === 7){
+
+  const card = giveUR(user)
+
+  reward={
+   type:"ur",
+   value:card
+  }
+
  }else{
 
-  if(Math.random() < 0.5){
+  /* ---------- NORMAL REWARD ---------- */
 
-   const packs = 1
+  if(Math.random()<0.5){
+
+   let packs = weekend ? 2 : 1
+
+   if(doubleReward)
+    packs*=2
 
    user.packs = (user.packs || 0) + packs
 
@@ -80,7 +121,10 @@ async function claimDaily(interaction,user){
 
   }else{
 
-   const kamas = 200
+   let kamas = weekend ? 400 : 200
+
+   if(doubleReward)
+    kamas*=2
 
    user.kamas = (user.kamas || 0) + kamas
 
@@ -93,12 +137,14 @@ async function claimDaily(interaction,user){
 
  }
 
- /* streak bar */
+ /* ---------- STREAK BAR ---------- */
 
- const filled = "🟩".repeat(user.daily.streak)
- const empty = "⬛".repeat(7-user.daily.streak)
+ const max=30
 
- const streakBar = `${filled}${empty}`
+ const filled="🟩".repeat(user.daily.streak)
+ const empty="⬛".repeat(max-user.daily.streak)
+
+ const streakBar=`${filled}${empty}`
 
  save()
 
@@ -106,7 +152,7 @@ async function claimDaily(interaction,user){
   reward,
   streak:user.daily.streak,
   streakBar,
-  doubleReward:false
+  doubleReward
  }
 
 }
@@ -114,5 +160,6 @@ async function claimDaily(interaction,user){
 module.exports={
  canClaim,
  claimDaily,
- giveSSR
+ giveSSR,
+ giveUR
 }
