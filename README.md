@@ -146,6 +146,58 @@ Structure :
 
 ---
 
+## 📦 Sets de cartes
+
+Le jeu contient actuellement **2 sets principaux** totalisant **363 cartes**.
+
+### ☁️ Incarnam — Set de départ
+
+Premier set du jeu.
+Les joueurs commencent leur collection avec les cartes d’**Incarnam**.
+
+* **127 cartes**
+* Majorité de **C / U**
+* Quelques cartes **SR / HR / UR**
+* Quelques **SSR** très rares
+
+Distribution :
+
+C : 60
+U : 21
+R : 15
+SR : 16
+HR : 7
+UR : 6
+S : 3
+SSR : 6
+
+---
+
+### 🌾 Astrub — Set principal
+
+Deuxième set du jeu avec beaucoup plus de contenu et d’équipements.
+
+* **236 cartes**
+* Beaucoup d’objets, ressources et panoplies
+* Plusieurs cartes **rares et spéciales**
+
+Distribution :
+
+C : 98
+U : 62
+R : 45
+SR : 21
+HR : 14
+UR : 12
+S : 7
+SSR : 4
+
+---
+
+### 📊 Total du jeu
+
+363 cartes
+
 # 🎮 Commandes Joueur
 
 ## Packs
