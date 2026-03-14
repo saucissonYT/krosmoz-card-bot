@@ -12,13 +12,28 @@ function openPack(user,setId){
 
  const result = generatePack(user,setId)
 
- const pack = result.pack
- const luckyPack = result.luckyPack
+ const pack = result?.pack || []
+ const luckyPack = result?.luckyPack || false
+
+ if(!Array.isArray(pack) || pack.length === 0){
+  console.error("Pack vide ou invalide :", setId)
+  return {
+   pack:[],
+   luckyPack:false,
+   discovered:[],
+   kamasGain:0,
+   xpGain:0,
+   best:null,
+   dailyBonus:false
+  }
+ }
 
  let discovered=[]
  let kamasGain=0
 
  for(const card of pack){
+
+  if(!card) continue
 
   if(!user.cards[card.id])
    discovered.push(card)
@@ -29,13 +44,19 @@ function openPack(user,setId){
 
  }
 
- let best=pack[0]
+ let best = pack.find(c=>c) || null
 
- for(const card of pack){
+ if(best){
 
-  if(rarityOrder.indexOf(card.rarity)>
-     rarityOrder.indexOf(best.rarity))
-   best=card
+  for(const card of pack){
+
+   if(!card) continue
+
+   if(rarityOrder.indexOf(card.rarity)>
+      rarityOrder.indexOf(best.rarity))
+    best=card
+
+  }
 
  }
 
@@ -50,7 +71,8 @@ function openPack(user,setId){
   dailyBonus=true
  }
 
- xpGain+=rarityXP[best.rarity]
+ if(best)
+  xpGain+=rarityXP[best.rarity] || 0
 
  addXP(user,xpGain)
 
