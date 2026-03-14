@@ -1,3 +1,11 @@
+const {
+ ActionRowBuilder,
+ StringSelectMenuBuilder,
+ ButtonBuilder,
+ ButtonStyle,
+ EmbedBuilder
+} = require("discord.js")
+
 const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
@@ -17,25 +25,10 @@ const rarityOrder = {
  C:1
 }
 
-const setChoices = sets.map(s=>({
- name:s.name,
- value:s.id
-}))
-
 module.exports = {
 
  name:"listcards",
  description:"Lister les cartes d'un set",
-
- options:[
-  {
-   name:"set",
-   description:"Nom du set",
-   type:3,
-   required:true,
-   choices:setChoices
-  }
- ],
 
  async execute(interaction){
 
@@ -45,17 +38,41 @@ module.exports = {
     ephemeral:true
    })
 
-  const setId = interaction.options.getString("set")
+  const menu = new StringSelectMenuBuilder()
+   .setCustomId("listcards_set")
+   .setPlaceholder("Choisir un set")
+   .addOptions(
+    sets.map(s=>({
+     label:s.name,
+     value:s.id
+    }))
+   )
+
+  const row = new ActionRowBuilder().addComponents(menu)
+
+  interaction.reply({
+   content:"📦 Choisis un set",
+   components:[row],
+   ephemeral:true
+  })
+
+ },
+
+ async menu(interaction){
+
+  if(interaction.customId !== "listcards_set") return
+
+  const setId = interaction.values[0]
 
   const setData = sets.find(s=>s.id===setId)
 
   if(!setData)
-   return interaction.reply("Set introuvable.")
+   return interaction.update({content:"Set introuvable.",components:[]})
 
   const setCards = cards.filter(c=>c.set===setId)
 
   if(setCards.length === 0)
-   return interaction.reply("Aucune carte dans ce set.")
+   return interaction.update({content:"Aucune carte.",components:[]})
 
   setCards.sort((a,b)=>{
 
@@ -69,17 +86,101 @@ module.exports = {
 
   })
 
-  const text = setCards
-   .slice(0,100)
-   .map(c=>`ID:${c.id} | ${c.name} | ${c.rarity}`)
-   .join("\n")
+  const perPage = 50
+  let page = 1
+  const totalPages = Math.ceil(setCards.length/perPage)
 
-  interaction.reply({
-   content:
-`📦 Set : ${setData.name}
+  function build(page){
 
-${text}`,
-   ephemeral:true
+   const start = (page-1)*perPage
+   const data = setCards.slice(start,start+perPage)
+
+   const lines = data.map(c=>
+    `ID:${c.id} | ${c.name} | ${c.rarity}`
+   )
+
+   const embed = new EmbedBuilder()
+    .setTitle(`📦 ${setData.name}`)
+    .setDescription(lines.join("\n"))
+    .setFooter({
+     text:`Page ${page}/${totalPages} • ${setCards.length} cartes`
+    })
+
+   const row = new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("listcards_prev")
+     .setLabel("⬅️")
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(page===1),
+
+    new ButtonBuilder()
+     .setCustomId("listcards_next")
+     .setLabel("➡️")
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(page===totalPages),
+
+    new ButtonBuilder()
+     .setCustomId("listcards_back")
+     .setLabel("↩ Retour sets")
+     .setStyle(ButtonStyle.Danger)
+
+   )
+
+   return {embed,row}
+
+  }
+
+  const {embed,row} = build(page)
+
+  const msg = await interaction.update({
+   embeds:[embed],
+   components:[row]
+  })
+
+  const collector = msg.createMessageComponentCollector({
+   time:120000
+  })
+
+  collector.on("collect", async i=>{
+
+   if(i.user.id !== interaction.user.id)
+    return i.reply({content:"Pas ton menu.",ephemeral:true})
+
+   if(i.customId === "listcards_next") page++
+   if(i.customId === "listcards_prev") page--
+
+   if(i.customId === "listcards_back"){
+
+    const menu = new StringSelectMenuBuilder()
+     .setCustomId("listcards_set")
+     .setPlaceholder("Choisir un set")
+     .addOptions(
+      sets.map(s=>({
+       label:s.name,
+       value:s.id
+      }))
+     )
+
+    const row = new ActionRowBuilder().addComponents(menu)
+
+    return i.update({
+     content:"📦 Choisis un set",
+     embeds:[],
+     components:[row]
+    })
+
+   }
+
+   page=Math.max(1,Math.min(page,totalPages))
+
+   const {embed,row} = build(page)
+
+   await i.update({
+    embeds:[embed],
+    components:[row]
+   })
+
   })
 
  }
