@@ -1,8 +1,9 @@
 const { EmbedBuilder } = require("discord.js")
 
-const sets = require("../../cards/sets.json")
-const cardsData = require("../../cards/cards.json")
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
+const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
 module.exports = {

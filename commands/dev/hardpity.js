@@ -7,7 +7,9 @@ const {
 
 const { isDev } = require("../../systems/devSystem")
 const { getUsers, save } = require("../../systems/userSystem")
-const sets = require("../../cards/sets.json")
+
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 module.exports = {
 
@@ -31,7 +33,7 @@ module.exports = {
 
   const target = interaction.options.getUser("joueur")
 
-  const options = sets.map(set => ({
+  const options = sets.slice(0,25).map(set => ({
    label:set.name,
    value:String(set.id)
   }))
@@ -55,8 +57,6 @@ module.exports = {
 
   const id = interaction.customId
 
-  // SELECTION SET
-
   if(id.startsWith("hardpityset_")){
 
    const userId = id.split("_")[1]
@@ -66,16 +66,8 @@ module.exports = {
     .setCustomId(`hardpity_${userId}_${setId}`)
     .setPlaceholder("Choisir la hard pity")
     .addOptions([
-     {
-      label:"Hard Pity SSR",
-      value:"SSR",
-      emoji:"🌈"
-     },
-     {
-      label:"Hard Pity UR",
-      value:"UR",
-      emoji:"🔥"
-     }
+     {label:"Hard Pity SSR",value:"SSR",emoji:"🌈"},
+     {label:"Hard Pity UR",value:"UR",emoji:"🔥"}
     ])
 
    const row = new ActionRowBuilder().addComponents(menu)
@@ -86,8 +78,6 @@ module.exports = {
    })
 
   }
-
-  // SELECTION RARETE
 
   if(!id.startsWith("hardpity_")) return
 

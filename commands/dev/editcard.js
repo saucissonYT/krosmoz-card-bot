@@ -1,6 +1,8 @@
 const fs = require("fs")
 const cards = require("../../cards/cards.json")
-const sets = require("../../cards/sets.json")
+
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const { isDev } = require("../../systems/devSystem")
 
@@ -35,7 +37,7 @@ module.exports = {
   if(rarity) card.rarity = rarity
 
   if(setId){
-   const setExists = sets.sets.find(s=>s.id===setId)
+   const setExists = sets.find(s=>s.id===setId)
    if(!setExists)
     return interaction.reply("Set invalide.")
 

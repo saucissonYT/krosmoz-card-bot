@@ -2,14 +2,14 @@ const fs = require("fs")
 const sharp = require("sharp")
 
 const cards = require("../../cards/cards.json")
-const sets = require("../../cards/sets.json")
+
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 
-const allowedRarities=[
- "C","U","R","SR","HR","UR","S","SSR"
-]
+const allowedRarities=["C","U","R","SR","HR","UR","S","SSR"]
 
 module.exports={
 
@@ -40,7 +40,7 @@ module.exports={
    if(!allowedRarities.includes(rarity))
     continue
 
-   const setExists = sets.sets.find(s=>s.id===set)
+   const setExists = sets.find(s=>s.id===set)
 
    if(!setExists)
     continue
@@ -50,7 +50,7 @@ module.exports={
    const setFolder=`./cards/images/${set}`
 
    if(!fs.existsSync(setFolder))
-    fs.mkdirSync(setFolder)
+    fs.mkdirSync(setFolder,{recursive:true})
 
    const newFile=`${id}_${name.replace(/\s/g,"_").toLowerCase()}_${rarity}.png`
 
