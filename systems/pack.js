@@ -43,15 +43,39 @@ function generatePack(user,setId){
  if(!setCards || setCards.length===0)
   return {pack:[],luckyPack:false}
 
+ /* ---------- INIT PITY ---------- */
+
+ if(!user.pity)
+  user.pity={}
+
+ if(!user.pity[setId])
+  user.pity[setId]={UR:0,SSR:0}
+
+ const pity=user.pity[setId]
+
+ /* ---------- HARD PITY ---------- */
+
+ let forced=null
+
+ if(pity.SSR>=49){
+  forced="SSR"
+ }else if(pity.UR>=9){
+  forced="UR"
+ }
+
  const pack=[]
 
  for(let i=0;i<5;i++){
 
-  const rarity=rollRarity()
+  let rarity
+
+  if(i===4 && forced){
+   rarity=forced
+  }else{
+   rarity=rollRarity()
+  }
 
   let pool=setCards.filter(c=>c.rarity===rarity)
-
-  /* si aucune carte de cette rareté */
 
   if(pool.length===0)
    pool=setCards
@@ -62,6 +86,32 @@ function generatePack(user,setId){
    pack.push(card)
 
  }
+
+ /* ---------- UPDATE PITY ---------- */
+
+ const best=pack.reduce((a,b)=>
+  rarityOrder.indexOf(b.rarity)>
+  rarityOrder.indexOf(a.rarity)?b:a
+ )
+
+ if(best.rarity==="SSR"){
+
+  pity.SSR=0
+  pity.UR++
+
+ }else if(best.rarity==="UR"){
+
+  pity.UR=0
+  pity.SSR++
+
+ }else{
+
+  pity.UR++
+  pity.SSR++
+
+ }
+
+ /* ---------- LUCKY PACK ---------- */
 
  let luckyPack=false
 
