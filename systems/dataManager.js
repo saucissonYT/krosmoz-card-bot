@@ -14,7 +14,8 @@ if(!fs.existsSync(BASE)){
 const paths = {
  users: path.join(BASE,"users.json"),
  market: path.join(BASE,"market.json"),
- devs: path.join(BASE,"devs.json")
+ devs: path.join(BASE,"devs.json"),
+ cards: path.join(BASE,"cards.json")
 }
 
 /* ---------------- DATA CACHE ---------------- */
@@ -22,7 +23,8 @@ const paths = {
 const data = {
  users:{},
  market:[],
- devs:{ owners:[], devs:[] }
+ devs:{ owners:[], devs:[] },
+ cards:[]
 }
 
 /* ---------------- LOAD FILE ---------------- */
@@ -30,10 +32,8 @@ const data = {
 function loadFile(file,defaultValue){
 
  if(!fs.existsSync(file)){
-
   fs.writeFileSync(file,JSON.stringify(defaultValue,null,2))
   return JSON.parse(JSON.stringify(defaultValue))
-
  }
 
  try{
@@ -60,6 +60,7 @@ function loadAll(){
  data.users = loadFile(paths.users,{})
  data.market = loadFile(paths.market,[])
  data.devs = loadFile(paths.devs,{owners:[],devs:[]})
+ data.cards = loadFile(paths.cards,[])
 
  console.log("DataManager chargé")
 
@@ -74,6 +75,7 @@ function save(){
   fs.writeFileSync(paths.users,JSON.stringify(data.users,null,2))
   fs.writeFileSync(paths.market,JSON.stringify(data.market,null,2))
   fs.writeFileSync(paths.devs,JSON.stringify(data.devs,null,2))
+  fs.writeFileSync(paths.cards,JSON.stringify(data.cards,null,2))
 
  }catch(err){
 
