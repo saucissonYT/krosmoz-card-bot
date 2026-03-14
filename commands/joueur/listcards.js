@@ -2,7 +2,8 @@ const {
  ActionRowBuilder,
  StringSelectMenuBuilder,
  ButtonBuilder,
- ButtonStyle
+ ButtonStyle,
+ SlashCommandBuilder
 } = require("discord.js")
 
 const cardsData = require("../../cards/cards.json")
@@ -28,8 +29,9 @@ const PAGE_SIZE = 15
 
 module.exports = {
 
- name:"listcards",
- description:"Lister les cartes d'un set",
+ data: new SlashCommandBuilder()
+  .setName("listcards")
+  .setDescription("Lister les cartes d'un set"),
 
  async execute(interaction){
 

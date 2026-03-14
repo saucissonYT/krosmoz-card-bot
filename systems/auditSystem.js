@@ -3,13 +3,17 @@ const path = require("path")
 
 const cardsPath = path.join(__dirname, "../cards/cards.json")
 const setsPath = path.join(__dirname, "../cards/sets.json")
-const usersPath = path.join(__dirname, "../database/users.json")
+
+const usersPath = process.env.RAILWAY
+ ? "/data/users.json"
+ : path.join(__dirname, "../database/users.json")
+
 const imagesDir = path.join(__dirname, "../cards/images")
 
-function progressBar(percent) {
+function progressBar(percent){
 
  const total = 20
- const filled = Math.round((percent/100) * total)
+ const filled = Math.round((percent/100)*total)
 
  const bar =
   "🟩".repeat(filled) +
@@ -18,7 +22,7 @@ function progressBar(percent) {
  return `${bar} ${percent}%`
 }
 
-/* ---------------- SCAN IMAGES RECURSIF ---------------- */
+/* ---------------- SCAN IMAGES ---------------- */
 
 function scanImages(dir){
 
@@ -51,38 +55,45 @@ function scanImages(dir){
 
 }
 
-async function runFullAudit(client, updateProgress) {
+/* ---------------- FULL AUDIT ---------------- */
 
- const result = {
-  commands: [],
-  cards: [],
-  sets: [],
-  images: [],
-  users: []
+async function runFullAudit(client,updateProgress){
+
+ const result={
+  commands:[],
+  cards:[],
+  sets:[],
+  images:[],
+  users:[]
  }
 
- let step = 0
- const steps = 5
+ let step=0
+ const steps=5
 
- function progress() {
+ function progress(){
+
   step++
-  const percent = Math.round((step/steps)*100)
-  if (updateProgress) updateProgress(percent)
+  const percent=Math.round((step/steps)*100)
+
+  if(updateProgress)
+   updateProgress(percent)
+
  }
 
- // COMMANDES
- for (const command of client.commands.values()) {
+ /* COMMANDES */
+
+ for(const command of client.commands.values()){
 
   const name = command?.data?.name || "unknown"
 
-  if (!command.execute) {
+  if(!command.execute){
 
    result.commands.push(`❌ ${name} execute() manquant`)
    continue
 
   }
 
-  if (!command.data) {
+  if(!command.data){
 
    result.commands.push(`❌ ${name} data manquant`)
    continue
@@ -95,36 +106,37 @@ async function runFullAudit(client, updateProgress) {
 
  progress()
 
- // CARDS
- try {
+ /* CARDS */
+
+ try{
 
   const raw = JSON.parse(fs.readFileSync(cardsPath))
   const cards = raw.cards || raw
 
   const ids = new Set()
 
-  for (const c of cards) {
+  for(const c of cards){
 
-   if (ids.has(c.id))
+   if(ids.has(c.id))
     result.cards.push(`❌ ID doublon ${c.id}`)
 
    ids.add(c.id)
 
-   if (!c.name)
+   if(!c.name)
     result.cards.push(`❌ carte ${c.id} sans nom`)
 
-   if (!c.rarity)
+   if(!c.rarity)
     result.cards.push(`❌ carte ${c.id} sans rareté`)
 
-   if (!c.set)
+   if(!c.set)
     result.cards.push(`❌ carte ${c.id} sans set`)
 
   }
 
-  if (result.cards.length === 0)
+  if(result.cards.length===0)
    result.cards.push("✅ cartes valides")
 
- } catch {
+ }catch{
 
   result.cards.push("❌ erreur lecture cards.json")
 
@@ -132,17 +144,18 @@ async function runFullAudit(client, updateProgress) {
 
  progress()
 
- // SETS
- try {
+ /* SETS */
+
+ try{
 
   const sets = JSON.parse(fs.readFileSync(setsPath))
   const cards = JSON.parse(fs.readFileSync(cardsPath)).cards
 
-  const setNames = sets.map(s => s.id || s.name)
+  const setNames = sets.map(s=>s.id || s.name)
 
-  for (const card of cards) {
+  for(const card of cards){
 
-   if (!setNames.includes(card.set)) {
+   if(!setNames.includes(card.set)){
 
     result.sets.push(`❌ carte ${card.id} set invalide`)
 
@@ -150,10 +163,10 @@ async function runFullAudit(client, updateProgress) {
 
   }
 
-  if (result.sets.length === 0)
+  if(result.sets.length===0)
    result.sets.push("✅ sets valides")
 
- } catch {
+ }catch{
 
   result.sets.push("❌ erreur lecture sets.json")
 
@@ -161,20 +174,20 @@ async function runFullAudit(client, updateProgress) {
 
  progress()
 
- // IMAGES (AMÉLIORÉ)
+ /* IMAGES */
 
- try {
+ try{
 
   const cards = JSON.parse(fs.readFileSync(cardsPath)).cards
 
   const allImages = scanImages(imagesDir)
 
-  const imageNames = new Set(allImages.map(i => i.name))
+  const imageNames = new Set(allImages.map(i=>i.name))
 
-  let missing = []
-  let wrongFolder = []
+  let missing=[]
+  let wrongFolder=[]
 
-  for (const card of cards) {
+  for(const card of cards){
 
    const img = card.image
 
@@ -185,14 +198,13 @@ async function runFullAudit(client, updateProgress) {
 
    }
 
-   // vérifier dossier du set
-   const found = allImages.find(i => i.name === img)
+   const found = allImages.find(i=>i.name===img)
 
    if(found){
 
     const folder = path.basename(path.dirname(found.path))
 
-    if(card.set && folder !== card.set){
+    if(card.set && folder!==card.set){
 
      wrongFolder.push(`${img} dans ${folder} mais set ${card.set}`)
 
@@ -202,39 +214,33 @@ async function runFullAudit(client, updateProgress) {
 
   }
 
-  if(missing.length === 0 && wrongFolder.length === 0){
+  if(missing.length===0 && wrongFolder.length===0){
 
    result.images.push("✅ images OK")
 
   }else{
 
-   if(missing.length > 0){
+   if(missing.length>0){
 
     result.images.push(`❌ ${missing.length} images manquantes`)
 
-    for(const m of missing.slice(0,10)){
+    for(const m of missing.slice(0,10))
      result.images.push(`- ${m}`)
-    }
 
-    if(missing.length > 10)
-     result.images.push(`...`)
-  }
+   }
 
-   if(wrongFolder.length > 0){
+   if(wrongFolder.length>0){
 
     result.images.push(`❌ ${wrongFolder.length} images mauvais dossier`)
 
-    for(const w of wrongFolder.slice(0,10)){
+    for(const w of wrongFolder.slice(0,10))
      result.images.push(`- ${w}`)
-    }
 
-    if(wrongFolder.length > 10)
-     result.images.push(`...`)
    }
 
   }
 
- } catch {
+ }catch{
 
   result.images.push("❌ erreur images")
 
@@ -242,29 +248,30 @@ async function runFullAudit(client, updateProgress) {
 
  progress()
 
- // USERS
- try {
+ /* USERS */
+
+ try{
 
   const users = JSON.parse(fs.readFileSync(usersPath))
 
-  let problems = 0
+  let problems=0
 
-  for (const id in users) {
+  for(const id in users){
 
    const u = users[id]
 
-   if (!u.cards) problems++
-   if (u.kamas === undefined) problems++
-   if (!u.pity) problems++
+   if(!u.cards) problems++
+   if(u.kamas===undefined) problems++
+   if(!u.pity) problems++
 
   }
 
-  if (problems === 0)
+  if(problems===0)
    result.users.push("✅ users.json valide")
   else
    result.users.push(`❌ ${problems} problèmes users`)
 
- } catch {
+ }catch{
 
   result.users.push("❌ erreur users.json")
 
@@ -273,31 +280,35 @@ async function runFullAudit(client, updateProgress) {
  progress()
 
  return result
+
 }
 
-function buildReport(data) {
+/* ---------------- REPORT ---------------- */
 
- let txt = "📊 **Krosmoz Audit**\n\n"
+function buildReport(data){
 
- txt += "**COMMANDES**\n"
- txt += data.commands.join("\n")
+ let txt="📊 **Krosmoz Audit**\n\n"
 
- txt += "\n\n**CARDS**\n"
- txt += data.cards.join("\n")
+ txt+="**COMMANDES**\n"
+ txt+=data.commands.join("\n")
 
- txt += "\n\n**SETS**\n"
- txt += data.sets.join("\n")
+ txt+="\n\n**CARDS**\n"
+ txt+=data.cards.join("\n")
 
- txt += "\n\n**IMAGES**\n"
- txt += data.images.join("\n")
+ txt+="\n\n**SETS**\n"
+ txt+=data.sets.join("\n")
 
- txt += "\n\n**DATABASE**\n"
- txt += data.users.join("\n")
+ txt+="\n\n**IMAGES**\n"
+ txt+=data.images.join("\n")
+
+ txt+="\n\n**DATABASE**\n"
+ txt+=data.users.join("\n")
 
  return txt
+
 }
 
-module.exports = {
+module.exports={
  runFullAudit,
  buildReport,
  progressBar
