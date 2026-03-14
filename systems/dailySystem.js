@@ -20,4 +20,99 @@ function giveSSR(user){
  return card
 }
 
-module.exports={ giveSSR }
+/* ---------------- CAN CLAIM ---------------- */
+
+function canClaim(user){
+
+ const now = Date.now()
+
+ if(!user.daily)
+  user.daily = { streak:0, lastDaily:0 }
+
+ return now - user.daily.lastDaily >= 86400000
+
+}
+
+/* ---------------- CLAIM DAILY ---------------- */
+
+async function claimDaily(interaction,user){
+
+ const now = Date.now()
+
+ if(!user.daily)
+  user.daily = { streak:0, lastDaily:0 }
+
+ /* reset streak si >48h */
+
+ if(now - user.daily.lastDaily > 172800000)
+  user.daily.streak = 0
+
+ user.daily.lastDaily = now
+ user.daily.streak++
+
+ let reward=null
+
+ /* SSR streak 7 */
+
+ if(user.daily.streak >= 7){
+
+  const card = giveSSR(user)
+
+  reward={
+   type:"ssr",
+   value:card
+  }
+
+  user.daily.streak = 0
+
+ }else{
+
+  if(Math.random() < 0.5){
+
+   const packs = 1
+
+   user.packs = (user.packs || 0) + packs
+
+   reward={
+    type:"pack",
+    value:packs
+   }
+
+  }else{
+
+   const kamas = 200
+
+   user.kamas = (user.kamas || 0) + kamas
+
+   reward={
+    type:"kamas",
+    value:kamas
+   }
+
+  }
+
+ }
+
+ /* streak bar */
+
+ const filled = "🟩".repeat(user.daily.streak)
+ const empty = "⬛".repeat(7-user.daily.streak)
+
+ const streakBar = `${filled}${empty}`
+
+ save()
+
+ return{
+  reward,
+  streak:user.daily.streak,
+  streakBar,
+  doubleReward:false
+ }
+
+}
+
+module.exports={
+ canClaim,
+ claimDaily,
+ giveSSR
+}
