@@ -49,16 +49,17 @@ function generatePack(user,setId){
 
   const rarity=rollRarity()
 
-  const pool=setCards.filter(c=>c.rarity===rarity)
+  let pool=setCards.filter(c=>c.rarity===rarity)
 
-  if(pool.length===0){
-   pack.push(randomCard(setCards))
-   continue
-  }
+  /* si aucune carte de cette rareté */
+
+  if(pool.length===0)
+   pool=setCards
 
   const card=randomCard(pool)
 
-  pack.push(card)
+  if(card)
+   pack.push(card)
 
  }
 
@@ -70,7 +71,8 @@ function generatePack(user,setId){
 
   const bonus=randomCard(setCards)
 
-  pack.push(bonus)
+  if(bonus)
+   pack.push(bonus)
 
  }
 
