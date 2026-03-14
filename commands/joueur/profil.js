@@ -189,19 +189,19 @@ module.exports = {
 
     if(i.customId === "profil_sets"){
 
- const command = interaction.client.commands.get("setlist")
+     const command = interaction.client.commands.get("listcards")
 
- if(!command)
-  return i.reply({
-   content:"Commande setlist introuvable.",
-   ephemeral:true
-  })
+     if(!command)
+      return i.reply({
+       content:"Commande listcards introuvable.",
+       ephemeral:true
+      })
 
- i.options = fakeOptions()
+     i.options = fakeOptions()
 
- return command.execute(i)
+     return command.execute(i)
 
-}
+    }
 
     if(i.customId === "profil_achievements"){
 
