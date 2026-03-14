@@ -8,12 +8,9 @@ const {
 const cardsData = require("../../cards/cards.json")
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
 
-const { getUser } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 
-const cardsById={}
-for(const c of cards){
- cardsById[c.id]=c
-}
+const cardsById = Object.fromEntries(cards.map(c => [String(c.id), c]))
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -75,11 +72,17 @@ module.exports={
   const sortType=interaction.options.getString("tri")||"nom"
 
   let inventory=[]
+  let cleaned=false
 
   for(const id in user.cards){
 
-   const card=cardsById[id]
-   if(!card) continue
+   const card=cardsById[String(id)]
+
+   if(!card){
+    delete user.cards[id]
+    cleaned=true
+    continue
+   }
 
    inventory.push({
     card,
@@ -87,6 +90,8 @@ module.exports={
    })
 
   }
+
+  if(cleaned) save()
 
   if(rarityFilter)
    inventory=inventory.filter(e=>e.card.rarity===rarityFilter)
