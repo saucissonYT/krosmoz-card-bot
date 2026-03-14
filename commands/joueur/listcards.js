@@ -2,8 +2,7 @@ const {
  ActionRowBuilder,
  StringSelectMenuBuilder,
  ButtonBuilder,
- ButtonStyle,
- EmbedBuilder
+ ButtonStyle
 } = require("discord.js")
 
 const cardsData = require("../../cards/cards.json")
@@ -25,6 +24,8 @@ const rarityOrder = {
  C:1
 }
 
+const PAGE_SIZE = 15
+
 module.exports = {
 
  name:"listcards",
@@ -39,7 +40,7 @@ module.exports = {
    })
 
   const menu = new StringSelectMenuBuilder()
-   .setCustomId("listcards_set")
+   .setCustomId("listcards_select")
    .setPlaceholder("Choisir un set")
    .addOptions(
     sets.map(s=>({
@@ -50,135 +51,100 @@ module.exports = {
 
   const row = new ActionRowBuilder().addComponents(menu)
 
-  interaction.reply({
+  await interaction.reply({
    content:"📦 Choisis un set",
    components:[row],
    ephemeral:true
   })
 
- },
-
- async menu(interaction){
-
-  if(interaction.customId !== "listcards_set") return
-
-  const setId = interaction.values[0]
-
-  const setData = sets.find(s=>s.id===setId)
-
-  if(!setData)
-   return interaction.update({content:"Set introuvable.",components:[]})
-
-  const setCards = cards.filter(c=>c.set===setId)
-
-  if(setCards.length === 0)
-   return interaction.update({content:"Aucune carte.",components:[]})
-
-  setCards.sort((a,b)=>{
-
-   const ra = rarityOrder[a.rarity] || 0
-   const rb = rarityOrder[b.rarity] || 0
-
-   if(rb !== ra)
-    return rb - ra
-
-   return a.id - b.id
-
-  })
-
-  const perPage = 50
-  let page = 1
-  const totalPages = Math.ceil(setCards.length/perPage)
-
-  function build(page){
-
-   const start = (page-1)*perPage
-   const data = setCards.slice(start,start+perPage)
-
-   const lines = data.map(c=>
-    `ID:${c.id} | ${c.name} | ${c.rarity}`
-   )
-
-   const embed = new EmbedBuilder()
-    .setTitle(`📦 ${setData.name}`)
-    .setDescription(lines.join("\n"))
-    .setFooter({
-     text:`Page ${page}/${totalPages} • ${setCards.length} cartes`
-    })
-
-   const row = new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("listcards_prev")
-     .setLabel("⬅️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===1),
-
-    new ButtonBuilder()
-     .setCustomId("listcards_next")
-     .setLabel("➡️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===totalPages),
-
-    new ButtonBuilder()
-     .setCustomId("listcards_back")
-     .setLabel("↩ Retour sets")
-     .setStyle(ButtonStyle.Danger)
-
-   )
-
-   return {embed,row}
-
-  }
-
-  const {embed,row} = build(page)
-
-  const msg = await interaction.update({
-   embeds:[embed],
-   components:[row]
-  })
+  const msg = await interaction.fetchReply()
 
   const collector = msg.createMessageComponentCollector({
    time:120000
   })
 
-  collector.on("collect", async i=>{
+  let page = 0
+  let selectedSet = null
+  let setCards = []
+
+  collector.on("collect",async i=>{
 
    if(i.user.id !== interaction.user.id)
-    return i.reply({content:"Pas ton menu.",ephemeral:true})
+    return i.reply({content:"Pas pour toi.",ephemeral:true})
 
-   if(i.customId === "listcards_next") page++
-   if(i.customId === "listcards_prev") page--
+   if(i.customId === "listcards_select"){
 
-   if(i.customId === "listcards_back"){
+    selectedSet = i.values[0]
 
-    const menu = new StringSelectMenuBuilder()
-     .setCustomId("listcards_set")
-     .setPlaceholder("Choisir un set")
-     .addOptions(
-      sets.map(s=>({
-       label:s.name,
-       value:s.id
-      }))
-     )
+    setCards = cards
+     .filter(c=>c.set === selectedSet)
+     .sort((a,b)=>{
+      const ra = rarityOrder[a.rarity] || 0
+      const rb = rarityOrder[b.rarity] || 0
+      if(rb !== ra) return rb - ra
+      return a.id - b.id
+     })
 
-    const row = new ActionRowBuilder().addComponents(menu)
+    page = 0
+
+   }
+
+   if(i.customId === "list_next") page++
+   if(i.customId === "list_prev") page--
+   if(i.customId === "list_back"){
+    selectedSet = null
+   }
+
+   if(!selectedSet){
 
     return i.update({
      content:"📦 Choisis un set",
-     embeds:[],
      components:[row]
     })
 
    }
 
-   page=Math.max(1,Math.min(page,totalPages))
+   const start = page * PAGE_SIZE
+   const slice = setCards.slice(start,start+PAGE_SIZE)
 
-   const {embed,row} = build(page)
+   const text = slice
+    .map(c=>`ID:${c.id} | ${c.name} | ${c.rarity}`)
+    .join("\n")
+
+   const buttons = new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("list_prev")
+     .setLabel("⬅")
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(page === 0),
+
+    new ButtonBuilder()
+     .setCustomId("list_next")
+     .setLabel("➡")
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(start + PAGE_SIZE >= setCards.length),
+
+    new ButtonBuilder()
+     .setCustomId("list_back")
+     .setLabel("Retour aux sets")
+     .setStyle(ButtonStyle.Danger)
+
+   )
+
+   const setData = sets.find(s=>s.id === selectedSet)
 
    await i.update({
-    embeds:[embed],
-    components:[row]
+
+    content:
+`📦 Set : ${setData.name}
+
+Page ${page+1}
+
+${text}`,
+
+    components:[buttons]
+
    })
 
   })
