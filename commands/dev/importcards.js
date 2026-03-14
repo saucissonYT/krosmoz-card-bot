@@ -32,15 +32,18 @@ module.exports = {
    return interaction.editReply("❌ Dossier `cards/import` introuvable.")
 
   const files = fs.readdirSync(importFolder)
-   .filter(f => f.toLowerCase().endsWith(".png"))
+   .filter(f => /\.(png|webp)$/i.test(f))
 
   if(files.length === 0)
-   return interaction.editReply("❌ Aucun fichier PNG dans `cards/import`.")
+   return interaction.editReply("❌ Aucun fichier image dans `cards/import`.")
 
   /* ---------------- LOAD SETS ---------------- */
 
-  let setsData = loadSets()
-  let sets = setsData.sets || []
+  const setsData = loadSets()
+
+  const sets = Array.isArray(setsData)
+   ? setsData
+   : setsData.sets || []
 
   /* ---------------- DETECT UNKNOWN SETS ---------------- */
 
@@ -77,10 +80,21 @@ module.exports = {
    const details = unknownSets.map(set => {
 
     const cards = unknownSetCards[set]
+
+    const preview = cards
+     .slice(0,10)
      .map(c => `  • ${c}`)
      .join("\n")
 
-    return `Carte(s) :\n${cards}\n- Set : **${set}**`
+    const more =
+     cards.length > 10
+      ? `\n  ... et ${cards.length-10} autres`
+      : ""
+
+    return `Set : **${set}**
+Cartes détectées : ${cards.length}
+
+${preview}${more}`
 
    }).join("\n\n")
 
@@ -174,6 +188,10 @@ Voulez-vous créer ces sets automatiquement ?`,
   let imported = 0
   let skipped = 0
 
+  /* -------- FIX ID DUPLICATION -------- */
+
+  let nextId = getNextCardId()
+
   /* ---------------- IMPORT ---------------- */
 
   for(const file of files){
@@ -212,8 +230,8 @@ Voulez-vous créer ces sets automatiquement ?`,
     continue
    }
 
-   const id = getNextCardId()
-
+   const id = nextId++
+   
    const setFolder = `./cards/images/${set}`
 
    if(!fs.existsSync(setFolder))
