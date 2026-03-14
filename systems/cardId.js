@@ -1,18 +1,21 @@
-const cards = require("../cards/cards.json")
+const { data } = require("./dataManager")
 
 function getNextCardId(){
 
+ const cardsData = data.cards || []
+
+ const cards = Array.isArray(cardsData)
+  ? cardsData
+  : cardsData.cards || []
+
  let maxId = 0
 
- for(const card of cards.cards){
+ for(const card of cards){
 
   const id = Number(card.id)
 
-  if(Number.isFinite(id) && id > maxId){
-
+  if(Number.isFinite(id) && id > maxId)
    maxId = id
-
-  }
 
  }
 
@@ -20,4 +23,6 @@ function getNextCardId(){
 
 }
 
-module.exports = { getNextCardId }
+module.exports = {
+ getNextCardId
+}

@@ -1,7 +1,7 @@
 const fs = require("fs")
 const sharp = require("sharp")
 
-const cardsData = require("../../cards/cards.json")
+const { data, save } = require("../../systems/dataManager")
 
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
@@ -34,13 +34,17 @@ module.exports = {
   if(files.length === 0)
    return interaction.editReply("❌ Aucun fichier PNG dans `cards/import`.")
 
-  let cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+  /* ---------------- CARTES DATA ---------------- */
 
-  if(!cards)
-   cards = []
+  if(!data.cards)
+   data.cards = []
+
+  const cards = data.cards
 
   let imported = 0
   let skipped = 0
+
+  /* ---------------- IMPORT ---------------- */
 
   for(const file of files){
 
@@ -68,7 +72,8 @@ module.exports = {
     continue
    }
 
-   // éviter doublons
+   /* éviter doublons */
+
    const duplicate = cards.find(c =>
     c.name.toLowerCase() === name.toLowerCase() &&
     c.set === set
@@ -109,23 +114,24 @@ module.exports = {
     name,
     rarity,
     set,
-    image: newFile
+    image:newFile
    })
 
    imported++
 
   }
 
-  // sauvegarde cards.json
-  if(Array.isArray(cardsData)){
-   fs.writeFileSync("./cards/cards.json", JSON.stringify(cards,null,2))
-  }else{
-   cardsData.cards = cards
-   fs.writeFileSync("./cards/cards.json", JSON.stringify(cardsData,null,2))
-  }
+  /* ---------------- SAVE ---------------- */
+
+  save()
+
+  /* ---------------- RESULT ---------------- */
 
   await interaction.editReply(
-   `📦 Import terminé\n\n✅ ${imported} cartes importées\n⚠️ ${skipped} ignorées`
+`📦 Import terminé
+
+✅ ${imported} cartes importées
+⚠️ ${skipped} ignorées`
   )
 
  }
