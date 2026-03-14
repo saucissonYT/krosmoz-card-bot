@@ -10,6 +10,7 @@ const {
 const { data, save } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
+const { loadSets } = require("../../systems/setSystemFile")
 
 const allowedRarities = ["C","U","R","SR","HR","UR","S","SSR"]
 
@@ -38,13 +39,12 @@ module.exports = {
 
   /* ---------------- LOAD SETS ---------------- */
 
-  const setsPath = "./cards/sets.json"
-  let setsData = require("../../cards/sets.json")
-  let sets = Array.isArray(setsData) ? setsData : setsData.sets
+  let setsData = loadSets()
+  let sets = setsData.sets || []
 
-  /* ---------------- DETECT SETS ---------------- */
+  /* ---------------- DETECT UNKNOWN SETS ---------------- */
 
-  const detectedSets = new Set()
+  const unknownSetCards = {}
 
   for(const file of files){
 
@@ -53,18 +53,36 @@ module.exports = {
 
    if(split.length < 3) continue
 
-   const set = split[split.length-2].toLowerCase()
-   detectedSets.add(set)
+   const rarity = split.pop().toUpperCase()
+   const set = split.pop().toLowerCase()
+   const name = split.join(" ")
+
+   if(!sets.find(s => s.id === set)){
+
+    if(!unknownSetCards[set])
+     unknownSetCards[set] = []
+
+    unknownSetCards[set].push(name)
+
+   }
 
   }
 
-  const unknownSets = [...detectedSets].filter(
-   s => !sets.find(set => set.id === s)
-  )
+  const unknownSets = Object.keys(unknownSetCards)
 
-  /* ---------------- CREATE SETS PROMPT ---------------- */
+  /* ---------------- ASK CREATE SETS ---------------- */
 
   if(unknownSets.length > 0){
+
+   const details = unknownSets.map(set => {
+
+    const cards = unknownSetCards[set]
+     .map(c => `  • ${c}`)
+     .join("\n")
+
+    return `Carte(s) :\n${cards}\n- Set : **${set}**`
+
+   }).join("\n\n")
 
    const row = new ActionRowBuilder().addComponents(
 
@@ -84,7 +102,7 @@ module.exports = {
     content:
 `⚠️ Sets inconnus détectés :
 
-${unknownSets.map(s => `• ${s}`).join("\n")}
+${details}
 
 Voulez-vous créer ces sets automatiquement ?`,
     components:[row]
@@ -105,7 +123,6 @@ Voulez-vous créer ces sets automatiquement ?`,
 
      if(i.customId === "create_sets")
       resolve("create")
-
      else
       resolve("ignore")
 
@@ -124,9 +141,12 @@ Voulez-vous créer ces sets automatiquement ?`,
 
    if(decision === "create"){
 
+    const setsPath = "./cards/sets.json"
+
     for(const setId of unknownSets){
 
-     const name = setId.charAt(0).toUpperCase() + setId.slice(1)
+     const name =
+      setId.charAt(0).toUpperCase() + setId.slice(1)
 
      sets.push({
       id:setId,
@@ -144,18 +164,12 @@ Voulez-vous créer ces sets automatiquement ?`,
 
   }
 
-  /* ---------------- CARTES DATA ---------------- */
+  /* ---------------- DATA CARDS ---------------- */
 
   if(!data.cards)
    data.cards = []
 
   const cards = data.cards
-
-  /* reload sets */
-
-  delete require.cache[require.resolve("../../cards/sets.json")]
-  setsData = require("../../cards/sets.json")
-  sets = Array.isArray(setsData) ? setsData : setsData.sets
 
   let imported = 0
   let skipped = 0
@@ -205,9 +219,11 @@ Voulez-vous créer ces sets automatiquement ?`,
    if(!fs.existsSync(setFolder))
     fs.mkdirSync(setFolder,{ recursive:true })
 
-   const safeName = name.replace(/\s/g,"_").toLowerCase()
+   const safeName =
+    name.replace(/\s/g,"_").toLowerCase()
 
-   const newFile = `${id}_${safeName}_${rarity}.png`
+   const newFile =
+    `${id}_${safeName}_${rarity}.png`
 
    try{
 
