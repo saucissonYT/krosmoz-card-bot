@@ -17,7 +17,8 @@ const {
  getAveragePrices
 } = require("../../systems/market")
 
-const cards = require("../../cards/cards.json")
+const { data } = require("../../systems/dataManager")
+const cards = data.cards || []
 
 const rarityEmoji={
  C:"⚪",
@@ -57,7 +58,7 @@ module.exports={
 
    const lines=listings.map(l=>{
 
-    const card=cards.cards.find(c=>c.id==l.card)
+    const card=cards.find(c=>c.id==l.card)
 
     if(!card)
      return `ID:${l.id} • Carte supprimée • ${l.price}`
@@ -122,25 +123,6 @@ module.exports={
 
    if(i.customId==="next") page++
    if(i.customId==="prev") page--
-
-   if(i.customId==="buy"){
-
-    const modal=new ModalBuilder()
-     .setCustomId("market_buy_modal")
-     .setTitle("Acheter une carte")
-
-    const idInput=new TextInputBuilder()
-     .setCustomId("listing_id")
-     .setLabel("ID annonce")
-     .setStyle(TextInputStyle.Short)
-     .setRequired(true)
-
-    const row=new ActionRowBuilder().addComponents(idInput)
-
-    modal.addComponents(row)
-
-    return i.showModal(modal)
-   }
 
    const {embed,row,maxPage}=buildPage(page)
 

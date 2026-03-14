@@ -6,9 +6,7 @@ const {
  SlashCommandBuilder
 } = require("discord.js")
 
-const cardsData = require("../../cards/cards.json")
-const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
-
+const { data } = require("../../systems/dataManager")
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
@@ -31,7 +29,7 @@ module.exports = {
 
  data: new SlashCommandBuilder()
   .setName("listcards")
-  .setDescription("Lister les cartes d'un set"),
+  .setDescription("Lister les cartes par set"),
 
  async execute(interaction){
 
@@ -41,11 +39,25 @@ module.exports = {
     ephemeral:true
    })
 
+  const cards = data.cards || []
+
+  /* -------- sets réellement présents -------- */
+
+  const availableSets = sets.filter(set =>
+   cards.some(card => card.set === set.id)
+  )
+
+  if(availableSets.length === 0)
+   return interaction.reply({
+    content:"❌ Aucun set contenant des cartes.",
+    ephemeral:true
+   })
+
   const menu = new StringSelectMenuBuilder()
    .setCustomId("listcards_select")
    .setPlaceholder("Choisir un set")
    .addOptions(
-    sets.map(s=>({
+    availableSets.map(s => ({
      label:s.name,
      value:s.id
     }))
@@ -69,17 +81,17 @@ module.exports = {
   let selectedSet = null
   let setCards = []
 
-  collector.on("collect",async i=>{
+  collector.on("collect", async i => {
 
    if(i.user.id !== interaction.user.id)
-    return i.reply({content:"Pas pour toi.",ephemeral:true})
+    return i.reply({ content:"Pas pour toi.", ephemeral:true })
 
    if(i.customId === "listcards_select"){
 
     selectedSet = i.values[0]
 
     setCards = cards
-     .filter(c=>c.set === selectedSet)
+     .filter(c => c.set === selectedSet)
      .sort((a,b)=>{
       const ra = rarityOrder[a.rarity] || 0
       const rb = rarityOrder[b.rarity] || 0
@@ -93,9 +105,9 @@ module.exports = {
 
    if(i.customId === "list_next") page++
    if(i.customId === "list_prev") page--
-   if(i.customId === "list_back"){
+
+   if(i.customId === "list_back")
     selectedSet = null
-   }
 
    if(!selectedSet){
 
@@ -134,16 +146,16 @@ module.exports = {
 
    )
 
-   const setData = sets.find(s=>s.id === selectedSet)
+   const setData = sets.find(s => s.id === selectedSet)
 
    await i.update({
 
-    content:
+content:
 `📦 Set : ${setData.name}
 
 Page ${page+1}
 
-${text}`,
+${text || "Aucune carte."}`,
 
     components:[buttons]
 

@@ -1,10 +1,9 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
-const cardsData = require("../../cards/cards.json")
-const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+const { data } = require("../../systems/dataManager")
+const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
-const { achievementCheck } = require("../../systems/achievementCheck")
 
 const cardsById={}
 for(const c of cards){
@@ -12,14 +11,7 @@ for(const c of cards){
 }
 
 const sellValues={
- C:5,
- U:10,
- R:25,
- SR:60,
- HR:120,
- UR:300,
- S:600,
- SSR:1500
+ C:5,U:10,R:25,SR:60,HR:120,UR:300,S:600,SSR:1500
 }
 
 module.exports={
@@ -122,11 +114,7 @@ Gain : **${totalKamas} kamas**`
 
     user.kamas+=item.duplicates*item.price
 
-    user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
-
    }
-
-   await achievementCheck(interaction,user)
 
    save()
 
@@ -134,9 +122,7 @@ Gain : **${totalKamas} kamas**`
     content:`💰 Doublons vendus !
 
 Cartes vendues : ${totalCards}
-Gain : **${totalKamas} kamas**
-
-Solde : ${user.kamas} kamas`,
+Gain : **${totalKamas} kamas**`,
     embeds:[],
     components:[]
    })

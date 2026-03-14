@@ -2,16 +2,15 @@ const fs = require("fs")
 const sharp = require("sharp")
 const fetch = require("node-fetch")
 
-const cards = require("../../cards/cards.json")
-
+const { data, save } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 
-const allowedRarities = [
+const allowedRarities=[
  "C","U","R","SR","HR","UR","S","SSR"
 ]
 
-module.exports = {
+module.exports={
 
  name:"addcard",
 
@@ -30,6 +29,8 @@ module.exports = {
   if(!allowedRarities.includes(rarity))
    return interaction.reply("Rareté invalide.")
 
+  const cards = data.cards || []
+
   const newId = getNextCardId()
 
   const fileName = `${newId}.png`
@@ -41,19 +42,17 @@ module.exports = {
    .png()
    .toFile(`./cards/images/${fileName}`)
 
-  const newCard = {
+  const newCard={
    id:newId,
    name,
    rarity,
    image:fileName
   }
 
-  cards.cards.push(newCard)
+  cards.push(newCard)
 
-  fs.writeFileSync(
-   "./cards/cards.json",
-   JSON.stringify(cards,null,2)
-  )
+  data.cards = cards
+  save()
 
   interaction.reply(`Carte ajoutée : ${name}`)
 

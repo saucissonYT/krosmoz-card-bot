@@ -1,32 +1,13 @@
 const { isDev } = require("../../systems/devSystem")
-const { editSetName, loadSets } = require("../../systems/setSystemFile")
+const { loadSets } = require("../../systems/setSystemFile")
+const { data } = require("../../systems/dataManager")
 
-const sets = loadSets()
-const safeSets = Array.isArray(sets) ? sets : sets.sets
+const rarities = ["C","U","R","SR","HR","UR","S","SSR"]
 
 module.exports = {
 
- name:"setedit",
- description:"Modifier le nom d'un set",
-
- options:[
-  {
-   name:"set",
-   description:"Set",
-   type:3,
-   required:true,
-   choices: safeSets.map(s=>({
-    name:s.name,
-    value:s.id
-   }))
-  },
-  {
-   name:"name",
-   description:"Nouveau nom",
-   type:3,
-   required:true
-  }
- ],
+ name:"setlist",
+ description:"Lister les sets avec statistiques",
 
  async execute(interaction){
 
@@ -36,15 +17,58 @@ module.exports = {
     ephemeral:true
    })
 
-  const id = interaction.options.getString("set")
-  const name = interaction.options.getString("name")
+  const cards = data.cards || []
 
-  const result = editSetName(id,name)
+  const sets = loadSets()
 
-  if(result.error)
-   return interaction.reply(result.error)
+  let output = []
 
-  interaction.reply(`✏️ Set renommé : ${result.name}`)
+  for(const set of sets){
+
+   const setCards = cards.filter(c => c.set === set.id)
+
+   const total = setCards.length
+
+   if(total === 0){
+
+    output.push(
+`📦 ${set.name}
+Cartes : 0`
+    )
+
+    continue
+   }
+
+   const rarityStats={}
+
+   for(const r of rarities)
+    rarityStats[r]=0
+
+   for(const card of setCards)
+    rarityStats[card.rarity]++
+
+   const rarityLines = rarities
+    .filter(r => rarityStats[r] > 0)
+    .map(r => {
+
+     const count = rarityStats[r]
+     const percent = ((count / total) * 100).toFixed(1)
+
+     return `${r.padEnd(3)} : ${count} (${percent}%)`
+
+    })
+    .join("\n")
+
+   output.push(
+`📦 ${set.name}
+Cartes : ${total}
+
+${rarityLines}`
+   )
+
+  }
+
+  interaction.reply(output.join("\n\n"))
 
  }
 

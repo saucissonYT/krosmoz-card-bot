@@ -7,12 +7,10 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const cardsData = require("../../cards/cards.json")
-const cards = cardsData.cards
+const { data } = require("../../systems/dataManager")
+const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
-
-/* ---------------- MEMORY ---------------- */
 
 const trades = {}
 const activeUsers = new Set()
@@ -30,8 +28,6 @@ function deleteTrade(id){
  delete trades[id]
 }
 
-/* ---------------- CONSTANTS ---------------- */
-
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
@@ -42,8 +38,6 @@ const cardValues={
 }
 
 const TRADE_COOLDOWN = 30000
-
-/* ---------------- COMMAND ---------------- */
 
 module.exports={
 
@@ -58,12 +52,8 @@ data:new SlashCommandBuilder()
 
 async execute(interaction){
 
- console.log("🟡 TRADE START")
-
  const now = Date.now()
  const userId = interaction.user.id
-
- /* ---------- COOLDOWN ---------- */
 
  if(tradeCooldown.has(userId)){
 
@@ -153,8 +143,6 @@ async execute(interaction){
 
 },
 
-/* ---------------- MENU ---------------- */
-
 async menu(interaction){
 
  const parts = interaction.customId.split("_")
@@ -180,8 +168,6 @@ async menu(interaction){
 
  const user = getUser(trade.from)
  const target = getUser(trade.to)
-
- /* ---------- GIVE ---------- */
 
  if(type==="give"){
 
@@ -222,8 +208,6 @@ async menu(interaction){
 
  }
 
- /* ---------- WANT ---------- */
-
  if(type==="want"){
 
   trade.wantCard = interaction.values[0]
@@ -238,16 +222,14 @@ async menu(interaction){
   .addFields(
    {
     name:"Tu donnes",
-    value:
-`${rarityEmoji[giveCard.rarity]} **${giveCard.name}**
+    value:`${rarityEmoji[giveCard.rarity]} **${giveCard.name}**
 Rareté : ${giveCard.rarity}
 Valeur : ${cardValues[giveCard.rarity]}`,
     inline:true
    },
    {
     name:"Tu reçois",
-    value:
-`${rarityEmoji[wantCard.rarity]} **${wantCard.name}**
+    value:`${rarityEmoji[wantCard.rarity]} **${wantCard.name}**
 Rareté : ${wantCard.rarity}
 Valeur : ${cardValues[wantCard.rarity]}`,
     inline:true
@@ -282,8 +264,6 @@ Valeur : ${cardValues[wantCard.rarity]}`,
 
 },
 
-/* ---------------- BUTTONS ---------------- */
-
 async button(interaction){
 
  const parts = interaction.customId.split("_")
@@ -293,83 +273,13 @@ async button(interaction){
 
  const trade = getTrade(tradeId)
 
- if(!trade){
-  return interaction.reply({
-   content:"❌ Trade inexistant.",
-   flags:64
-  })
- }
+ if(!trade)
+  return interaction.reply({content:"❌ Trade inexistant.",flags:64})
 
  const from = getUser(trade.from)
  const to = getUser(trade.to)
 
- if(
-  interaction.user.id !== trade.from &&
-  interaction.user.id !== trade.to
- ){
-  return interaction.reply({
-   content:"❌ Tu ne fais pas partie de cet échange.",
-   flags:64
-  })
- }
-
- /* ---------- CANCEL ---------- */
-
- if(action==="cancel"){
-
-  if(interaction.user.id !== trade.from){
-   return interaction.reply({
-    content:"❌ Seul le créateur peut annuler.",
-    flags:64
-   })
-  }
-
-  activeUsers.delete(trade.from)
-  deleteTrade(tradeId)
-
-  return interaction.update({
-   content:"🛑 Échange annulé.",
-   embeds:[],
-   components:[]
-  })
-
- }
-
- /* ---------- REFUSE ---------- */
-
- if(action==="refuse"){
-
-  if(interaction.user.id !== trade.to){
-   return interaction.reply({
-    content:"❌ Seul le joueur ciblé peut refuser.",
-    flags:64
-   })
-  }
-
-  activeUsers.delete(trade.from)
-  deleteTrade(tradeId)
-
-  return interaction.update({
-   content:"❌ Échange refusé.",
-   embeds:[],
-   components:[]
-  })
-
- }
-
- /* ---------- ACCEPT ---------- */
-
  if(action==="accept"){
-
-  if(interaction.user.id !== trade.to){
-   return interaction.reply({
-    content:"❌ Seul le joueur ciblé peut accepter.",
-    flags:64
-   })
-  }
-
-  const giveCard = cards.find(c=>c.id==trade.giveCard)
-  const wantCard = cards.find(c=>c.id==trade.wantCard)
 
   from.cards[trade.giveCard]--
   to.cards[trade.wantCard]--
@@ -382,22 +292,8 @@ async button(interaction){
   activeUsers.delete(trade.from)
   deleteTrade(tradeId)
 
-  const fromUser = await interaction.client.users.fetch(trade.from)
-  const toUser = await interaction.client.users.fetch(trade.to)
-
   return interaction.update({
-   content:
-`🔁 **Échange validé !**
-
-**${fromUser.username} donne**
-${rarityEmoji[giveCard.rarity]} **${giveCard.name} (${giveCard.rarity})**
-Valeur : ${cardValues[giveCard.rarity]}
-
-⇄
-
-**${toUser.username} donne**
-${rarityEmoji[wantCard.rarity]} **${wantCard.name} (${wantCard.rarity})**
-Valeur : ${cardValues[wantCard.rarity]}`,
+   content:"🔁 Échange validé !",
    embeds:[],
    components:[]
   })

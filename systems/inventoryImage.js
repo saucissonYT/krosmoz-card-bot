@@ -1,5 +1,6 @@
 const { createCanvas, loadImage } = require("canvas")
-const cards = require("../cards/cards.json")
+const { data } = require("../systems/dataManager")
+const cards = data.cards || []
 const fs = require("fs")
 
 async function generateInventory(cardsOwned){
@@ -15,31 +16,21 @@ async function generateInventory(cardsOwned){
 
   const cardId = cardsOwned[i]
 
-  const card = cards.cards.find(c=>c.id === cardId)
+  const card = cards.find(c=>c.id === cardId)
 
   if(!card) continue
 
-  const path = `./cards/images/${card.image}`
+  const path = `./cards/images/${card.set}/${card.image}`
 
-  if(!fs.existsSync(path)){
-   console.log("Image manquante :",path)
+  if(!fs.existsSync(path))
    continue
-  }
 
-  try{
+  const img = await loadImage(path)
 
-   const img = await loadImage(path)
+  const x = (i % cols) * cardSize
+  const y = Math.floor(i / cols) * cardSize
 
-   const x = (i % cols) * cardSize
-   const y = Math.floor(i / cols) * cardSize
-
-   ctx.drawImage(img,x,y,cardSize,cardSize)
-
-  }catch(err){
-
-   console.log("Image ignorée (format invalide) :",path)
-
-  }
+  ctx.drawImage(img,x,y,cardSize,cardSize)
 
  }
 

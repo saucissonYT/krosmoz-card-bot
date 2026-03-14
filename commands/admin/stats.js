@@ -1,5 +1,5 @@
 const { getUsers } = require("../../systems/userSystem")
-const cards = require("../../cards/cards.json")
+const { data } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 
 module.exports = {
@@ -15,6 +15,7 @@ module.exports = {
    })
 
   const users = getUsers()
+  const cards = data.cards || []
 
   const totalUsers = Object.keys(users).length
 
@@ -37,7 +38,7 @@ module.exports = {
   const stats =
 `👥 Joueurs : ${totalUsers}
 🎴 Cartes possédées : ${totalCards}
-🃏 Cartes existantes : ${cards.cards.length}`
+🃏 Cartes existantes : ${cards.length}`
 
   interaction.reply(stats)
 

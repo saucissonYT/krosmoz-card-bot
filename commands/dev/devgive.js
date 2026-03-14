@@ -1,9 +1,8 @@
 const { isDev } = require("../../systems/devSystem")
 const { giveCard } = require("../../systems/pack")
+const { data } = require("../../systems/dataManager")
 
-const cards = require("../../cards/cards.json")
-
-module.exports = {
+module.exports={
 
  name:"devgive",
  description:"Donner une carte",
@@ -35,9 +34,11 @@ module.exports = {
     ephemeral:true
    })
 
+  const cards = data.cards || []
+
   const rarity = interaction.options.getString("rarete")
 
-  const card = cards.cards.find(c=>c.rarity === rarity)
+  const card = cards.find(c=>c.rarity===rarity)
 
   if(!card)
    return interaction.reply("Carte introuvable.")

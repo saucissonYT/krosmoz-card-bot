@@ -1,6 +1,6 @@
 const { EmbedBuilder } = require("discord.js")
 
-const cards = require("../../cards/cards.json")
+const { data } = require("../../systems/dataManager")
 const { generatePack } = require("../../systems/pack")
 const { isDev } = require("../../systems/devSystem")
 
@@ -37,16 +37,16 @@ module.exports={
     ephemeral:true
    })
 
+  const cards = data.cards || []
+
   const setName = interaction.options.getString("set").toLowerCase()
 
-  const setCards = cards.cards.filter(c =>
+  const setCards = cards.filter(c =>
    c.set.toLowerCase() === setName
   )
 
   if(setCards.length === 0)
    return interaction.reply("❌ Set introuvable.")
-
-  /* ---------- répartition réelle ---------- */
 
   const rarityCount={
    C:0,U:0,R:0,SR:0,
@@ -55,8 +55,6 @@ module.exports={
 
   for(const card of setCards)
    rarityCount[card.rarity]++
-
-  /* ---------- simulation gacha ---------- */
 
   const simulation={
    C:0,U:0,R:0,SR:0,
@@ -87,8 +85,6 @@ module.exports={
 
   }
 
-  /* ---------- probabilités ---------- */
-
   const probabilities={}
 
   for(const r in simulation){
@@ -98,28 +94,6 @@ module.exports={
    ).toFixed(2)
 
   }
-
-  /* ---------- analyse équilibrage ---------- */
-
-  const warnings=[]
-  const suggestions=[]
-
-  if(rarityCount.UR < 2){
-   warnings.push("Peu de cartes UR dans le set")
-   suggestions.push("Ajouter 1-2 UR")
-  }
-
-  if(rarityCount.SSR < 1){
-   warnings.push("Aucune SSR dans le set")
-   suggestions.push("Ajouter au moins 1 SSR")
-  }
-
-  if(rarityCount.C > setCards.length*0.6){
-   warnings.push("Trop de cartes communes")
-   suggestions.push("Réduire les C ou ajouter des R/SR")
-  }
-
-  /* ---------- affichage ---------- */
 
   const rarityLines = Object.entries(rarityCount)
    .filter(([r,v])=>v>0)
@@ -150,30 +124,6 @@ ${rarityLines.join("\n")}`
      value:simLines.join("\n")
     }
    )
-
-  if(warnings.length){
-
-   embed.addFields({
-    name:"⚠️ Problèmes détectés",
-    value:warnings.join("\n")
-   })
-
-  }
-
-  if(suggestions.length){
-
-   embed.addFields({
-    name:"🧠 Suggestions d'équilibrage",
-    value:suggestions.join("\n")
-   })
-
-  }
-
-  embed
-   .setFooter({
-    text:"Simulation avec pity active"
-   })
-   .setColor("#9b59b6")
 
   interaction.reply({
    embeds:[embed]
