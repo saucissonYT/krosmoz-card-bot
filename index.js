@@ -10,6 +10,13 @@ const {
 const fs = require("fs")
 const path = require("path")
 
+/* ---------------- DATAMANAGER ---------------- */
+
+const dataManager = require("./systems/dataManager")
+dataManager.loadAll()
+
+/* --------------------------------------------- */
+
 const client = new Client({
  intents: [GatewayIntentBits.Guilds]
 })
@@ -115,7 +122,6 @@ client.on("interactionCreate", async interaction => {
 
    console.log(`📦 Menu : ${interaction.customId}`)
 
-   // MENU SET KROSMOZ
    if (interaction.customId === "krosmoz_set") {
 
     const command = require("./commands/joueur/krosmoz")
@@ -123,7 +129,6 @@ client.on("interactionCreate", async interaction => {
 
    }
 
-   // HARDPITY
    if (interaction.customId.startsWith("hardpity")) {
 
     const command = require("./commands/dev/hardpity")
@@ -131,7 +136,6 @@ client.on("interactionCreate", async interaction => {
 
    }
 
-   // MENU TITRE
    if (interaction.customId === "choose_title") {
 
     const { getUser, save } = require("./systems/userSystem")
@@ -151,7 +155,6 @@ client.on("interactionCreate", async interaction => {
 
    }
 
-   // MENU TRADE
    if (interaction.customId.startsWith("trade_menu")) {
 
     console.log("🔄 Menu trade détecté")
@@ -181,7 +184,6 @@ client.on("interactionCreate", async interaction => {
 
    }
 
-   // BOUTONS TRADE
    if (interaction.customId.startsWith("trade_")) {
 
     console.log("🔄 Bouton trade détecté")

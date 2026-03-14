@@ -1,44 +1,6 @@
-const fs = require("fs")
-const path = require("path")
+const { data, save } = require("./dataManager")
 
-const PATH = process.env.RAILWAY
- ? "/data/users.json"
- : "./database/users.json"
-
-const DIR = path.dirname(PATH)
-
-if(!fs.existsSync(DIR)){
- fs.mkdirSync(DIR,{recursive:true})
-}
-
-let users = {}
-
-/* ---------------- LOAD USERS ---------------- */
-
-try{
-
- if(fs.existsSync(PATH)){
-
-  const raw = fs.readFileSync(PATH,"utf8")
-
-  users = raw ? JSON.parse(raw) : {}
-
- }else{
-
-  console.log("users.json absent, création")
-
-  fs.writeFileSync(PATH,JSON.stringify({},null,2))
-  users = {}
-
- }
-
-}catch(err){
-
- console.error("Erreur lecture users.json",err)
-
- users = {}
-
-}
+const users = data.users
 
 /* ---------------- MIGRATION INVENTAIRE ---------------- */
 
@@ -84,8 +46,7 @@ function migrateInventories(){
  if(changed){
 
   console.log("Migration des inventaires effectuée.")
-
-  fs.writeFileSync(PATH,JSON.stringify(users,null,2))
+  save()
 
  }
 
@@ -113,8 +74,7 @@ function migratePacks(){
  if(changed){
 
   console.log("Migration des packs effectuée.")
-
-  fs.writeFileSync(PATH,JSON.stringify(users,null,2))
+  save()
 
  }
 
@@ -205,8 +165,7 @@ function migrateUsers(){
  if(changed){
 
   console.log("Migration des utilisateurs effectuée.")
-
-  fs.writeFileSync(PATH,JSON.stringify(users,null,2))
+  save()
 
  }
 
@@ -217,43 +176,6 @@ function migrateUsers(){
 migrateInventories()
 migratePacks()
 migrateUsers()
-
-/* ---------------- SAVE QUEUE ---------------- */
-
-let saveQueue = []
-let saving = false
-
-function processQueue(){
-
- if(saving) return
- if(saveQueue.length === 0) return
-
- saving = true
-
- const data = saveQueue.shift()
-
- fs.writeFile(
-  PATH,
-  JSON.stringify(data,null,2),
-  (err)=>{
-
-   if(err)
-    console.error("Save error:",err)
-
-   saving = false
-   processQueue()
-
-  }
- )
-
-}
-
-function queueSave(){
-
- saveQueue.push(JSON.parse(JSON.stringify(users)))
- processQueue()
-
-}
 
 /* ---------------- USER MANAGEMENT ---------------- */
 
@@ -291,7 +213,7 @@ function getUser(id){
    }
   }
 
-  queueSave()
+  save()
 
  }
 
@@ -302,14 +224,6 @@ function getUser(id){
 function getUsers(){
  return users
 }
-
-/* ---------------- SAVE ---------------- */
-
-function save(){
- queueSave()
-}
-
-/* ---------------- EXPORT ---------------- */
 
 module.exports = {
  getUser,

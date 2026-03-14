@@ -1,164 +1,82 @@
-const {
- EmbedBuilder,
- ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle
-} = require("discord.js")
+const { EmbedBuilder } = require("discord.js")
 
-const cardsData = require("../../cards/cards.json")
-const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+const { getUsers } = require("../../systems/userSystem")
+const { getCards } = require("../../systems/cardRegistry")
+const { isDev } = require("../../systems/devSystem")
 
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+module.exports = {
 
-const { playerSetProgress } = require("../../systems/setSystem")
-const { getUser } = require("../../systems/userSystem")
-
-const rarityEmoji={
- C:"⚪",
- U:"🟢",
- R:"🔵",
- SR:"🟣",
- HR:"🔴",
- UR:"🟡",
- S:"✨",
- SSR:"🌈"
-}
-
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
-
-module.exports={
-
- name:"set",
- description:"Voir un set",
-
- options:[
-  {
-   name:"nom",
-   description:"Nom du set",
-   type:3,
-   required:true
-  }
- ],
+ name:"collection",
+ description:"Statistiques globales des collections",
 
  async execute(interaction){
 
-  const user = getUser(interaction.user.id)
-
-  const setId = interaction.options.getString("nom")
-
-  const setData = sets.find(s=>s.id===setId)
-
-  if(!setData)
-   return interaction.reply("Set introuvable.")
-
-  const setCards = cards
-   .filter(c=>c.set===setId)
-   .sort((a,b)=>rarityOrder[a.rarity]-rarityOrder[b.rarity])
-
-  if(setCards.length===0)
-   return interaction.reply("Aucune carte dans ce set.")
-
-  const ownedIds = new Set(Object.keys(user.cards || {}).map(Number))
-
-  const progress = playerSetProgress(user,setId)
-
-  const perPage = 20
-  let page = 1
-
-  const totalPages = Math.ceil(setCards.length/perPage)
-
-  function build(page){
-
-   const start=(page-1)*perPage
-   const pageCards=setCards.slice(start,start+perPage)
-
-   const lines = pageCards.map(card=>{
-
-    const owned = ownedIds.has(Number(card.id))
-
-    const icon = owned ? "✅" : "▫️"
-    const emoji = rarityEmoji[card.rarity] || ""
-
-    return `${icon} ${emoji} ${card.name}`
-
+  if(!isDev(interaction.user.id))
+   return interaction.reply({
+    content:"Commande dev.",
+    ephemeral:true
    })
 
-   const percent = Math.floor((progress.owned/progress.total)*100)
+  const users = getUsers()
 
-   const progressBarLength = 10
-   const filled = Math.round((percent/100)*progressBarLength)
+  const totalUsers = Object.keys(users).length
 
-   const progressBar =
-    "🟩".repeat(filled) +
-    "⬛".repeat(progressBarLength-filled)
+  let totalOwnedCards = 0
+  let uniqueCardsOwned = new Set()
 
-   const embed=new EmbedBuilder()
-    .setTitle(`📦 Set : ${setData.name}`)
-    .setDescription(lines.join("\n"))
-    .addFields({
-     name:"Progression",
-     value:`${progressBar}\n${progress.owned}/${progress.total} (${percent}%)`
-    })
-    .setFooter({
-     text:`Page ${page}/${totalPages}`
-    })
+  let topUser = null
+  let topCount = 0
 
-   const row=new ActionRowBuilder().addComponents(
+  for(const id in users){
 
-    new ButtonBuilder()
-     .setCustomId("prev")
-     .setLabel("⬅️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===1),
+   const user = users[id]
 
-    new ButtonBuilder()
-     .setCustomId("next")
-     .setLabel("➡️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===totalPages)
+   if(!user.cards) continue
 
-   )
+   let count = 0
 
-   return {embed,row}
+   for(const cardId in user.cards){
+
+    const qty = user.cards[cardId]
+
+    totalOwnedCards += qty
+    count += qty
+
+    uniqueCardsOwned.add(cardId)
+
+   }
+
+   if(count > topCount){
+
+    topCount = count
+    topUser = id
+
+   }
 
   }
 
-  const {embed,row}=build(page)
+  const totalCardsExisting = getCards().length
+  const uniqueCollected = uniqueCardsOwned.size
 
-  const msg=await interaction.reply({
-   embeds:[embed],
-   components:[row],
-   fetchReply:true
-  })
+  const completion = Math.floor((uniqueCollected / totalCardsExisting) * 100)
 
-  const collector=msg.createMessageComponentCollector({
-   time:120000
-  })
+  const embed = new EmbedBuilder()
+   .setTitle("📊 Statistiques des collections")
+   .addFields(
+    {name:"👥 Joueurs",value:`${totalUsers}`,inline:true},
+    {name:"🎴 Cartes possédées",value:`${totalOwnedCards}`,inline:true},
+    {name:"🃏 Cartes existantes",value:`${totalCardsExisting}`,inline:true},
+    {name:"📚 Cartes uniques collectées",value:`${uniqueCollected} (${completion}%)`,inline:false},
+    {
+     name:"🏆 Plus grosse collection",
+     value: topUser
+      ? `<@${topUser}> — ${topCount} cartes`
+      : "Aucun joueur",
+     inline:false
+    }
+   )
 
-  collector.on("collect",async i=>{
-
-   if(i.user.id!==interaction.user.id)
-    return i.reply({
-     content:"Pas ton menu.",
-     ephemeral:true
-    })
-
-   if(i.customId==="next") page++
-   if(i.customId==="prev") page--
-
-   page=Math.max(1,Math.min(page,totalPages))
-
-   const {embed,row}=build(page)
-
-   await i.update({
-    embeds:[embed],
-    components:[row]
-   })
-
-  })
+  interaction.reply({ embeds:[embed] })
 
  }
 
