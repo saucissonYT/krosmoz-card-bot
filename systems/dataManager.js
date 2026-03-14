@@ -3,7 +3,7 @@ const path = require("path")
 
 /* ---------------- BASE PATH ---------------- */
 
-const BASE = process.env.RAILWAY ? "/data" : "./database"
+const BASE = "/data"
 
 if(!fs.existsSync(BASE)){
  fs.mkdirSync(BASE,{recursive:true})
