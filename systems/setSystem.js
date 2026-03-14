@@ -1,10 +1,14 @@
-const sets = require("../cards/sets.json")
-const cards = require("../cards/cards.json")
+const { data } = require("./dataManager")
 const { addXP } = require("./progressionSystem")
+
+const sets = data.sets || []
+const cardsData = data.cards || []
+
+const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards || []
 
 function getSetCards(setId){
 
- return cards.cards.filter(c => c.set === setId)
+ return cards.filter(c => c.set === setId)
 
 }
 

@@ -1,6 +1,8 @@
-const cardsData = require("../cards/cards.json")
+const { data } = require("./dataManager")
 
-const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards
+const cardsData = data.cards || []
+
+const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards || []
 
 const cardsById = Object.fromEntries(
  cards.map(c => [String(c.id), c])

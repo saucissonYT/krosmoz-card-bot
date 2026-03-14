@@ -1,18 +1,14 @@
-const fs = require("fs")
-
-const SETS_PATH = "./cards/sets.json"
+const { data, save } = require("./dataManager")
 
 function loadSets(){
 
- const data = JSON.parse(
-  fs.readFileSync(SETS_PATH,"utf8")
- )
+ const sets = data.sets || []
 
- if(Array.isArray(data))
-  return data
+ if(Array.isArray(sets))
+  return sets
 
- if(data.sets)
-  return data.sets
+ if(sets.sets)
+  return sets.sets
 
  return []
 
@@ -20,12 +16,8 @@ function loadSets(){
 
 function saveSets(list){
 
- const data = { sets:list }
-
- fs.writeFileSync(
-  SETS_PATH,
-  JSON.stringify(data,null,2)
- )
+ data.sets = list
+ save()
 
 }
 
