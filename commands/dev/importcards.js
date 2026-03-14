@@ -1,11 +1,13 @@
 const fs = require("fs")
 const sharp = require("sharp")
 
+const {
+ ActionRowBuilder,
+ ButtonBuilder,
+ ButtonStyle
+} = require("discord.js")
+
 const { data, save } = require("../../systems/dataManager")
-
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
-
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 
@@ -34,12 +36,126 @@ module.exports = {
   if(files.length === 0)
    return interaction.editReply("❌ Aucun fichier PNG dans `cards/import`.")
 
+  /* ---------------- LOAD SETS ---------------- */
+
+  const setsPath = "./cards/sets.json"
+  let setsData = require("../../cards/sets.json")
+  let sets = Array.isArray(setsData) ? setsData : setsData.sets
+
+  /* ---------------- DETECT SETS ---------------- */
+
+  const detectedSets = new Set()
+
+  for(const file of files){
+
+   const base = file.split(".")[0]
+   const split = base.split("_")
+
+   if(split.length < 3) continue
+
+   const set = split[split.length-2].toLowerCase()
+   detectedSets.add(set)
+
+  }
+
+  const unknownSets = [...detectedSets].filter(
+   s => !sets.find(set => set.id === s)
+  )
+
+  /* ---------------- CREATE SETS PROMPT ---------------- */
+
+  if(unknownSets.length > 0){
+
+   const row = new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("create_sets")
+     .setLabel("Créer les sets")
+     .setStyle(ButtonStyle.Success),
+
+    new ButtonBuilder()
+     .setCustomId("ignore_sets")
+     .setLabel("Ignorer")
+     .setStyle(ButtonStyle.Secondary)
+
+   )
+
+   const msg = await interaction.editReply({
+    content:
+`⚠️ Sets inconnus détectés :
+
+${unknownSets.map(s => `• ${s}`).join("\n")}
+
+Voulez-vous créer ces sets automatiquement ?`,
+    components:[row]
+   })
+
+   const collector = msg.createMessageComponentCollector({
+    time:30000
+   })
+
+   const decision = await new Promise(resolve => {
+
+    collector.on("collect", async i => {
+
+     if(i.user.id !== interaction.user.id)
+      return i.reply({ content:"Pas pour toi.", ephemeral:true })
+
+     collector.stop()
+
+     if(i.customId === "create_sets")
+      resolve("create")
+
+     else
+      resolve("ignore")
+
+     await i.update({ components:[] })
+
+    })
+
+    collector.on("end", (_,reason)=>{
+
+     if(reason === "time")
+      resolve("ignore")
+
+    })
+
+   })
+
+   if(decision === "create"){
+
+    for(const setId of unknownSets){
+
+     const name = setId.charAt(0).toUpperCase() + setId.slice(1)
+
+     sets.push({
+      id:setId,
+      name
+     })
+
+    }
+
+    fs.writeFileSync(
+     setsPath,
+     JSON.stringify(sets,null,2)
+    )
+
+   }
+
+  }
+
   /* ---------------- CARTES DATA ---------------- */
 
   if(!data.cards)
    data.cards = []
 
   const cards = data.cards
+
+  /* reload sets */
+
+  delete require.cache[require.resolve("../../cards/sets.json")]
+  setsData = require("../../cards/sets.json")
+  sets = Array.isArray(setsData) ? setsData : setsData.sets
 
   let imported = 0
   let skipped = 0
@@ -71,8 +187,6 @@ module.exports = {
     skipped++
     continue
    }
-
-   /* éviter doublons */
 
    const duplicate = cards.find(c =>
     c.name.toLowerCase() === name.toLowerCase() &&
@@ -127,12 +241,14 @@ module.exports = {
 
   /* ---------------- RESULT ---------------- */
 
-  await interaction.editReply(
+  await interaction.editReply({
+   content:
 `📦 Import terminé
 
 ✅ ${imported} cartes importées
-⚠️ ${skipped} ignorées`
-  )
+⚠️ ${skipped} ignorées`,
+   components:[]
+  })
 
  }
 
