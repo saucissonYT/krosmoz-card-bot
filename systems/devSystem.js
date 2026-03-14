@@ -1,8 +1,15 @@
 const fs = require("fs")
+const path = require("path")
 
 const PATH = process.env.RAILWAY
  ? "/data/devs.json"
  : "./database/devs.json"
+
+const DIR = path.dirname(PATH)
+
+if(!fs.existsSync(DIR)){
+ fs.mkdirSync(DIR,{recursive:true})
+}
 
 let devs = {}
 

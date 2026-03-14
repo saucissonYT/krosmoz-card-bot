@@ -1,10 +1,17 @@
-const { isOwner } = require("../../systems/devSystem")
-const fs = require("fs")
-const devs = require("../../database/devs.json")
+const { SlashCommandBuilder } = require("discord.js")
+const { toggleDev, isOwner } = require("../../systems/devSystem")
 
 module.exports = {
 
- name:"removedev",
+ data: new SlashCommandBuilder()
+  .setName("removedev")
+  .setDescription("Ajouter ou retirer un dev")
+  .addUserOption(option =>
+   option
+    .setName("utilisateur")
+    .setDescription("Utilisateur à modifier")
+    .setRequired(true)
+  ),
 
  async execute(interaction){
 
@@ -14,16 +21,25 @@ module.exports = {
     ephemeral:true
    })
 
-  const user = interaction.options.getUser("joueur")
+  const user = interaction.options.getUser("utilisateur")
 
-  devs.devs = devs.devs.filter(id => id !== user.id)
+  const added = toggleDev(user.id)
 
-  fs.writeFileSync(
-   "./database/devs.json",
-   JSON.stringify(devs,null,2)
-  )
+  if(added){
 
-  interaction.reply(`${user.username} retiré des développeurs.`)
+   await interaction.reply({
+    content:`✅ ${user.username} est maintenant **dev**.`,
+    ephemeral:true
+   })
+
+  }else{
+
+   await interaction.reply({
+    content:`❌ ${user.username} n'est plus **dev**.`,
+    ephemeral:true
+   })
+
+  }
 
  }
 
