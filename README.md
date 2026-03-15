@@ -391,6 +391,14 @@ Fonctionnalités prévues :
 
 ---
 
+## 📰 Changelog
+
+Historique des mises à jour :
+
+[Voir le changelog](CHANGELOG.md)
+
+---
+
 # 👨‍💻 Auteur
 
 Projet créé par :
