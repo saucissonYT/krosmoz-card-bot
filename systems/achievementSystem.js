@@ -55,7 +55,7 @@ ultraLucky:{name:"Ultra chanceux",badge:"🌟",title:"Élu du destin"},
 
 /* SSR SHINY */
 
-shinySSR:{name:"Miracle du Krosmoz",badge:"✨",title:"Élu du Krosmoz"},
+shinySSR:{name:"Miracle du Krosmoz",badge:"✨",title:"Élu du Krosmoz",secret:true},
 
 /* FUSION */
 
@@ -85,14 +85,42 @@ daily120:{name:"Dévoué au Daily",badge:"💠",title:"Dévoué"},
 daily200:{name:"Fidèle au Daily",badge:"🛡",title:"Fidèle"},
 daily300:{name:"Vétéran du Daily",badge:"🏆",title:"Vétéran du Daily"},
 daily365:{name:"Pilier du Daily",badge:"👑",title:"Pilier du Daily"},
-daily500:{name:"Légende du Daily",badge:"🌟",title:"Légende du Daily"}
+daily500:{name:"Légende du Daily",badge:"🌟",title:"Légende du Daily"},
+
+/* KAMAS */
+
+kamas1000:{name:"Petit portefeuille",badge:"💰",title:"Économe"},
+kamas10000:{name:"Marchand prospère",badge:"💰",title:"Marchand riche"},
+kamas100000:{name:"Millionnaire du Krosmoz",badge:"💎",title:"Millionnaire"},
+kamas500000:{name:"Magnat du marché",badge:"🏦",title:"Magnat"},
+kamas1000000:{name:"Roi des kamas",badge:"👑",title:"Roi des kamas"},
+
+/* BOT MENTIONS */
+
+mention1:{name:"Tu voulais quelque chose ?",badge:"💬",title:"Bavard"},
+mention10:{name:"On discute ?",badge:"💬",title:"Habituel"},
+mention100:{name:"On devient amis ?",badge:"💬",title:"Compagnon"},
+mention500:{name:"Toujours là ?",badge:"💬",title:"Inséparable"},
+mention1000:{name:"Je vis dans ta tête",badge:"💬",title:"Obsédé"},
+
+/* SECRETS */
+
+packDivin:{name:"Pack Divin",badge:"🌈",title:"Béni du Krosmoz",secret:true},
+pileOuFace:{name:"Pile ou Face",badge:"🎲",title:"Joueur",secret:true},
+impossible:{name:"Impossible",badge:"💥",title:"Bug du destin",secret:true},
+insomniaque:{name:"Insomniaque",badge:"🌙",title:"Nocturne",secret:true},
+matinal:{name:"Matinal",badge:"🌅",title:"Lève-tôt",secret:true},
+
+mentionSpam:{name:"Tu te calmes ?",badge:"📢",title:"Spam master",secret:true},
+nightPing:{name:"Noctambule",badge:"🌙",title:"Noctambule",secret:true},
+devilPing:{name:"666",badge:"😈",title:"Marqué par le démon",secret:true},
+auraFarm:{name:"Aura Farming",badge:"✨",title:"Aura farmer",secret:true}
 
 }
 
 function giveAchievement(user,id){
 
  const ach=achievements[id]
-
  if(!ach) return false
 
  if(!user.achievements)
@@ -155,6 +183,9 @@ async function checkAchievements(interaction,user,totalCards,totalUnique,totalAl
  const fusionCrit=user.stats?.fusionCrit||0
  const fusionDouble=user.stats?.fusionDouble||0
  const level=user.progression?.level||1
+ const kamas=user.kamas||0
+ const daily=user.stats?.dailyClaims||0
+ const mentions=user.stats?.botMentions||0
 
  const checks=[
 
@@ -201,7 +232,27 @@ async function checkAchievements(interaction,user,totalCards,totalUnique,totalAl
 
 ["fusionDouble",fusionDouble>=1],
 ["fusionDouble10",fusionDouble>=10],
-["fusionDouble100",fusionDouble>=100]
+["fusionDouble100",fusionDouble>=100],
+
+["daily30",daily>=30],
+["daily60",daily>=60],
+["daily120",daily>=120],
+["daily200",daily>=200],
+["daily300",daily>=300],
+["daily365",daily>=365],
+["daily500",daily>=500],
+
+["kamas1000",kamas>=1000],
+["kamas10000",kamas>=10000],
+["kamas100000",kamas>=100000],
+["kamas500000",kamas>=500000],
+["kamas1000000",kamas>=1000000],
+
+["mention1",mentions>=1],
+["mention10",mentions>=10],
+["mention100",mentions>=100],
+["mention500",mentions>=500],
+["mention1000",mentions>=1000]
 
  ]
 

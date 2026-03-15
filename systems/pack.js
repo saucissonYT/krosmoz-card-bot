@@ -61,8 +61,6 @@ function generatePack(user,setId){
  if(!setCards || setCards.length===0)
   return {pack:[],luckyPack:false}
 
- /* ---------- INIT PITY ---------- */
-
  if(!user.pity)
   user.pity={}
 
@@ -72,8 +70,6 @@ function generatePack(user,setId){
  const pity=user.pity[setId]
 
  const pack=[]
-
- /* ---------- HARD PITY ---------- */
 
  let forced=null
 
@@ -99,12 +95,26 @@ function generatePack(user,setId){
 
   const card=randomCard(pool)
 
-  if(card)
-   pack.push(card)
+  if(card){
+
+   /* SHINY SSR */
+
+   if(card.rarity==="SSR" && Math.random()<0.005){
+
+    pack.push({
+     ...card,
+     shiny:true
+    })
+
+   }else{
+
+    pack.push(card)
+
+   }
+
+  }
 
  }
-
- /* ---------- UPDATE PITY ---------- */
 
  const best=pack.reduce((a,b)=>
   rarityOrder.indexOf(b.rarity)>
@@ -127,8 +137,6 @@ function generatePack(user,setId){
   pity.SSR++
 
  }
-
- /* ---------- LUCKY PACK ---------- */
 
  let luckyPack=false
 

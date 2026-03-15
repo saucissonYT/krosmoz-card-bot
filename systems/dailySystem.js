@@ -1,128 +1,152 @@
-const { data } = require("./dataManager")
-const cards = data.cards || []
+const generatePack = require("./pack")
+const { rewardKamas } = require("./rewards")
+const { addXP } = require("./progressionSystem")
+const { giveAchievement } = require("./achievementSystem")
 
-const { save } = require("./userSystem")
+const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
-function getRandom(arr){
- return arr[Math.floor(Math.random()*arr.length)]
+const rarityXP={
+ C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
 
-function giveSSR(user){
+function openPack(user,setId){
 
- const ssrCards = cards.filter(c => c.rarity === "SSR")
+ const result = generatePack(user,setId)
 
- if(!ssrCards.length) return null
+ const pack = result?.pack || []
+ const luckyPack = result?.luckyPack || false
 
- const card = getRandom(ssrCards)
+ if(!Array.isArray(pack) || pack.length === 0){
+  console.error("Pack vide ou invalide :", setId)
+  return {
+   pack:[],
+   luckyPack:false,
+   discovered:[],
+   kamasGain:0,
+   xpGain:0,
+   best:null,
+   dailyBonus:false
+  }
+ }
 
- user.cards[card.id] = (user.cards[card.id] || 0) + 1
-
- return card
-}
-
-/* ---------------- CAN CLAIM ---------------- */
-
-function canClaim(user){
-
- const now = Date.now()
-
- if(!user.daily)
-  user.daily = { streak:0, lastDaily:0 }
-
- return now - user.daily.lastDaily >= 86400000
-
-}
-
-/* ---------------- CLAIM DAILY ---------------- */
-
-async function claimDaily(interaction,user){
-
- const now = Date.now()
-
- if(!user.daily)
-  user.daily = { streak:0, lastDaily:0 }
-
- /* reset streak si >48h */
-
- if(now - user.daily.lastDaily > 172800000)
-  user.daily.streak = 0
-
- user.daily.lastDaily = now
- user.daily.streak++
-
- /* FIX compteur daily */
+ let discovered=[]
+ let kamasGain=0
 
  if(!user.stats)
   user.stats={}
 
- if(user.stats.dailyClaims === undefined)
-  user.stats.dailyClaims = 0
+ if(user.stats.ssrPulled===undefined)
+  user.stats.ssrPulled=0
 
- user.stats.dailyClaims++
+ if(!user.cards)
+  user.cards={}
 
- let reward=null
+ /* ---------------- AJOUT CARTES ---------------- */
 
- /* SSR streak 7 */
+ for(const card of pack){
 
- if(user.daily.streak >= 7){
+  if(!card) continue
 
-  const card = giveSSR(user)
+  if(!user.cards[card.id])
+   discovered.push(card)
 
-  reward={
-   type:"ssr",
-   value:card
-  }
+  user.cards[card.id]=(user.cards[card.id]||0)+1
 
-  user.daily.streak = 0
+  kamasGain+=rewardKamas(user,card.rarity)
 
- }else{
+  if(card.rarity==="SSR")
+   user.stats.ssrPulled++
 
-  if(Math.random() < 0.5){
+  /* SHINY SSR ACHIEVEMENT */
 
-   const packs = 1
+  if(card.rarity==="SSR" && card.shiny)
+   giveAchievement(user,"shinySSR")
 
-   user.packs = (user.packs || 0) + packs
+ }
 
-   reward={
-    type:"pack",
-    value:packs
-   }
+ /* ---------------- ACHIEVEMENTS PACK ---------------- */
 
-  }else{
+ const rarities=pack.map(c=>c.rarity)
 
-   const kamas = 200
+ /* PACK DIVIN : UR + SSR */
 
-   user.kamas = (user.kamas || 0) + kamas
+ if(rarities.includes("SSR") && rarities.includes("UR"))
+  giveAchievement(user,"packDivin")
 
-   reward={
-    type:"kamas",
-    value:kamas
-   }
+ /* PILE OU FACE : doublons dans le pack */
+
+ const ids=pack.map(c=>c.id)
+
+ const duplicates=ids.filter((v,i,a)=>a.indexOf(v)!==i)
+
+ if(duplicates.length>=2)
+  giveAchievement(user,"pileOuFace")
+
+ /* IMPOSSIBLE : lucky pack + 3 SSR */
+
+ const ssrCount=pack.filter(c=>c.rarity==="SSR").length
+
+ if(luckyPack && ssrCount>=3)
+  giveAchievement(user,"impossible")
+
+ /* TIME ACHIEVEMENTS */
+
+ const hour=new Date().getHours()
+
+ if(hour>=3 && hour<4)
+  giveAchievement(user,"insomniaque")
+
+ if(hour<7)
+  giveAchievement(user,"matinal")
+
+ /* ---------------- BEST CARD ---------------- */
+
+ let best = pack.find(c=>c) || null
+
+ if(best){
+
+  for(const card of pack){
+
+   if(!card) continue
+
+   if(rarityOrder.indexOf(card.rarity)>
+      rarityOrder.indexOf(best.rarity))
+    best=card
 
   }
 
  }
 
- /* streak bar */
+ /* ---------------- XP ---------------- */
 
- const filled = "🟩".repeat(user.daily.streak)
- const empty = "⬛".repeat(7-user.daily.streak)
+ let xpGain=20
 
- const streakBar = `${filled}${empty}`
+ const today=new Date().toDateString()
+ let dailyBonus=false
 
- save()
+ if(user.dailyXP!==today){
+  xpGain*=2
+  user.dailyXP=today
+  dailyBonus=true
+ }
+
+ if(best)
+  xpGain+=rarityXP[best.rarity] || 0
+
+ addXP(user,xpGain)
 
  return{
-  reward,
-  streak:user.daily.streak,
-  streakBar,
-  doubleReward:false
+  pack,
+  luckyPack,
+  discovered,
+  kamasGain,
+  xpGain,
+  best,
+  dailyBonus
  }
 
 }
 
 module.exports={
- canClaim,
- claimDaily,
- giveSSR
+ openPack
 }

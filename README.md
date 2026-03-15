@@ -12,6 +12,7 @@ Les joueurs peuvent :
 * vendre des cartes sur un **marché**
 * débloquer des **succès**
 * progresser en **niveau et rang**
+* intéragir avec le bot avec **mention**
 
 Le bot est conçu avec une **architecture modulaire Node.js** afin de faciliter les ajouts de contenu et de fonctionnalités.
 
@@ -99,6 +100,10 @@ progressionSystem	gestion de l'XP
 rankSystem	gestion des rangs
 achievementSystem	gestion des succès
 achievementCheck	vérification automatique des succès
+badges (succès)
+titres débloqués
+progression de collection
+
 
 🎁 Activités
 système	rôle
@@ -207,6 +212,20 @@ Structure :
 
 ---
 
+### ✨ SSR Shiny
+
+Les cartes **SSR** possèdent une variante extrêmement rare appelée **SSR Shiny**.
+
+Caractéristiques :
+
+- ⭐ 0.5% de chance lors d'une SSR
+- ✨ icône spéciale dans les packs
+- 🌟 embed visuel différent lors de l'ouverture
+- 🏆 achievement spécial
+
+Les SSR Shiny sont purement cosmétiques.
+---
+
 # 🎲 Système de Pity
 
 Le système d'ouverture de packs utilise un mécanisme de pity afin d'éviter les longues séries de malchance.
@@ -252,7 +271,15 @@ Un Lucky Pack donne :
 
 5 cartes normales
 + 1 carte bonus aléatoire
-📊 Affichage de la piy
+📊 Affichage de la pity
+
+Dans certains cas très rares, un Lucky Pack peut produire des résultats exceptionnels :
+
+- plusieurs cartes SSR
+- doublons inhabituels
+- combinaisons rares de cartes
+
+Certains achievements secrets sont liés à ces événements.
 
 La progression de pity est visible dans :
 
@@ -266,7 +293,7 @@ et lors de l'ouverture d'un pack :
 
 ## 📦 Sets de cartes
 
-Le jeu contient actuellement **3 sets principaux** totalisant **499 cartes**.
+Le jeu contient actuellement **3 sets principaux** totalisant **674 cartes**.
 
 ### ☁️ Incarnam — Set de départ
 
@@ -473,14 +500,34 @@ Affichés dans :
 
 # 🏆 Achievements
 
-Le bot possède un système de **succès automatiques** :
+Le bot possède un système de **succès automatiques et secrets**.
+
+Types de succès :
+
+• progression (packs, niveau, collection)  
+• économie (kamas, marché)  
+• gameplay (fusion, SSR, packs spéciaux)  
+• social (mention du bot)  
+• secrets (conditions cachées)
+
+Les succès secrets apparaissent comme :
+
+🔒 **???**
+
+jusqu'à leur déblocage.
+
+---
+
+# 💡 Astuces du bot
+
+Lorsque le bot est mentionné, il peut répondre avec des **astuces aléatoires** sur le jeu.
 
 Exemples :
 
-* ouvrir X packs
-* obtenir SSR
-* compléter un set
-* utiliser le marché
+• comment optimiser les packs  
+• comment utiliser la fusion  
+• comment compléter un set  
+• comment utiliser le marché
 
 ---
 
@@ -496,6 +543,29 @@ Exemples :
 ✔ **progression et rangs**
 ✔ **economy avec kamas**
 ✔ **interface Discord interactive**
+✔ système de **réponses du bot lorsqu'il est mentionné**
+✔ **astuces automatiques** sur les mécaniques du jeu
+✔ triggers de mots-clés lorsque le bot est mentionné
+✔ achievements liés aux interactions sociales
+✔ système de fusion avancé
+✔ fusion critique
+✔ fusion double
+✔ triple fusion extrêmement rare
+✔ animation d'ouverture de pack
+✔ révélation progressive des cartes
+✔ affichage des nouvelles découvertes
+
+---
+
+# 🔁 Gameplay Loop
+
+1️⃣ ouvrir des packs  
+2️⃣ obtenir des cartes  
+3️⃣ vendre les doublons  
+4️⃣ fusionner les cartes  
+5️⃣ compléter les sets  
+6️⃣ débloquer des achievements  
+7️⃣ gagner de l'XP et monter de niveau
 
 ---
 

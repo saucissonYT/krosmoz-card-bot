@@ -1,6 +1,7 @@
 const generatePack = require("./pack")
 const { rewardKamas } = require("./rewards")
 const { addXP } = require("./progressionSystem")
+const { giveAchievement } = require("./achievementSystem")
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
@@ -37,6 +38,11 @@ function openPack(user,setId){
  if(user.stats.ssrPulled===undefined)
   user.stats.ssrPulled=0
 
+ if(!user.cards)
+  user.cards={}
+
+ /* ---------------- AJOUT CARTES ---------------- */
+
  for(const card of pack){
 
   if(!card) continue
@@ -48,12 +54,52 @@ function openPack(user,setId){
 
   kamasGain+=rewardKamas(user,card.rarity)
 
-  /* -------- FIX SSR COUNT -------- */
-
   if(card.rarity==="SSR")
    user.stats.ssrPulled++
 
+  /* SHINY SSR ACHIEVEMENT */
+
+  if(card.rarity==="SSR" && card.shiny)
+   giveAchievement(user,"shinySSR")
+
  }
+
+ /* ---------------- ACHIEVEMENTS PACK ---------------- */
+
+ const rarities=pack.map(c=>c.rarity)
+
+ /* PACK DIVIN : UR + SSR */
+
+ if(rarities.includes("SSR") && rarities.includes("UR"))
+  giveAchievement(user,"packDivin")
+
+ /* PILE OU FACE : doublons dans le pack */
+
+ const ids=pack.map(c=>c.id)
+
+ const duplicates=ids.filter((v,i,a)=>a.indexOf(v)!==i)
+
+ if(duplicates.length>=2)
+  giveAchievement(user,"pileOuFace")
+
+ /* IMPOSSIBLE : lucky pack + 3 SSR */
+
+ const ssrCount=pack.filter(c=>c.rarity==="SSR").length
+
+ if(luckyPack && ssrCount>=3)
+  giveAchievement(user,"impossible")
+
+ /* TIME ACHIEVEMENTS */
+
+ const hour=new Date().getHours()
+
+ if(hour>=3 && hour<4)
+  giveAchievement(user,"insomniaque")
+
+ if(hour<7)
+  giveAchievement(user,"matinal")
+
+ /* ---------------- BEST CARD ---------------- */
 
  let best = pack.find(c=>c) || null
 
@@ -70,6 +116,8 @@ function openPack(user,setId){
   }
 
  }
+
+ /* ---------------- XP ---------------- */
 
  let xpGain=20
 

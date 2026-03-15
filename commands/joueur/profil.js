@@ -84,9 +84,30 @@ module.exports = {
    if(user.cards[id] > 0)
     ownedCards++
 
-  const badges = user.achievements?.length
-   ? user.achievements.map(a => achievements[a]?.badge).join(" ")
-   : "Aucun"
+  /* -------- BADGES LIMIT + DERNIERS EN PRIORITÉ -------- */
+
+  const maxBadges = 40
+
+  let badges = "Aucun"
+
+  if(user.achievements?.length){
+
+   const reversed = [...user.achievements].reverse()
+
+   const visible = reversed.slice(0,maxBadges)
+
+   badges = visible
+    .map(a => achievements[a]?.badge || "")
+    .join(" ")
+
+   if(user.achievements.length > maxBadges){
+
+    const extra = user.achievements.length - maxBadges
+    badges += ` +${extra}`
+
+   }
+
+  }
 
   const rank = getRank(user)
 

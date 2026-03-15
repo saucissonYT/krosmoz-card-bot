@@ -32,6 +32,11 @@ module.exports={
 
     const unlocked=user.achievements?.includes(id)
 
+    /* ---------- ACHIEVEMENTS SECRETS ---------- */
+
+    if(data.secret && !unlocked)
+     return `🔒 ???`
+
     return `${unlocked?"✔":"🔒"} ${data.badge} **${data.name}**`
 
    })

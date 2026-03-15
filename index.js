@@ -20,10 +20,20 @@ dataManager.loadAll()
 /* --------------------------------------------- */
 
 const client = new Client({
- intents:[GatewayIntentBits.Guilds]
+ intents:[
+  GatewayIntentBits.Guilds,
+  GatewayIntentBits.GuildMessages,
+  GatewayIntentBits.MessageContent
+ ]
 })
 
 client.commands = new Collection()
+
+/* ---------------- CHAT SYSTEM ---------------- */
+
+const { handleMessage } = require("./systems/chatSystem")
+
+/* ---------------- LOAD COMMANDS ---------------- */
 
 const commandsPath = path.join(__dirname,"commands")
 const commandFolders = fs.readdirSync(commandsPath)
@@ -91,6 +101,8 @@ for(const folder of commandFolders){
 
 console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
+/* ---------------- BOT READY ---------------- */
+
 client.once("clientReady", async () => {
 
  console.log(`🤖 Bot connecté : ${client.user.tag}`)
@@ -125,6 +137,28 @@ client.once("clientReady", async () => {
  }
 
 })
+
+/* ========================================================= */
+/* MESSAGE CREATE (CHAT SYSTEM) */
+/* ========================================================= */
+
+client.on("messageCreate",async message=>{
+
+ try{
+
+  await handleMessage(message,client)
+
+ }catch(err){
+
+  console.error("Erreur chatSystem :",err)
+
+ }
+
+})
+
+/* ========================================================= */
+/* INTERACTIONS */
+/* ========================================================= */
 
 client.on("interactionCreate",async interaction=>{
 
@@ -251,5 +285,7 @@ client.on("interactionCreate",async interaction=>{
  }
 
 })
+
+/* ---------------- LOGIN ---------------- */
 
 client.login(process.env.TOKEN)

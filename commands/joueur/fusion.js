@@ -154,6 +154,9 @@ xpGain = 50
 
 user.stats.tripleFusionToday++
 
+/* ACHIEVEMENT */
+giveAchievement(user,"fusionTriple")
+
 }
 
 else if(roll < 0.10){
@@ -192,6 +195,14 @@ if(targetIndex > maxIndex)
 targetIndex = maxIndex
 
 const targetRarity = rarityOrder[targetIndex]
+
+/* ACHIEVEMENTS RARE FUSION */
+
+if(targetRarity === "UR")
+giveAchievement(user,"fusionUR")
+
+if(targetRarity === "SSR")
+giveAchievement(user,"fusionSSR")
 
 const rewardPool = cards.filter(c =>
 c.set === setName &&
