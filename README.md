@@ -285,7 +285,7 @@ Les joueurs commencent leur collection avec les cartes d’**Incarnam**.
 
 Deuxième set du jeu avec beaucoup plus de contenu et d’équipements.
 
-* **246 cartes**
+* **258 cartes**
 * Beaucoup d’objets, ressources et panoplies
 * Plusieurs cartes **rares et spéciales**
 
@@ -295,7 +295,7 @@ Deuxième set du jeu avec beaucoup plus de contenu et d’équipements.
 
 Troisième set du jeu avec encore plus de contenu, basé sur amakna de Wakfu MMO.
 
-* **253 cartes**
+* **296 cartes**
 * Beaucoup d’objets, ressources et panoplies
 * Plusieurs cartes **rares et spéciales**
 * Le légendaire khan karkass
@@ -306,7 +306,7 @@ Troisième set du jeu avec encore plus de contenu, basé sur amakna de Wakfu MMO
 
 ### 📊 Total du jeu
 
-499 cartes
+674 cartes
 
 # 🎮 Commandes Joueur
 

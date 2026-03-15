@@ -11,16 +11,11 @@ const {
  TextInputStyle
 } = require("discord.js")
 
-const { data, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
-const cards = data.cards || []
+const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
+const { getCardsById } = require("../../systems/cardRegistry")
 
 const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
-
-const cardsById={}
-for(const c of cards){
- cardsById[c.id]=c
-}
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -37,34 +32,22 @@ module.exports={
   )
   .addIntegerOption(option =>
    option.setName("id").setDescription("ID de la carte")
-  )
-  .addIntegerOption(option =>
-   option.setName("numero").setDescription("Numéro dans ton inventaire")
   ),
 
  async execute(interaction){
+
+  const cardsById = getCardsById()
+  const cards = Object.values(cardsById)
 
   const user=getUser(interaction.user.id)
 
   const name=interaction.options.getString("nom")
   const id=interaction.options.getInteger("id")
-  const numero=interaction.options.getInteger("numero")
 
   let card
 
-  if(id)
+  if(id){
    card=cardsById[id]
-
-  else if(numero){
-
-   const inv=Object.entries(user.cards||{})
-
-   if(numero<1||numero>inv.length)
-    return interaction.reply("❌ Numéro invalide.")
-
-   const cardId=inv[numero-1][0]
-   card=cardsById[cardId]
-
   }
 
   else if(name){
@@ -77,7 +60,7 @@ module.exports={
 
   else
    return interaction.reply({
-    content:"❌ Tu dois préciser `nom`, `id` ou `numero`.",
+    content:"❌ Tu dois préciser `nom` ou `id`.",
     ephemeral:true
    })
 
