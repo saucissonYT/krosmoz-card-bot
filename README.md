@@ -493,23 +493,15 @@ bot hébergé pour l'instant sur railway
 
 # 📜 Licence
 
-Rédaction
-📜 Licence
-
 Ce projet est distribué comme projet open-source non commercial.
-
 Krosmoz Card Bot est un projet fan non officiel inspiré de l’univers Krosmoz (Dofus / Wakfu).
-
 Tous les droits relatifs à l’univers, aux personnages, aux noms et aux visuels appartiennent à Ankama.
 
 Ce projet :
 
 n’est pas affilié à Ankama
-
 n’est pas approuvé par Ankama
-
 est développé uniquement à des fins communautaires.
-
 Le bot est entièrement gratuit et ne génère aucun revenu.
 
 Si Ankama demande la modification ou la suppression de certains contenus, ils seront retirés du projet (et il sera adapté à un autre univers).
