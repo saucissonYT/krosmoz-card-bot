@@ -102,14 +102,6 @@ module.exports = {
    ? `<t:${Math.floor(user.daily.lastDaily/1000)}:R>`
    : "Jamais"
 
-  /* PITY */
-
-  const pity = user.pity || {}
-
-  const pityLines = Object.keys(pity).length
-   ? Object.entries(pity).map(([set,value]) => `${set} : ${value}`).join("\n")
-   : "Aucune"
-
   const embed = new EmbedBuilder()
 
    .setTitle(`👤 ${target.username}`)
@@ -140,11 +132,6 @@ module.exports = {
 📅 Daily claims : ${stats.dailyClaims || 0}
 🔥 Streak daily : ${user.daily?.streak || 0}
 ⏱ Dernier daily : ${lastDaily}`
-    },
-
-    {
-     name:"🎯 Pity",
-     value:pityLines
     },
 
     {name:"🎖 Badges",value:badges}

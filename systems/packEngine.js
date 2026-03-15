@@ -31,6 +31,12 @@ function openPack(user,setId){
  let discovered=[]
  let kamasGain=0
 
+ if(!user.stats)
+  user.stats={}
+
+ if(user.stats.ssrPulled===undefined)
+  user.stats.ssrPulled=0
+
  for(const card of pack){
 
   if(!card) continue
@@ -41,6 +47,11 @@ function openPack(user,setId){
   user.cards[card.id]=(user.cards[card.id]||0)+1
 
   kamasGain+=rewardKamas(user,card.rarity)
+
+  /* -------- FIX SSR COUNT -------- */
+
+  if(card.rarity==="SSR")
+   user.stats.ssrPulled++
 
  }
 
