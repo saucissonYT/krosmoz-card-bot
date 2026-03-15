@@ -81,9 +81,7 @@ module.exports={
 
   let nextId=getNextCardId()
 
-  /* -------------------------------- */
-  /* PRE-SCAN POUR DETECTER LES SETS  */
-  /* -------------------------------- */
+  /* -------- PRE SCAN DES SETS -------- */
 
   const missingSets=new Set()
 
@@ -118,7 +116,7 @@ module.exports={
      .setStyle(ButtonStyle.Danger)
    )
 
-   await interaction.editReply({
+   const msg = await interaction.editReply({
     content:
 `⚠️ Sets inconnus détectés :
 
@@ -132,9 +130,9 @@ Créer automatiquement ces sets ?`,
 
    try{
 
-    const confirmation=await interaction.channel.awaitMessageComponent({
+    const confirmation=await msg.awaitMessageComponent({
      filter,
-     time:30000
+     time:60000
     })
 
     if(confirmation.customId==="cancelimport"){
@@ -176,17 +174,13 @@ Créer automatiquement ces sets ?`,
 
   }
 
-  /* -------------------------------- */
-  /* OPTIMISATION DUPLICATE CHECK     */
-  /* -------------------------------- */
+  /* -------- OPTIMISATION DOUBLONS -------- */
 
   const cardLookup=new Set(
    cards.map(c=>`${c.name.toLowerCase()}_${c.set}`)
   )
 
-  /* -------------------------------- */
-  /* IMPORT DES CARTES                */
-  /* -------------------------------- */
+  /* -------- IMPORT -------- */
 
   for(const file of files){
 
