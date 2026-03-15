@@ -16,13 +16,15 @@ const cards = data.cards || []
 
 function buildXPBar(current,max){
 
- const size = 10
+ const size = 12
  const percent = current / max
 
  const filled = Math.round(size * percent)
  const empty = size - filled
 
- const bar = "🟩".repeat(filled) + "⬜".repeat(empty)
+ const bar =
+  "🟩".repeat(filled) +
+  "⬜".repeat(empty)
 
  const percentText = Math.floor(percent * 100)
 
@@ -37,7 +39,9 @@ function buildCollectionBar(current,max){
  const filled = Math.round(size * percent)
  const empty = size - filled
 
- const bar = "🟩".repeat(filled) + "⬜".repeat(empty)
+ const bar =
+  "🟩".repeat(filled) +
+  "⬜".repeat(empty)
 
  const percentText = Math.floor(percent * 100)
 
@@ -98,6 +102,10 @@ module.exports = {
 
   const stats = user.stats || {}
 
+  const lastDaily = user.daily?.lastDaily
+   ? `<t:${Math.floor(user.daily.lastDaily/1000)}:R>`
+   : "Jamais"
+
   const embed = new EmbedBuilder()
 
    .setTitle(`👤 ${target.username}`)
@@ -125,7 +133,8 @@ module.exports = {
 `📦 Packs ouverts : ${stats.packsOpened || 0}
 🌈 SSR obtenues : ${stats.ssrPulled || 0}
 🔧 Fusions : ${stats.fusions || 0}
-📅 Daily : ${stats.dailyClaims || 0}`
+📅 Streak daily : ${user.daily?.streak || 0}
+⏱ Dernier daily : ${lastDaily}`
     },
 
     {name:"🎖 Badges",value:badges}
