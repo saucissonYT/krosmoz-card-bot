@@ -213,7 +213,6 @@ Troisième set du jeu avec encore plus de contenu, basé sur amakna de Wakfu MMO
 ```
 /balance
 /sellcard
-/sellall
 /sellduplicate
 ```
 
