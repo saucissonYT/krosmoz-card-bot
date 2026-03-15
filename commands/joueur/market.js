@@ -11,14 +11,11 @@ const {
 const {
  getMarket,
  buyCard,
- addListing,
- removeListing,
- getUserListings,
  getAveragePrices
 } = require("../../systems/market")
 
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
+const { getCards } = require("../../systems/cardRegistry")
+const cards = getCards()
 
 const rarityEmoji={
  C:"⚪",
@@ -43,15 +40,20 @@ module.exports={
  async execute(interaction){
 
   let market = getMarket()
-  const averages = getAveragePrices()
 
-  if(market.length===0)
+  if(!market || market.length===0)
    return interaction.reply("Le marché est vide.")
+
+  const averages = getAveragePrices()
 
   let page=1
   const perPage=10
 
   function buildPage(page){
+
+   const maxPage=Math.max(1,Math.ceil(market.length/perPage))
+
+   page=Math.max(1,Math.min(page,maxPage))
 
    const start=(page-1)*perPage
    const listings=market.slice(start,start+perPage)
@@ -61,7 +63,7 @@ module.exports={
     const card=cards.find(c=>c.id==l.card)
 
     if(!card)
-     return `ID:${l.id} • Carte supprimée • ${l.price}`
+     return `ID:${l.id} • Carte inconnue • ${l.price}`
 
     const emoji=rarityEmoji[card.rarity]||""
 
@@ -72,8 +74,6 @@ module.exports={
     return `ID:${l.id} • ${emoji} ${card.name} • ${l.price} kamas${avg}`
 
    })
-
-   const maxPage=Math.ceil(market.length/perPage)
 
    const embed=new EmbedBuilder()
     .setTitle("🛒 Marché")
@@ -101,14 +101,15 @@ module.exports={
 
    )
 
-   return {embed,row,maxPage}
+   return {embed,row,page,maxPage}
+
   }
 
-  const {embed,row}=buildPage(page)
+  let built=buildPage(page)
 
   const msg=await interaction.reply({
-   embeds:[embed],
-   components:[row],
+   embeds:[built.embed],
+   components:[built.row],
    fetchReply:true
   })
 
@@ -124,13 +125,31 @@ module.exports={
    if(i.customId==="next") page++
    if(i.customId==="prev") page--
 
-   const {embed,row,maxPage}=buildPage(page)
+   if(i.customId==="buy"){
 
-   page=Math.max(1,Math.min(page,maxPage))
+    const modal=new ModalBuilder()
+     .setCustomId("marketBuyModal")
+     .setTitle("Acheter une carte")
+
+    const input=new TextInputBuilder()
+     .setCustomId("listingId")
+     .setLabel("ID du listing")
+     .setStyle(TextInputStyle.Short)
+     .setRequired(true)
+
+    const row=new ActionRowBuilder().addComponents(input)
+
+    modal.addComponents(row)
+
+    return i.showModal(modal)
+
+   }
+
+   built=buildPage(page)
 
    await i.update({
-    embeds:[embed],
-    components:[row]
+    embeds:[built.embed],
+    components:[built.row]
    })
 
   })

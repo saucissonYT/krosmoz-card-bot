@@ -1,5 +1,73 @@
 const { data, save } = require("./dataManager")
 
+const rarityOrder={
+ C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
+}
+
+/* ---------------- ID SECURISE ---------------- */
+
+function generateId(){
+ return Date.now() + Math.floor(Math.random()*1000)
+}
+
+/* ---------------- HISTORIQUE ---------------- */
+
+if(!data.marketHistory)
+ data.marketHistory=[]
+
+/* ---------------- ANTI MANIPULATION ---------------- */
+
+function getAveragePrices(){
+
+ const prices={}
+
+ for(const sale of data.marketHistory){
+
+  if(!prices[sale.card])
+   prices[sale.card]=[]
+
+  prices[sale.card].push(sale.price)
+
+ }
+
+ const averages={}
+
+ for(const card in prices){
+
+  const list=prices[card]
+
+  const sum=list.reduce((a,b)=>a+b,0)
+
+  averages[card]=Math.floor(sum/list.length)
+
+ }
+
+ return averages
+}
+
+/* ---------------- TRI MARCHE ---------------- */
+
+function sortMarket(market,cards){
+
+ market.sort((a,b)=>{
+
+  const ca = cards.find(c=>c.id==a.card)
+  const cb = cards.find(c=>c.id==b.card)
+
+  if(!ca || !cb) return 0
+
+  const r = rarityOrder[cb.rarity]-rarityOrder[ca.rarity]
+
+  if(r!==0) return r
+
+  return a.price-b.price
+
+ })
+
+}
+
+/* ---------------- AJOUT LISTING ---------------- */
+
 function addListing(sellerId,cardId,price){
 
  const market = data.market
@@ -13,14 +81,31 @@ function addListing(sellerId,cardId,price){
  if(!seller.cards || !seller.cards[cardId] || seller.cards[cardId] <= 0)
   return {error:"Tu ne possèdes pas cette carte"}
 
- const id = Date.now()
+ const averages=getAveragePrices()
+
+ if(averages[cardId]){
+
+  const avg=averages[cardId]
+
+  const minPrice=Math.floor(avg*0.25)
+  const maxPrice=Math.floor(avg*4)
+
+  if(price < minPrice)
+   return {error:`Prix trop bas (min ${minPrice})`}
+
+  if(price > maxPrice)
+   return {error:`Prix trop élevé (max ${maxPrice})`}
+
+ }
+
+ const id = generateId()
 
  const listing={
   id,
   seller:sellerId,
   card:cardId,
   price,
-  timestamp:id
+  timestamp:Date.now()
  }
 
  seller.cards[cardId]--
@@ -34,6 +119,8 @@ function addListing(sellerId,cardId,price){
 
  return listing
 }
+
+/* ---------------- ACHAT ---------------- */
 
 function buyCard(buyerId,listingId){
 
@@ -68,10 +155,23 @@ function buyCard(buyerId,listingId){
 
  data.market = market.filter(l=>l.id!==listingId)
 
+ /* historique vente */
+
+ data.marketHistory.push({
+  card:listing.card,
+  price:listing.price,
+  time:Date.now()
+ })
+
+ if(data.marketHistory.length > 5000)
+  data.marketHistory.shift()
+
  save()
 
  return {success:true}
 }
+
+/* ---------------- RETIRER LISTING ---------------- */
 
 function removeListing(userId,listingId){
 
@@ -99,12 +199,14 @@ function removeListing(userId,listingId){
  return {success:true}
 }
 
+/* ---------------- GET MARKET ---------------- */
+
 function getMarket(){
- return data.market
+ return data.market || []
 }
 
 function getUserListings(userId){
- return data.market.filter(l=>l.seller === userId)
+ return (data.market||[]).filter(l=>l.seller === userId)
 }
 
 module.exports={
@@ -112,5 +214,7 @@ module.exports={
  buyCard,
  getMarket,
  removeListing,
- getUserListings
+ getUserListings,
+ getAveragePrices,
+ sortMarket
 }
