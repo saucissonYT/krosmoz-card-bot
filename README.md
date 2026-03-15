@@ -44,48 +44,109 @@ krosmoz-card-bot
 │ ├ cards.json
 │ └ sets.json
 │
-├ database
-│ ├ users.json
+├ data                # données persistantes (Railway / local)
+│ ├ users             # fichiers joueurs individuels
+│ │ ├ 123456789.json
+│ │ ├ 987654321.json
+│ │ └ ...
+│ │
 │ ├ market.json
+│ ├ marketHistory.json
 │ ├ devs.json
-│ └ config.json
+│ └ cards.json
 │
 ├ index.js
 ├ deployCommands.js
 ├ package.json
+├ CHANGELOG.md
 └ README.md
 ```
-
 ---
 
 # 🧠 Architecture
 
-Le bot est divisé en **systèmes indépendants** :
+Le bot est construit avec une architecture modulaire basée sur des systèmes indépendants situés dans le dossier :
 
-| système           | rôle                          |
-| ----------------- | ----------------------------- |
-| achievementSystem | gestion des succès            |
-| achievementCheck  | vérification des achievements |
-| antiAbuse         | prévention du farm abusif     |
-| auditSystem       | logs développeur              |
-| dailySystem       | récompenses quotidiennes      |
-| economy           | gestion des kamas             |
-| eventSystem       | événements                    |
-| inventoryImage    | génération image inventaire   |
-| market            | marché des cartes             |
-| pack              | génération des packs          |
-| progressionSystem | niveau et XP                  |
-| rankSystem        | rangs                         |
-| rewards           | récompenses                   |
-| setSystem         | sets et collections           |
-| tradeSystem       | échanges joueurs              |
-| userSystem        | gestion base utilisateurs     |
+systems/
+
+Chaque système gère une mécanique spécifique du jeu.
+
+⚙️ Systèmes principaux
+système	rôle
+dataManager	gestion des données persistantes (/data)
+userSystem	gestion des utilisateurs
+cardRegistry	indexation et accès rapide aux cartes
+cardId	gestion des identifiants de cartes
+
+🎮 Gameplay
+système	rôle
+pack	ouverture de packs
+packEngine	génération des cartes dans les packs
+setSystem	gestion des sets et collections
+setSystemFile	gestion des fichiers de sets
+fusion (dans commandes)	fusion des cartes
+
+🪙 Économie
+système	rôle
+economy	gestion des kamas
+market	marché des cartes
+tradeSystem	échanges entre joueurs
+rewards	attribution des récompenses
+
+📈 Progression
+système	rôle
+progressionSystem	gestion de l'XP
+rankSystem	gestion des rangs
+achievementSystem	gestion des succès
+achievementCheck	vérification automatique des succès
+
+🎁 Activités
+système	rôle
+dailySystem	récompenses quotidiennes
+eventSystem	gestion des événements
+
+🛠 Outils internes
+système	rôle
+inventoryImage	génération d'image d'inventaire
+auditSystem	logs développeur
+antiAbuse	protection contre le farm abusif
+devSystem	outils développeur
+
+🔗 Schéma simplifié
+
+                Discord Commands
+                       │
+                       ▼
+                Command Handlers
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+    packEngine      market        tradeSystem
+        │              │              │
+        └──────► userSystem ◄────────┘
+                       │
+                       ▼
+                  dataManager
+                       │
+                       ▼
+                     /data
 
 ---
 
-# 🧾 Base de données
+📦 Stockage des données
 
-Le bot utilise une **database JSON locale**.
+Le bot utilise un système de stockage basé sur des fichiers JSON.
+
+Structure :
+
+/data
+   users/
+      123456789.json
+      987654321.json
+   market.json
+   marketHistory.json
+   devs.json
+   cards.json
 
 ### users.json
 
@@ -391,6 +452,14 @@ Fonctionnalités prévues :
 
 ---
 
+## 📰 Changelog
+
+Historique des mises à jour :
+
+[Voir le changelog](CHANGELOG.md)
+
+---
+
 # 👨‍💻 Auteur
 
 Projet créé par :
@@ -424,23 +493,15 @@ bot hébergé pour l'instant sur railway
 
 # 📜 Licence
 
-Rédaction
-📜 Licence
-
 Ce projet est distribué comme projet open-source non commercial.
-
 Krosmoz Card Bot est un projet fan non officiel inspiré de l’univers Krosmoz (Dofus / Wakfu).
-
 Tous les droits relatifs à l’univers, aux personnages, aux noms et aux visuels appartiennent à Ankama.
 
 Ce projet :
 
 n’est pas affilié à Ankama
-
 n’est pas approuvé par Ankama
-
 est développé uniquement à des fins communautaires.
-
 Le bot est entièrement gratuit et ne génère aucun revenu.
 
 Si Ankama demande la modification ou la suppression de certains contenus, ils seront retirés du projet (et il sera adapté à un autre univers).
