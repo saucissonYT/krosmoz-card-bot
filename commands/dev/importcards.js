@@ -23,6 +23,7 @@ function skip(file,reason){
 }
 
 function createSet(setId){
+
  const setsPath="./data/sets.json"
 
  let setsData={sets:[]}
@@ -33,6 +34,10 @@ function createSet(setId){
  if(!setsData.sets)
   setsData.sets=[]
 
+ const exists=setsData.sets.find(s=>s.id===setId)
+
+ if(exists) return
+
  setsData.sets.push({
   id:setId,
   name:setId,
@@ -41,7 +46,7 @@ function createSet(setId){
 
  fs.writeFileSync(setsPath,JSON.stringify(setsData,null,2))
 
- console.log(`📦 Set créé automatiquement : ${setId}`)
+ console.log(`📦 SET AUTO CRÉÉ : ${setId}`)
 }
 
 module.exports={
@@ -81,105 +86,6 @@ module.exports={
 
   let nextId=getNextCardId()
 
-  /* ---------- PRE SCAN SETS ---------- */
-
-  const missingSets=new Set()
-
-  for(const file of files){
-
-   const base=file.split(".")[0]
-   const split=base.split("_")
-
-   if(split.length<3) continue
-
-   const set=split[split.length-2].toLowerCase()
-
-   const exists=sets.find(s=>s.id===set)
-
-   if(!exists)
-    missingSets.add(set)
-
-  }
-
-  if(missingSets.size>0){
-
-   const list=[...missingSets].join("\n")
-
-   const row=new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-     .setCustomId("createsets")
-     .setLabel("Créer les sets")
-     .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-     .setCustomId("cancelimport")
-     .setLabel("Annuler l'import")
-     .setStyle(ButtonStyle.Danger)
-   )
-
-   const msg = await interaction.editReply({
-    content:
-`⚠️ Sets inconnus détectés :
-
-${list}
-
-Créer automatiquement ces sets ?`,
-    components:[row]
-   })
-
-   const filter=i=>i.user.id===interaction.user.id
-
-   const collector = msg.createMessageComponentCollector({
-    filter,
-    time:60000,
-    max:1
-   })
-
-   const decision = await new Promise(resolve=>{
-    collector.on("collect", resolve)
-    collector.on("end", collected=>{
-     if(collected.size===0) resolve(null)
-    })
-   })
-
-   if(!decision){
-
-    await interaction.editReply({
-     content:"⏱️ Temps expiré. Import annulé.",
-     components:[]
-    })
-
-    return
-   }
-
-   if(decision.customId==="cancelimport"){
-
-    await decision.update({
-     content:"❌ Import annulé.",
-     components:[]
-    })
-
-    return
-   }
-
-   for(const set of missingSets){
-
-    createSet(set)
-
-    sets.push({
-     id:set,
-     name:set,
-     reward:null
-    })
-
-   }
-
-   await decision.update({
-    content:`✅ ${missingSets.size} sets créés.`,
-    components:[]
-   })
-
-  }
-
   /* ---------- OPTIMISATION DOUBLONS ---------- */
 
   const cardLookup=new Set(
@@ -207,6 +113,20 @@ Créer automatiquement ces sets ?`,
     skip(file,`Rareté invalide : ${rarity}`)
     skipped++
     continue
+   }
+
+   let setExists=sets.find(s=>s.id===set)
+
+   if(!setExists){
+
+    createSet(set)
+
+    sets.push({
+     id:set,
+     name:set,
+     reward:null
+    })
+
    }
 
    const duplicateKey=`${name.toLowerCase()}_${set}`
@@ -268,8 +188,7 @@ Créer automatiquement ces sets ?`,
 ✅ ${imported} cartes importées
 ⚠️ ${skipped} ignorées
 
-📄 Voir la console pour le détail.`,
-   components:[]
+📄 Voir la console pour le détail.`
   })
 
  }
