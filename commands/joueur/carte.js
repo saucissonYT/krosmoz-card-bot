@@ -1,3 +1,5 @@
+const fs = require("fs")
+
 const {
  SlashCommandBuilder,
  EmbedBuilder,
@@ -9,7 +11,7 @@ const {
  TextInputStyle
 } = require("discord.js")
 
-const { data } = require("../../systems/dataManager")
+const { data, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const cards = data.cards || []
 
 const { addListing } = require("../../systems/market")
@@ -31,22 +33,13 @@ module.exports={
   .setName("carte")
   .setDescription("Afficher une carte")
   .addStringOption(option =>
-   option
-    .setName("nom")
-    .setDescription("Nom de la carte")
-    .setRequired(false)
+   option.setName("nom").setDescription("Nom de la carte")
   )
   .addIntegerOption(option =>
-   option
-    .setName("id")
-    .setDescription("ID de la carte")
-    .setRequired(false)
+   option.setName("id").setDescription("ID de la carte")
   )
   .addIntegerOption(option =>
-   option
-    .setName("numero")
-    .setDescription("Numéro dans ton inventaire")
-    .setRequired(false)
+   option.setName("numero").setDescription("Numéro dans ton inventaire")
   ),
 
  async execute(interaction){
@@ -70,7 +63,6 @@ module.exports={
     return interaction.reply("❌ Numéro invalide.")
 
    const cardId=inv[numero-1][0]
-
    card=cardsById[cardId]
 
   }
@@ -102,7 +94,17 @@ module.exports={
 📚 Set : ${card.set}
 📦 Possédé : x${count}`
    )
-   .setImage(`attachment://${card.image}`)
+
+  const filePath=`${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
+
+  let files=[]
+
+  if(fs.existsSync(filePath)){
+   embed.setImage(`attachment://${card.image}`)
+   files=[{attachment:filePath,name:card.image}]
+  }else{
+   embed.setFooter({text:"Image manquante"})
+  }
 
   const row=new ActionRowBuilder().addComponents(
 
@@ -121,7 +123,7 @@ module.exports={
   const msg=await interaction.reply({
    embeds:[embed],
    components:[row],
-   files:[`./cards/images/${card.set}/${card.image}`],
+   files:files,
    fetchReply:true
   })
 

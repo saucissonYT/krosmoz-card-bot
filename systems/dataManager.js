@@ -23,10 +23,19 @@ if(!fs.existsSync(USERS_DIR)){
  fs.mkdirSync(USERS_DIR,{recursive:true})
 }
 
+/* ---------------- CARD IMAGE DIRECTORIES ---------------- */
+
+const CARDS_DIR = path.join(BASE,"cards")
+const CARDS_IMAGES_DIR = path.join(CARDS_DIR,"images")
+
+if(!fs.existsSync(CARDS_IMAGES_DIR)){
+ fs.mkdirSync(CARDS_IMAGES_DIR,{recursive:true})
+}
+
 /* ---------------- FILE PATHS ---------------- */
 
 const paths = {
- users: path.join(BASE,"users.json"), // legacy migration
+ users: path.join(BASE,"users.json"),
  market: path.join(BASE,"market.json"),
  marketHistory: path.join(BASE,"marketHistory.json"),
  devs: path.join(BASE,"devs.json"),
@@ -36,7 +45,7 @@ const paths = {
 /* ---------------- DATA CACHE ---------------- */
 
 const data = {
- users:{}, // cache
+ users:{},
  market:[],
  marketHistory:[],
  devs:{ owners:[], devs:[] },
@@ -89,12 +98,11 @@ function loadUser(id){
  try{
 
   const raw = fs.readFileSync(file,"utf8")
-
   const user = JSON.parse(raw)
 
-  user._dirty = false
+  user._dirty=false
 
-  data.users[id] = user
+  data.users[id]=user
 
   return user
 
@@ -122,7 +130,7 @@ function saveUser(id){
 
  fs.writeFileSync(file,JSON.stringify(clone,null,2))
 
- user._dirty = false
+ user._dirty=false
 
 }
 
@@ -198,7 +206,7 @@ setInterval(()=>{
 
  for(const id in data.users){
 
-  const user = data.users[id]
+  const user=data.users[id]
 
   if(user._dirty)
    saveUser(id)
@@ -217,5 +225,6 @@ module.exports = {
  save,
  loadUser,
  saveUser,
- USERS_DIR
+ USERS_DIR,
+ CARDS_IMAGES_DIR
 }

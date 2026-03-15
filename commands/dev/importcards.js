@@ -7,21 +7,17 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { data, save } = require("../../systems/dataManager")
+const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { resetRegistry } = require("../../systems/cardRegistry")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 const { loadSets } = require("../../systems/setSystemFile")
 
-const BASE = process.env.RAILWAY ? "/data" : "."
+const importFolder="./cards/import"
 
-const importFolder = "./cards/import"
-const imageBase = `${BASE}/cards/images`
-const setsPath = "./cards/sets.json"
+const allowedRarities=["C","U","R","SR","HR","UR","S","SSR"]
 
-const allowedRarities = ["C","U","R","SR","HR","UR","S","SSR"]
-
-module.exports = {
+module.exports={
 
  name:"importcards",
  description:"Importer des cartes",
@@ -42,137 +38,11 @@ module.exports = {
   if(files.length===0)
    return interaction.editReply("❌ Aucun fichier image dans cards/import")
 
-  /* ---------------- LOAD SETS ---------------- */
-
   const setsData=loadSets()
 
   const sets=Array.isArray(setsData)
    ? setsData
    : setsData.sets||[]
-
-  /* ---------------- DETECT UNKNOWN SETS ---------------- */
-
-  const unknownSetCards={}
-
-  for(const file of files){
-
-   const base=file.split(".")[0]
-   const split=base.split("_")
-
-   if(split.length<3) continue
-
-   const rarity=split.pop().toUpperCase()
-   const set=split.pop().toLowerCase()
-   const name=split.join(" ")
-
-   if(!sets.find(s=>s.id===set)){
-
-    if(!unknownSetCards[set])
-     unknownSetCards[set]=[]
-
-    unknownSetCards[set].push(name)
-
-   }
-
-  }
-
-  const unknownSets=Object.keys(unknownSetCards)
-
-  /* ---------------- ASK CREATE SETS ---------------- */
-
-  if(unknownSets.length>0){
-
-   const details=unknownSets.map(set=>{
-
-    const cards=unknownSetCards[set]
-
-    const preview=cards
-     .slice(0,10)
-     .map(c=>`• ${c}`)
-     .join("\n")
-
-    const more=
-     cards.length>10
-      ? `\n... et ${cards.length-10} autres`
-      : ""
-
-    return `**${set}** (${cards.length} cartes)\n${preview}${more}`
-
-   }).join("\n\n")
-
-   const row=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("create_sets")
-     .setLabel("Créer les sets")
-     .setStyle(ButtonStyle.Success),
-
-    new ButtonBuilder()
-     .setCustomId("ignore_sets")
-     .setLabel("Ignorer")
-     .setStyle(ButtonStyle.Secondary)
-
-   )
-
-   const msg=await interaction.editReply({
-    content:
-`⚠️ Sets inconnus détectés :
-
-${details}
-
-Voulez-vous créer ces sets automatiquement ?`,
-    components:[row]
-   })
-
-   const collector=msg.createMessageComponentCollector({time:30000})
-
-   const decision=await new Promise(resolve=>{
-
-    collector.on("collect",async i=>{
-
-     if(i.user.id!==interaction.user.id)
-      return i.reply({content:"Pas pour toi.",ephemeral:true})
-
-     collector.stop()
-
-     if(i.customId==="create_sets")
-      resolve("create")
-     else
-      resolve("ignore")
-
-     await i.update({components:[]})
-
-    })
-
-    collector.on("end",(_,reason)=>{
-
-     if(reason==="time")
-      resolve("ignore")
-
-    })
-
-   })
-
-   if(decision==="create"){
-
-    for(const setId of unknownSets){
-
-     const name=setId.charAt(0).toUpperCase()+setId.slice(1)
-
-     sets.push({id:setId,name})
-
-    }
-
-    fs.writeFileSync(
-     setsPath,
-     JSON.stringify(sets,null,2)
-    )
-
-   }
-
-  }
-
-  /* ---------------- DATA CARDS ---------------- */
 
   if(!data.cards)
    data.cards=[]
@@ -183,8 +53,6 @@ Voulez-vous créer ces sets automatiquement ?`,
   let skipped=0
 
   let nextId=getNextCardId()
-
-  /* ---------------- IMPORT ---------------- */
 
   for(const file of files){
 
@@ -224,7 +92,7 @@ Voulez-vous créer ces sets automatiquement ?`,
 
    const id=nextId++
 
-   const setFolder=`${imageBase}/${set}`
+   const setFolder=`${CARDS_IMAGES_DIR}/${set}`
 
    if(!fs.existsSync(setFolder))
     fs.mkdirSync(setFolder,{recursive:true})
@@ -258,8 +126,6 @@ Voulez-vous créer ces sets automatiquement ?`,
    imported++
 
   }
-
-  /* ---------------- SAVE ---------------- */
 
   save()
   resetRegistry()
