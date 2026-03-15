@@ -1,7 +1,6 @@
-const { EmbedBuilder } = require("discord.js")
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 const { getCards } = require("../../systems/cardRegistry")
-
 const { getUser, save } = require("../../systems/userSystem")
 const { giveAchievement } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
@@ -9,184 +8,254 @@ const { addXP } = require("../../systems/progressionSystem")
 
 const cards = getCards()
 
-const rarityOrder=[
- "C","U","R","SR","HR","UR","S","SSR"
+const rarityOrder = [
+"C","U","R","SR","HR","UR","S","SSR"
 ]
 
-const rarityEmoji={
- C:"⚪",
- U:"🟢",
- R:"🔵",
- SR:"🟣",
- HR:"🔴",
- UR:"🟡",
- S:"✨",
- SSR:"🌈"
+const rarityEmoji = {
+C:"⚪",
+U:"🟢",
+R:"🔵",
+SR:"🟣",
+HR:"🔴",
+UR:"🟡",
+S:"✨",
+SSR:"🌈"
 }
 
-module.exports={
+const fusionCost = {
+C:5,
+U:6,
+R:8,
+SR:10,
+HR:12,
+UR:15,
+S:20
+}
 
- name:"fusion",
- description:"Fusionner 5 cartes pour obtenir une rareté supérieure",
+function sleep(ms){
+ return new Promise(r=>setTimeout(r,ms))
+}
 
- options:[
-  {name:"set",type:3,required:true},
-  {
-   name:"rarete",
-   type:3,
-   required:true,
-   choices:[
-    {name:"C",value:"C"},
-    {name:"U",value:"U"},
-    {name:"R",value:"R"},
-    {name:"SR",value:"SR"},
-    {name:"HR",value:"HR"},
-    {name:"UR",value:"UR"}
-   ]
-  }
- ],
+module.exports = {
 
- async execute(interaction){
+data:new SlashCommandBuilder()
+.setName("fusion")
+.setDescription("Fusionner des doublons pour obtenir une rareté supérieure")
 
-  const user = getUser(interaction.user.id)
+.addStringOption(option=>
+ option.setName("set")
+ .setDescription("Set des cartes")
+ .setRequired(true)
+)
 
-  const setName = interaction.options.getString("set")
-  const rarity = interaction.options.getString("rarete")
+.addStringOption(option=>
+ option.setName("rarete")
+ .setDescription("Rareté à fusionner")
+ .setRequired(true)
+ .addChoices(
+ {name:"C",value:"C"},
+ {name:"U",value:"U"},
+ {name:"R",value:"R"},
+ {name:"SR",value:"SR"},
+ {name:"HR",value:"HR"},
+ {name:"UR",value:"UR"},
+ {name:"S",value:"S"}
+ )
+),
 
-  const index = rarityOrder.indexOf(rarity)
+async execute(interaction){
 
-  if(index === -1)
-   return interaction.reply("Rareté invalide.")
+const user = getUser(interaction.user.id)
 
-  if(rarity === "UR")
-   return interaction.reply("❌ Impossible de fusionner des UR.")
+const setName = interaction.options.getString("set")
+const rarity = interaction.options.getString("rarete")
 
-  const pool = cards.filter(c =>
-   c.set === setName &&
-   c.rarity === rarity
-  )
+const index = rarityOrder.indexOf(rarity)
 
-  if(pool.length === 0)
-   return interaction.reply("Aucune carte trouvée.")
+if(index === -1)
+return interaction.reply({content:"Rareté invalide.",ephemeral:true})
 
-  let owned=[]
+if(rarity === "SSR")
+return interaction.reply({content:"Impossible de fusionner des SSR.",ephemeral:true})
 
-  for(const card of pool){
+const cost = fusionCost[rarity]
 
-   const count = user.cards?.[card.id] || 0
+const pool = cards.filter(c =>
+c.set === setName &&
+c.rarity === rarity
+)
 
-   for(let i=0;i<count;i++)
-    owned.push(card)
+if(pool.length === 0)
+return interaction.reply({content:"Aucune carte trouvée.",ephemeral:true})
 
-  }
+let available = 0
 
-  if(owned.length < 5)
-   return interaction.reply("❌ Tu n'as pas assez de cartes.")
+for(const card of pool){
 
-  for(let i=0;i<5;i++){
+const count = user.cards?.[card.id] || 0
 
-   const card = owned[i]
+if(count > 1)
+available += (count - 1)
 
-   user.cards[card.id]--
+}
 
-   if(user.cards[card.id] <= 0)
-    delete user.cards[card.id]
+if(available < cost)
+return interaction.reply({
+content:`❌ Il faut **${cost} doublons ${rarityEmoji[rarity]}**.`,
+ephemeral:true
+})
 
-  }
+let remaining = cost
 
-  user.stats.fusions++
+for(const card of pool){
 
-  const roll = Math.random()
+const count = user.cards?.[card.id] || 0
 
-  let rarityGain = 1
-  let quantity = 1
-  let message=""
-  let xpGain = 15
+const usable = Math.max(0,count-1)
 
-  if(roll < 0.10){
+if(usable <= 0) continue
 
-   rarityGain = 2
-   message="🔥 Fusion critique !"
-   xpGain = 25
+const take = Math.min(usable,remaining)
 
-   user.stats.fusionCrit = (user.stats.fusionCrit || 0) + 1
+user.cards[card.id] -= take
+remaining -= take
 
-   if(user.stats.fusionCrit === 1) giveAchievement(user,"fusionCrit")
-   if(user.stats.fusionCrit === 10) giveAchievement(user,"fusionCrit10")
-   if(user.stats.fusionCrit === 100) giveAchievement(user,"fusionCrit100")
+if(user.cards[card.id] <= 0)
+delete user.cards[card.id]
 
-  }
+if(remaining <= 0) break
 
-  else if(roll < 0.20){
+}
 
-   quantity = 2
-   message="✨ Fusion double !"
-   xpGain = 25
+user.stats.fusions++
 
-   user.stats.fusionDouble = (user.stats.fusionDouble || 0) + 1
+const now = Date.now()
 
-   if(user.stats.fusionDouble === 1) giveAchievement(user,"fusionDouble")
-   if(user.stats.fusionDouble === 10) giveAchievement(user,"fusionDouble10")
-   if(user.stats.fusionDouble === 100) giveAchievement(user,"fusionDouble100")
+if(now - user.stats.lastTripleReset > 86400000){
 
-  }
+user.stats.tripleFusionToday = 0
+user.stats.lastTripleReset = now
 
-  let targetIndex = index + rarityGain
+}
 
-  const maxIndex = rarityOrder.indexOf("S")
+const roll = Math.random()
 
-  if(targetIndex > maxIndex)
-   targetIndex = maxIndex
+let rarityGain = 1
+let quantity = 1
+let message = ""
+let xpGain = 15
 
-  const targetRarity = rarityOrder[targetIndex]
+if(roll < 0.005 && user.stats.tripleFusionToday < 1){
 
-  const rewardPool = cards.filter(c =>
-   c.set === setName &&
-   c.rarity === targetRarity
-  )
+rarityGain = 3
+message = "🌈 TRIPLE FUSION !!!"
+xpGain = 50
 
-  if(rewardPool.length === 0)
-   return interaction.reply("Erreur de pool.")
+user.stats.tripleFusionToday++
 
-  const rewards=[]
+}
 
-  for(let i=0;i<quantity;i++){
+else if(roll < 0.10){
 
-   const card = rewardPool[
-    Math.floor(Math.random()*rewardPool.length)
-   ]
+rarityGain = 2
+message = "🔥 Fusion critique !"
+xpGain = 25
 
-   rewards.push(card)
+user.stats.fusionCrit++
 
-   user.cards[card.id] =
-    (user.cards[card.id]||0)+1
+if(user.stats.fusionCrit === 1) giveAchievement(user,"fusionCrit")
+if(user.stats.fusionCrit === 10) giveAchievement(user,"fusionCrit10")
+if(user.stats.fusionCrit === 100) giveAchievement(user,"fusionCrit100")
 
-  }
+}
 
-  addXP(user,xpGain)
+else if(roll < 0.20 && ["C","U","R","SR"].includes(rarity)){
 
-  await achievementCheck(interaction,user)
+quantity = 2
+message = "✨ Fusion double !"
+xpGain = 25
 
-  save()
+user.stats.fusionDouble++
 
-  const lines = rewards.map(c =>
-   `${rarityEmoji[c.rarity]} ${c.name}`
-  )
+if(user.stats.fusionDouble === 1) giveAchievement(user,"fusionDouble")
+if(user.stats.fusionDouble === 10) giveAchievement(user,"fusionDouble10")
+if(user.stats.fusionDouble === 100) giveAchievement(user,"fusionDouble100")
 
-  const embed = new EmbedBuilder()
-   .setTitle("⚗️ Fusion de cartes")
-   .setDescription(
-`${message}
+}
 
-5 ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
+let targetIndex = index + rarityGain
+
+const maxIndex = rarityOrder.indexOf("SSR")
+
+if(targetIndex > maxIndex)
+targetIndex = maxIndex
+
+const targetRarity = rarityOrder[targetIndex]
+
+const rewardPool = cards.filter(c =>
+c.set === setName &&
+c.rarity === targetRarity
+)
+
+if(rewardPool.length === 0)
+return interaction.reply({content:"Erreur de pool.",ephemeral:true})
+
+const embed = new EmbedBuilder()
+.setTitle("⚗️ Fusion en cours...")
+.setDescription(`${cost} ${rarityEmoji[rarity]} utilisées`)
+
+const msg = await interaction.reply({embeds:[embed],fetchReply:true})
+
+await sleep(800)
+
+embed.setDescription(`
+${cost} ${rarityEmoji[rarity]}
+⬇
+${rarityEmoji[targetRarity]}
+`)
+
+await msg.edit({embeds:[embed]})
+
+await sleep(800)
+
+const rewards = []
+
+for(let i=0;i<quantity;i++){
+
+const card = rewardPool[Math.floor(Math.random()*rewardPool.length)]
+
+rewards.push(card)
+
+user.cards[card.id] =
+(user.cards[card.id] || 0) + 1
+
+}
+
+addXP(user,xpGain)
+
+await achievementCheck(interaction,user)
+
+save()
+
+const lines = rewards.map(c =>
+`${rarityEmoji[c.rarity]} ${c.name}`
+)
+
+const resultEmbed = new EmbedBuilder()
+.setTitle("⚗️ Fusion terminée")
+.setDescription(`
+${message}
+
+${cost} ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
 
 ⭐ XP gagnée : **${xpGain}**
 
-${lines.join("\n")}`
-   )
+${lines.join("\n")}
+`)
 
-  interaction.reply({embeds:[embed]})
+msg.edit({embeds:[resultEmbed]})
 
- }
+}
 
 }

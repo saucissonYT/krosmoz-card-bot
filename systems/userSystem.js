@@ -86,6 +86,8 @@ function migrateUsers(){
 
  let changed = false
 
+ const now = Date.now()
+
  for(const id in users){
 
   const user = users[id]
@@ -146,9 +148,21 @@ function migrateUsers(){
     fusions:0,
     fusionCrit:0,
     fusionDouble:0,
+    tripleFusionToday:0,
+    lastTripleReset:now,
     packsOpened:0,
     packsBought:0
    }
+   changed = true
+  }
+
+  if(user.stats.tripleFusionToday === undefined){
+   user.stats.tripleFusionToday = 0
+   changed = true
+  }
+
+  if(user.stats.lastTripleReset === undefined){
+   user.stats.lastTripleReset = now
    changed = true
   }
 
@@ -183,6 +197,8 @@ function getUser(id){
 
  if(!users[id]){
 
+  const now = Date.now()
+
   users[id] = {
    cards:{},
    kamas:0,
@@ -204,6 +220,8 @@ function getUser(id){
     fusions:0,
     fusionCrit:0,
     fusionDouble:0,
+    tripleFusionToday:0,
+    lastTripleReset:now,
     packsOpened:0,
     packsBought:0
    },
