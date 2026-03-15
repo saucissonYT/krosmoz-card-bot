@@ -81,7 +81,7 @@ module.exports={
 
   let nextId=getNextCardId()
 
-  /* -------- PRE SCAN DES SETS -------- */
+  /* ---------- PRE SCAN SETS ---------- */
 
   const missingSets=new Set()
 
@@ -128,59 +128,65 @@ Créer automatiquement ces sets ?`,
 
    const filter=i=>i.user.id===interaction.user.id
 
-   try{
+   const collector = msg.createMessageComponentCollector({
+    filter,
+    time:60000,
+    max:1
+   })
 
-    const confirmation=await msg.awaitMessageComponent({
-     filter,
-     time:60000
+   const decision = await new Promise(resolve=>{
+    collector.on("collect", resolve)
+    collector.on("end", collected=>{
+     if(collected.size===0) resolve(null)
     })
+   })
 
-    if(confirmation.customId==="cancelimport"){
+   if(!decision){
 
-     await confirmation.update({
-      content:"❌ Import annulé.",
-      components:[]
-     })
-
-     return
-
-    }
-
-    for(const set of missingSets){
-
-     createSet(set)
-
-     sets.push({
-      id:set,
-      name:set,
-      reward:null
-     })
-
-    }
-
-    await confirmation.update({
-     content:`✅ ${missingSets.size} sets créés.`,
-     components:[]
-    })
-
-   }catch{
-
-    return interaction.editReply({
+    await interaction.editReply({
      content:"⏱️ Temps expiré. Import annulé.",
      components:[]
     })
 
+    return
    }
+
+   if(decision.customId==="cancelimport"){
+
+    await decision.update({
+     content:"❌ Import annulé.",
+     components:[]
+    })
+
+    return
+   }
+
+   for(const set of missingSets){
+
+    createSet(set)
+
+    sets.push({
+     id:set,
+     name:set,
+     reward:null
+    })
+
+   }
+
+   await decision.update({
+    content:`✅ ${missingSets.size} sets créés.`,
+    components:[]
+   })
 
   }
 
-  /* -------- OPTIMISATION DOUBLONS -------- */
+  /* ---------- OPTIMISATION DOUBLONS ---------- */
 
   const cardLookup=new Set(
    cards.map(c=>`${c.name.toLowerCase()}_${c.set}`)
   )
 
-  /* -------- IMPORT -------- */
+  /* ---------- IMPORT ---------- */
 
   for(const file of files){
 
