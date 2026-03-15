@@ -6,8 +6,8 @@ const rarities = ["C","U","R","SR","HR","UR","S","SSR"]
 
 module.exports = {
 
- name:"setlist",
- description:"Lister les sets avec statistiques",
+ name:"setedit",
+ description:"Statistiques détaillées des sets",
 
  async execute(interaction){
 
@@ -19,7 +19,8 @@ module.exports = {
 
   const cards = data.cards || []
 
-  const sets = loadSets()
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
   let output = []
 
@@ -39,10 +40,10 @@ Cartes : 0`
     continue
    }
 
-   const rarityStats={}
+   const rarityStats = {}
 
    for(const r of rarities)
-    rarityStats[r]=0
+    rarityStats[r] = 0
 
    for(const card of setCards)
     rarityStats[card.rarity]++

@@ -4,3 +4,4 @@ config.json
 database/
 exportImportCards.js
 cards/import-old
+cards/sets.json

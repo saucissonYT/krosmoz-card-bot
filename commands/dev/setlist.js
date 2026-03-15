@@ -24,9 +24,10 @@ module.exports = {
     ephemeral:true
    })
 
-  const sets = loadSets()
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
-  if(!sets?.sets || sets.sets.length === 0)
+  if(sets.length === 0)
    return interaction.reply({
     content:"Aucun set trouvé.",
     ephemeral:true
@@ -42,7 +43,7 @@ module.exports = {
 
   const pages = []
 
-  for(const set of sets.sets){
+  for(const set of sets){
 
    const setCards = cards.filter(c => c.set === set.id)
    const total = setCards.length
@@ -87,12 +88,6 @@ module.exports = {
    })
 
   }
-
-  if(pages.length === 0)
-   return interaction.reply({
-    content:"Aucun résultat.",
-    ephemeral:true
-   })
 
   let page = 0
 

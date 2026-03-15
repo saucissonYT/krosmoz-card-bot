@@ -24,14 +24,20 @@ module.exports = {
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
-   return interaction.reply({content:"Commande dev.",ephemeral:true})
+   return interaction.reply({
+    content:"Commande dev.",
+    ephemeral:true
+   })
 
   const name = interaction.options.getString("name")
   const reward = interaction.options.getInteger("reward")
 
+  if(!name)
+   return interaction.reply("❌ Nom invalide.")
+
   const result = addSet(name,reward)
 
-  if(result.error)
+  if(result?.error)
    return interaction.reply(result.error)
 
   interaction.reply(

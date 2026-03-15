@@ -1,8 +1,8 @@
 const { isDev } = require("../../systems/devSystem")
 const { deleteSet, loadSets } = require("../../systems/setSystemFile")
 
-const sets = loadSets()
-const safeSets = Array.isArray(sets) ? sets : sets.sets
+const rawSets = loadSets()
+const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
 module.exports = {
 
@@ -15,7 +15,7 @@ module.exports = {
    description:"Set",
    type:3,
    required:true,
-   choices: safeSets.map(s=>({
+   choices: sets.map(s => ({
     name:s.name,
     value:s.id
    }))
@@ -34,7 +34,7 @@ module.exports = {
 
   const result = deleteSet(id)
 
-  if(result.error)
+  if(result?.error)
    return interaction.reply(result.error)
 
   interaction.reply(`🗑 Set supprimé : ${result.name}`)
