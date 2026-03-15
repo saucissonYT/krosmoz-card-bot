@@ -148,28 +148,18 @@ Structure :
 
 ## 📦 Sets de cartes
 
-Le jeu contient actuellement **2 sets principaux** totalisant **363 cartes**.
+Le jeu contient actuellement **3 sets principaux** totalisant **499 cartes**.
 
 ### ☁️ Incarnam — Set de départ
 
 Premier set du jeu.
 Les joueurs commencent leur collection avec les cartes d’**Incarnam**.
 
-* **127 cartes**
+* **120 cartes**
 * Majorité de **C / U**
 * Quelques cartes **SR / HR / UR**
 * Quelques **SSR** très rares
 
-Distribution :
-
-C : 60
-U : 21
-R : 15
-SR : 16
-HR : 7
-UR : 6
-S : 3
-SSR : 6
 
 ---
 
@@ -177,26 +167,28 @@ SSR : 6
 
 Deuxième set du jeu avec beaucoup plus de contenu et d’équipements.
 
-* **236 cartes**
+* **246 cartes**
 * Beaucoup d’objets, ressources et panoplies
 * Plusieurs cartes **rares et spéciales**
 
-Distribution :
+---
 
-C : 98
-U : 62
-R : 45
-SR : 21
-HR : 14
-UR : 12
-S : 7
-SSR : 4
+### 🌽 Amakna — Première extension
+
+Troisième set du jeu avec encore plus de contenu, basé sur amakna de Wakfu MMO.
+
+* **253 cartes**
+* Beaucoup d’objets, ressources et panoplies
+* Plusieurs cartes **rares et spéciales**
+* Le légendaire khan karkass
+
+
 
 ---
 
 ### 📊 Total du jeu
 
-363 cartes
+499 cartes
 
 # 🎮 Commandes Joueur
 
@@ -244,8 +236,7 @@ Fonctionnalités :
 ## Collection
 
 ```
-/set
-/sets
+/listcards
 ```
 
 ---
@@ -449,7 +440,7 @@ n’est pas affilié à Ankama
 
 n’est pas approuvé par Ankama
 
-est développé uniquement à des fins communautaires et éducatives
+est développé uniquement à des fins communautaires.
 
 Le bot est entièrement gratuit et ne génère aucun revenu.
 
