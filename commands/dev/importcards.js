@@ -24,12 +24,18 @@ function skip(file,reason){
 
 function createSet(setId){
 
+ const setsDir="./data"
  const setsPath="./data/sets.json"
+
+ if(!fs.existsSync(setsDir)){
+  fs.mkdirSync(setsDir,{recursive:true})
+ }
 
  let setsData={sets:[]}
 
- if(fs.existsSync(setsPath))
+ if(fs.existsSync(setsPath)){
   setsData=JSON.parse(fs.readFileSync(setsPath,"utf8"))
+ }
 
  if(!setsData.sets)
   setsData.sets=[]
@@ -86,13 +92,9 @@ module.exports={
 
   let nextId=getNextCardId()
 
-  /* ---------- OPTIMISATION DOUBLONS ---------- */
-
   const cardLookup=new Set(
    cards.map(c=>`${c.name.toLowerCase()}_${c.set}`)
   )
-
-  /* ---------- IMPORT ---------- */
 
   for(const file of files){
 
