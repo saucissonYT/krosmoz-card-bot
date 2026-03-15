@@ -17,6 +17,11 @@ const importFolder="./cards/import"
 
 const allowedRarities=["C","U","R","SR","HR","UR","S","SSR"]
 
+function skip(file,reason){
+ console.log(`⚠️ SKIP : ${file}`)
+ console.log(`   raison : ${reason}`)
+}
+
 module.exports={
 
  name:"importcards",
@@ -60,6 +65,7 @@ module.exports={
    const split=base.split("_")
 
    if(split.length<3){
+    skip(file,"Format invalide (nom_set_rarity)")
     skipped++
     continue
    }
@@ -69,6 +75,7 @@ module.exports={
    const name=split.join(" ")
 
    if(!allowedRarities.includes(rarity)){
+    skip(file,`Rareté invalide : ${rarity}`)
     skipped++
     continue
    }
@@ -76,6 +83,7 @@ module.exports={
    const setExists=sets.find(s=>s.id===set)
 
    if(!setExists){
+    skip(file,`Set inconnu : ${set}`)
     skipped++
     continue
    }
@@ -86,6 +94,7 @@ module.exports={
    )
 
    if(duplicate){
+    skip(file,`Doublon carte : ${name} (${set})`)
     skipped++
     continue
    }
@@ -109,7 +118,7 @@ module.exports={
 
    }catch(err){
 
-    console.log("Erreur image:",file)
+    skip(file,"Erreur conversion image (sharp)")
     skipped++
     continue
 
@@ -123,6 +132,8 @@ module.exports={
     image:newFile
    })
 
+   console.log(`✅ IMPORT : ${name} | ${set} | ${rarity}`)
+
    imported++
 
   }
@@ -135,7 +146,9 @@ module.exports={
 `📦 Import terminé
 
 ✅ ${imported} cartes importées
-⚠️ ${skipped} ignorées`,
+⚠️ ${skipped} ignorées
+
+📄 Voir la console pour le détail.`,
    components:[]
   })
 
