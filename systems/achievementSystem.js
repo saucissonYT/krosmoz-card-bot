@@ -5,116 +5,116 @@ const achievements={
 
 /* COLLECTION */
 
-cards10:{name:"Apprenti collectionneur",badge:"🃏",title:"Apprenti"},
-cards50:{name:"Collectionneur",badge:"🎴",title:"Collectionneur"},
-cards100:{name:"Grand collectionneur",badge:"📚",title:"Archiviste"},
-cards500:{name:"Bibliothèque vivante",badge:"🏛",title:"Archiviste Suprême"},
-cards1000:{name:"Maître du Krosmoz",badge:"👑",title:"Maître du Krosmoz"},
+cards10:{name:"Apprenti collectionneur",badge:"🃏",title:"Apprenti",reason:"Posséder 10 cartes"},
+cards50:{name:"Collectionneur",badge:"🎴",title:"Collectionneur",reason:"Posséder 50 cartes"},
+cards100:{name:"Grand collectionneur",badge:"📚",title:"Archiviste",reason:"Posséder 100 cartes"},
+cards500:{name:"Bibliothèque vivante",badge:"🏛",title:"Archiviste Suprême",reason:"Posséder 500 cartes"},
+cards1000:{name:"Maître du Krosmoz",badge:"👑",title:"Maître du Krosmoz",reason:"Posséder 1000 cartes"},
 
 /* SET */
 
-completeSet:{name:"Complétionniste",badge:"🏆",title:"Complétionniste"},
+completeSet:{name:"Complétionniste",badge:"🏆",title:"Complétionniste",reason:"Compléter un set entier"},
 
 /* LEVEL */
 
-level5:{name:"Premiers pas",badge:"⭐",title:"Aventurier"},
-level10:{name:"Aventurier",badge:"⭐",title:"Explorateur"},
-level20:{name:"Vétéran",badge:"🌟",title:"Vétéran"},
-level30:{name:"Champion",badge:"🏅",title:"Champion"},
-level50:{name:"Maître du Krosmoz",badge:"👑",title:"Maître du Krosmoz"},
+level5:{name:"Premiers pas",badge:"⭐",title:"Aventurier",reason:"Atteindre le niveau 5"},
+level10:{name:"Aventurier",badge:"⭐",title:"Explorateur",reason:"Atteindre le niveau 10"},
+level20:{name:"Vétéran",badge:"🌟",title:"Vétéran",reason:"Atteindre le niveau 20"},
+level30:{name:"Champion",badge:"🏅",title:"Champion",reason:"Atteindre le niveau 30"},
+level50:{name:"Maître du Krosmoz",badge:"👑",title:"Maître du Krosmoz",reason:"Atteindre le niveau 50"},
 
 /* VENTES */
 
-sell1:{name:"Premier commerce",badge:"💰",title:"Marchand"},
-sell50:{name:"Petit marchand",badge:"🪙",title:"Marchand"},
-sell100:{name:"Grand marchand",badge:"💰",title:"Grand Marchand"},
-sell500:{name:"Tycoon",badge:"💎",title:"Tycoon"},
-sell1000:{name:"Empereur du commerce",badge:"🏦",title:"Empereur marchand"},
+sell1:{name:"Premier commerce",badge:"💰",title:"Marchand",reason:"Vendre une carte"},
+sell50:{name:"Petit marchand",badge:"🪙",title:"Marchand",reason:"Vendre 50 cartes"},
+sell100:{name:"Grand marchand",badge:"💰",title:"Grand Marchand",reason:"Vendre 100 cartes"},
+sell500:{name:"Tycoon",badge:"💎",title:"Tycoon",reason:"Vendre 500 cartes"},
+sell1000:{name:"Empereur du commerce",badge:"🏦",title:"Empereur marchand",reason:"Vendre 1000 cartes"},
 
 /* PACKS OUVERTS */
 
-packs1:{name:"Premier pack ouvert",badge:"📦",title:"Curieux"},
-packs10:{name:"10 packs ouverts",badge:"📦",title:"Explorateur"},
-packs50:{name:"50 packs ouverts",badge:"📦",title:"Chasseur de cartes"},
-packs200:{name:"200 packs ouverts",badge:"📦",title:"Collectionneur acharné"},
-packs500:{name:"500 packs ouverts",badge:"📦",title:"Maître des packs"},
-packs1000:{name:"1000 packs ouverts",badge:"📦",title:"Seigneur des packs"},
+packs1:{name:"Premier pack ouvert",badge:"📦",title:"Curieux",reason:"Ouvrir 1 pack"},
+packs10:{name:"10 packs ouverts",badge:"📦",title:"Explorateur",reason:"Ouvrir 10 packs"},
+packs50:{name:"50 packs ouverts",badge:"📦",title:"Chasseur de cartes",reason:"Ouvrir 50 packs"},
+packs200:{name:"200 packs ouverts",badge:"📦",title:"Collectionneur acharné",reason:"Ouvrir 200 packs"},
+packs500:{name:"500 packs ouverts",badge:"📦",title:"Maître des packs",reason:"Ouvrir 500 packs"},
+packs1000:{name:"1000 packs ouverts",badge:"📦",title:"Seigneur des packs",reason:"Ouvrir 1000 packs"},
 
 /* PACKS ACHETÉS */
 
-buy1:{name:"Premier pack acheté",badge:"🎁",title:"Client"},
-buy10:{name:"10 packs achetés",badge:"🛒",title:"Acheteur"},
-buy50:{name:"50 packs achetés",badge:"💰",title:"Investisseur"},
-buy200:{name:"200 packs achetés",badge:"💎",title:"Magnat"},
+buy1:{name:"Premier pack acheté",badge:"🎁",title:"Client",reason:"Acheter 1 pack"},
+buy10:{name:"10 packs achetés",badge:"🛒",title:"Acheteur",reason:"Acheter 10 packs"},
+buy50:{name:"50 packs achetés",badge:"💰",title:"Investisseur",reason:"Acheter 50 packs"},
+buy200:{name:"200 packs achetés",badge:"💎",title:"Magnat",reason:"Acheter 200 packs"},
 
 /* SSR */
 
-lucky:{name:"Chanceux",badge:"🍀",title:"Chanceux"},
-doubleSSR:{name:"Double SSR !",badge:"🌈",title:"Double chance"},
-ultraLucky:{name:"Ultra chanceux",badge:"🌟",title:"Élu du destin"},
+lucky:{name:"Chanceux",badge:"🍀",title:"Chanceux",reason:"Obtenir une SSR"},
+doubleSSR:{name:"Double SSR !",badge:"🌈",title:"Double chance",reason:"Obtenir deux SSR dans un pack"},
+ultraLucky:{name:"Ultra chanceux",badge:"🌟",title:"Élu du destin",reason:"Obtenir 10 SSR"},
 
 /* SSR SHINY */
 
-shinySSR:{name:"Miracle du Krosmoz",badge:"✨",title:"Élu du Krosmoz",secret:true},
+shinySSR:{name:"Miracle du Krosmoz",badge:"✨",title:"Élu du Krosmoz",secret:true,reason:"Obtenir une SSR shiny"},
 
 /* FUSION */
 
-fusion10:{name:"Apprenti alchimiste",badge:"⚗",title:"Apprenti alchimiste"},
-fusion50:{name:"Alchimiste",badge:"🧪",title:"Alchimiste"},
-fusion200:{name:"Grand alchimiste",badge:"🔮",title:"Grand alchimiste"},
+fusion10:{name:"Apprenti alchimiste",badge:"⚗",title:"Apprenti alchimiste",reason:"Faire 10 fusions"},
+fusion50:{name:"Alchimiste",badge:"🧪",title:"Alchimiste",reason:"Faire 50 fusions"},
+fusion200:{name:"Grand alchimiste",badge:"🔮",title:"Grand alchimiste",reason:"Faire 200 fusions"},
 
 /* FUSION CRITIQUE */
 
-fusionCrit:{name:"Fusion critique",badge:"🔥",title:"Instable"},
-fusionCrit10:{name:"10 fusions critiques",badge:"🔥",title:"Maître instable"},
-fusionCrit100:{name:"100 fusions critiques",badge:"🔥",title:"Dieu de la fusion"},
+fusionCrit:{name:"Fusion critique",badge:"🔥",title:"Instable",reason:"Faire une fusion critique"},
+fusionCrit10:{name:"10 fusions critiques",badge:"🔥",title:"Maître instable",reason:"Faire 10 fusions critiques"},
+fusionCrit100:{name:"100 fusions critiques",badge:"🔥",title:"Dieu de la fusion",reason:"Faire 100 fusions critiques"},
 
 /* FUSION DOUBLE */
 
-fusionDouble:{name:"Fusion double",badge:"✨",title:"Duplication"},
-fusionDouble10:{name:"10 fusions doubles",badge:"✨",title:"Duplicateur"},
-fusionDouble100:{name:"100 fusions doubles",badge:"✨",title:"Roi de la duplication"},
+fusionDouble:{name:"Fusion double",badge:"✨",title:"Duplication",reason:"Faire une fusion double"},
+fusionDouble10:{name:"10 fusions doubles",badge:"✨",title:"Duplicateur",reason:"Faire 10 fusions doubles"},
+fusionDouble100:{name:"100 fusions doubles",badge:"✨",title:"Roi de la duplication",reason:"Faire 100 fusions doubles"},
 
 /* DAILY */
 
-assidu:{name:"Assidu",badge:"🔥",title:"Assidu"},
+assidu:{name:"Assidu",badge:"🔥",title:"Assidu",reason:"Faire plusieurs daily consécutifs"},
 
-daily30:{name:"Habitué du Daily",badge:"📅",title:"Habitué"},
-daily60:{name:"Régulier du Daily",badge:"🗓",title:"Régulier"},
-daily120:{name:"Dévoué au Daily",badge:"💠",title:"Dévoué"},
-daily200:{name:"Fidèle au Daily",badge:"🛡",title:"Fidèle"},
-daily300:{name:"Vétéran du Daily",badge:"🏆",title:"Vétéran du Daily"},
-daily365:{name:"Pilier du Daily",badge:"👑",title:"Pilier du Daily"},
-daily500:{name:"Légende du Daily",badge:"🌟",title:"Légende du Daily"},
+daily30:{name:"Habitué du Daily",badge:"📅",title:"Habitué",reason:"30 daily claims"},
+daily60:{name:"Régulier du Daily",badge:"🗓",title:"Régulier",reason:"60 daily claims"},
+daily120:{name:"Dévoué au Daily",badge:"💠",title:"Dévoué",reason:"120 daily claims"},
+daily200:{name:"Fidèle au Daily",badge:"🛡",title:"Fidèle",reason:"200 daily claims"},
+daily300:{name:"Vétéran du Daily",badge:"🏆",title:"Vétéran du Daily",reason:"300 daily claims"},
+daily365:{name:"Pilier du Daily",badge:"👑",title:"Pilier du Daily",reason:"365 daily claims"},
+daily500:{name:"Légende du Daily",badge:"🌟",title:"Légende du Daily",reason:"500 daily claims"},
 
 /* KAMAS */
 
-kamas1000:{name:"Petit portefeuille",badge:"💰",title:"Économe"},
-kamas10000:{name:"Marchand prospère",badge:"💰",title:"Marchand riche"},
-kamas100000:{name:"Millionnaire du Krosmoz",badge:"💎",title:"Millionnaire"},
-kamas500000:{name:"Magnat du marché",badge:"🏦",title:"Magnat"},
-kamas1000000:{name:"Roi des kamas",badge:"👑",title:"Roi des kamas"},
+kamas1000:{name:"Petit portefeuille",badge:"💰",title:"Économe",reason:"Posséder 1000 kamas"},
+kamas10000:{name:"Marchand prospère",badge:"💰",title:"Marchand riche",reason:"Posséder 10 000 kamas"},
+kamas100000:{name:"Millionnaire du Krosmoz",badge:"💎",title:"Millionnaire",reason:"Posséder 100 000 kamas"},
+kamas500000:{name:"Magnat du marché",badge:"🏦",title:"Magnat",reason:"Posséder 500 000 kamas"},
+kamas1000000:{name:"Roi des kamas",badge:"👑",title:"Roi des kamas",reason:"Posséder 1 000 000 kamas"},
 
 /* BOT MENTIONS */
 
-mention1:{name:"Tu voulais quelque chose ?",badge:"💬",title:"Bavard"},
-mention10:{name:"On discute ?",badge:"💬",title:"Habituel"},
-mention100:{name:"On devient amis ?",badge:"💬",title:"Compagnon"},
-mention500:{name:"Toujours là ?",badge:"💬",title:"Inséparable"},
-mention1000:{name:"Je vis dans ta tête",badge:"💬",title:"Obsédé"},
+mention1:{name:"Tu voulais quelque chose ?",badge:"💬",title:"Bavard",reason:"Mentionner le bot"},
+mention10:{name:"On discute ?",badge:"💬",title:"Habituel",reason:"Mentionner le bot 10 fois"},
+mention100:{name:"On devient amis ?",badge:"💬",title:"Compagnon",reason:"Mentionner le bot 100 fois"},
+mention500:{name:"Toujours là ?",badge:"💬",title:"Inséparable",reason:"Mentionner le bot 500 fois"},
+mention1000:{name:"Je vis dans ta tête",badge:"💬",title:"Obsédé",reason:"Mentionner le bot 1000 fois"},
 
 /* SECRETS */
 
-packDivin:{name:"Pack Divin",badge:"🌈",title:"Béni du Krosmoz",secret:true},
-pileOuFace:{name:"Pile ou Face",badge:"🎲",title:"Joueur",secret:true},
-impossible:{name:"Impossible",badge:"💥",title:"Bug du destin",secret:true},
-insomniaque:{name:"Insomniaque",badge:"🌙",title:"Nocturne",secret:true},
-matinal:{name:"Matinal",badge:"🌅",title:"Lève-tôt",secret:true},
+packDivin:{name:"Pack Divin",badge:"🌈",title:"Béni du Krosmoz",secret:true,reason:"Ouvrir un pack exceptionnel"},
+pileOuFace:{name:"Pile ou Face",badge:"🎲",title:"Joueur",secret:true,reason:"Résultat improbable"},
+impossible:{name:"Impossible",badge:"💥",title:"Bug du destin",secret:true,reason:"Événement extrêmement rare"},
+insomniaque:{name:"Insomniaque",badge:"🌙",title:"Nocturne",secret:true,reason:"Jouer très tard"},
+matinal:{name:"Matinal",badge:"🌅",title:"Lève-tôt",secret:true,reason:"Jouer très tôt"},
 
-mentionSpam:{name:"Tu te calmes ?",badge:"📢",title:"Spam master",secret:true},
-nightPing:{name:"Noctambule",badge:"🌙",title:"Noctambule",secret:true},
-devilPing:{name:"666",badge:"😈",title:"Marqué par le démon",secret:true},
-auraFarm:{name:"Aura Farming",badge:"✨",title:"Aura farmer",secret:true}
+mentionSpam:{name:"Tu te calmes ?",badge:"📢",title:"Spam master",secret:true,reason:"Mentionner le bot en boucle"},
+nightPing:{name:"Noctambule",badge:"🌙",title:"Noctambule",secret:true,reason:"Mentionner le bot la nuit"},
+devilPing:{name:"666",badge:"😈",title:"Marqué par le démon",secret:true,reason:"Mention spéciale"},
+auraFarm:{name:"Aura Farming",badge:"✨",title:"Aura farmer",secret:true,reason:"Accumuler de l'aura"}
 
 }
 
@@ -159,7 +159,10 @@ async function notifyAchievement(interaction,id){
 
  .setDescription(`${ach.badge} **${ach.name}**
 
-Titre débloqué : **${ach.title}**`)
+📜 **Pourquoi ?**
+${ach.reason || "Condition spéciale atteinte"}
+
+🎖 **Titre débloqué :** ${ach.title}`)
 
  .setThumbnail(interaction.user.displayAvatarURL())
 

@@ -4,16 +4,19 @@ const rarityOrder={
  C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
 }
 
+/* ---------------- INIT MARKET ---------------- */
+
+if(!data.market)
+ data.market=[]
+
+if(!data.marketHistory)
+ data.marketHistory=[]
+
 /* ---------------- ID SECURISE ---------------- */
 
 function generateId(){
  return Date.now() + Math.floor(Math.random()*1000)
 }
-
-/* ---------------- HISTORIQUE ---------------- */
-
-if(!data.marketHistory)
- data.marketHistory=[]
 
 /* ---------------- ANTI MANIPULATION ---------------- */
 
@@ -73,6 +76,9 @@ function addListing(sellerId,cardId,price){
  const market = data.market
  const users = data.users
 
+ if(!sellerId || !cardId || !price)
+  return {error:"Paramètres invalides"}
+
  const seller = users[sellerId]
 
  if(!seller)
@@ -80,6 +86,9 @@ function addListing(sellerId,cardId,price){
 
  if(!seller.cards || !seller.cards[cardId] || seller.cards[cardId] <= 0)
   return {error:"Tu ne possèdes pas cette carte"}
+
+ if(price <= 0)
+  return {error:"Prix invalide"}
 
  const averages=getAveragePrices()
 
@@ -160,7 +169,9 @@ function buyCard(buyerId,listingId){
  data.marketHistory.push({
   card:listing.card,
   price:listing.price,
-  time:Date.now()
+  seller:listing.seller,
+  buyer:buyerId,
+  timestamp:Date.now()
  })
 
  if(data.marketHistory.length > 5000)

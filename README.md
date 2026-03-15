@@ -554,6 +554,13 @@ Exemples :
 ✔ animation d'ouverture de pack
 ✔ révélation progressive des cartes
 ✔ affichage des nouvelles découvertes
+✔ affichage de la **pity directement dans /krosmoz**
+✔ affichage public de la **pity avec /pity**
+✔ système d'**explication des achievements lors du déblocage**
+✔ système de **vente des doublons détaillé**
+✔ système de **trade sécurisé empêchant les abus**
+✔ corrections et sécurisation du **market system**
+✔ amélioration du **daily system**
 
 ---
 

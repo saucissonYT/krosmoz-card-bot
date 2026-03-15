@@ -4,10 +4,16 @@ const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 const cardsById={}
 for(const c of cards){
  cardsById[c.id]=c
+}
+
+const rarityEmoji={
+ C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
+ HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
 const sellValues={
@@ -25,10 +31,13 @@ module.exports={
   if(!user.cards || Object.keys(user.cards).length===0)
    return interaction.reply("Inventaire vide.")
 
+  if(!user.stats) user.stats={}
+
   let totalCards=0
   let totalKamas=0
 
   const toSell=[]
+  const previewLines=[]
 
   for(const id in user.cards){
 
@@ -54,6 +63,10 @@ module.exports={
     price
    })
 
+   previewLines.push(
+`${rarityEmoji[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
+   )
+
   }
 
   if(totalCards===0)
@@ -64,7 +77,9 @@ module.exports={
    .setDescription(
 `${totalCards} cartes seront vendues
 
-Gain : **${totalKamas} kamas**`
+${previewLines.slice(0,15).join("\n")}
+
+💰 Gain total : **${totalKamas} kamas**`
    )
 
   const row=new ActionRowBuilder()
@@ -105,7 +120,11 @@ Gain : **${totalKamas} kamas**`
      components:[]
     })
 
+   const soldLines=[]
+
    for(const item of toSell){
+
+    const card=cardsById[item.id]
 
     user.cards[item.id]-=item.duplicates
 
@@ -114,16 +133,29 @@ Gain : **${totalKamas} kamas**`
 
     user.kamas+=item.duplicates*item.price
 
+    user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
+
+    soldLines.push(
+`${rarityEmoji[card.rarity]} **${card.name}** ×${item.duplicates}`
+    )
+
    }
+
+   await achievementCheck(i,user)
 
    save()
 
-   i.update({
-    content:`💰 Doublons vendus !
+   const resultEmbed=new EmbedBuilder()
+    .setTitle("💰 Doublons vendus")
+    .setDescription(
+`${soldLines.slice(0,20).join("\n")}
 
-Cartes vendues : ${totalCards}
-Gain : **${totalKamas} kamas**`,
-    embeds:[],
+Cartes vendues : **${totalCards}**
+Gain total : **${totalKamas} kamas**`
+    )
+
+   i.update({
+    embeds:[resultEmbed],
     components:[]
    })
 

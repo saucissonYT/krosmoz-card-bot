@@ -76,8 +76,7 @@ module.exports = {
 
   await interaction.reply({
    embeds:[menu.embed],
-   components:[menu.row],
-   ephemeral:true
+   components:[menu.row]
   })
 
  },
@@ -110,9 +109,9 @@ module.exports = {
 `/krosmoz → Ouvrir un pack
 
 /inventaire → Voir ton inventaire
-/carte numero:<id> → Voir une carte
+/carte id:<id> → Voir une carte précise
 
-/listcards → Voir les cartes par set
+/listcards → Explorer les cartes
 
 /fusion → Fusionner des cartes
 /trade → Échanger des cartes`
@@ -133,8 +132,7 @@ module.exports = {
 `/buypack → Acheter un pack
 
 /sellcard → Vendre une carte
-/sellall → Vendre toutes tes cartes
-/sellduplicates → Vendre les doublons
+/sellduplicates → Vendre tes doublons
 
 /market → Accéder au marché`
     )
@@ -155,7 +153,9 @@ module.exports = {
 
 /listcards → Explorer toutes les cartes
 
-/carte numero:<id> → Voir une carte précise
+/carte id:<id> → Voir une carte précise
+
+/pity → Voir ton pity par set
 
 /achievements → Voir tes succès`
     )

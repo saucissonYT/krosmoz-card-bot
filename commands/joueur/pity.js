@@ -4,6 +4,15 @@ const { getUser } = require("../../systems/userSystem")
 
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
+function progressBar(value,max){
+
+ const filled=Math.floor((value/max)*10)
+ const empty=10-filled
+
+ return "🟩".repeat(filled)+"⬛".repeat(empty)
+
+}
+
 module.exports = {
 
  name:"pity",
@@ -22,10 +31,17 @@ module.exports = {
 
    const pity = user.pity[set.id] || {UR:0,SSR:0}
 
+   const urBar = progressBar(pity.UR,10)
+   const ssrBar = progressBar(pity.SSR,50)
+
    lines.push(
 `**${set.name}**
-🔥 UR : ${pity.UR}/10
-🌈 SSR : ${pity.SSR}/50`
+
+🟡 UR : ${pity.UR}/10
+${urBar}
+
+🌈 SSR : ${pity.SSR}/50
+${ssrBar}`
    )
 
   }
@@ -33,10 +49,10 @@ module.exports = {
   const embed=new EmbedBuilder()
    .setTitle(`🎴 Pity de ${interaction.user.username}`)
    .setDescription(lines.join("\n\n"))
+   .setColor("#f1c40f")
 
   await interaction.reply({
-   embeds:[embed],
-   ephemeral:true
+   embeds:[embed]
   })
 
  }

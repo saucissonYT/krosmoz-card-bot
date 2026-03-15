@@ -64,12 +64,26 @@ module.exports={
    })
   }
 
+  /* ---------- INITIALISATION SAFE ---------- */
+
+  if(!user.pity) user.pity={}
+  if(!user.stats) user.stats={}
+
+  /* ----------------------------------------- */
+
   const options = sets
    .slice(0,25)
-   .map(set=>({
-    label:set.name,
-    value:set.id
-   }))
+   .map(set=>{
+
+    const pity=user.pity[set.id] || {SSR:0,UR:0}
+
+    return{
+     label:set.name,
+     value:set.id,
+     description:`SSR ${pity.SSR}/50 • UR ${pity.UR}/10`
+    }
+
+   })
 
   const menu=new StringSelectMenuBuilder()
    .setCustomId("krosmoz_set")
@@ -104,6 +118,9 @@ ${getCooldownText(user)}`,
 
   if(!user.pity[setId])
    user.pity[setId]={SSR:0,UR:0}
+
+  if(!user.stats)
+   user.stats={}
 
   /* ---------------------------------------- */
 

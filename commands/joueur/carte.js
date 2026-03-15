@@ -22,6 +22,10 @@ const rarityEmoji={
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
+const rarityPrice={
+ C:5,U:10,R:20,SR:40,HR:80,UR:150,S:300,SSR:1000
+}
+
 module.exports={
 
  data:new SlashCommandBuilder()
@@ -117,6 +121,8 @@ module.exports={
    if(i.user.id!==interaction.user.id)
     return i.reply({content:"Pas ta carte.",ephemeral:true})
 
+   /* ---------------- SELL ---------------- */
+
    if(i.customId.startsWith("sell_")){
 
     const cid=i.customId.split("_")[1]
@@ -124,22 +130,33 @@ module.exports={
     if(!user.cards[cid])
      return i.reply({content:"❌ Tu ne possèdes plus cette carte.",ephemeral:true})
 
+    const card=cardsById[cid]
+    const price=rarityPrice[card.rarity]||10
+
     user.cards[cid]--
 
     if(user.cards[cid]===0)
      delete user.cards[cid]
 
-    user.kamas+=10
+    user.kamas+=price
+
+    if(!user.stats) user.stats={}
+    user.stats.cardsSold=(user.stats.cardsSold||0)+1
 
     save()
 
-    return i.reply(`💰 Carte vendue pour **10 kamas**.`)
-
+    return i.reply(`💰 Carte vendue : **${card.name}**  
+Gain : **${price} kamas**`)
    }
+
+   /* ---------------- MARKET BUTTON ---------------- */
 
    if(i.customId.startsWith("market_")){
 
     const cid=i.customId.split("_")[1]
+
+    if(!user.cards[cid])
+     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",ephemeral:true})
 
     const modal=new ModalBuilder()
      .setCustomId(`marketmodal_${cid}`)
@@ -159,6 +176,50 @@ module.exports={
 
    }
 
+  })
+
+ },
+
+ /* ---------------- MODAL HANDLER ---------------- */
+
+ async modal(interaction){
+
+  if(!interaction.customId.startsWith("marketmodal_")) return
+
+  const cid=interaction.customId.split("_")[1]
+
+  const price=parseInt(interaction.fields.getTextInputValue("price"))
+
+  if(isNaN(price) || price<=0)
+   return interaction.reply({
+    content:"❌ Prix invalide.",
+    ephemeral:true
+   })
+
+  const user=getUser(interaction.user.id)
+
+  if(!user.cards[cid])
+   return interaction.reply({
+    content:"❌ Tu ne possèdes plus cette carte.",
+    ephemeral:true
+   })
+
+  user.cards[cid]--
+
+  if(user.cards[cid]<=0)
+   delete user.cards[cid]
+
+  addListing({
+   card:parseInt(cid),
+   seller:interaction.user.id,
+   price
+  })
+
+  save()
+
+  return interaction.reply({
+   content:`🛒 Carte mise en vente pour **${price} kamas**.`,
+   ephemeral:true
   })
 
  }

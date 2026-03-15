@@ -32,20 +32,22 @@ function openPack(user,setId){
  let discovered=[]
  let kamasGain=0
 
- if(!user.stats)
-  user.stats={}
+ /* ---------------- SAFE USER STRUCTURE ---------------- */
+
+ if(!user.stats) user.stats={}
+ if(!user.cards) user.cards={}
 
  if(user.stats.ssrPulled===undefined)
   user.stats.ssrPulled=0
 
- if(!user.cards)
-  user.cards={}
+ if(user.stats.packsOpened===undefined)
+  user.stats.packsOpened=0
 
  /* ---------------- AJOUT CARTES ---------------- */
 
  for(const card of pack){
 
-  if(!card) continue
+  if(!card || card.id===undefined) continue
 
   if(!user.cards[card.id])
    discovered.push(card)
@@ -66,7 +68,7 @@ function openPack(user,setId){
 
  /* ---------------- ACHIEVEMENTS PACK ---------------- */
 
- const rarities=pack.map(c=>c.rarity)
+ const rarities=pack.map(c=>c?.rarity).filter(Boolean)
 
  /* PACK DIVIN : UR + SSR */
 
@@ -75,16 +77,26 @@ function openPack(user,setId){
 
  /* PILE OU FACE : doublons dans le pack */
 
- const ids=pack.map(c=>c.id)
+ const ids=pack.map(c=>c?.id).filter(Boolean)
 
- const duplicates=ids.filter((v,i,a)=>a.indexOf(v)!==i)
+ const seen=new Set()
+ let duplicates=0
 
- if(duplicates.length>=2)
+ for(const id of ids){
+
+  if(seen.has(id))
+   duplicates++
+
+  seen.add(id)
+
+ }
+
+ if(duplicates>=2)
   giveAchievement(user,"pileOuFace")
 
  /* IMPOSSIBLE : lucky pack + 3 SSR */
 
- const ssrCount=pack.filter(c=>c.rarity==="SSR").length
+ const ssrCount=pack.filter(c=>c?.rarity==="SSR").length
 
  if(luckyPack && ssrCount>=3)
   giveAchievement(user,"impossible")
@@ -101,19 +113,20 @@ function openPack(user,setId){
 
  /* ---------------- BEST CARD ---------------- */
 
- let best = pack.find(c=>c) || null
+ let best=null
 
- if(best){
+ for(const card of pack){
 
-  for(const card of pack){
+  if(!card) continue
 
-   if(!card) continue
+  if(!best)
+   best=card
 
-   if(rarityOrder.indexOf(card.rarity)>
-      rarityOrder.indexOf(best.rarity))
-    best=card
-
-  }
+  else if(
+   rarityOrder.indexOf(card.rarity)>
+   rarityOrder.indexOf(best.rarity)
+  )
+   best=card
 
  }
 
@@ -124,10 +137,12 @@ function openPack(user,setId){
  const today=new Date().toDateString()
  let dailyBonus=false
 
- if(user.dailyXP!==today){
+ if(user.dailyXP !== today){
+
   xpGain*=2
   user.dailyXP=today
   dailyBonus=true
+
  }
 
  if(best)

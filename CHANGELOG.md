@@ -8,52 +8,94 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+
+## [0.15.0] - 2026-03-15
+
+### Added
+
+- Affichage du pity directement dans la commande `/krosmoz`
+- Commande `/pity` rendue visible publiquement
+- Explication automatique du déclenchement des achievements
+- Amélioration des triggers du chatSystem
+- Nouvelles astuces du bot lorsqu'il est mentionné
+- Prévisualisation détaillée des cartes vendues avec `/sellduplicates`
+- Résumé des ventes après utilisation de `/sellduplicates`
+
+### Changed
+
+- Mise à jour complète de `/kroshelp`
+- Réorganisation et clarification de l'aide du bot
+- Amélioration de l'affichage de la pity
+- Amélioration de l'expérience utilisateur lors des ventes de cartes
+- Amélioration des réponses du bot lors des mentions
+
+### Improved
+
+- Amélioration de la robustesse du `packEngine`
+- Amélioration du `dailySystem`
+- Amélioration du `market system`
+- Amélioration de la gestion des ventes de cartes
+- Amélioration du système d'échanges entre joueurs
+- Stabilisation de plusieurs systèmes internes
+
+### Fixed
+
+- Correction du bouton **Mettre au market** dans `/carte`
+- Correction de `/sellcard`
+- Correction de `/sellduplicates`
+- Correction du `market system`
+- Correction du `daily system`
+- Correction du `devdaily`
+- Correction d'un exploit dans `/trade` permettant de valider son propre échange
+- Correction de plusieurs incohérences dans la gestion des cartes
+
+---
 ## [0.14.0] - 2026-03-15
 
 ### Added
 
-Nouveau système complet d'achievements
-Achievements liés aux mentions du bot
-Achievements liés aux kamas possédés
-Achievements liés aux packs spéciaux
-Achievements secrets
-Affichage des achievements secrets masqués (🔒 ???)
-Limite de badges affichés dans /profil
-Priorité aux derniers badges obtenus
-Nouveau chatSystem permettant au bot de répondre lorsqu'il est mentionné
-Système d'astuces du bot
-Triggers de mots-clés lorsque le bot est mentionné
-Achievements liés au chat avec le bot
-Achievement Aura Farming
-Achievement 666 cartes
-Achievement Spam de mention
-Achievement Noctambule
-Achievement Matinal
-Achievement Pack Divin
-Achievement Pile ou Face
-Achievement Impossible
-Achievement SSR Shiny
+- Nouveau système complet d'achievements
+- Achievements liés aux mentions du bot
+- Achievements liés aux kamas possédés
+- Achievements liés aux packs spéciaux
+- Achievements secrets
+- Affichage des achievements secrets masqués (🔒 ???)
+- Limite de badges affichés dans /profil
+- Priorité aux derniers badges obtenus
+- Nouveau chatSystem permettant au bot de répondre lorsqu'il est mentionné
+- Système d'astuces du bot
+- Triggers de mots-clés lorsque le bot est mentionné
+- Achievements liés au chat avec le bot
+- Achievement Aura Farming
+- Achievement 666 cartes
+- Achievement Spam de mention
+- Achievement Noctambule
+- Achievement Matinal
+- Achievement Pack Divin
+- Achievement Pile ou Face
+- Achievement Impossible
+- Achievement SSR Shiny
 
 ### Changed
 
-Réorganisation du système des achievements
-Ajout du support des achievements secrets
-Amélioration de la gestion des badges dans le profil
-Centralisation de la logique sociale dans chatSystem
+- Réorganisation du système des achievements
+- Ajout du support des achievements secrets
+- Amélioration de la gestion des badges dans le profil
+- Centralisation de la logique sociale dans chatSystem
 
 ### Improved
 
-Meilleure détection des packs spéciaux
-Meilleure détection des doublons dans les packs
-Meilleure robustesse du système d'achievements
-Amélioration de la compatibilité avec les futures fonctionnalités sociales du bot
+- Meilleure détection des packs spéciaux
+- Meilleure détection des doublons dans les packs
+- Meilleure robustesse du système d'achievements
+- Amélioration de la compatibilité avec les futures fonctionnalités sociales du bot
 
 ### Fixed
 
-Correction d'un bug empêchant certains achievements de collection de se déclencher
-Correction d'un bug de détection des doublons dans un pack
-Correction de cas où user.cards pouvait être undefined
-Correction de plusieurs problèmes mineurs dans la gestion des achievements
+- Correction d'un bug empêchant certains achievements de collection de se déclencher
+- Correction d'un bug de détection des doublons dans un pack
+- Correction de cas où user.cards pouvait être undefined
+- Correction de plusieurs problèmes mineurs dans la gestion des achievements
 
 ---
 

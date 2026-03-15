@@ -90,6 +90,13 @@ async execute(interaction){
   })
  }
 
+ if(activeUsers.has(target.id)){
+  return interaction.reply({
+   content:"❌ Ce joueur est déjà dans un échange.",
+   flags:64
+  })
+ }
+
  const user = getUser(userId)
 
  const tradeId = `${userId}_${Date.now()}`
@@ -100,6 +107,7 @@ async execute(interaction){
  })
 
  activeUsers.add(userId)
+ activeUsers.add(target.id)
 
  const options=[]
 
@@ -279,10 +287,34 @@ async button(interaction){
  const from = getUser(trade.from)
  const to = getUser(trade.to)
 
+ /* empêche initiateur d'accepter */
+
+ if(action==="accept" && interaction.user.id !== trade.to){
+  return interaction.reply({
+   content:"❌ Seul le joueur ciblé peut accepter l'échange.",
+   flags:64
+  })
+ }
+
  if(action==="accept"){
+
+  if(!from.cards[trade.giveCard] || !to.cards[trade.wantCard]){
+   deleteTrade(tradeId)
+   activeUsers.delete(trade.from)
+   activeUsers.delete(trade.to)
+
+   return interaction.update({
+    content:"❌ L'une des cartes n'est plus disponible.",
+    embeds:[],
+    components:[]
+   })
+  }
 
   from.cards[trade.giveCard]--
   to.cards[trade.wantCard]--
+
+  if(from.cards[trade.giveCard]<=0) delete from.cards[trade.giveCard]
+  if(to.cards[trade.wantCard]<=0) delete to.cards[trade.wantCard]
 
   from.cards[trade.wantCard]=(from.cards[trade.wantCard]||0)+1
   to.cards[trade.giveCard]=(to.cards[trade.giveCard]||0)+1
@@ -290,10 +322,25 @@ async button(interaction){
   save()
 
   activeUsers.delete(trade.from)
+  activeUsers.delete(trade.to)
   deleteTrade(tradeId)
 
   return interaction.update({
    content:"🔁 Échange validé !",
+   embeds:[],
+   components:[]
+  })
+
+ }
+
+ if(action==="refuse" || action==="cancel"){
+
+  activeUsers.delete(trade.from)
+  activeUsers.delete(trade.to)
+  deleteTrade(tradeId)
+
+  return interaction.update({
+   content:"❌ Échange annulé.",
    embeds:[],
    components:[]
   })
