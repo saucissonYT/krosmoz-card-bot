@@ -109,8 +109,6 @@ client.once("clientReady", async () => {
  console.log(`📚 Commandes chargées : ${loaded}`)
  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
- /* ---------------- DEPLOY COMMANDES ---------------- */
-
  const commands=[]
 
  for(const command of client.commands.values()){
@@ -139,7 +137,7 @@ client.once("clientReady", async () => {
 })
 
 /* ========================================================= */
-/* MESSAGE CREATE (CHAT SYSTEM) */
+/* MESSAGE CREATE */
 /* ========================================================= */
 
 client.on("messageCreate",async message=>{
@@ -224,10 +222,15 @@ client.on("interactionCreate",async interaction=>{
 
    if(interaction.customId.startsWith("trade_menu")){
 
-    console.log("🔄 Menu trade détecté")
-
     const command = require("./commands/joueur/trade")
     return command.menu(interaction)
+
+   }
+
+   if(interaction.customId==="sellcard_select"){
+
+    const command = require("./commands/joueur/sellcard")
+    return command.select(interaction)
 
    }
 
@@ -253,10 +256,46 @@ client.on("interactionCreate",async interaction=>{
 
    if(interaction.customId.startsWith("trade_")){
 
-    console.log("🔄 Bouton trade détecté")
-
     const command = require("./commands/joueur/trade")
     return command.button(interaction)
+
+   }
+
+   /* -------- MARKET BUTTONS -------- */
+
+   if(interaction.customId.startsWith("market_")){
+
+    const command = require("./commands/joueur/market")
+    return command.button(interaction)
+
+   }
+
+  }
+
+  /* ---------------- MODALS ---------------- */
+
+  if(interaction.isModalSubmit()){
+
+   console.log("📝 Modal :",interaction.customId)
+
+   if(interaction.customId.startsWith("marketmodal_")){
+
+    const command = require("./commands/joueur/carte")
+    return command.modal(interaction)
+
+   }
+
+   if(interaction.customId==="marketBuyModal"){
+
+    const command = require("./commands/joueur/market")
+    return command.modal(interaction)
+
+   }
+
+   if(interaction.customId==="marketRemoveModal"){
+
+    const command = require("./commands/joueur/market")
+    return command.modal(interaction)
 
    }
 

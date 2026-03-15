@@ -20,6 +20,8 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Nouvelles astuces du bot lorsqu'il est mentionné
 - Prévisualisation détaillée des cartes vendues avec `/sellduplicates`
 - Résumé des ventes après utilisation de `/sellduplicates`
+- Menu interactif du `/market` (Acheter / Mes ventes)
+- Possibilité de retirer ses ventes depuis `/market`
 
 ### Changed
 
@@ -28,6 +30,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Amélioration de l'affichage de la pity
 - Amélioration de l'expérience utilisateur lors des ventes de cartes
 - Amélioration des réponses du bot lors des mentions
+- Refonte de l'interface du marché `/market`
 
 ### Improved
 
@@ -37,12 +40,18 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Amélioration de la gestion des ventes de cartes
 - Amélioration du système d'échanges entre joueurs
 - Stabilisation de plusieurs systèmes internes
+- Amélioration de la gestion des interactions (buttons / modals / select menus)
 
 ### Fixed
 
 - Correction du bouton **Mettre au market** dans `/carte`
+- Correction du modal de mise en vente sur le market
 - Correction de `/sellcard`
 - Correction de `/sellduplicates`
+- Correction du prix de vente des cartes (50% valeur economy)
+- Correction de la gestion des modals dans `interactionCreate`
+- Correction de l'achat de cartes dans le market
+- Correction de la récupération des ventes personnelles dans le market
 - Correction du `market system`
 - Correction du `daily system`
 - Correction du `devdaily`

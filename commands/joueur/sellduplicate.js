@@ -16,8 +16,17 @@ const rarityEmoji={
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
+/* 50% valeur economy */
+
 const sellValues={
- C:5,U:10,R:25,SR:60,HR:120,UR:300,S:600,SSR:1500
+ C:2,
+ U:5,
+ R:10,
+ SR:20,
+ HR:40,
+ UR:75,
+ S:150,
+ SSR:500
 }
 
 module.exports={

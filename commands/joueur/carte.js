@@ -209,11 +209,11 @@ Gain : **${price} kamas**`)
   if(user.cards[cid]<=0)
    delete user.cards[cid]
 
-  addListing({
-   card:parseInt(cid),
-   seller:interaction.user.id,
+  addListing(
+   interaction.user.id,
+   parseInt(cid),
    price
-  })
+  )
 
   save()
 

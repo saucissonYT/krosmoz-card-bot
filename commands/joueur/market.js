@@ -11,7 +11,9 @@ const {
 const {
  getMarket,
  buyCard,
- getAveragePrices
+ getAveragePrices,
+ getUserListings,
+ removeListing
 } = require("../../systems/market")
 
 const { getCards } = require("../../systems/cardRegistry")
@@ -28,10 +30,6 @@ const rarityEmoji={
  SSR:"🌈"
 }
 
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
-
 module.exports={
 
  name:"market",
@@ -39,120 +37,220 @@ module.exports={
 
  async execute(interaction){
 
-  let market = getMarket()
+  const embed=new EmbedBuilder()
+   .setTitle("🛒 Marché")
+   .setDescription(
+`Que veux-tu faire ?
 
-  if(!market || market.length===0)
-   return interaction.reply("Le marché est vide.")
+🛍️ **Acheter une carte**
+📦 **Voir mes ventes**`
+   )
 
-  const averages = getAveragePrices()
+  const row=new ActionRowBuilder().addComponents(
 
-  let page=1
-  const perPage=10
+   new ButtonBuilder()
+    .setCustomId("market_buy")
+    .setLabel("Acheter")
+    .setStyle(ButtonStyle.Success),
 
-  function buildPage(page){
+   new ButtonBuilder()
+    .setCustomId("market_my")
+    .setLabel("Mes ventes")
+    .setStyle(ButtonStyle.Primary)
 
-   const maxPage=Math.max(1,Math.ceil(market.length/perPage))
+  )
 
-   page=Math.max(1,Math.min(page,maxPage))
+  await interaction.reply({
+   embeds:[embed],
+   components:[row]
+  })
 
-   const start=(page-1)*perPage
-   const listings=market.slice(start,start+perPage)
+ },
 
-   const lines=listings.map(l=>{
+ async button(interaction){
+
+  /* ================= ACHETER ================= */
+
+  if(interaction.customId==="market_buy"){
+
+   const market=getMarket()
+
+   if(!market || market.length===0)
+    return interaction.update({
+     content:"Le marché est vide.",
+     embeds:[],
+     components:[]
+    })
+
+   const averages=getAveragePrices()
+
+   const lines=market.slice(0,20).map(l=>{
 
     const card=cards.find(c=>c.id==l.card)
 
     if(!card)
-     return `ID:${l.id} • Carte inconnue • ${l.price}`
+     return `ID:${l.id} • Carte inconnue`
 
-    const emoji=rarityEmoji[card.rarity]||""
+    const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}`:""
 
-    const avg = averages[l.card]
-     ? ` • 📊 ${averages[l.card]}`
-     : ""
-
-    return `ID:${l.id} • ${emoji} ${card.name} • ${l.price} kamas${avg}`
+    return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
 
    })
 
    const embed=new EmbedBuilder()
     .setTitle("🛒 Marché")
     .setDescription(lines.join("\n"))
-    .setFooter({text:`Page ${page}/${maxPage}`})
 
    const row=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
-     .setCustomId("prev")
-     .setLabel("⬅️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===1),
-
-    new ButtonBuilder()
-     .setCustomId("buy")
-     .setLabel("Acheter")
-     .setStyle(ButtonStyle.Success),
-
-    new ButtonBuilder()
-     .setCustomId("next")
-     .setLabel("➡️")
-     .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===maxPage)
+     .setCustomId("market_buy_modal")
+     .setLabel("Acheter par ID")
+     .setStyle(ButtonStyle.Success)
 
    )
 
-   return {embed,row,page,maxPage}
+   return interaction.update({
+    embeds:[embed],
+    components:[row]
+   })
 
   }
 
-  let built=buildPage(page)
+  /* ================= MES VENTES ================= */
 
-  const msg=await interaction.reply({
-   embeds:[built.embed],
-   components:[built.row],
-   fetchReply:true
-  })
+  if(interaction.customId==="market_my"){
 
-  const collector=msg.createMessageComponentCollector({
-   time:120000
-  })
+   const listings=getUserListings(interaction.user.id)
 
-  collector.on("collect",async i=>{
+   if(listings.length===0)
+    return interaction.update({
+     content:"Tu n'as aucune vente active.",
+     embeds:[],
+     components:[]
+    })
 
-   if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Ce n'est pas ton menu.",ephemeral:true})
+   const lines=listings.map(l=>{
 
-   if(i.customId==="next") page++
-   if(i.customId==="prev") page--
+    const card=cards.find(c=>c.id==l.card)
 
-   if(i.customId==="buy"){
+    return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas`
 
-    const modal=new ModalBuilder()
-     .setCustomId("marketBuyModal")
-     .setTitle("Acheter une carte")
-
-    const input=new TextInputBuilder()
-     .setCustomId("listingId")
-     .setLabel("ID du listing")
-     .setStyle(TextInputStyle.Short)
-     .setRequired(true)
-
-    const row=new ActionRowBuilder().addComponents(input)
-
-    modal.addComponents(row)
-
-    return i.showModal(modal)
-
-   }
-
-   built=buildPage(page)
-
-   await i.update({
-    embeds:[built.embed],
-    components:[built.row]
    })
 
-  })
+   const embed=new EmbedBuilder()
+    .setTitle("📦 Mes ventes")
+    .setDescription(lines.join("\n"))
+
+   const row=new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("market_remove_modal")
+     .setLabel("Retirer une vente")
+     .setStyle(ButtonStyle.Danger)
+
+   )
+
+   return interaction.update({
+    embeds:[embed],
+    components:[row]
+   })
+
+  }
+
+  /* ================= MODAL BUY ================= */
+
+  if(interaction.customId==="market_buy_modal"){
+
+   const modal=new ModalBuilder()
+    .setCustomId("marketBuyModal")
+    .setTitle("Acheter une carte")
+
+   const input=new TextInputBuilder()
+    .setCustomId("listingId")
+    .setLabel("ID du listing")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+
+   modal.addComponents(
+    new ActionRowBuilder().addComponents(input)
+   )
+
+   return interaction.showModal(modal)
+
+  }
+
+  /* ================= MODAL REMOVE ================= */
+
+  if(interaction.customId==="market_remove_modal"){
+
+   const modal=new ModalBuilder()
+    .setCustomId("marketRemoveModal")
+    .setTitle("Retirer une vente")
+
+   const input=new TextInputBuilder()
+    .setCustomId("listingId")
+    .setLabel("ID du listing")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+
+   modal.addComponents(
+    new ActionRowBuilder().addComponents(input)
+   )
+
+   return interaction.showModal(modal)
+
+  }
+
+ },
+
+ async modal(interaction){
+
+  /* ACHAT */
+
+  if(interaction.customId==="marketBuyModal"){
+
+   const listingId=parseInt(
+    interaction.fields.getTextInputValue("listingId")
+   )
+
+   const result=buyCard(interaction.user.id,listingId)
+
+   if(result?.error)
+    return interaction.reply({
+     content:`❌ ${result.error}`,
+     ephemeral:true
+    })
+
+   return interaction.reply({
+    content:"✅ Carte achetée.",
+    ephemeral:true
+   })
+
+  }
+
+  /* RETRAIT VENTE */
+
+  if(interaction.customId==="marketRemoveModal"){
+
+   const listingId=parseInt(
+    interaction.fields.getTextInputValue("listingId")
+   )
+
+   const result=removeListing(interaction.user.id,listingId)
+
+   if(result?.error)
+    return interaction.reply({
+     content:`❌ ${result.error}`,
+     ephemeral:true
+    })
+
+   return interaction.reply({
+    content:"📦 Vente retirée.",
+    ephemeral:true
+   })
+
+  }
 
  }
 
