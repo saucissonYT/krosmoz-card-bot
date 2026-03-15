@@ -1,4 +1,4 @@
-const { data, save } = require("./dataManager")
+const { data, save, loadUser } = require("./dataManager")
 
 const users = data.users
 
@@ -30,6 +30,7 @@ function migrateInventories(){
    }
 
    user.cards = newCards
+   user._dirty = true
    changed = true
 
   }
@@ -37,6 +38,7 @@ function migrateInventories(){
   if(user.cards["[object Object]"]){
 
    delete user.cards["[object Object]"]
+   user._dirty = true
    changed = true
 
   }
@@ -65,6 +67,7 @@ function migratePacks(){
   if(user.packs === undefined){
 
    user.packs = 0
+   user._dirty = true
    changed = true
 
   }
@@ -94,41 +97,49 @@ function migrateUsers(){
 
   if(!user.cards){
    user.cards = {}
+   user._dirty = true
    changed = true
   }
 
   if(user.kamas === undefined){
    user.kamas = 0
+   user._dirty = true
    changed = true
   }
 
   if(user.lastPack === undefined){
    user.lastPack = 0
+   user._dirty = true
    changed = true
   }
 
   if(user.lastClaim === undefined){
    user.lastClaim = 0
+   user._dirty = true
    changed = true
   }
 
   if(!user.pity){
    user.pity = {}
+   user._dirty = true
    changed = true
   }
 
   if(!user.achievements){
    user.achievements = []
+   user._dirty = true
    changed = true
   }
 
   if(!user.titles){
    user.titles = ["Nouveau"]
+   user._dirty = true
    changed = true
   }
 
   if(!user.title){
    user.title = "Nouveau"
+   user._dirty = true
    changed = true
   }
 
@@ -138,6 +149,7 @@ function migrateUsers(){
     xp:0,
     totalXp:0
    }
+   user._dirty = true
    changed = true
   }
 
@@ -153,16 +165,19 @@ function migrateUsers(){
     packsOpened:0,
     packsBought:0
    }
+   user._dirty = true
    changed = true
   }
 
   if(user.stats.tripleFusionToday === undefined){
    user.stats.tripleFusionToday = 0
+   user._dirty = true
    changed = true
   }
 
   if(user.stats.lastTripleReset === undefined){
    user.stats.lastTripleReset = now
+   user._dirty = true
    changed = true
   }
 
@@ -171,6 +186,7 @@ function migrateUsers(){
     streak:0,
     lastDaily:0
    }
+   user._dirty = true
    changed = true
   }
 
@@ -185,7 +201,7 @@ function migrateUsers(){
 
 }
 
-/* LANCEMENT MIGRATIONS */
+/* ---------------- LANCEMENT MIGRATIONS ---------------- */
 
 migrateInventories()
 migratePacks()
@@ -195,11 +211,13 @@ migrateUsers()
 
 function getUser(id){
 
- if(!users[id]){
+ let user = loadUser(id)
+
+ if(!user){
 
   const now = Date.now()
 
-  users[id] = {
+  user = {
    cards:{},
    kamas:0,
    packs:0,
@@ -231,11 +249,17 @@ function getUser(id){
    }
   }
 
+  user._dirty = true
+
+  users[id] = user
+
   save()
 
  }
 
- return users[id]
+ user._dirty = true
+
+ return user
 
 }
 
