@@ -69,7 +69,7 @@ Le bot est construit avec une architecture modulaire basée sur des systèmes in
 
 systems/
 
-Chaque système gère une mécanique spécifique du jeu, ce qui permet de maintenir un code propre et facilement extensible.
+Chaque système gère une mécanique spécifique du jeu.
 
 ⚙️ Systèmes principaux
 système	rôle
