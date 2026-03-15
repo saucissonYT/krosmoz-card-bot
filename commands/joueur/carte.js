@@ -1,4 +1,5 @@
 const {
+ SlashCommandBuilder,
  EmbedBuilder,
  ActionRowBuilder,
  ButtonBuilder,
@@ -26,13 +27,27 @@ const rarityEmoji={
 
 module.exports={
 
- name:"carte",
-
- options:[
-  {name:"nom",type:3,required:false},
-  {name:"id",type:4,required:false},
-  {name:"numero",type:4,required:false}
- ],
+ data:new SlashCommandBuilder()
+  .setName("carte")
+  .setDescription("Afficher une carte")
+  .addStringOption(option =>
+   option
+    .setName("nom")
+    .setDescription("Nom de la carte")
+    .setRequired(false)
+  )
+  .addIntegerOption(option =>
+   option
+    .setName("id")
+    .setDescription("ID de la carte")
+    .setRequired(false)
+  )
+  .addIntegerOption(option =>
+   option
+    .setName("numero")
+    .setDescription("Numéro dans ton inventaire")
+    .setRequired(false)
+  ),
 
  async execute(interaction){
 

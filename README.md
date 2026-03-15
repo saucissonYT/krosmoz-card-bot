@@ -256,7 +256,7 @@ Un Lucky Pack donne :
 
 La progression de pity est visible dans :
 
-/profil
+/pity
 
 et lors de l'ouverture d'un pack :
 
