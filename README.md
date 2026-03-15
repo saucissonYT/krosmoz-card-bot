@@ -207,6 +207,63 @@ Structure :
 
 ---
 
+# 🎲 Système de Pity
+
+Le système d'ouverture de packs utilise un mécanisme de pity afin d'éviter les longues séries de malchance.
+Chaque set possède son propre compteur de pity.
+Cela signifie que la progression de pity est indépendante pour chaque set.
+
+Exemple :
+
+Incarnam → pity SSR 12
+Astrub → pity SSR 3
+Amakna → pity SSR 0
+
+🌈 Hard Pity
+
+Un système de hard pity garantit l'obtention de certaines raretés.
+
+Rareté	Garantie
+UR	garantie après 10 packs
+SSR	garantie après 50 packs
+
+Lorsqu'une de ces cartes est obtenue :
+
+le compteur correspondant est réinitialisé
+les autres pity sont également réajustées.
+
+📈 Soft Pity
+
+Le bot utilise également un système de soft pity progressive pour les SSR.
+Plus un joueur ouvre de packs sans SSR, plus ses chances augmentent.
+
+Packs sans SSR	Chance SSR
+0-20	0.05%
+20-30	0.1%
+30-40	0.3%
+40-49	1%
+50	SSR garantie
+
+🎁 Lucky Pack
+
+Chaque pack possède également 10% de chance d'être un Lucky Pack.
+
+Un Lucky Pack donne :
+
+5 cartes normales
++ 1 carte bonus aléatoire
+📊 Affichage de la piy
+
+La progression de pity est visible dans :
+
+/profil
+
+et lors de l'ouverture d'un pack :
+
+🌈 SSR Pity : X / 50
+🟡 UR Pity : X / 10
+
+
 ## 📦 Sets de cartes
 
 Le jeu contient actuellement **3 sets principaux** totalisant **499 cartes**.

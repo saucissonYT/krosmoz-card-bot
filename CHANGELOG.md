@@ -10,6 +10,24 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+## [0.13.0] - 2026-03-15
+
+### Added
+- Affichage du **pity par set dans /profil**
+- Affichage du **dernier daily** dans le profil
+- Affichage du **streak daily** dans le profil
+- Barre de progression **XP améliorée**
+
+### Changed
+- Implémentation d'une **soft pity progressive pour les SSR**
+- Ajustement du système RNG des packs
+
+### Fixed
+- correction du compteur **dailyClaims** qui restait bloqué à 0
+- correction de la mise à jour du **pity SSR/UR**
+- correction du hard pity SSR appliqué au mauvais moment dans l'ouverture de pack
+---
+
 ## [0.12.0] - 2026-03-15
 
 ### Added
@@ -38,7 +56,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
-## [0.12.0] - 2026-03-14
+## [0.11.0] - 2026-03-14
 
 ### Added
 - Rework complet du système de fusion

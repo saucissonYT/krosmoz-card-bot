@@ -84,10 +84,6 @@ module.exports = {
    if(user.cards[id] > 0)
     ownedCards++
 
-  const percent = totalCards > 0
-   ? Math.floor((ownedCards / totalCards) * 100)
-   : 0
-
   const badges = user.achievements?.length
    ? user.achievements.map(a => achievements[a]?.badge).join(" ")
    : "Aucun"
@@ -105,6 +101,14 @@ module.exports = {
   const lastDaily = user.daily?.lastDaily
    ? `<t:${Math.floor(user.daily.lastDaily/1000)}:R>`
    : "Jamais"
+
+  /* PITY */
+
+  const pity = user.pity || {}
+
+  const pityLines = Object.keys(pity).length
+   ? Object.entries(pity).map(([set,value]) => `${set} : ${value}`).join("\n")
+   : "Aucune"
 
   const embed = new EmbedBuilder()
 
@@ -133,8 +137,14 @@ module.exports = {
 `📦 Packs ouverts : ${stats.packsOpened || 0}
 🌈 SSR obtenues : ${stats.ssrPulled || 0}
 🔧 Fusions : ${stats.fusions || 0}
-📅 Streak daily : ${user.daily?.streak || 0}
+📅 Daily claims : ${stats.dailyClaims || 0}
+🔥 Streak daily : ${user.daily?.streak || 0}
 ⏱ Dernier daily : ${lastDaily}`
+    },
+
+    {
+     name:"🎯 Pity",
+     value:pityLines
     },
 
     {name:"🎖 Badges",value:badges}
@@ -199,12 +209,6 @@ module.exports = {
     if(i.customId === "profil_sets"){
 
      const command = interaction.client.commands.get("listcards")
-
-     if(!command)
-      return i.reply({
-       content:"Commande listcards introuvable.",
-       ephemeral:true
-      })
 
      i.options = fakeOptions()
 
