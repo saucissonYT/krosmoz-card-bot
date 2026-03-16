@@ -6,7 +6,7 @@ const {
 } = require("discord.js")
 
 const { isDev } = require("../../systems/devSystem")
-const { getUsers, save } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
@@ -38,12 +38,12 @@ module.exports = {
    value:String(set.id)
   }))
 
-  const menu=new StringSelectMenuBuilder()
+  const menu = new StringSelectMenuBuilder()
    .setCustomId(`hardpityset:${target.id}`)
    .setPlaceholder("Choisir le set")
    .addOptions(options)
 
-  const row=new ActionRowBuilder().addComponents(menu)
+  const row = new ActionRowBuilder().addComponents(menu)
 
   await interaction.reply({
    content:`Choisis le set pour **${target.username}**`,
@@ -61,16 +61,16 @@ module.exports = {
     ephemeral:true
    })
 
-  const id=interaction.customId
+  const id = interaction.customId
 
-  /* SELECT SET */
+  /* ---------- CHOIX SET ---------- */
 
   if(id.startsWith("hardpityset:")){
 
-   const userId=id.split(":")[1]
-   const setId=interaction.values[0]
+   const userId = id.split(":")[1]
+   const setId = interaction.values[0]
 
-   const menu=new StringSelectMenuBuilder()
+   const menu = new StringSelectMenuBuilder()
     .setCustomId(`hardpity:${userId}:${setId}`)
     .setPlaceholder("Choisir la hard pity")
     .addOptions([
@@ -78,7 +78,7 @@ module.exports = {
      {label:"Hard Pity UR",value:"UR",emoji:"🔥"}
     ])
 
-   const row=new ActionRowBuilder().addComponents(menu)
+   const row = new ActionRowBuilder().addComponents(menu)
 
    return interaction.update({
     content:`Set sélectionné : **${setId}**`,
@@ -87,48 +87,42 @@ module.exports = {
 
   }
 
+  /* ---------- CHOIX TYPE ---------- */
+
   if(!id.startsWith("hardpity:")) return
 
-  const parts=id.split(":")
+  const parts = id.split(":")
 
-  const userId=parts[1]
-  const setId=parts[2]
+  const userId = parts[1]
+  const setId = parts[2]
 
-  const choice=interaction.values[0]
+  const choice = interaction.values[0]
 
-  const users=getUsers()
-
-  const user=users[userId]
-
-  if(!user)
-   return interaction.reply({
-    content:"Utilisateur introuvable.",
-    ephemeral:true
-   })
+  const user = getUser(userId)
 
   if(!user.pity)
-   user.pity={}
+   user.pity = {}
 
   if(!user.pity[setId])
-   user.pity[setId]={UR:0,SSR:0}
+   user.pity[setId] = { UR:0, SSR:0 }
 
-  if(choice==="SSR")
-   user.pity[setId].SSR=49
+  if(choice === "SSR")
+   user.pity[setId].SSR = 49
 
-  if(choice==="UR")
-   user.pity[setId].UR=9
+  if(choice === "UR")
+   user.pity[setId].UR = 9
 
   save()
 
-  const embed=new EmbedBuilder()
+  const embed = new EmbedBuilder()
    .setColor("Orange")
    .setTitle("🔥 Hard Pity appliquée")
    .addFields(
-    {name:"Utilisateur",value:`<@${userId}>`,inline:true},
-    {name:"Set",value:setId,inline:true},
-    {name:"Type",value:choice,inline:true}
+    { name:"Utilisateur", value:`<@${userId}>`, inline:true },
+    { name:"Set", value:setId, inline:true },
+    { name:"Type", value:choice, inline:true }
    )
-   .setFooter({text:"Le prochain pack garantira cette rareté."})
+   .setFooter({ text:"Le prochain pack garantira cette rareté." })
 
   await interaction.update({
    embeds:[embed],
