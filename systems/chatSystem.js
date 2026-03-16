@@ -1,6 +1,12 @@
 const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
 
+/* ---------------- COOLDOWN ANTI SPAM ---------------- */
+
+const cooldown = new Map()
+
+const COOLDOWN_TIME = 3000 // 3 secondes
+
 /* ---------------- ASTUCES BOT ---------------- */
 
 const tips=[
@@ -54,8 +60,18 @@ shiny:"Les **SSR shiny ✨** sont incroyablement rares."
 async function handleMessage(message,client){
 
  if(message.author.bot) return
-
  if(!message.mentions.has(client.user)) return
+
+ /* -------- COOLDOWN 3s -------- */
+
+ const now = Date.now()
+ const last = cooldown.get(message.author.id)
+
+ if(last && now-last < COOLDOWN_TIME) return
+
+ cooldown.set(message.author.id,now)
+
+ /* -------- USER -------- */
 
  const user=getUser(message.author.id)
 
@@ -122,7 +138,9 @@ ${replyText}`)
 
  save()
 
- await achievementCheck(message,user)
+ /* -------- ACHIEVEMENTS SOCIAL -------- */
+
+ await achievementCheck(message,user,"social")
 
 }
 

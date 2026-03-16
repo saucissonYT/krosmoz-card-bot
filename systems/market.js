@@ -122,6 +122,9 @@ function addListing(sellerId,cardId,price){
  if(seller.cards[cardId] <= 0)
   delete seller.cards[cardId]
 
+ if(!seller.stats) seller.stats={}
+ seller.stats.cardsSold=(seller.stats.cardsSold||0)+1
+
  market.push(listing)
 
  save()
@@ -159,12 +162,14 @@ function buyCard(buyerId,listingId){
  seller.kamas += listing.price - tax
 
  if(!buyer.cards) buyer.cards={}
+ if(!buyer.stats) buyer.stats={}
+ if(!seller.stats) seller.stats={}
 
  buyer.cards[listing.card]=(buyer.cards[listing.card]||0)+1
 
- data.market = market.filter(l=>l.id!==listingId)
+ buyer.stats.cardsBought=(buyer.stats.cardsBought||0)+1
 
- /* historique vente */
+ data.market = market.filter(l=>l.id!==listingId)
 
  data.marketHistory.push({
   card:listing.card,

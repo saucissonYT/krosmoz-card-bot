@@ -48,8 +48,6 @@ function getCooldownText(user){
  return `⏳ Pack gratuit : **${minutes} min**`
 }
 
-/* -------- SET COMPLETION -------- */
-
 function getSetCompletion(user,setId){
 
  const setCards = cards.filter(c=>c.set===setId)
@@ -204,7 +202,10 @@ ${getCooldownText(user)}`,
 
   save()
 
-  await achievementCheck(interaction,user)
+  /* ACHIEVEMENT TRIGGERS */
+
+  await achievementCheck(interaction,user,"pack")
+  await achievementCheck(interaction,user,"collection")
 
   const pity=user.pity[setId]
 

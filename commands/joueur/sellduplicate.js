@@ -152,7 +152,7 @@ ${previewLines.slice(0,15).join("\n")}
 
    }
 
-   await achievementCheck(i,user)
+   await achievementCheck(i,user,"economy")
 
    save()
 

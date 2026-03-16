@@ -92,6 +92,46 @@ impossible:{
  condition:()=>false
 },
 
+pityBreaker:{
+ name:"Briseur de Pity",
+ badge:"💥",
+ title:"Briseur du Destin",
+ trigger:"rng",
+ condition:()=>false
+},
+
+luckyStart:{
+ name:"Chance Insolente",
+ badge:"🍀",
+ title:"Favori du RNG",
+ trigger:"rng",
+ condition:()=>false
+},
+
+ssrStreak:{
+ name:"SSR Consécutives",
+ badge:"🌈🌈",
+ title:"Main Chanceuse",
+ trigger:"rng",
+ condition:()=>false
+},
+
+threeStars:{
+ name:"Trois Étoiles",
+ badge:"⭐",
+ title:"Alignement Parfait",
+ trigger:"rng",
+ condition:()=>false
+},
+
+hotHand:{
+ name:"Main Chaude",
+ badge:"🔥",
+ title:"Béni par les Dieux",
+ trigger:"rng",
+ condition:()=>false
+},
+
 /* ================= SSR ================= */
 
 firstSSR:{
@@ -202,6 +242,30 @@ fusion100:{
  condition:u=>u.stats?.fusions>=100
 },
 
+fusionCrit:{
+ name:"Critique !",
+ badge:"🔥",
+ title:"Alchimiste Brutal",
+ trigger:"fusion",
+ condition:u=>u.stats?.fusionCrit>=1
+},
+
+fusionDouble:{
+ name:"Fusion Double",
+ badge:"✨",
+ title:"Duplication Parfaite",
+ trigger:"fusion",
+ condition:u=>u.stats?.fusionDouble>=1
+},
+
+fusionTriple:{
+ name:"Triple Fusion",
+ badge:"🌈",
+ title:"Miracle Alchimique",
+ trigger:"fusion",
+ condition:u=>u.stats?.tripleFusion>=1
+},
+
 /* ================= COLLECTION ================= */
 
 cards50:{
@@ -242,6 +306,70 @@ cards1000:{
  title:"Gardien du Krosmoz",
  trigger:"collection",
  condition:u=>Object.values(u.cards||{}).reduce((a,b)=>a+b,0)>=1000
+},
+
+unique10:{
+ name:"10 cartes uniques",
+ badge:"📘",
+ title:"Découvreur",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=10
+},
+
+unique100:{
+ name:"100 cartes uniques",
+ badge:"📚",
+ title:"Archiviste",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=100
+},
+
+unique200:{
+ name:"200 cartes uniques",
+ badge:"📖",
+ title:"Historien",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=200
+},
+
+unique300:{
+ name:"300 cartes uniques",
+ badge:"🏛️",
+ title:"Conservateur",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=300
+},
+
+unique400:{
+ name:"400 cartes uniques",
+ badge:"📜",
+ title:"Grand Archiviste",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=400
+},
+
+unique500:{
+ name:"500 cartes uniques",
+ badge:"👑",
+ title:"Maître Collectionneur",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=500
+},
+
+unique600:{
+ name:"600 cartes uniques",
+ badge:"🌌",
+ title:"Gardien des Archives",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=600
+},
+
+unique674:{
+ name:"Collection Totale",
+ badge:"💎",
+ title:"Collectionneur Absolu",
+ trigger:"collection",
+ condition:u=>Object.keys(u.cards||{}).length>=674
 },
 
 /* ================= ECONOMIE ================= */
@@ -320,6 +448,470 @@ mention100:{
  condition:u=>u.stats?.botMentions>=100
 },
 
+mention1000:{
+ name:"1000 mentions",
+ badge:"📣",
+ title:"Fan du Bot",
+ trigger:"social",
+ condition:u=>u.stats?.botMentions>=1000
+},
+
+/* ================= INVENTAIRE ================= */
+
+inventory1:{
+ name:"Premier inventaire",
+ badge:"🎒",
+ title:"Curieux",
+ trigger:"inventory",
+ condition:u=>u.stats?.inventoryOpen>=1
+},
+
+inventory10:{
+ name:"10 inventaires",
+ badge:"📂",
+ title:"Organisateur",
+ trigger:"inventory",
+ condition:u=>u.stats?.inventoryOpen>=10
+},
+
+inventory50:{
+ name:"50 inventaires",
+ badge:"🗃️",
+ title:"Archiviste du Krosmoz",
+ trigger:"inventory",
+ condition:u=>u.stats?.inventoryOpen>=50
+},
+
+inventory100:{
+ name:"100 inventaires",
+ badge:"📚",
+ title:"Collectionneur Méthodique",
+ trigger:"inventory",
+ condition:u=>u.stats?.inventoryOpen>=100
+},
+
+inventory1000:{
+ name:"1000 inventaires",
+ badge:"👁️",
+ title:"Gardien des Collections",
+ trigger:"inventory",
+ condition:u=>u.stats?.inventoryOpen>=1000
+},
+
+/* ================= PACKS ACHETÉS ================= */
+
+packBuy1:{
+ name:"Premier Achat",
+ badge:"🛍️",
+ title:"Client du Marché",
+ trigger:"economy",
+ condition:u=>u.stats?.packsBought>=1
+},
+
+packBuy10:{
+ name:"10 Packs achetés",
+ badge:"📦",
+ title:"Acheteur Régulier",
+ trigger:"economy",
+ condition:u=>u.stats?.packsBought>=10
+},
+
+packBuy50:{
+ name:"50 Packs achetés",
+ badge:"💰",
+ title:"Investisseur du Gacha",
+ trigger:"economy",
+ condition:u=>u.stats?.packsBought>=50
+},
+
+packBuy100:{
+ name:"100 Packs achetés",
+ badge:"🏪",
+ title:"Marchand de Packs",
+ trigger:"economy",
+ condition:u=>u.stats?.packsBought>=100
+},
+
+packBuy500:{
+ name:"500 Packs achetés",
+ badge:"👑",
+ title:"Magnat du Gacha",
+ trigger:"economy",
+ condition:u=>u.stats?.packsBought>=500
+},
+
+/* ================= HELP ================= */
+
+help1:{
+ name:"Besoin d'aide ?",
+ badge:"❓",
+ title:"Perdu dans le Krosmoz",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=1
+},
+
+help10:{
+ name:"10 aides consultées",
+ badge:"📖",
+ title:"Lecteur du Manuel",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=10
+},
+
+help50:{
+ name:"50 aides consultées",
+ badge:"🧠",
+ title:"Toujours un doute",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=50
+},
+
+help100:{
+ name:"100 aides consultées",
+ badge:"📚",
+ title:"Expert en théorie",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=100
+},
+
+help500:{
+ name:"500 aides consultées",
+ badge:"🤯",
+ title:"Besoin d'un tuteur",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=500
+},
+
+help1000:{
+ name:"1000 aides consultées",
+ badge:"🆘",
+ title:"Cas Désespéré",
+ trigger:"social",
+ condition:u=>u.stats?.helpOpen>=1000
+},
+
+/* ================= TITRES ================= */
+
+title1:{
+ name:"Premier titre",
+ badge:"👑",
+ title:"En quête d'identité",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=1
+},
+
+title10:{
+ name:"10 changements de titre",
+ badge:"🎭",
+ title:"Changeur de Masques",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=10
+},
+
+title25:{
+ name:"25 changements de titre",
+ badge:"🪞",
+ title:"Multiples Personnalités",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=25
+},
+
+title50:{
+ name:"50 changements de titre",
+ badge:"🧢",
+ title:"Collectionneur de Titres",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=50
+},
+
+title100:{
+ name:"100 changements de titre",
+ badge:"🎩",
+ title:"Seigneur des Titres",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=100
+},
+
+title500:{
+ name:"500 changements de titre",
+ badge:"🤡",
+ title:"Indécis du Krosmoz",
+ trigger:"social",
+ condition:u=>u.stats?.titleOpen>=500
+},
+
+/* ================= PROFIL ================= */
+
+profile1:{
+ name:"Regarder son profil",
+ badge:"🪞",
+ title:"Admirateur",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=1
+},
+
+profile10:{
+ name:"10 consultations",
+ badge:"😏",
+ title:"Auto-satisfait",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=10
+},
+
+profile50:{
+ name:"50 consultations",
+ badge:"🧴",
+ title:"Narcissique",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=50
+},
+
+profile100:{
+ name:"100 consultations",
+ badge:"👑",
+ title:"Centre de l'Univers",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=100
+},
+
+profile250:{
+ name:"250 consultations",
+ badge:"✨",
+ title:"Star du Krosmoz",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=250
+},
+
+profile500:{
+ name:"500 consultations",
+ badge:"🌟",
+ title:"Icône Vivante",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=500
+},
+
+profile1000:{
+ name:"1000 consultations",
+ badge:"🪩",
+ title:"Culte de la Personnalité",
+ trigger:"social",
+ condition:u=>u.stats?.profileViews>=1000
+},
+
+/* ================= LEADERBOARD ================= */
+
+leaderboard1:{
+ name:"Un petit coup d'œil",
+ badge:"👀",
+ title:"Curieux du Classement",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=1
+},
+
+leaderboard10:{
+ name:"10 classements consultés",
+ badge:"📊",
+ title:"Observateur du Krosmoz",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=10
+},
+
+leaderboard25:{
+ name:"25 classements consultés",
+ badge:"🕵️",
+ title:"Espion des Statistiques",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=25
+},
+
+leaderboard50:{
+ name:"50 classements consultés",
+ badge:"📈",
+ title:"Analyste du Gacha",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=50
+},
+
+leaderboard100:{
+ name:"100 classements consultés",
+ badge:"🧠",
+ title:"Obsédé du Classement",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=100
+},
+
+leaderboard250:{
+ name:"250 classements consultés",
+ badge:"🔭",
+ title:"Voyeur du Leaderboard",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=250
+},
+
+leaderboard500:{
+ name:"500 classements consultés",
+ badge:"🤯",
+ title:"Classement Addict",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=500
+},
+
+leaderboard1000:{
+ name:"1000 classements consultés",
+ badge:"🧾",
+ title:"Archiviste des Ego",
+ trigger:"social",
+ condition:u=>u.stats?.leaderboardViews>=1000
+},
+
+/* ================= BALANCE ================= */
+
+balance1:{
+ name:"Regarder son solde",
+ badge:"💰",
+ title:"Curieux Financier",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=1
+},
+
+balance10:{
+ name:"10 consultations",
+ badge:"🧾",
+ title:"Vérificateur",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=10
+},
+
+balance50:{
+ name:"50 consultations",
+ badge:"📊",
+ title:"Comptable",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=50
+},
+
+balance100:{
+ name:"100 consultations",
+ badge:"🏦",
+ title:"Banquier",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=100
+},
+
+balance500:{
+ name:"500 consultations",
+ badge:"👀",
+ title:"Obsédé du Solde",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=500
+},
+
+balance1000:{
+ name:"1000 consultations",
+ badge:"🧠",
+ title:"Parano des Kamas",
+ trigger:"economy",
+ condition:u=>u.stats?.balanceCheck>=1000
+},
+
+/* ================= DAILY ================= */
+
+daily1:{
+ name:"Premier Daily",
+ badge:"🎁",
+ title:"Habitué",
+ trigger:"daily",
+ condition:u=>u.stats?.dailyClaims>=1
+},
+
+daily7:{
+ name:"7 Daily",
+ badge:"🔥",
+ title:"Régulier",
+ trigger:"daily",
+ condition:u=>u.stats?.dailyClaims>=7
+},
+
+daily30:{
+ name:"30 Daily",
+ badge:"📅",
+ title:"Fidèle du Krosmoz",
+ trigger:"daily",
+ condition:u=>u.stats?.dailyClaims>=30
+},
+
+daily100:{
+ name:"100 Daily",
+ badge:"🏆",
+ title:"Pilier du Krosmoz",
+ trigger:"daily",
+ condition:u=>u.stats?.dailyClaims>=100
+},
+
+dailyStreak7:{
+ name:"Streak 7",
+ badge:"🔥",
+ title:"Motivé",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=7
+},
+
+dailyStreak30:{
+ name:"Streak 30",
+ badge:"🌟",
+ title:"Dévoué",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=30
+},
+
+dailyStreak60:{
+ name:"Streak 60",
+ badge:"🌈",
+ title:"Inébranlable",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=60
+},
+
+dailyStreak90:{
+ name:"Streak 90",
+ badge:"💎",
+ title:"Fanatique du Daily",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=90
+},
+
+dailyStreak120:{
+ name:"Streak 120",
+ badge:"🏆",
+ title:"Pilier du Krosmoz",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=120
+},
+
+dailyStreak200:{
+ name:"Streak 200",
+ badge:"👑",
+ title:"Légende du Daily",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=200
+},
+
+dailyStreak300:{
+ name:"Streak 300",
+ badge:"🌌",
+ title:"Dieu du Daily",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=300
+},
+
+dailyStreak365:{
+ name:"Streak 365",
+ badge:"☀️",
+ title:"Année Parfaite",
+ trigger:"daily",
+ condition:u=>u.daily?.streak>=365
+},
+
 /* ================= SECRETS ================= */
 
 nightPlayer:{
@@ -340,6 +932,15 @@ devilCards:{
  condition:u=>Object.values(u.cards||{}).reduce((a,b)=>a+b,0)===666
 },
 
+kamas666:{
+ name:"666 kamas",
+ badge:"😈",
+ title:"Richesse Maudite",
+ trigger:"economy",
+ secret:true,
+ condition:u=>u.kamas===666
+},
+
 lucky777:{
  name:"777 kamas",
  badge:"🎰",
@@ -347,6 +948,15 @@ lucky777:{
  trigger:"economy",
  secret:true,
  condition:u=>u.kamas===777
+},
+
+jackpot7777:{
+ name:"7777 kamas",
+ badge:"💰",
+ title:"Jackpot du Krosmoz",
+ trigger:"economy",
+ secret:true,
+ condition:u=>u.kamas===7777
 }
 
 }

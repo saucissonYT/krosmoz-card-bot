@@ -128,6 +128,7 @@ if(remaining <= 0) break
 }
 
 if(!user.stats) user.stats={}
+
 user.stats.fusions=(user.stats.fusions||0)+1
 
 const now = Date.now()
@@ -153,6 +154,7 @@ message = "🌈 TRIPLE FUSION !!!"
 xpGain = 50
 
 user.stats.tripleFusionToday++
+user.stats.tripleFusion=(user.stats.tripleFusion||0)+1
 
 }
 
@@ -175,6 +177,15 @@ xpGain = 25
 user.stats.fusionDouble=(user.stats.fusionDouble||0)+1
 
 }
+
+/* TYPE FUSION */
+
+if(rarity==="C") user.stats.fusionCU=true
+if(rarity==="U") user.stats.fusionUR=true
+if(rarity==="R") user.stats.fusionRSR=true
+if(rarity==="SR") user.stats.fusionSRHR=true
+if(rarity==="HR") user.stats.fusionHRUR=true
+if(rarity==="UR") user.stats.fusionURS=true
 
 let targetIndex = index + rarityGain
 
@@ -228,7 +239,8 @@ addXP(user,xpGain)
 
 save()
 
-await achievementCheck(interaction,user)
+await achievementCheck(interaction,user,"fusion")
+await achievementCheck(interaction,user,"collection")
 
 const lines = rewards.map(c =>
 `${rarityEmoji[c.rarity]} ${c.name}`

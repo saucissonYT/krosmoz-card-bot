@@ -1,8 +1,39 @@
 const achievements = require("./achievementRegistry")
+const { data } = require("./dataManager")
+
+const cards = data.cards || []
+
+/* ---------------- SET COMPLETION ---------------- */
+
+function checkSetCompletion(user,setId,percent){
+
+ let total = 0
+ let owned = 0
+
+ for(const card of cards){
+
+  if(card.set !== setId) continue
+
+  total++
+
+  if(user.cards?.[card.id])
+   owned++
+
+ }
+
+ if(total === 0) return false
+
+ const completion = owned / total
+
+ return completion >= percent
+
+}
+
+/* ---------------- ACHIEVEMENT CHECK ---------------- */
 
 function checkAchievements(user,trigger){
 
- const unlocked=[]
+ const unlocked = []
 
  if(!user.achievements)
   user.achievements=[]
@@ -14,8 +45,12 @@ function checkAchievements(user,trigger){
 
   const achievement = achievements[id]
 
+  /* FILTER TRIGGER */
+
   if(trigger && achievement.trigger !== trigger)
    continue
+
+  /* ALREADY UNLOCKED */
 
   if(user.achievements.includes(id))
    continue
@@ -24,10 +59,15 @@ function checkAchievements(user,trigger){
 
    if(typeof achievement.condition === "function"){
 
-    if(achievement.condition(user)){
+    const result = achievement.condition(user,checkSetCompletion)
+
+    if(result){
 
      user.achievements.push(id)
      unlocked.push(id)
+
+     if(achievement.title)
+      user.title = achievement.title
 
     }
 
@@ -46,5 +86,6 @@ function checkAchievements(user,trigger){
 }
 
 module.exports = {
- checkAchievements
+ checkAchievements,
+ checkSetCompletion
 }

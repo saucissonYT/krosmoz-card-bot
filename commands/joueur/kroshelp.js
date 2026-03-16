@@ -5,6 +5,9 @@ const {
  ButtonStyle
 } = require("discord.js")
 
+const { getUser } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
+
 function mainMenu(){
 
  const embed = new EmbedBuilder()
@@ -47,7 +50,7 @@ Choisis une catégorie ci-dessous.`
     .setEmoji("⭐")
     .setStyle(ButtonStyle.Danger)
 
-  )
+ )
 
  return {embed,row}
 
@@ -72,6 +75,11 @@ module.exports = {
 
  async execute(interaction){
 
+  const user = getUser(interaction.user.id)
+
+  if(!user.stats) user.stats={}
+  user.stats.helpOpen=(user.stats.helpOpen||0)+1
+
   const menu = mainMenu()
 
   await interaction.reply({
@@ -79,14 +87,14 @@ module.exports = {
    components:[menu.row]
   })
 
+  await achievementCheck(interaction,user,"social")
+
  },
 
  async button(interaction){
 
   let embed
   let row
-
-  /* RETOUR */
 
   if(interaction.customId==="help_back"){
 
@@ -98,8 +106,6 @@ module.exports = {
    })
 
   }
-
-  /* CARTES */
 
   if(interaction.customId==="help_cards"){
 
@@ -122,8 +128,6 @@ module.exports = {
 
   }
 
-  /* ECONOMIE */
-
   if(interaction.customId==="help_economy"){
 
    embed=new EmbedBuilder()
@@ -141,8 +145,6 @@ module.exports = {
    row=backButton()
 
   }
-
-  /* COLLECTION */
 
   if(interaction.customId==="help_collection"){
 
@@ -164,8 +166,6 @@ module.exports = {
    row=backButton()
 
   }
-
-  /* PROGRESSION */
 
   if(interaction.customId==="help_progress"){
 

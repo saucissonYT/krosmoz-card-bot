@@ -132,7 +132,7 @@ ${rarityEmoji[card.rarity]} **${card.name}**
    components:[]
   })
 
-  await achievementCheck(interaction,user)
+  await achievementCheck(interaction,user,"economy")
 
  }
 

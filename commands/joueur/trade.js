@@ -11,6 +11,7 @@ const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 const trades = {}
 const activeUsers = new Set()
@@ -287,8 +288,6 @@ async button(interaction){
  const from = getUser(trade.from)
  const to = getUser(trade.to)
 
- /* empêche initiateur d'accepter */
-
  if(action==="accept" && interaction.user.id !== trade.to){
   return interaction.reply({
    content:"❌ Seul le joueur ciblé peut accepter l'échange.",
@@ -320,6 +319,11 @@ async button(interaction){
   to.cards[trade.giveCard]=(to.cards[trade.giveCard]||0)+1
 
   save()
+
+  /* ACHIEVEMENTS */
+
+  await achievementCheck(interaction,from,"collection")
+  await achievementCheck(interaction,to,"collection")
 
   activeUsers.delete(trade.from)
   activeUsers.delete(trade.to)

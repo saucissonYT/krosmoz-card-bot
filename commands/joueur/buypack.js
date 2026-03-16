@@ -103,7 +103,7 @@ Utilise **/krosmoz** pour l'ouvrir.`,
      components:[]
     })
 
-    await achievementCheck(i,user)
+    await achievementCheck(i,user,"economy")
 
    }
 

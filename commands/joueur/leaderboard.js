@@ -5,8 +5,9 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { getUsers } = require("../../systems/userSystem")
+const { getUsers, getUser } = require("../../systems/userSystem")
 const { getCards } = require("../../systems/cardRegistry")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
 
@@ -16,6 +17,13 @@ module.exports={
  description:"Voir les classements",
 
  async execute(interaction){
+
+  const self = getUser(interaction.user.id)
+
+  if(!self.stats) self.stats={}
+  self.stats.leaderboardViews=(self.stats.leaderboardViews||0)+1
+
+  await achievementCheck(interaction,self,"social")
 
   const users=getUsers()
   const cards=getCards()

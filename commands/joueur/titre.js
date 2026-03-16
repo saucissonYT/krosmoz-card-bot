@@ -5,6 +5,7 @@ const {
 } = require("discord.js")
 
 const { getUser } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 module.exports = {
 
@@ -15,6 +16,9 @@ module.exports = {
  async execute(interaction){
 
   const user = getUser(interaction.user.id)
+
+  if(!user.stats) user.stats={}
+  user.stats.titleOpen=(user.stats.titleOpen||0)+1
 
   const titles = user.titles || ["Nouveau"]
 
@@ -36,11 +40,13 @@ module.exports = {
   const row = new ActionRowBuilder()
    .addComponents(menu)
 
-  interaction.reply({
+  await interaction.reply({
    content:"👑 Choisis ton titre :",
    components:[row],
    ephemeral:true
   })
+
+  await achievementCheck(interaction,user,"social")
 
  }
 

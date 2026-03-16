@@ -62,6 +62,12 @@ function openPack(user,setId){
  if(user.stats.shinySSR===undefined)
   user.stats.shinySSR=0
 
+ if(user.stats.lastSSR===undefined)
+  user.stats.lastSSR=false
+
+ if(user.stats.ssrStreak===undefined)
+  user.stats.ssrStreak=0
+
  for(const card of pack){
 
   if(!card || card.id===undefined) continue
@@ -73,8 +79,21 @@ function openPack(user,setId){
 
   kamasGain+=rewardKamas(user,card.rarity)
 
-  if(card.rarity==="SSR")
+  if(card.rarity==="SSR"){
    user.stats.ssrPulled++
+
+   /* SSR STREAK */
+
+   user.stats.ssrStreak++
+
+   if(user.stats.ssrStreak>=2)
+    giveAchievement(user,"ssrStreak")
+
+   user.stats.lastSSR=true
+
+  }else{
+   user.stats.ssrStreak=0
+  }
 
   if(card.rarity==="SSR" && card.shiny){
    user.stats.shinySSR++
@@ -82,6 +101,12 @@ function openPack(user,setId){
   }
 
  }
+
+ /* THREE STARS */
+
+ const hrCount=pack.filter(c=>c?.rarity==="HR").length
+ if(hrCount>=3)
+  giveAchievement(user,"threeStars")
 
  const rarities=pack.map(c=>c?.rarity).filter(Boolean)
 
@@ -109,6 +134,21 @@ function openPack(user,setId){
 
  if(luckyPack && ssrCount>=3)
   giveAchievement(user,"impossible")
+
+ /* LUCKY START */
+
+ if(user.stats.packsOpened===0 && ssrCount>0)
+  giveAchievement(user,"luckyStart")
+
+ /* HOT HAND */
+
+ if(ssrCount>=3)
+  giveAchievement(user,"hotHand")
+
+ /* PITY BREAKER */
+
+ if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
+  giveAchievement(user,"pityBreaker")
 
  const hour=new Date().getHours()
 

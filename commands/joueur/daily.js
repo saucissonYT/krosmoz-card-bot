@@ -5,6 +5,7 @@ const {
 
 const { getUser } = require("../../systems/userSystem")
 const { claimDaily, canClaim } = require("../../systems/dailySystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 module.exports={
 
@@ -77,6 +78,16 @@ Carte SSR obtenue :
    })
 
   }
+
+  /* ---------------- ACHIEVEMENTS ---------------- */
+
+  await achievementCheck(interaction,user,"daily")
+
+  if(result.reward.type==="kamas")
+   await achievementCheck(interaction,user,"economy")
+
+  if(result.reward.type==="ssr")
+   await achievementCheck(interaction,user,"collection")
 
   await interaction.reply({embeds:[embed]})
 

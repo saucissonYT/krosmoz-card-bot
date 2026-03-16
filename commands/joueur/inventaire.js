@@ -6,8 +6,8 @@ const {
 } = require("discord.js")
 
 const { getCardsById } = require("../../systems/cardRegistry")
-
 const { getUser, save } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -52,6 +52,13 @@ module.exports={
   const user=getUser(interaction.user.id)
 
   if(!user.cards) user.cards={}
+  if(!user.stats) user.stats={}
+
+  /* TRIGGER INVENTORY */
+
+  user.stats.inventoryOpen=(user.stats.inventoryOpen||0)+1
+
+  await achievementCheck(interaction,user,"inventory")
 
   if(Object.keys(user.cards).length===0)
    return interaction.reply("📦 Inventaire vide.")

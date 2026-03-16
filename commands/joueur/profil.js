@@ -10,6 +10,7 @@ const { getUser } = require("../../systems/userSystem")
 const achievements = require("../../systems/achievementRegistry")
 const { getRank } = require("../../systems/rankSystem")
 const { getProgression } = require("../../systems/progressionSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
 
 const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
@@ -76,6 +77,12 @@ module.exports = {
 
   const user = getUser(target.id)
 
+  if(isSelf){
+   if(!user.stats) user.stats={}
+   user.stats.profileViews=(user.stats.profileViews||0)+1
+   await achievementCheck(interaction,user,"social")
+  }
+
   const totalCards = cards.length
 
   let ownedCards = 0
@@ -91,7 +98,6 @@ module.exports = {
   if(user.achievements?.length){
 
    const reversed = [...user.achievements].reverse()
-
    const visible = reversed.slice(0,maxBadges)
 
    badges = visible
@@ -99,27 +105,19 @@ module.exports = {
     .join(" ")
 
    if(user.achievements.length > maxBadges){
-
     const extra = user.achievements.length - maxBadges
     badges += ` +${extra}`
-
    }
 
   }
 
   const rank = getRank(user)
-
   const progression = getProgression(user)
 
   const xpBar = buildXPBar(progression.xp,progression.required)
-
   const collectionBar = buildCollectionBar(ownedCards,totalCards)
 
   const stats = user.stats || {}
-
-  const lastDaily = user.daily?.lastDaily
-   ? `<t:${Math.floor(user.daily.lastDaily/1000)}:R>`
-   : "Jamais"
 
   const embed = new EmbedBuilder()
 
@@ -148,9 +146,7 @@ module.exports = {
 `📦 Packs ouverts : ${stats.packsOpened || 0}
 🌈 SSR obtenues : ${stats.ssrPulled || 0}
 🔧 Fusions : ${stats.fusions || 0}
-📅 Daily claims : ${stats.dailyClaims || 0}
-🔥 Streak daily : ${user.daily?.streak || 0}
-⏱ Dernier daily : ${lastDaily}`
+📅 Daily claims : ${stats.dailyClaims || 0}`
     },
 
     {name:"🎖 Badges",value:badges}
@@ -159,9 +155,8 @@ module.exports = {
 
    .setColor("#8e44ad")
 
-  if(!isSelf){
+  if(!isSelf)
    return interaction.reply({embeds:[embed]})
-  }
 
   const row = new ActionRowBuilder().addComponents(
 
@@ -191,9 +186,7 @@ module.exports = {
    fetchReply:true
   })
 
-  const collector = msg.createMessageComponentCollector({
-   time:120000
-  })
+  const collector = msg.createMessageComponentCollector({time:120000})
 
   collector.on("collect", async i => {
 
@@ -203,44 +196,25 @@ module.exports = {
    try{
 
     if(i.customId === "profil_inventory"){
-
      const command = interaction.client.commands.get("inventaire")
-
      i.options = fakeOptions()
-
      return command.execute(i)
-
     }
 
     if(i.customId === "profil_sets"){
-
      const command = interaction.client.commands.get("listcards")
-
      i.options = fakeOptions()
-
      return command.execute(i)
-
     }
 
     if(i.customId === "profil_achievements"){
-
      const command = interaction.client.commands.get("achievements")
-
      i.options = fakeOptions()
-
      return command.execute(i)
-
     }
 
    }catch(err){
-
-    console.error("Erreur bouton profil :",err)
-
-    return i.reply({
-     content:"Erreur lors de l'ouverture.",
-     ephemeral:true
-    })
-
+    console.error(err)
    }
 
   })

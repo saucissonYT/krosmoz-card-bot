@@ -43,8 +43,6 @@ async function claimDaily(interaction,user){
 
  const now = Date.now()
 
- /* sécurité structures */
-
  if(!user.cards) user.cards={}
 
  if(!user.daily)
