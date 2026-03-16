@@ -421,7 +421,7 @@ jusqu'à leur découverte.
 
 Historique des mises à jour :
 
-CHANGELOG.md
+[Voir le changelog](CHANGELOG.md)
 
 👨‍💻 Auteur
 
