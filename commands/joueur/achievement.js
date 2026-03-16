@@ -5,7 +5,7 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { achievements } = require("../../systems/achievementSystem")
+const achievements = require("../../systems/achievementRegistry")
 const { getUser } = require("../../systems/userSystem")
 
 module.exports={
@@ -23,6 +23,9 @@ module.exports={
   const perPage=8
   const maxPage=Math.max(1,Math.ceil(list.length/perPage))
 
+  const unlockedCount=user.achievements?.length || 0
+  const total=list.length
+
   function build(){
 
    const start=(page-1)*perPage
@@ -32,18 +35,23 @@ module.exports={
 
     const unlocked=user.achievements?.includes(id)
 
-    /* ---------- ACHIEVEMENTS SECRETS ---------- */
-
     if(data.secret && !unlocked)
-     return `🔒 ???`
+     return `🔒 **Succès secret**`
 
-    return `${unlocked?"✔":"🔒"} ${data.badge} **${data.name}**`
+    const title=data.title ? ` • 👑 ${data.title}` : ""
+
+    return `${unlocked?"✔":"🔒"} ${data.badge} **${data.name}**${title}`
 
    })
 
    const embed=new EmbedBuilder()
     .setTitle("🏆 Succès")
     .setDescription(lines.join("\n") || "Aucun succès.")
+    .addFields({
+     name:"Progression",
+     value:`${unlockedCount}/${total} succès débloqués`,
+     inline:false
+    })
     .setFooter({
      text:`Page ${page}/${maxPage}`
     })

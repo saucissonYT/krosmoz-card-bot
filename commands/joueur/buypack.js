@@ -6,7 +6,6 @@ const {
 } = require("discord.js")
 
 const { getUser, save } = require("../../systems/userSystem")
-const { giveAchievement } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 
 module.exports = {
@@ -90,18 +89,9 @@ Confirmer l'achat ?`
     if(!user.stats) user.stats={}
     user.stats.packsBought=(user.stats.packsBought||0)+1
 
-    const bought=user.stats.packsBought
-
-    if(bought===1) giveAchievement(user,"buy1")
-    if(bought===10) giveAchievement(user,"buy10")
-    if(bought===50) giveAchievement(user,"buy50")
-    if(bought===200) giveAchievement(user,"buy200")
-
-    await achievementCheck(interaction,user)
-
     save()
 
-    return i.update({
+    await i.update({
      content:
 `🎴 **Pack acheté !**
 
@@ -112,6 +102,8 @@ Utilise **/krosmoz** pour l'ouvrir.`,
      embeds:[],
      components:[]
     })
+
+    await achievementCheck(i,user)
 
    }
 

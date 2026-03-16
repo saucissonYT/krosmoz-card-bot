@@ -43,6 +43,9 @@ function openPack(user,setId){
  if(user.stats.packsOpened===undefined)
   user.stats.packsOpened=0
 
+ if(user.stats.shinySSR===undefined)
+  user.stats.shinySSR=0
+
  /* ---------------- AJOUT CARTES ---------------- */
 
  for(const card of pack){
@@ -59,10 +62,12 @@ function openPack(user,setId){
   if(card.rarity==="SSR")
    user.stats.ssrPulled++
 
-  /* SHINY SSR ACHIEVEMENT */
+  /* SHINY SSR TRACK */
 
-  if(card.rarity==="SSR" && card.shiny)
+  if(card.rarity==="SSR" && card.shiny){
+   user.stats.shinySSR++
    giveAchievement(user,"shinySSR")
+  }
 
  }
 

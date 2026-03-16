@@ -204,16 +204,17 @@ Gain : **${price} kamas**`)
     ephemeral:true
    })
 
-  user.cards[cid]--
-
-  if(user.cards[cid]<=0)
-   delete user.cards[cid]
-
-  addListing(
+  const result = addListing(
    interaction.user.id,
    parseInt(cid),
    price
   )
+
+  if(result?.error)
+   return interaction.reply({
+    content:`❌ ${result.error}`,
+    ephemeral:true
+   })
 
   save()
 

@@ -9,6 +9,11 @@ const cards = data.cards || []
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 
+const cardsById={}
+for(const c of cards){
+ cardsById[c.id]=c
+}
+
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
@@ -46,14 +51,16 @@ module.exports={
 
   for(const id in user.cards){
 
-   const card=cards.find(c=>c.id==id)
-
+   const card=cardsById[id]
    if(!card) continue
 
+   const price = rarityPrice[card.rarity] || 1
+   const owned = user.cards[id]
+
    options.push({
-    label:`${card.name} x${user.cards[id]}`,
+    label:`${rarityEmoji[card.rarity]} ${card.name}`,
     value:id,
-    description:`${card.rarity}`
+    description:`Possédé: x${owned} • Vente: ${price} • Total: ${owned*price}`
    })
 
   }
@@ -66,13 +73,13 @@ module.exports={
 
   const menu=new StringSelectMenuBuilder()
    .setCustomId("sellcard_select")
-   .setPlaceholder("Choisir une carte à vendre")
+   .setPlaceholder("💰 Choisir une carte à vendre")
    .addOptions(options.slice(0,25))
 
   const row=new ActionRowBuilder().addComponents(menu)
 
   await interaction.reply({
-   content:"💰 Choisis une carte à vendre",
+   content:"💰 **Sélectionne une carte à vendre**",
    components:[row],
    ephemeral:true
   })
@@ -87,7 +94,7 @@ module.exports={
 
   const id=interaction.values[0]
 
-  const card=cards.find(c=>c.id==id)
+  const card=cardsById[id]
 
   if(!card)
    return interaction.update({
@@ -113,17 +120,19 @@ module.exports={
   if(!user.stats) user.stats={}
   user.stats.cardsSold=(user.stats.cardsSold||0)+1
 
-  await achievementCheck(interaction,user)
-
   save()
 
-  return interaction.update({
-   content:`💰 Carte vendue
+  await interaction.update({
+   content:`💰 **Carte vendue**
 
 ${rarityEmoji[card.rarity]} **${card.name}**
-Gain : **${price} kamas**`,
++${price} kamas
+
+💰 Solde : **${user.kamas} kamas**`,
    components:[]
   })
+
+  await achievementCheck(interaction,user)
 
  }
 

@@ -8,10 +8,13 @@ const {
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
+const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const cooldownDev = require("../dev/cooldown")
+
+const cards = getCards()
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -45,6 +48,26 @@ function getCooldownText(user){
  return `⏳ Pack gratuit : **${minutes} min**`
 }
 
+/* -------- SET COMPLETION -------- */
+
+function getSetCompletion(user,setId){
+
+ const setCards = cards.filter(c=>c.set===setId)
+
+ let owned=0
+
+ for(const card of setCards){
+  if(user.cards?.[card.id])
+   owned++
+ }
+
+ return {
+  owned,
+  total:setCards.length
+ }
+
+}
+
 module.exports={
 
  name:"krosmoz",
@@ -64,12 +87,8 @@ module.exports={
    })
   }
 
-  /* ---------- INITIALISATION SAFE ---------- */
-
   if(!user.pity) user.pity={}
   if(!user.stats) user.stats={}
-
-  /* ----------------------------------------- */
 
   const options = sets
    .slice(0,25)
@@ -77,10 +96,13 @@ module.exports={
 
     const pity=user.pity[set.id] || {SSR:0,UR:0}
 
+    const completion=getSetCompletion(user,set.id)
+
     return{
      label:set.name,
      value:set.id,
-     description:`SSR ${pity.SSR}/50 • UR ${pity.UR}/10`
+     description:
+`SSR ${pity.SSR}/50 • UR ${pity.UR}/10 • 📚 ${completion.owned}/${completion.total}`
     }
 
    })
@@ -111,18 +133,11 @@ ${getCooldownText(user)}`,
   const setId=interaction.values[0]
   const user=getUser(interaction.user.id)
 
-  /* -------- FIX PITY INITIALISATION -------- */
-
-  if(!user.pity)
-   user.pity={}
-
+  if(!user.pity) user.pity={}
   if(!user.pity[setId])
    user.pity[setId]={SSR:0,UR:0}
 
-  if(!user.stats)
-   user.stats={}
-
-  /* ---------------------------------------- */
+  if(!user.stats) user.stats={}
 
   const now=Date.now()
 
@@ -187,9 +202,9 @@ ${getCooldownText(user)}`,
    await sleep(800)
   }
 
-  await achievementCheck(interaction,user)
-
   save()
+
+  await achievementCheck(interaction,user)
 
   const pity=user.pity[setId]
 

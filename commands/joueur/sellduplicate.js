@@ -112,18 +112,20 @@ ${previewLines.slice(0,15).join("\n")}
    fetchReply:true
   })
 
+  const filter=i=>i.user.id===interaction.user.id
+
   const collector=msg.createMessageComponentCollector({
+   filter,
    time:30000,
    max:1
   })
 
   collector.on("collect",async i=>{
 
-   if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ta vente.",ephemeral:true})
+   await i.deferUpdate()
 
    if(i.customId==="cancel_sell_dup")
-    return i.update({
+    return interaction.editReply({
      content:"❌ Vente annulée.",
      embeds:[],
      components:[]
@@ -163,7 +165,7 @@ Cartes vendues : **${totalCards}**
 Gain total : **${totalKamas} kamas**`
     )
 
-   i.update({
+   interaction.editReply({
     embeds:[resultEmbed],
     components:[]
    })

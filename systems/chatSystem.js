@@ -1,5 +1,5 @@
 const { getUser, save } = require("./userSystem")
-const { giveAchievement, notifyAchievement } = require("./achievementSystem")
+const { achievementCheck } = require("./achievementCheck")
 
 /* ---------------- ASTUCES BOT ---------------- */
 
@@ -75,10 +75,8 @@ async function handleMessage(message,client){
  for(const word in triggers){
 
   if(content.includes(word)){
-
    replyText=triggers[word]
    break
-
   }
 
  }
@@ -92,74 +90,39 @@ async function handleMessage(message,client){
 
 ${replyText}`)
 
- /* ---------------- ACHIEVEMENT UTILITY ---------------- */
-
- async function giveAndNotify(id,reason){
-
-  const gained=giveAchievement(user,id)
-
-  if(!gained) return
-
-  const text=`🏆 **Succès débloqué**
-
-${reason}`
-
-  await message.reply(text)
-
-  await notifyAchievement(message,id)
-
- }
-
- /* ---------------- MENTIONS ---------------- */
+ /* ---------------- STATS EVENTS ---------------- */
 
  const mentions=user.stats.botMentions
 
- if(mentions===1)
-  await giveAndNotify("mention1","Tu as mentionné **Krosmoz Card Bot** pour la première fois.")
-
- if(mentions===10)
-  await giveAndNotify("mention10","Tu as mentionné **Krosmoz Card Bot 10 fois**.")
-
- if(mentions===100)
-  await giveAndNotify("mention100","Tu as mentionné **Krosmoz Card Bot 100 fois**.")
-
- if(mentions===500)
-  await giveAndNotify("mention500","Tu as mentionné **Krosmoz Card Bot 500 fois**.")
-
- if(mentions===1000)
-  await giveAndNotify("mention1000","Tu as mentionné **Krosmoz Card Bot 1000 fois**.")
-
- /* ---------------- SPAM MENTION ---------------- */
+ if(mentions===1) user.stats.mention1=true
+ if(mentions===10) user.stats.mention10=true
+ if(mentions===100) user.stats.mention100=true
+ if(mentions===500) user.stats.mention500=true
+ if(mentions===1000) user.stats.mention1000=true
 
  const mentionsInMessage=(message.content.match(/<@/g)||[]).length
 
  if(mentionsInMessage>=3)
-  await giveAndNotify("mentionSpam","Tu as mentionné plusieurs fois le bot dans un seul message.")
-
- /* ---------------- NOCTAMBULE ---------------- */
+  user.stats.mentionSpam=true
 
  const hour=new Date().getHours()
 
  if(hour>=2 && hour<=5)
-  await giveAndNotify("nightPing","Tu as parlé au bot **entre 2h et 5h du matin**.")
-
- /* ---------------- 666 CARTES ---------------- */
+  user.stats.nightPing=true
 
  const totalCards=Object.values(user.cards||{}).reduce((a,b)=>a+b,0)
 
  if(totalCards===666)
-  await giveAndNotify("devilPing","Tu possèdes **666 cartes**.")
-
- /* ---------------- AURA FARM ---------------- */
+  user.stats.devilPing=true
 
  if(user.stats.lastSSR){
-
-  await giveAndNotify("auraFarm","Tu viens d'obtenir une **SSR récemment**.")
+  user.stats.auraFarm=true
   user.stats.lastSSR=false
-
  }
 
  save()
+
+ await achievementCheck(message,user)
 
 }
 

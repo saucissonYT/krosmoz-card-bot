@@ -2,7 +2,6 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
-const { giveAchievement } = require("../../systems/achievementSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { addXP } = require("../../systems/progressionSystem")
 
@@ -128,7 +127,8 @@ if(remaining <= 0) break
 
 }
 
-user.stats.fusions++
+if(!user.stats) user.stats={}
+user.stats.fusions=(user.stats.fusions||0)+1
 
 const now = Date.now()
 
@@ -154,9 +154,6 @@ xpGain = 50
 
 user.stats.tripleFusionToday++
 
-/* ACHIEVEMENT */
-giveAchievement(user,"fusionTriple")
-
 }
 
 else if(roll < 0.10){
@@ -165,11 +162,7 @@ rarityGain = 2
 message = "🔥 Fusion critique !"
 xpGain = 25
 
-user.stats.fusionCrit++
-
-if(user.stats.fusionCrit === 1) giveAchievement(user,"fusionCrit")
-if(user.stats.fusionCrit === 10) giveAchievement(user,"fusionCrit10")
-if(user.stats.fusionCrit === 100) giveAchievement(user,"fusionCrit100")
+user.stats.fusionCrit=(user.stats.fusionCrit||0)+1
 
 }
 
@@ -179,11 +172,7 @@ quantity = 2
 message = "✨ Fusion double !"
 xpGain = 25
 
-user.stats.fusionDouble++
-
-if(user.stats.fusionDouble === 1) giveAchievement(user,"fusionDouble")
-if(user.stats.fusionDouble === 10) giveAchievement(user,"fusionDouble10")
-if(user.stats.fusionDouble === 100) giveAchievement(user,"fusionDouble100")
+user.stats.fusionDouble=(user.stats.fusionDouble||0)+1
 
 }
 
@@ -195,14 +184,6 @@ if(targetIndex > maxIndex)
 targetIndex = maxIndex
 
 const targetRarity = rarityOrder[targetIndex]
-
-/* ACHIEVEMENTS RARE FUSION */
-
-if(targetRarity === "UR")
-giveAchievement(user,"fusionUR")
-
-if(targetRarity === "SSR")
-giveAchievement(user,"fusionSSR")
 
 const rewardPool = cards.filter(c =>
 c.set === setName &&
@@ -245,9 +226,9 @@ user.cards[card.id] =
 
 addXP(user,xpGain)
 
-await achievementCheck(interaction,user)
-
 save()
+
+await achievementCheck(interaction,user)
 
 const lines = rewards.map(c =>
 `${rarityEmoji[c.rarity]} ${c.name}`
