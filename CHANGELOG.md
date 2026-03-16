@@ -77,6 +77,9 @@ daily streak
 - Migration de l'ensemble des commandes vers le nouveau système d'achievements
 - Standardisation des triggers d'achievements (pack, economy, collection, fusion, social, daily)
 
+- Migration de plusieurs commandes vers un modèle d'interaction plus robuste utilisant deferReply / editReply
+- Harmonisation de la gestion des interactions Discord (buttons, modals, select menus)
+
 ### Improved
 
 - Amélioration de la robustesse du système d'achievements
@@ -95,6 +98,11 @@ market
 trade
 profil
 
+- Optimisation des interactions Discord avec les collectors (pagination menus, boutons)
+- Optimisation de la commande /krosmoz avec un système de cache interne pour les sets
+- Réduction des calculs redondants lors de l'ouverture de packs
+- Amélioration des performances lors de la révélation des cartes
+
 ### Fixed
 
 - Correction de plusieurs achievements qui ne se déclenchaient pas correctement
@@ -106,7 +114,13 @@ profil
 - Correction des notifications d'achievements non affichées dans certains contextes d'interaction
 - Correction de l'intégration achievements / interactions Discord (buttons, modals, selects)
 
+- Correction de plusieurs erreurs liées aux collectors Discord (createMessageComponentCollector)
+- Correction d'erreurs `Unknown interaction (10062)` causées par des réponses tardives aux interactions
+- Correction de l'utilisation incorrecte de `withResponse:true` dans certaines commandes
+- Correction de problèmes d'édition de message (`msg.edit is not a function`) dans certaines animations
+
 - Stabilisation globale du système d'achievements
+- Stabilisation globale du système d'interactions Discord du bot
 
 ---
 

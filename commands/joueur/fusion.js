@@ -134,7 +134,7 @@ user.stats.fusions=(user.stats.fusions||0)+1
 
 const now = Date.now()
 
-if(now - user.stats.lastTripleReset > 86400000){
+if(!user.stats.lastTripleReset || now - user.stats.lastTripleReset > 86400000){
 
 user.stats.tripleFusionToday = 0
 user.stats.lastTripleReset = now
@@ -209,7 +209,8 @@ const embed = new EmbedBuilder()
 .setTitle("⚗️ Fusion en cours...")
 .setDescription(`${cost} ${rarityEmoji[rarity]} utilisées`)
 
-const msg = await interaction.reply({embeds:[embed],withResponse:true})
+await interaction.reply({embeds:[embed]})
+const msg = await interaction.fetchReply()
 
 await sleep(800)
 

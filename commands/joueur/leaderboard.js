@@ -19,6 +19,8 @@ module.exports={
 
  async execute(interaction){
 
+  await interaction.deferReply()
+
   const self = getUser(interaction.user.id)
 
   if(!self.stats) self.stats={}
@@ -97,10 +99,10 @@ module.exports={
 
    const data=rankings[mode]
 
+   const maxPage=Math.max(1,Math.ceil(data.length/perPage))
+
    const start=(page-1)*perPage
    const slice=data.slice(start,start+perPage)
-
-   const maxPage=Math.max(1,Math.ceil(data.length/perPage))
 
    const lines=slice.map((r,i)=>
     `${medals[i]||"•"} <@${r.id}> — **${r.value}**`
@@ -143,13 +145,13 @@ module.exports={
    const row=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
-     .setCustomId("prev")
+     .setCustomId("lb_prev")
      .setLabel("⬅️")
      .setStyle(ButtonStyle.Primary)
      .setDisabled(page===1),
 
     new ButtonBuilder()
-     .setCustomId("next")
+     .setCustomId("lb_next")
      .setLabel("➡️")
      .setStyle(ButtonStyle.Primary)
      .setDisabled(page===maxPage)
@@ -162,11 +164,12 @@ module.exports={
 
   const {embed,row}=build()
 
-  const msg=await interaction.reply({
+  await interaction.editReply({
    embeds:[embed],
-   components:[row],
-   withResponse:true
+   components:[row]
   })
+
+  const msg = await interaction.fetchReply()
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)
@@ -180,8 +183,8 @@ module.exports={
    if(i.user.id!==interaction.user.id)
     return i.reply({content:"Pas ton menu.",flags:64})
 
-   if(i.customId==="next") page++
-   if(i.customId==="prev") page--
+   if(i.customId==="lb_next") page++
+   if(i.customId==="lb_prev") page--
 
    const {embed,row,maxPage}=build()
 

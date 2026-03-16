@@ -5,6 +5,8 @@ const {
 
 const { getUser } = require("../../systems/userSystem")
 const { claimDaily } = require("../../systems/dailySystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 module.exports={
 
@@ -100,9 +102,19 @@ Titre : ${ach.title}
 
   }
 
+  /* ACHIEVEMENTS */
+
+  const unlockedDaily = achievementCheck(user,"daily")
+  const unlockedEco = achievementCheck(user,"economy")
+
   await interaction.reply({
    embeds:[embed]
   })
+
+  const unlocked=[...unlockedDaily,...unlockedEco]
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  }
 

@@ -17,6 +17,19 @@ const cooldownDev = require("../dev/cooldown")
 
 const cards = getCards()
 
+/* ---------- CACHE SETS ---------- */
+
+const setCache = {}
+
+for(const card of cards){
+ if(!setCache[card.set])
+  setCache[card.set] = []
+
+ setCache[card.set].push(card)
+}
+
+/* ---------- EMOJIS ---------- */
+
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
@@ -31,6 +44,8 @@ const rarityColor={
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
+
+/* ---------- COOLDOWN ---------- */
 
 function getCooldownText(user){
 
@@ -49,16 +64,16 @@ function getCooldownText(user){
  return `⏳ Pack gratuit : **${minutes} min**`
 }
 
+/* ---------- SET COMPLETION ---------- */
+
 function getSetCompletion(user,setId){
 
- const setCards = cards.filter(c=>c.set===setId)
+ const setCards=setCache[setId] || []
 
  let owned=0
 
- for(const card of setCards){
-  if(user.cards?.[card.id])
-   owned++
- }
+ for(const card of setCards)
+  if(user.cards?.[card.id]) owned++
 
  return {
   owned,
@@ -89,22 +104,19 @@ module.exports={
   if(!user.pity) user.pity={}
   if(!user.stats) user.stats={}
 
-  const options = sets
-   .slice(0,25)
-   .map(set=>{
+  const options = sets.slice(0,25).map(set=>{
 
-    const pity=user.pity[set.id] || {SSR:0,UR:0}
+   const pity=user.pity[set.id] || {SSR:0,UR:0}
+   const completion=getSetCompletion(user,set.id)
 
-    const completion=getSetCompletion(user,set.id)
-
-    return{
-     label:set.name,
-     value:set.id,
-     description:
+   return{
+    label:set.name,
+    value:set.id,
+    description:
 `SSR ${pity.SSR}/50 • UR ${pity.UR}/10 • 📚 ${completion.owned}/${completion.total}`
-    }
+   }
 
-   })
+  })
 
   const menu=new StringSelectMenuBuilder()
    .setCustomId("krosmoz_set")
@@ -148,12 +160,14 @@ ${getCooldownText(user)}`,
   }else freePack=true
 
   if(!freePack && (!user.packs || user.packs<=0)){
+
    const remain=Math.ceil((3600000-(now-user.lastPack))/60000)
 
    return interaction.editReply(
 `❌ Aucun pack disponible.
 ⏳ Prochain pack gratuit : **${remain} min**`
    )
+
   }
 
   if(freePack) user.lastPack=now
@@ -163,26 +177,32 @@ ${getCooldownText(user)}`,
 
   const result=openPack(user,setId)
 
-  const pack=result.pack
-  const luckyPack=result.luckyPack
-  const discovered=result.discovered
-  const kamasGain=result.kamasGain
-  const xpGain=result.xpGain
-  const best=result.best
-  const dailyBonus=result.dailyBonus
+  const {
+   pack,
+   luckyPack,
+   discovered,
+   kamasGain,
+   xpGain,
+   best,
+   dailyBonus
+  } = result
 
   let revealed=[]
 
   await interaction.editReply("🎴 **Ouverture du pack...**")
 
-  const message=await interaction.channel.send({
-   embeds:[
-    new EmbedBuilder()
-     .setTitle("📦 Ouverture du pack...")
-     .setDescription("✨ Les cartes apparaissent...")
-     .setColor("#f1c40f")
-   ]
-  })
+  const message = interaction.channel
+   ? await interaction.channel.send({
+      embeds:[
+       new EmbedBuilder()
+        .setTitle("📦 Ouverture du pack...")
+        .setDescription("✨ Les cartes apparaissent...")
+        .setColor("#f1c40f")
+      ]
+     })
+   : null
+
+  if(!message) return
 
   await sleep(1000)
 
@@ -203,7 +223,7 @@ ${getCooldownText(user)}`,
 
   save()
 
-  /* ACHIEVEMENTS */
+  /* ---------- ACHIEVEMENTS ---------- */
 
   let unlocked=[]
 
