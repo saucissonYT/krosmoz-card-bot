@@ -229,6 +229,7 @@ ${getCooldownText(user)}`,
 
   unlocked.push(...achievementCheck(user,"pack"))
   unlocked.push(...achievementCheck(user,"collection"))
+  unlocked.push(...achievementCheck(user,"economy"))
 
   const pity=user.pity[setId]
 

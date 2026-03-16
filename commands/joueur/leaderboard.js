@@ -64,18 +64,18 @@ module.exports={
 
    }
 
-   collection.push({id,value:totalCards})
-   wealth.push({id,value:user.kamas||0})
-   ssr.push({id,value:ssrCount})
+   collection.push({id:String(id),value:totalCards})
+   wealth.push({id:String(id),value:user.kamas||0})
+   ssr.push({id:String(id),value:ssrCount})
 
    const packsOpened=user.stats?.packsOpened || 0
-   packs.push({id,value:packsOpened})
+   packs.push({id:String(id),value:packsOpened})
 
    const achCount=user.achievements?.length || 0
-   achievements.push({id,value:achCount})
+   achievements.push({id:String(id),value:achCount})
 
    const lvl=user.progression?.level || 1
-   level.push({id,value:lvl})
+   level.push({id:String(id),value:lvl})
 
   }
 
@@ -108,7 +108,7 @@ module.exports={
     `${medals[i]||"•"} <@${r.id}> — **${r.value}**`
    )
 
-   const playerIndex=data.findIndex(r=>r.id===interaction.user.id)
+   const playerIndex=data.findIndex(r=>String(r.id)===interaction.user.id)
 
    let playerLine="Non classé"
 

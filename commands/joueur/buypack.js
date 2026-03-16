@@ -55,7 +55,7 @@ Confirmer l'achat ?`
   const msg = await interaction.reply({
    embeds:[embed],
    components:[row],
-   withResponse:true
+   fetchReply:true
   })
 
   const collector = msg.createMessageComponentCollector({ time:30000 })
