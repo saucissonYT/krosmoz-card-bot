@@ -21,82 +21,88 @@ module.exports={
 
   await interaction.deferReply()
 
-  const self = getUser(interaction.user.id)
+  const self=getUser(interaction.user.id)
 
   if(!self.stats) self.stats={}
   self.stats.leaderboardViews=(self.stats.leaderboardViews||0)+1
 
   const unlocked = achievementCheck(self,"social")
 
-  const users=getUsers()
   const cards=getCards()
-
-  const collection=[]
-  const wealth=[]
-  const ssr=[]
-  const packs=[]
-  const achievements=[]
-  const level=[]
-
-  const ssrIds = cards
-   .filter(c=>c.rarity==="SSR")
-   .map(c=>Number(c.id))
-
-  for(const id in users){
-
-   const user = users[id]
-
-   let totalCards=0
-   let ssrCount=0
-
-   if(user.cards){
-
-    for(const cid in user.cards){
-
-     const count=user.cards[cid]
-
-     totalCards+=count
-
-     if(ssrIds.includes(Number(cid)))
-      ssrCount+=count
-
-    }
-
-   }
-
-   collection.push({id:String(id),value:totalCards})
-   wealth.push({id:String(id),value:user.kamas||0})
-   ssr.push({id:String(id),value:ssrCount})
-
-   const packsOpened=user.stats?.packsOpened || 0
-   packs.push({id:String(id),value:packsOpened})
-
-   const achCount=user.achievements?.length || 0
-   achievements.push({id:String(id),value:achCount})
-
-   const lvl=user.progression?.level || 1
-   level.push({id:String(id),value:lvl})
-
-  }
-
-  const rankings={
-   collection,
-   wealth,
-   ssr,
-   packs,
-   achievements,
-   level
-  }
-
-  for(const key in rankings)
-   rankings[key].sort((a,b)=>b.value-a.value)
 
   let mode="collection"
   let page=1
   const perPage=10
 
+  function computeRankings(){
+
+   const users=getUsers()
+
+   const collection=[]
+   const wealth=[]
+   const ssr=[]
+   const packs=[]
+   const achievements=[]
+   const level=[]
+
+   const ssrIds = cards
+    .filter(c=>c.rarity==="SSR")
+    .map(c=>Number(c.id))
+
+   for(const id in users){
+
+    const user=getUser(id)
+
+    let uniqueCards=0
+    let ssrCount=0
+
+    if(user.cards){
+
+     for(const cid in user.cards){
+
+      if(user.cards[cid] > 0)
+       uniqueCards++
+
+      if(ssrIds.includes(Number(cid)))
+       ssrCount += user.cards[cid]
+
+     }
+
+    }
+
+    collection.push({id:String(id),value:uniqueCards})
+    wealth.push({id:String(id),value:user.kamas||0})
+    ssr.push({id:String(id),value:ssrCount})
+
+    const packsOpened=user.stats?.packsOpened || 0
+    packs.push({id:String(id),value:packsOpened})
+
+    const achCount=user.achievements?.length || 0
+    achievements.push({id:String(id),value:achCount})
+
+    const lvl=user.progression?.level || 1
+    level.push({id:String(id),value:lvl})
+
+   }
+
+   const rankings={
+    collection,
+    wealth,
+    ssr,
+    packs,
+    achievements,
+    level
+   }
+
+   for(const key in rankings)
+    rankings[key].sort((a,b)=>b.value-a.value)
+
+   return rankings
+  }
+
   function build(){
 
+   const rankings=computeRankings()
    const data=rankings[mode]
 
    const maxPage=Math.max(1,Math.ceil(data.length/perPage))
@@ -159,7 +165,6 @@ module.exports={
    )
 
    return {embed,row,maxPage}
-
   }
 
   const {embed,row}=build()
@@ -169,7 +174,7 @@ module.exports={
    components:[row]
   })
 
-  const msg = await interaction.fetchReply()
+  const msg=await interaction.fetchReply()
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)
