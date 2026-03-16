@@ -16,6 +16,10 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
 
+function rand(min,max){
+ return Math.floor(Math.random()*(max-min+1))+min
+}
+
 function buildXPBar(current,max){
 
  const size = 12
@@ -75,6 +79,79 @@ module.exports = {
 
   const target = interaction.options?.getUser("joueur") || interaction.user
   const isSelf = target.id === interaction.user.id
+  const isBotProfile = target.id === interaction.client.user.id
+
+  /* ---------------- PROFIL BOT RNG ---------------- */
+
+  if(isBotProfile){
+
+   const totalCards = cards.length
+
+   const fakeAchievements = Object.keys(achievements)
+   const badgeCount = rand(10,40)
+
+   const randomBadges=[]
+
+   for(let i=0;i<badgeCount;i++){
+
+    const id=fakeAchievements[rand(0,fakeAchievements.length-1)]
+
+    if(achievements[id]?.badge)
+     randomBadges.push(achievements[id].badge)
+
+   }
+
+   const ownedCards = rand(Math.floor(totalCards*0.5),totalCards)
+
+   const progression={
+    level:rand(50,200),
+    xp:rand(100,900),
+    required:1000
+   }
+
+   const xpBar = buildXPBar(progression.xp,progression.required)
+   const collectionBar = buildCollectionBar(ownedCards,totalCards)
+
+   const embed = new EmbedBuilder()
+
+    .setTitle(`👤 ${target.username}`)
+    .setThumbnail(target.displayAvatarURL({size:256}))
+
+    .addFields(
+
+     {name:"🏅 Rang",value:"🌌 Entité Cosmique",inline:true},
+     {name:"👑 Titre",value:["Architecte RNG","Dieu du Krosmoz","Gardien des Sets"][rand(0,2)],inline:true},
+     {name:"🏆 Succès",value:String(rand(200,999)),inline:true},
+
+     {name:"⭐ Niveau",value:String(progression.level),inline:true},
+     {name:"📈 XP",value:`${progression.xp} / ${progression.required}`,inline:true},
+
+     {name:"📊 Progression XP",value:xpBar},
+
+     {name:"💰 Kamas",value:String(rand(100000,99999999)),inline:true},
+     {name:"📦 Cartes",value:`${ownedCards}/${totalCards}`,inline:true},
+
+     {name:"📊 Collection",value:collectionBar},
+
+     {
+      name:"📊 Statistiques",
+      value:
+`📦 Packs ouverts : ${rand(1000,50000)}
+🌈 SSR obtenues : ${rand(100,5000)}
+🔧 Fusions : ${rand(200,10000)}
+📅 Daily claims : ${rand(200,5000)}`
+     },
+
+     {name:"🎖 Badges",value:randomBadges.join(" ") || "Aucun"}
+
+    )
+
+    .setColor("#8e44ad")
+
+   return interaction.reply({embeds:[embed]})
+  }
+
+  /* ---------------- PROFIL NORMAL ---------------- */
 
   const user = getUser(target.id)
 
@@ -186,7 +263,7 @@ module.exports = {
   const msg = await interaction.reply({
    embeds:[embed],
    components:[row],
-   withResponse:true
+   fetchReply:true
   })
 
   if(unlocked.length)
