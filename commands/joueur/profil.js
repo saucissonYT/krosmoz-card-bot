@@ -7,7 +7,7 @@ const {
 } = require("discord.js")
 
 const { getUser } = require("../../systems/userSystem")
-const { achievements } = require("../../systems/achievementSystem")
+const achievements = require("../../systems/achievementRegistry")
 const { getRank } = require("../../systems/rankSystem")
 const { getProgression } = require("../../systems/progressionSystem")
 
@@ -83,8 +83,6 @@ module.exports = {
   for(const id in user.cards)
    if(user.cards[id] > 0)
     ownedCards++
-
-  /* -------- BADGES LIMIT + DERNIERS EN PRIORITÉ -------- */
 
   const maxBadges = 40
 

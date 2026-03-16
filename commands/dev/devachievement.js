@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 const { getUser, save } = require("../../systems/userSystem")
-const { achievements, giveAchievement } = require("../../systems/achievementSystem")
+const achievements = require("../../systems/achievementRegistry")
 
 module.exports = {
 
@@ -72,9 +72,12 @@ module.exports = {
 
   if(action === "add"){
 
-   const added=giveAchievement(user,id)
-
-   result = added ? "Ajouté" : "Déjà possédé"
+   if(!user.achievements.includes(id)){
+    user.achievements.push(id)
+    result="Ajouté"
+   }else{
+    result="Déjà possédé"
+   }
 
   } else {
 

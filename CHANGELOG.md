@@ -8,6 +8,60 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+[0.16.0] - 2026-03-16
+
+### Added
+
+- Nouveau achievementRegistry centralisé
+- Ajout de plus de 100 achievements couvrant :
+Packs
+Raretés
+Fusion
+Collection
+Market
+Social
+RNG
+Secrets
+- Ajout de titres débloqués via achievements
+- Achievements liés à la complétion de sets :
+Incarnam
+Astrub
+Amakna
+- Achievements de progression de collection globale (25% / 50% / 75% / 100%)
+- Achievements liés aux SSR Shiny
+- Achievements liés aux packs chanceux et RNG extrême
+- Achievements liés aux conditions temporelles (nuit, heure spécifique)
+- Achievements liés aux interactions sociales (mentions, trades)
+- Commande dev /auditachievements permettant d'auditer l'ensemble du système d'achievements
+- Debug détaillé des conditions d'achievements dans la console
+
+### Changed
+
+Refonte complète du moteur d'achievements
+Les conditions d'achievements sont désormais centralisées dans achievementRegistry
+Simplification de la logique d'achievements dans les commandes
+Les achievements peuvent maintenant attribuer automatiquement un titre
+Amélioration de la gestion des achievements secrets
+Nettoyage des anciens triggers d'achievements dispersés dans le code
+
+### Improved
+
+- Amélioration de la robustesse du système d'achievements
+- Meilleure détection des conditions d'achievements
+- eilleure compatibilité avec les futurs systèmes sociaux du bot
+- Debug console amélioré pour faciliter le développement
+- Structure du code plus modulaire et maintenable
+
+### Fixed
+
+- Correction de plusieurs achievements qui ne se déclenchaient pas correctement
+- Correction de conditions d'achievements dépendant de stats inexistantes
+- Correction de cas où certains achievements pouvaient être déclenchés plusieurs fois
+- Correction d'incohérences entre les stats utilisateur et les triggers d'achievements
+- Stabilisation globale du système d'achievements
+
+
+---
 
 ## [0.15.0] - 2026-03-15
 

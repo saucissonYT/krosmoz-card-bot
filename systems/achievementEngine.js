@@ -1,24 +1,6 @@
 const achievements = require("./achievementRegistry")
 
-function safeStat(user,path,defaultValue=0){
-
- const parts = path.split(".")
- let value = user
-
- for(const p of parts){
-
-  if(value[p]===undefined)
-   return defaultValue
-
-  value = value[p]
-
- }
-
- return value
-
-}
-
-function checkAchievements(user){
+function checkAchievements(user,trigger){
 
  const unlocked=[]
 
@@ -30,18 +12,19 @@ function checkAchievements(user){
 
  for(const id in achievements){
 
+  const achievement = achievements[id]
+
+  if(trigger && achievement.trigger !== trigger)
+   continue
+
   if(user.achievements.includes(id))
    continue
 
-  const achievement = achievements[id]
-
   try{
-
-   /* ---------------- CONDITION ---------------- */
 
    if(typeof achievement.condition === "function"){
 
-    if(achievement.condition(user,safeStat)){
+    if(achievement.condition(user)){
 
      user.achievements.push(id)
      unlocked.push(id)
