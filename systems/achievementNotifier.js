@@ -13,7 +13,7 @@ async function notifyAchievements(interaction,list){
 
 ${a.badge} **${a.name}**
 🎖️ Titre obtenu : **${a.title}**`,
-   ephemeral:true
+   flags:64
   })
 
  }

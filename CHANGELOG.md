@@ -23,15 +23,39 @@ Social
 RNG
 Secrets
 - Ajout de titres débloqués via achievements
+
 - Achievements liés à la complétion de sets :
 Incarnam
 Astrub
 Amakna
+
 - Achievements de progression de collection globale (25% / 50% / 75% / 100%)
 - Achievements liés aux SSR Shiny
 - Achievements liés aux packs chanceux et RNG extrême
 - Achievements liés aux conditions temporelles (nuit, heure spécifique)
 - Achievements liés aux interactions sociales (mentions, trades)
+
+- Achievements liés à l'utilisation excessive de commandes :
+/profil
+/leaderboard
+/kroshelp
+/titre
+/balance
+/inventaire
+
+- Achievements liés à l'économie :
+achat de packs
+vente de cartes
+vente de doublons
+consultation du solde
+
+- Achievements liés à la progression quotidienne :
+daily claims
+daily streak
+
+- Achievements liés à la consultation des classements
+- Achievements liés à l'utilisation du système de titres
+
 - Commande dev /auditachievements permettant d'auditer l'ensemble du système d'achievements
 - Debug détaillé des conditions d'achievements dans la console
 
@@ -41,16 +65,17 @@ Amakna
 - Les conditions d'achievements sont désormais centralisées dans achievementRegistry
 - Simplification de la logique d'achievements dans les commandes
 - Les achievements peuvent maintenant attribuer automatiquement un titre
-- mélioration de la gestion des achievements secrets
+- Amélioration de la gestion des achievements secrets
 - Nettoyage des anciens triggers d'achievements dispersés dans le code
 
 ### Improved
 
 - Amélioration de la robustesse du système d'achievements
 - Meilleure détection des conditions d'achievements
-- eilleure compatibilité avec les futurs systèmes sociaux du bot
+- Meilleure compatibilité avec les futurs systèmes sociaux du bot
 - Debug console amélioré pour faciliter le développement
 - Structure du code plus modulaire et maintenable
+- Ajout de nouveaux triggers statistiques utilisateur pour faciliter l'ajout futur d'achievements
 
 ### Fixed
 
@@ -59,7 +84,6 @@ Amakna
 - Correction de cas où certains achievements pouvaient être déclenchés plusieurs fois
 - Correction d'incohérences entre les stats utilisateur et les triggers d'achievements
 - Stabilisation globale du système d'achievements
-
 
 ---
 

@@ -47,8 +47,9 @@ module.exports={
 
  async execute(interaction){
 
-  const cardsById = getCardsById()
+  await interaction.deferReply()
 
+  const cardsById = getCardsById()
   const user=getUser(interaction.user.id)
 
   if(!user.cards) user.cards={}
@@ -61,7 +62,7 @@ module.exports={
   await achievementCheck(interaction,user,"inventory")
 
   if(Object.keys(user.cards).length===0)
-   return interaction.reply("📦 Inventaire vide.")
+   return interaction.editReply("📦 Inventaire vide.")
 
   const rarityFilter=interaction.options.getString("rarete")
   const nameSearch=interaction.options.getString("nom")
@@ -103,7 +104,7 @@ module.exports={
   }
 
   if(inventory.length===0)
-   return interaction.reply("❌ Aucune carte trouvée.")
+   return interaction.editReply("❌ Aucune carte trouvée.")
 
   if(sortType==="nom")
    inventory.sort((a,b)=>a.card.name.localeCompare(b.card.name))
@@ -163,10 +164,10 @@ module.exports={
 
   const {embed,row}=build(page)
 
-  const msg=await interaction.reply({
+  const msg=await interaction.editReply({
    embeds:[embed],
    components:[row],
-   fetchReply:true
+   withResponse:true
   })
 
   const collector=msg.createMessageComponentCollector({time:120000})
@@ -174,7 +175,7 @@ module.exports={
   collector.on("collect",async i=>{
 
    if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ton inventaire.",ephemeral:true})
+    return i.reply({content:"Pas ton inventaire.",flags:64})
 
    if(i.customId==="next") page++
    if(i.customId==="prev") page--

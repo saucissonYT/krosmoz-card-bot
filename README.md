@@ -1,36 +1,42 @@
-# 🎴 Krosmoz Card Bot
+🎴 Krosmoz Card Bot
 
-**Krosmoz Card Bot** est un bot Discord implémentant un **jeu de collection de cartes (TCG)** inspiré de l'univers **Krosmoz (Wakfu / Dofus)**.
+Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes (TCG) inspiré de l'univers Krosmoz (Wakfu / Dofus).
 
 Les joueurs peuvent :
 
-* ouvrir des **packs**
-* collectionner des **cartes**
-* gagner des **kamas**
-* compléter des **sets**
-* faire des **échanges**
-* vendre des cartes sur un **marché**
-* débloquer des **succès**
-* progresser en **niveau et rang**
-* intéragir avec le bot avec **mention**
+ouvrir des packs
 
-Le bot est conçu avec une **architecture modulaire Node.js** afin de faciliter les ajouts de contenu et de fonctionnalités.
+collectionner des cartes
 
----
+gagner des kamas
 
-# ⚙️ Technologies utilisées
+compléter des sets
 
-* **Node.js**
-* **discord.js v14**
-* **JSON Database**
-* **Canvas** (images inventaire)
-* Architecture modulaire (`systems/`)
+faire des échanges
 
----
+vendre des cartes sur un marché
 
-# 📂 Structure du projet
+débloquer des succès
 
-```
+progresser en niveau et rang
+
+interagir avec le bot via mentions
+
+Le bot est conçu avec une architecture modulaire Node.js afin de faciliter l'ajout de contenu et de nouvelles fonctionnalités.
+
+⚙️ Technologies utilisées
+
+Node.js
+
+discord.js v14
+
+JSON Database
+
+Canvas (images inventaire)
+
+architecture modulaire (systems/)
+
+📂 Structure du projet
 krosmoz-card-bot
 │
 ├ commands
@@ -61,12 +67,9 @@ krosmoz-card-bot
 ├ package.json
 ├ CHANGELOG.md
 └ README.md
-```
----
+🧠 Architecture
 
-# 🧠 Architecture
-
-Le bot est construit avec une architecture modulaire basée sur des systèmes indépendants situés dans le dossier :
+Le bot utilise une architecture modulaire basée sur des systèmes indépendants situés dans :
 
 systems/
 
@@ -74,51 +77,49 @@ Chaque système gère une mécanique spécifique du jeu.
 
 ⚙️ Systèmes principaux
 système	rôle
-dataManager	gestion des données persistantes (/data)
+dataManager	gestion des données persistantes
 userSystem	gestion des utilisateurs
-cardRegistry	indexation et accès rapide aux cartes
+cardRegistry	indexation des cartes
 cardId	gestion des identifiants de cartes
-
 🎮 Gameplay
 système	rôle
 pack	ouverture de packs
-packEngine	génération des cartes dans les packs
-setSystem	gestion des sets et collections
-setSystemFile	gestion des fichiers de sets
-fusion (dans commandes)	fusion des cartes
-
+packEngine	génération des cartes
+setSystem	gestion des sets
+fusion	fusion de cartes
 🪙 Économie
 système	rôle
 economy	gestion des kamas
 market	marché des cartes
 tradeSystem	échanges entre joueurs
 rewards	attribution des récompenses
-
 📈 Progression
 système	rôle
 progressionSystem	gestion de l'XP
 rankSystem	gestion des rangs
-achievementSystem	gestion des succès
-achievementCheck	vérification automatique des succès
-badges (succès)
-titres débloqués
-progression de collection
+achievementRegistry	définition des succès
+achievementEngine	moteur d'achievements
+achievementCheck	déclenchement automatique
 
+Les succès permettent de débloquer :
+
+badges
+
+titres
+
+progression
 
 🎁 Activités
 système	rôle
 dailySystem	récompenses quotidiennes
 eventSystem	gestion des événements
-
 🛠 Outils internes
 système	rôle
-inventoryImage	génération d'image d'inventaire
+inventoryImage	génération d'image inventaire
 auditSystem	logs développeur
-antiAbuse	protection contre le farm abusif
+antiAbuse	protection anti-abus
 devSystem	outils développeur
-
 🔗 Schéma simplifié
-
                 Discord Commands
                        │
                        ▼
@@ -135,14 +136,9 @@ devSystem	outils développeur
                        │
                        ▼
                      /data
-
----
-
 📦 Stockage des données
 
 Le bot utilise un système de stockage basé sur des fichiers JSON.
-
-Structure :
 
 /data
    users/
@@ -152,40 +148,30 @@ Structure :
    marketHistory.json
    devs.json
    cards.json
-
-### users.json
-
-Stocke :
-
-* inventaire cartes
-* kamas
-* achievements
-* niveau
-* xp
-* statistiques
-
-### market.json
+users.json
 
 Stocke :
 
-* annonces du marché
-* vendeur
-* prix
-* carte
+inventaire de cartes
 
----
+kamas
 
-# 🎴 Cartes
+achievements
+
+progression
+
+statistiques
+
+titres
+
+🎴 Cartes
 
 Les cartes sont définies dans :
 
-```
 cards/cards.json
-```
 
 Structure :
 
-```json
 {
  "id": 1,
  "name": "Cra",
@@ -193,451 +179,213 @@ Structure :
  "set": "incarnam",
  "image": "1_cra_incarnam_c.jpg"
 }
-```
+⭐ Raretés
+Rareté	Emoji
+C	⚪
+U	🟢
+R	🔵
+SR	🟣
+HR	🔴
+UR	🟡
+S	✨
+SSR	🌈
+✨ SSR Shiny
 
----
-
-# ⭐ Raretés
-
-| Rarete | Emoji |
-| ------ | ----- |
-| C      | ⚪     |
-| U      | 🟢    |
-| R      | 🔵    |
-| SR     | 🟣    |
-| HR     | 🔴    |
-| UR     | 🟡    |
-| S      | ✨     |
-| SSR    | 🌈    |
-
----
-
-### ✨ SSR Shiny
-
-Les cartes **SSR** possèdent une variante extrêmement rare appelée **SSR Shiny**.
+Les cartes SSR possèdent une variante extrêmement rare appelée SSR Shiny.
 
 Caractéristiques :
 
-- ⭐ 0.5% de chance lors d'une SSR
-- ✨ icône spéciale dans les packs
-- 🌟 embed visuel différent lors de l'ouverture
-- 🏆 achievement spécial
+⭐ 0.5% de chance lors d'une SSR
+
+✨ icône spéciale
+
+🌟 embed visuel unique
+
+🏆 achievement spécial
 
 Les SSR Shiny sont purement cosmétiques.
----
 
-# 🎲 Système de Pity
+🎲 Système de Pity
 
-Le système d'ouverture de packs utilise un mécanisme de pity afin d'éviter les longues séries de malchance.
-Chaque set possède son propre compteur de pity.
-Cela signifie que la progression de pity est indépendante pour chaque set.
+Chaque set possède son compteur de pity indépendant.
 
 Exemple :
 
 Incarnam → pity SSR 12
 Astrub → pity SSR 3
 Amakna → pity SSR 0
-
-🌈 Hard Pity
-
-Un système de hard pity garantit l'obtention de certaines raretés.
-
+Hard Pity
 Rareté	Garantie
-UR	garantie après 10 packs
-SSR	garantie après 50 packs
-
-Lorsqu'une de ces cartes est obtenue :
-
-le compteur correspondant est réinitialisé
-les autres pity sont également réajustées.
-
-📈 Soft Pity
-
-Le bot utilise également un système de soft pity progressive pour les SSR.
-Plus un joueur ouvre de packs sans SSR, plus ses chances augmentent.
-
+UR	10 packs
+SSR	50 packs
+Soft Pity
 Packs sans SSR	Chance SSR
 0-20	0.05%
 20-30	0.1%
 30-40	0.3%
 40-49	1%
 50	SSR garantie
-
 🎁 Lucky Pack
 
-Chaque pack possède également 10% de chance d'être un Lucky Pack.
+Chaque pack possède 10% de chance d'être un Lucky Pack.
 
 Un Lucky Pack donne :
 
 5 cartes normales
-+ 1 carte bonus aléatoire
-📊 Affichage de la pity
-
-Dans certains cas très rares, un Lucky Pack peut produire des résultats exceptionnels :
-
-- plusieurs cartes SSR
-- doublons inhabituels
-- combinaisons rares de cartes
++ 1 carte bonus
 
 Certains achievements secrets sont liés à ces événements.
 
-La progression de pity est visible dans :
+📦 Sets de cartes
 
-/pity
+Le jeu contient 3 sets principaux totalisant 674 cartes.
 
-et lors de l'ouverture d'un pack :
+☁️ Incarnam
 
-🌈 SSR Pity : X / 50
-🟡 UR Pity : X / 10
+120 cartes
 
+🌾 Astrub
 
-## 📦 Sets de cartes
+258 cartes
 
-Le jeu contient actuellement **3 sets principaux** totalisant **674 cartes**.
+🌽 Amakna
 
-### ☁️ Incarnam — Set de départ
+296 cartes
 
-Premier set du jeu.
-Les joueurs commencent leur collection avec les cartes d’**Incarnam**.
-
-* **120 cartes**
-* Majorité de **C / U**
-* Quelques cartes **SR / HR / UR**
-* Quelques **SSR** très rares
-
-
----
-
-### 🌾 Astrub — Set principal
-
-Deuxième set du jeu avec beaucoup plus de contenu et d’équipements.
-
-* **258 cartes**
-* Beaucoup d’objets, ressources et panoplies
-* Plusieurs cartes **rares et spéciales**
-
----
-
-### 🌽 Amakna — Première extension
-
-Troisième set du jeu avec encore plus de contenu, basé sur amakna de Wakfu MMO.
-
-* **296 cartes**
-* Beaucoup d’objets, ressources et panoplies
-* Plusieurs cartes **rares et spéciales**
-* Le légendaire khan karkass
-
-
-
----
-
-### 📊 Total du jeu
-
-674 cartes
-
-# 🎮 Commandes Joueur
-
-## Packs
-
-```
+🎮 Commandes Joueur
+Packs
 /krosmoz
 /buypack
 /pity
-```
-
-## Inventaire
-
-```
+Inventaire
 /inventaire
 /carte
 /listcards
-```
-
-## Économie
-
-```
+Économie
 /balance
 /sellcard
-/sellduplicate
-```
-
-## Marché
-
-```
+/sellduplicates
+Marché
 /market
-```
 
 Fonctionnalités :
 
-* achat
-* vente
-* tri
-* filtres
-* pagination
+achat
 
----
+vente
 
-## Collection
+tri
 
-```
-/listcards
-```
+filtres
 
----
+pagination
 
-## Progression
-
-```
+Progression
 /profil
 /leaderboard
 /titre
-```
-
----
-
-## Gameplay
-
-```
+Gameplay
 /daily
 /fusion
 /trade
-```
-
----
-
-## Succès
-
-```
-/achievement
-```
-
----
-
-## Aide
-
-```
+Succès
+/achievements
+Aide
 /kroshelp
-```
+🏆 Achievements
 
----
-
-# 🛠 Commandes Admin
-
-```
-/event
-/stats
-```
-
----
-
-# ⚙️ Commandes Développeur
-
-```
-/devhelp
-/addcard
-/editcard
-/removecard
-/importcards
-/devpack
-/devgive
-/devachievement
-/devdaily
-/cooldown
-/resetcooldown
-/resetpity
-/hardpity
-/simpack
-/previewcard
-/krosmodev
-/krosmoreload
-```
-
-Gestion des sets :
-
-```
-/setcreate
-/setedit
-/setdelete
-/setreward
-/setstats
-/setlist
-```
-
----
-
-# 🪙 Économie
-
-Monnaie utilisée :
-
-**Kamas**
-
-Sources :
-
-* packs
-* daily
-* ventes
-* événements
-* récompenses
-
----
-
-# 📈 Progression
-
-Les joueurs gagnent :
-
-* **XP**
-* **niveaux**
-* **rangs**
-* **badges**
-
-Affichés dans :
-
-```
-/profil
-```
-
----
-
-# 🏆 Achievements
-
-Le bot possède un système de **succès automatiques et secrets**.
+Le bot possède 115 succès automatiques et secrets.
 
 Types de succès :
 
-• progression (packs, niveau, collection)  
-• économie (kamas, marché)  
-• gameplay (fusion, SSR, packs spéciaux)  
-• social (mention du bot)  
-• secrets (conditions cachées)
+progression (packs, niveau, collection)
+
+économie (kamas, ventes, achats)
+
+gameplay (fusion, SSR, packs spéciaux)
+
+social (mentions, interactions)
+
+RNG extrême
+
+secrets
+
+Certaines commandes possèdent des succès humoristiques liés à leur utilisation excessive :
+
+/profil
+/leaderboard
+/kroshelp
+/balance
+/inventaire
+/titre
+
+Les succès débloquent :
+
+badges
+
+titres
+
+progression
 
 Les succès secrets apparaissent comme :
 
-🔒 **???**
+🔒 ???
 
-jusqu'à leur déblocage.
+jusqu'à leur découverte.
 
----
+🧩 Fonctionnalités principales
 
-# 💡 Astuces du bot
-
-Lorsque le bot est mentionné, il peut répondre avec des **astuces aléatoires** sur le jeu.
-
-Exemples :
-
-• comment optimiser les packs  
-• comment utiliser la fusion  
-• comment compléter un set  
-• comment utiliser le marché
-
----
-
-# 🧩 Fonctionnalités principales
-
-✔ système de **packs gacha**
-✔ **inventaire paginé**
-✔ **marché entre joueurs**
-✔ **échanges sécurisés**
-✔ **système de sets**
-✔ **fusion de cartes**
-✔ **succès automatiques**
-✔ **progression et rangs**
-✔ **economy avec kamas**
-✔ **interface Discord interactive**
-✔ système de **réponses du bot lorsqu'il est mentionné**
-✔ **astuces automatiques** sur les mécaniques du jeu
-✔ triggers de mots-clés lorsque le bot est mentionné
-✔ achievements liés aux interactions sociales
-✔ système de fusion avancé
-✔ fusion critique
-✔ fusion double
-✔ triple fusion extrêmement rare
+✔ système de packs gacha
+✔ inventaire paginé
+✔ marché entre joueurs
+✔ échanges sécurisés
+✔ système de sets
+✔ fusion avancée
+✔ 115 achievements
+✔ progression et rangs
+✔ économie avec kamas
+✔ interface Discord interactive
+✔ réponses du bot lorsqu'il est mentionné
+✔ astuces automatiques
 ✔ animation d'ouverture de pack
 ✔ révélation progressive des cartes
-✔ affichage des nouvelles découvertes
-✔ affichage de la **pity directement dans /krosmoz**
-✔ affichage public de la **pity avec /pity**
-✔ système d'**explication des achievements lors du déblocage**
-✔ système de **vente des doublons détaillé**
-✔ système de **trade sécurisé empêchant les abus**
-✔ corrections et sécurisation du **market system**
-✔ amélioration du **daily system**
+✔ pity visible dans /krosmoz et /pity
+✔ daily rewards
+✔ trade sécurisé
 
----
+🔁 Gameplay Loop
 
-# 🔁 Gameplay Loop
-
-1️⃣ ouvrir des packs  
-2️⃣ obtenir des cartes  
-3️⃣ vendre les doublons  
-4️⃣ fusionner les cartes  
-5️⃣ compléter les sets  
-6️⃣ débloquer des achievements  
+1️⃣ ouvrir des packs
+2️⃣ obtenir des cartes
+3️⃣ vendre les doublons
+4️⃣ fusionner les cartes
+5️⃣ compléter les sets
+6️⃣ débloquer des achievements
 7️⃣ gagner de l'XP et monter de niveau
 
----
-
-# 🛣 Roadmap
-
-Fonctionnalités prévues :
-
-* 🔥 nouveaux sets
-* 🏹 events temporaires
-* 📊 statistiques avancées
-
----
-
-## 📰 Changelog
+📰 Changelog
 
 Historique des mises à jour :
 
-[Voir le changelog](CHANGELOG.md)
-
----
-
-# 👨‍💻 Auteur
+CHANGELOG.md
+👨‍💻 Auteur
 
 Projet créé par :
 
- sauci 
+sauci
 
----
+📜 Licence
 
-## 📸 Screenshots
-
-### 🎴 Ouverture de pack
-![Pack](screenshots/pack.PNG)
-
-### 👤 Profil joueur
-![Profil](screenshots/profil.PNG)
-
-### 🎴 Carte
-![Carte](screenshots/carte.PNG)
-
-### 🎁 Daily reward
-![Daily](screenshots/daily.PNG)
-
-### 🏆 Succès
-![Succès](screenshots/succès.PNG)
-
----
-
-bot hébergé pour l'instant sur railway
-
----
-
-# 📜 Licence
-
-Ce projet est distribué comme projet open-source non commercial.
-Krosmoz Card Bot est un projet fan non officiel inspiré de l’univers Krosmoz (Dofus / Wakfu).
-Tous les droits relatifs à l’univers, aux personnages, aux noms et aux visuels appartiennent à Ankama.
+Projet fan non officiel inspiré de l'univers Krosmoz (Dofus / Wakfu).
 
 Ce projet :
 
 n’est pas affilié à Ankama
+
 n’est pas approuvé par Ankama
-est développé uniquement à des fins communautaires.
+
+est développé uniquement à des fins communautaires
+
 Le bot est entièrement gratuit et ne génère aucun revenu.
 
-Si Ankama demande la modification ou la suppression de certains contenus, ils seront retirés du projet (et il sera adapté à un autre univers).
-
----
+Si Ankama demande la modification ou la suppression de certains contenus, ils seront retirés du projet.
