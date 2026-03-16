@@ -12,6 +12,7 @@ const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const trades = {}
 const activeUsers = new Set()
@@ -320,10 +321,14 @@ async button(interaction){
 
   save()
 
-  /* ACHIEVEMENTS */
+  const unlockedFrom = achievementCheck(from,"collection")
+  const unlockedTo = achievementCheck(to,"collection")
 
-  await achievementCheck(interaction,from,"collection")
-  await achievementCheck(interaction,to,"collection")
+  if(unlockedFrom.length)
+   await notifyAchievements(interaction,unlockedFrom)
+
+  if(unlockedTo.length)
+   await notifyAchievements(interaction,unlockedTo)
 
   activeUsers.delete(trade.from)
   activeUsers.delete(trade.to)

@@ -22,6 +22,7 @@ Market
 Social
 RNG
 Secrets
+
 - Ajout de titres débloqués via achievements
 
 - Achievements liés à la complétion de sets :
@@ -56,6 +57,10 @@ daily streak
 - Achievements liés à la consultation des classements
 - Achievements liés à l'utilisation du système de titres
 
+- Nouveau système de notification des achievements via achievementNotifier
+- Affichage automatique des succès débloqués après les actions du joueur
+- Ajout d'une description détaillée pour chaque achievement
+
 - Commande dev /auditachievements permettant d'auditer l'ensemble du système d'achievements
 - Debug détaillé des conditions d'achievements dans la console
 
@@ -64,9 +69,13 @@ daily streak
 - Refonte complète du moteur d'achievements
 - Les conditions d'achievements sont désormais centralisées dans achievementRegistry
 - Simplification de la logique d'achievements dans les commandes
+- Nouveau pipeline achievementCheck → notifyAchievements
 - Les achievements peuvent maintenant attribuer automatiquement un titre
 - Amélioration de la gestion des achievements secrets
 - Nettoyage des anciens triggers d'achievements dispersés dans le code
+
+- Migration de l'ensemble des commandes vers le nouveau système d'achievements
+- Standardisation des triggers d'achievements (pack, economy, collection, fusion, social, daily)
 
 ### Improved
 
@@ -77,12 +86,26 @@ daily streak
 - Structure du code plus modulaire et maintenable
 - Ajout de nouveaux triggers statistiques utilisateur pour faciliter l'ajout futur d'achievements
 
+- Amélioration de la cohérence des statistiques utilisateur utilisées par les achievements
+- Meilleure intégration du système d'achievements avec :
+packEngine
+dailySystem
+fusionSystem
+market
+trade
+profil
+
 ### Fixed
 
 - Correction de plusieurs achievements qui ne se déclenchaient pas correctement
 - Correction de conditions d'achievements dépendant de stats inexistantes
 - Correction de cas où certains achievements pouvaient être déclenchés plusieurs fois
 - Correction d'incohérences entre les stats utilisateur et les triggers d'achievements
+
+- Correction de la propagation des achievements dans plusieurs commandes
+- Correction des notifications d'achievements non affichées dans certains contextes d'interaction
+- Correction de l'intégration achievements / interactions Discord (buttons, modals, selects)
+
 - Stabilisation globale du système d'achievements
 
 ---

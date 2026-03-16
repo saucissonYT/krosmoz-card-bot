@@ -219,12 +219,12 @@ module.exports={
    if(result?.error)
     return interaction.reply({
      content:`❌ ${result.error}`,
-     ephemeral:true
+     flags:64
     })
 
    return interaction.reply({
     content:"✅ Carte achetée.",
-    ephemeral:true
+    flags:64
    })
 
   }
@@ -242,12 +242,12 @@ module.exports={
    if(result?.error)
     return interaction.reply({
      content:`❌ ${result.error}`,
-     ephemeral:true
+     flags:64
     })
 
    return interaction.reply({
     content:"📦 Vente retirée.",
-    ephemeral:true
+    flags:64
    })
 
   }

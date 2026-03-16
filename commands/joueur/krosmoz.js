@@ -12,6 +12,7 @@ const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 const cooldownDev = require("../dev/cooldown")
 
 const cards = getCards()
@@ -81,7 +82,7 @@ module.exports={
   if(!sets || sets.length===0){
    return interaction.reply({
     content:"❌ Aucun set disponible.",
-    ephemeral:true
+    flags:64
    })
   }
 
@@ -119,7 +120,7 @@ module.exports={
 📦 Packs achetés : **${user.packs || 0}**
 ${getCooldownText(user)}`,
    components:[row],
-   ephemeral:true
+   flags:64
   })
 
  },
@@ -202,10 +203,12 @@ ${getCooldownText(user)}`,
 
   save()
 
-  /* ACHIEVEMENT TRIGGERS */
+  /* ACHIEVEMENTS */
 
-  await achievementCheck(interaction,user,"pack")
-  await achievementCheck(interaction,user,"collection")
+  let unlocked=[]
+
+  unlocked.push(...achievementCheck(user,"pack"))
+  unlocked.push(...achievementCheck(user,"collection"))
 
   const pity=user.pity[setId]
 
@@ -244,10 +247,13 @@ ${getCooldownText(user)}`,
 
    await interaction.followUp({
     content:`Nouvelle découverte !\n${lines.join("\n")}`,
-    ephemeral:true
+    flags:64
    })
 
   }
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  }
 

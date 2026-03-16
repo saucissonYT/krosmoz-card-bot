@@ -6,6 +6,7 @@ const {
 
 const { getUser } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 module.exports = {
 
@@ -46,7 +47,10 @@ module.exports = {
    ephemeral:true
   })
 
-  await achievementCheck(interaction,user,"social")
+  const unlocked = achievementCheck(user,"social")
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  }
 

@@ -7,6 +7,7 @@ const {
 
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 module.exports = {
 
@@ -22,7 +23,7 @@ module.exports = {
   if(user.kamas < price)
    return interaction.reply({
     content:"❌ Pas assez de kamas.",
-    ephemeral:true
+    flags:64
    })
 
   const embed = new EmbedBuilder()
@@ -54,7 +55,7 @@ Confirmer l'achat ?`
   const msg = await interaction.reply({
    embeds:[embed],
    components:[row],
-   fetchReply:true
+   withResponse:true
   })
 
   const collector = msg.createMessageComponentCollector({ time:30000 })
@@ -64,7 +65,7 @@ Confirmer l'achat ?`
    if(i.user.id !== interaction.user.id)
     return i.reply({
      content:"Pas ton achat.",
-     ephemeral:true
+     flags:64
     })
 
    if(i.customId === "buy_pack_cancel")
@@ -91,6 +92,8 @@ Confirmer l'achat ?`
 
     save()
 
+    const unlocked = achievementCheck(user,"economy")
+
     await i.update({
      content:
 `🎴 **Pack acheté !**
@@ -103,7 +106,8 @@ Utilise **/krosmoz** pour l'ouvrir.`,
      components:[]
     })
 
-    await achievementCheck(i,user,"economy")
+    if(unlocked.length)
+     await notifyAchievements(i,unlocked)
 
    }
 

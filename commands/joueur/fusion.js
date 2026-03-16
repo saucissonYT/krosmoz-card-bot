@@ -3,6 +3,7 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { addXP } = require("../../systems/progressionSystem")
 
 const cards = getCards()
@@ -73,10 +74,10 @@ const rarity = interaction.options.getString("rarete")
 const index = rarityOrder.indexOf(rarity)
 
 if(index === -1)
-return interaction.reply({content:"Rareté invalide.",ephemeral:true})
+return interaction.reply({content:"Rareté invalide.",flags:64})
 
 if(rarity === "SSR")
-return interaction.reply({content:"Impossible de fusionner des SSR.",ephemeral:true})
+return interaction.reply({content:"Impossible de fusionner des SSR.",flags:64})
 
 const cost = fusionCost[rarity]
 
@@ -86,7 +87,7 @@ c.rarity === rarity
 )
 
 if(pool.length === 0)
-return interaction.reply({content:"Aucune carte trouvée.",ephemeral:true})
+return interaction.reply({content:"Aucune carte trouvée.",flags:64})
 
 let available = 0
 
@@ -102,7 +103,7 @@ available += (count - 1)
 if(available < cost)
 return interaction.reply({
 content:`❌ Il faut **${cost} doublons ${rarityEmoji[rarity]}**.`,
-ephemeral:true
+flags:64
 })
 
 let remaining = cost
@@ -202,13 +203,13 @@ c.rarity === targetRarity
 )
 
 if(rewardPool.length === 0)
-return interaction.reply({content:"Erreur de pool.",ephemeral:true})
+return interaction.reply({content:"Erreur de pool.",flags:64})
 
 const embed = new EmbedBuilder()
 .setTitle("⚗️ Fusion en cours...")
 .setDescription(`${cost} ${rarityEmoji[rarity]} utilisées`)
 
-const msg = await interaction.reply({embeds:[embed],fetchReply:true})
+const msg = await interaction.reply({embeds:[embed],withResponse:true})
 
 await sleep(800)
 
@@ -239,8 +240,10 @@ addXP(user,xpGain)
 
 save()
 
-await achievementCheck(interaction,user,"fusion")
-await achievementCheck(interaction,user,"collection")
+let unlocked=[]
+
+unlocked.push(...achievementCheck(user,"fusion"))
+unlocked.push(...achievementCheck(user,"collection"))
 
 const lines = rewards.map(c =>
 `${rarityEmoji[c.rarity]} ${c.name}`
@@ -258,7 +261,10 @@ ${cost} ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
 ${lines.join("\n")}
 `)
 
-msg.edit({embeds:[resultEmbed]})
+await msg.edit({embeds:[resultEmbed]})
+
+if(unlocked.length)
+ await notifyAchievements(interaction,unlocked)
 
 }
 

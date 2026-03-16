@@ -1,7 +1,7 @@
 const achievements = require("./achievementRegistry")
 const { data } = require("./dataManager")
 
-const cards = data.cards || []
+const cards = Object.values(data.cards || {})
 
 /* ---------------- SET COMPLETION ---------------- */
 
@@ -41,6 +41,9 @@ function checkAchievements(user,trigger){
  if(!user.stats)
   user.stats={}
 
+ if(!user.titles)
+  user.titles=[]
+
  for(const id in achievements){
 
   const achievement = achievements[id]
@@ -66,8 +69,12 @@ function checkAchievements(user,trigger){
      user.achievements.push(id)
      unlocked.push(id)
 
-     if(achievement.title)
-      user.title = achievement.title
+     if(achievement.title){
+
+      if(!user.titles.includes(achievement.title))
+       user.titles.push(achievement.title)
+
+     }
 
     }
 

@@ -8,6 +8,7 @@ const {
 const { getUsers, getUser } = require("../../systems/userSystem")
 const { getCards } = require("../../systems/cardRegistry")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
 
@@ -23,7 +24,7 @@ module.exports={
   if(!self.stats) self.stats={}
   self.stats.leaderboardViews=(self.stats.leaderboardViews||0)+1
 
-  await achievementCheck(interaction,self,"social")
+  const unlocked = achievementCheck(self,"social")
 
   const users=getUsers()
   const cards=getCards()
@@ -164,8 +165,11 @@ module.exports={
   const msg=await interaction.reply({
    embeds:[embed],
    components:[row],
-   fetchReply:true
+   withResponse:true
   })
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
   const collector=msg.createMessageComponentCollector({
    time:180000
@@ -174,7 +178,7 @@ module.exports={
   collector.on("collect",async i=>{
 
    if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ton menu.",ephemeral:true})
+    return i.reply({content:"Pas ton menu.",flags:64})
 
    if(i.customId==="next") page++
    if(i.customId==="prev") page--

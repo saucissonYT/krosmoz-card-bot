@@ -8,6 +8,7 @@ const {
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -59,10 +60,17 @@ module.exports={
 
   user.stats.inventoryOpen=(user.stats.inventoryOpen||0)+1
 
-  await achievementCheck(interaction,user,"inventory")
+  const unlocked = achievementCheck(user,"inventory")
 
-  if(Object.keys(user.cards).length===0)
-   return interaction.editReply("📦 Inventaire vide.")
+  if(Object.keys(user.cards).length===0){
+
+   await interaction.editReply("📦 Inventaire vide.")
+
+   if(unlocked.length)
+    await notifyAchievements(interaction,unlocked)
+
+   return
+  }
 
   const rarityFilter=interaction.options.getString("rarete")
   const nameSearch=interaction.options.getString("nom")
@@ -103,8 +111,15 @@ module.exports={
 
   }
 
-  if(inventory.length===0)
-   return interaction.editReply("❌ Aucune carte trouvée.")
+  if(inventory.length===0){
+
+   await interaction.editReply("❌ Aucune carte trouvée.")
+
+   if(unlocked.length)
+    await notifyAchievements(interaction,unlocked)
+
+   return
+  }
 
   if(sortType==="nom")
    inventory.sort((a,b)=>a.card.name.localeCompare(b.card.name))
@@ -169,6 +184,9 @@ module.exports={
    components:[row],
    withResponse:true
   })
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
   const collector=msg.createMessageComponentCollector({time:120000})
 

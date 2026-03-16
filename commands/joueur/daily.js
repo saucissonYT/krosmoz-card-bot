@@ -6,6 +6,7 @@ const {
 const { getUser } = require("../../systems/userSystem")
 const { claimDaily, canClaim } = require("../../systems/dailySystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 module.exports={
 
@@ -23,7 +24,7 @@ module.exports={
 
    return interaction.reply({
     content:"❌ Tu as déjà récupéré ton daily aujourd'hui.",
-    ephemeral:true
+    flags:64
    })
 
   }
@@ -81,15 +82,20 @@ Carte SSR obtenue :
 
   /* ---------------- ACHIEVEMENTS ---------------- */
 
-  await achievementCheck(interaction,user,"daily")
+  let unlocked=[]
+
+  unlocked.push(...achievementCheck(user,"daily"))
 
   if(result.reward.type==="kamas")
-   await achievementCheck(interaction,user,"economy")
+   unlocked.push(...achievementCheck(user,"economy"))
 
   if(result.reward.type==="ssr")
-   await achievementCheck(interaction,user,"collection")
+   unlocked.push(...achievementCheck(user,"collection"))
 
   await interaction.reply({embeds:[embed]})
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  }
 

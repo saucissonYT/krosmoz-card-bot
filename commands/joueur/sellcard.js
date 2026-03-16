@@ -8,6 +8,7 @@ const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const cardsById={}
 for(const c of cards){
@@ -44,7 +45,7 @@ module.exports={
   if(!user.cards || Object.keys(user.cards).length===0)
    return interaction.reply({
     content:"❌ Tu n'as aucune carte.",
-    ephemeral:true
+    flags:64
    })
 
   const options=[]
@@ -68,7 +69,7 @@ module.exports={
   if(options.length===0)
    return interaction.reply({
     content:"❌ Aucune carte vendable.",
-    ephemeral:true
+    flags:64
    })
 
   const menu=new StringSelectMenuBuilder()
@@ -81,7 +82,7 @@ module.exports={
   await interaction.reply({
    content:"💰 **Sélectionne une carte à vendre**",
    components:[row],
-   ephemeral:true
+   flags:64
   })
 
  },
@@ -122,6 +123,8 @@ module.exports={
 
   save()
 
+  const unlocked = achievementCheck(user,"economy")
+
   await interaction.update({
    content:`💰 **Carte vendue**
 
@@ -132,7 +135,8 @@ ${rarityEmoji[card.rarity]} **${card.name}**
    components:[]
   })
 
-  await achievementCheck(interaction,user,"economy")
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  }
 

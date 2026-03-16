@@ -11,6 +11,7 @@ const achievements = require("../../systems/achievementRegistry")
 const { getRank } = require("../../systems/rankSystem")
 const { getProgression } = require("../../systems/progressionSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
@@ -77,10 +78,12 @@ module.exports = {
 
   const user = getUser(target.id)
 
+  let unlocked=[]
+
   if(isSelf){
    if(!user.stats) user.stats={}
    user.stats.profileViews=(user.stats.profileViews||0)+1
-   await achievementCheck(interaction,user,"social")
+   unlocked = achievementCheck(user,"social")
   }
 
   const totalCards = cards.length
@@ -183,15 +186,18 @@ module.exports = {
   const msg = await interaction.reply({
    embeds:[embed],
    components:[row],
-   fetchReply:true
+   withResponse:true
   })
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
   const collector = msg.createMessageComponentCollector({time:120000})
 
   collector.on("collect", async i => {
 
    if(i.user.id !== interaction.user.id)
-    return i.reply({content:"Ce n'est pas ton profil.",ephemeral:true})
+    return i.reply({content:"Ce n'est pas ton profil.",flags:64})
 
    try{
 

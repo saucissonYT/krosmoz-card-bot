@@ -65,7 +65,7 @@ module.exports={
   else
    return interaction.reply({
     content:"❌ Tu dois préciser `nom` ou `id`.",
-    ephemeral:true
+    flags:64
    })
 
   if(!card)
@@ -111,7 +111,7 @@ module.exports={
    embeds:[embed],
    components:[row],
    files:files,
-   fetchReply:true
+   withResponse:true
   })
 
   const collector=msg.createMessageComponentCollector({time:60000})
@@ -119,7 +119,7 @@ module.exports={
   collector.on("collect",async i=>{
 
    if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ta carte.",ephemeral:true})
+    return i.reply({content:"Pas ta carte.",flags:64})
 
    /* ---------------- SELL ---------------- */
 
@@ -128,7 +128,7 @@ module.exports={
     const cid=i.customId.split("_")[1]
 
     if(!user.cards[cid])
-     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",ephemeral:true})
+     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
 
     const card=cardsById[cid]
     const price=rarityPrice[card.rarity]||10
@@ -156,7 +156,7 @@ Gain : **${price} kamas**`)
     const cid=i.customId.split("_")[1]
 
     if(!user.cards[cid])
-     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",ephemeral:true})
+     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
 
     const modal=new ModalBuilder()
      .setCustomId(`marketmodal_${cid}`)
@@ -193,7 +193,7 @@ Gain : **${price} kamas**`)
   if(isNaN(price) || price<=0)
    return interaction.reply({
     content:"❌ Prix invalide.",
-    ephemeral:true
+    flags:64
    })
 
   const user=getUser(interaction.user.id)
@@ -201,7 +201,7 @@ Gain : **${price} kamas**`)
   if(!user.cards[cid])
    return interaction.reply({
     content:"❌ Tu ne possèdes plus cette carte.",
-    ephemeral:true
+    flags:64
    })
 
   const result = addListing(
@@ -213,14 +213,14 @@ Gain : **${price} kamas**`)
   if(result?.error)
    return interaction.reply({
     content:`❌ ${result.error}`,
-    ephemeral:true
+    flags:64
    })
 
   save()
 
   return interaction.reply({
    content:`🛒 Carte mise en vente pour **${price} kamas**.`,
-   ephemeral:true
+   flags:64
   })
 
  }

@@ -82,7 +82,7 @@ module.exports={
   const msg=await interaction.reply({
    embeds:[embed],
    components:[row],
-   fetchReply:true
+   withResponse:true
   })
 
   const collector=msg.createMessageComponentCollector({
@@ -92,7 +92,7 @@ module.exports={
   collector.on("collect",async i=>{
 
    if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ton menu.",ephemeral:true})
+    return i.reply({content:"Pas ton menu.",flags:64})
 
    if(i.customId==="next") page++
    if(i.customId==="prev") page--

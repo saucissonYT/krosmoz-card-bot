@@ -43,7 +43,7 @@ module.exports = {
   if(cards.length === 0)
    return interaction.reply({
     content:"❌ Aucune carte disponible.",
-    ephemeral:true
+    flags:64
    })
 
   /* ---------- SETS ---------- */
@@ -75,7 +75,7 @@ module.exports = {
   await interaction.reply({
    embeds:[setsEmbed],
    components:[menuRow],
-   ephemeral:true
+   flags:64
   })
 
   const msg = await interaction.fetchReply()
@@ -93,7 +93,7 @@ module.exports = {
    if(i.user.id !== interaction.user.id)
     return i.reply({
      content:"Pas pour toi.",
-     ephemeral:true
+     flags:64
     })
 
    if(i.customId === "listcards_select"){

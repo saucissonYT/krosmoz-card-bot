@@ -8,11 +8,22 @@ async function notifyAchievements(interaction,list){
 
   if(!a) continue
 
-  await interaction.followUp({
-   content:`🏆 **Succès débloqué !**
+  let message = `🏆 **Succès débloqué !**
 
-${a.badge} **${a.name}**
-🎖️ Titre obtenu : **${a.title}**`,
+${a.badge} **${a.name}**`
+
+  if(a.description){
+   message += `
+📝 ${a.description}`
+  }
+
+  if(a.title){
+   message += `
+🎖️ Titre obtenu : **${a.title}**`
+  }
+
+  await interaction.followUp({
+   content:message,
    flags:64
   })
 

@@ -7,6 +7,7 @@ const {
 
 const { getUser } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 function mainMenu(){
 
@@ -82,12 +83,15 @@ module.exports = {
 
   const menu = mainMenu()
 
+  const unlocked = achievementCheck(user,"social")
+
   await interaction.reply({
    embeds:[menu.embed],
    components:[menu.row]
   })
 
-  await achievementCheck(interaction,user,"social")
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
  },
 

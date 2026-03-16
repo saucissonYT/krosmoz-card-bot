@@ -5,6 +5,7 @@ const cards = data.cards || []
 
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const cardsById={}
 for(const c of cards){
@@ -152,9 +153,9 @@ ${previewLines.slice(0,15).join("\n")}
 
    }
 
-   await achievementCheck(i,user,"economy")
-
    save()
+
+   const unlocked = achievementCheck(user,"economy")
 
    const resultEmbed=new EmbedBuilder()
     .setTitle("💰 Doublons vendus")
@@ -165,10 +166,13 @@ Cartes vendues : **${totalCards}**
 Gain total : **${totalKamas} kamas**`
     )
 
-   interaction.editReply({
+   await interaction.editReply({
     embeds:[resultEmbed],
     components:[]
    })
+
+   if(unlocked.length)
+    await notifyAchievements(interaction,unlocked)
 
   })
 
