@@ -20,7 +20,6 @@ function getSSRRate(pity){
  if(pity < 40) return 0.003
  if(pity < 49) return 0.01
 
- /* hard pity handled elsewhere */
  return 0.01
 
 }

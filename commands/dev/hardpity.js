@@ -60,7 +60,7 @@ module.exports = {
   if(id.startsWith("hardpityset_")){
 
    const userId = id.split("_")[1]
-   const setId = interaction.values[0]
+   const setId = String(interaction.values[0])
 
    const menu = new StringSelectMenuBuilder()
     .setCustomId(`hardpity_${userId}_${setId}`)
@@ -81,7 +81,9 @@ module.exports = {
 
   if(!id.startsWith("hardpity_")) return
 
-  const [, userId, setId] = id.split("_")
+  const [, userId, setIdRaw] = id.split("_")
+  const setId = String(setIdRaw)
+
   const choice = interaction.values[0]
 
   const users = getUsers()
