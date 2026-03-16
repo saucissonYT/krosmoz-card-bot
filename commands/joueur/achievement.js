@@ -79,11 +79,12 @@ module.exports={
 
   const {embed,row}=build()
 
-  const msg=await interaction.reply({
+  await interaction.reply({
    embeds:[embed],
-   components:[row],
-   withResponse:true
+   components:[row]
   })
+
+  const msg = await interaction.fetchReply()
 
   const collector=msg.createMessageComponentCollector({
    time:180000
