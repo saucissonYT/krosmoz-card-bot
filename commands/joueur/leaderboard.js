@@ -5,12 +5,23 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { getUsers, getUser } = require("../../systems/userSystem")
-const { getCards } = require("../../systems/cardRegistry")
+const { getUser } = require("../../systems/userSystem")
+const { getLeaderboard } = require("../../systems/leaderboardCache")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
+
+function bar(value,max){
+
+ const size=10
+ const percent=value/max
+
+ const filled=Math.round(size*percent)
+ const empty=size-filled
+
+ return "█".repeat(filled)+"░".repeat(empty)
+}
 
 module.exports={
 
@@ -21,88 +32,21 @@ module.exports={
 
   await interaction.deferReply()
 
-  const self=getUser(interaction.user.id)
+  const self = getUser(interaction.user.id)
 
   if(!self.stats) self.stats={}
   self.stats.leaderboardViews=(self.stats.leaderboardViews||0)+1
 
   const unlocked = achievementCheck(self,"social")
 
-  const cards=getCards()
+  const rankings = getLeaderboard()
 
   let mode="collection"
   let page=1
   const perPage=10
 
-  function computeRankings(){
-
-   const users=getUsers()
-
-   const collection=[]
-   const wealth=[]
-   const ssr=[]
-   const packs=[]
-   const achievements=[]
-   const level=[]
-
-   const ssrIds = cards
-    .filter(c=>c.rarity==="SSR")
-    .map(c=>Number(c.id))
-
-   for(const id in users){
-
-    const user=getUser(id)
-
-    let uniqueCards=0
-    let ssrCount=0
-
-    if(user.cards){
-
-     for(const cid in user.cards){
-
-      if(user.cards[cid] > 0)
-       uniqueCards++
-
-      if(ssrIds.includes(Number(cid)))
-       ssrCount += user.cards[cid]
-
-     }
-
-    }
-
-    collection.push({id:String(id),value:uniqueCards})
-    wealth.push({id:String(id),value:user.kamas||0})
-    ssr.push({id:String(id),value:ssrCount})
-
-    const packsOpened=user.stats?.packsOpened || 0
-    packs.push({id:String(id),value:packsOpened})
-
-    const achCount=user.achievements?.length || 0
-    achievements.push({id:String(id),value:achCount})
-
-    const lvl=user.progression?.level || 1
-    level.push({id:String(id),value:lvl})
-
-   }
-
-   const rankings={
-    collection,
-    wealth,
-    ssr,
-    packs,
-    achievements,
-    level
-   }
-
-   for(const key in rankings)
-    rankings[key].sort((a,b)=>b.value-a.value)
-
-   return rankings
-  }
-
   function build(){
 
-   const rankings=computeRankings()
    const data=rankings[mode]
 
    const maxPage=Math.max(1,Math.ceil(data.length/perPage))
@@ -110,9 +54,15 @@ module.exports={
    const start=(page-1)*perPage
    const slice=data.slice(start,start+perPage)
 
-   const lines=slice.map((r,i)=>
-    `${medals[i]||"•"} <@${r.id}> — **${r.value}**`
-   )
+   const maxValue=data[0]?.value || 1
+
+   const lines=slice.map((r,i)=>{
+
+    const rank=start+i+1
+    const medal=medals[i] || `#${rank}`
+
+    return `${medal} <@${r.id}> — **${r.value}** ${bar(r.value,maxValue)}`
+   })
 
    const playerIndex=data.findIndex(r=>String(r.id)===interaction.user.id)
 
@@ -123,7 +73,7 @@ module.exports={
     const rank=playerIndex+1
     const value=data[playerIndex].value
 
-    playerLine=`#${rank} — ${value}`
+    playerLine=`#${rank} • **${value}**`
 
    }
 
@@ -165,6 +115,7 @@ module.exports={
    )
 
    return {embed,row,maxPage}
+
   }
 
   const {embed,row}=build()
@@ -174,7 +125,7 @@ module.exports={
    components:[row]
   })
 
-  const msg=await interaction.fetchReply()
+  const msg = await interaction.fetchReply()
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)

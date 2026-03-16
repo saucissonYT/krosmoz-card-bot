@@ -14,21 +14,21 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - Nouveau achievementRegistry centralisé
 - Ajout de plus de 100 achievements couvrant :
-Packs
-Raretés
-Fusion
-Collection
-Market
-Social
-RNG
-Secrets
+Packs  
+Raretés  
+Fusion  
+Collection  
+Market  
+Social  
+RNG  
+Secrets  
 
 - Ajout de titres débloqués via achievements
 
 - Achievements liés à la complétion de sets :
-Incarnam
-Astrub
-Amakna
+Incarnam  
+Astrub  
+Amakna  
 
 - Achievements de progression de collection globale (25% / 50% / 75% / 100%)
 - Achievements liés aux SSR Shiny
@@ -37,22 +37,22 @@ Amakna
 - Achievements liés aux interactions sociales (mentions, trades)
 
 - Achievements liés à l'utilisation excessive de commandes :
-/profil
-/leaderboard
-/kroshelp
-/titre
-/balance
-/inventaire
+/profil  
+/leaderboard  
+/kroshelp  
+/titre  
+/balance  
+/inventaire  
 
 - Achievements liés à l'économie :
-achat de packs
-vente de cartes
-vente de doublons
-consultation du solde
+achat de packs  
+vente de cartes  
+vente de doublons  
+consultation du solde  
 
 - Achievements liés à la progression quotidienne :
-daily claims
-daily streak
+daily claims  
+daily streak  
 
 - Achievements liés à la consultation des classements
 - Achievements liés à l'utilisation du système de titres
@@ -63,6 +63,19 @@ daily streak
 
 - Commande dev /auditachievements permettant d'auditer l'ensemble du système d'achievements
 - Debug détaillé des conditions d'achievements dans la console
+
+- Nouveau système de cache pour le leaderboard (leaderboardCache)
+- Calcul du leaderboard optimisé avec reconstruction périodique (30s)
+- Leaderboard désormais scalable pour plusieurs milliers de joueurs
+
+- Amélioration visuelle du leaderboard :
+rangs globaux (#1 #2 #3)  
+médailles pour le top 3  
+barres de progression visuelles pour les scores  
+
+- Ajout d'un profil spécial RNG pour le bot Krosmoz Card
+- La commande `/profil krosmoz-card` génère désormais un profil entièrement aléatoire
+(niveau, XP, statistiques, badges, succès, kamas, collection)
 
 ### Changed
 
@@ -80,6 +93,10 @@ daily streak
 - Migration de plusieurs commandes vers un modèle d'interaction plus robuste utilisant deferReply / editReply
 - Harmonisation de la gestion des interactions Discord (buttons, modals, select menus)
 
+- Refactorisation de la commande `/leaderboard` pour utiliser le système de cache
+- Suppression des recalculs lourds à chaque interaction
+- Amélioration des performances et de la stabilité du classement
+
 ### Improved
 
 - Amélioration de la robustesse du système d'achievements
@@ -91,17 +108,21 @@ daily streak
 
 - Amélioration de la cohérence des statistiques utilisateur utilisées par les achievements
 - Meilleure intégration du système d'achievements avec :
-packEngine
-dailySystem
-fusionSystem
-market
-trade
-profil
+packEngine  
+dailySystem  
+fusionSystem  
+market  
+trade  
+profil  
 
 - Optimisation des interactions Discord avec les collectors (pagination menus, boutons)
 - Optimisation de la commande /krosmoz avec un système de cache interne pour les sets
 - Réduction des calculs redondants lors de l'ouverture de packs
 - Amélioration des performances lors de la révélation des cartes
+
+- Amélioration des performances du leaderboard
+- Réduction drastique de la charge CPU lors de la consultation des classements
+- Meilleure lisibilité du classement avec affichage des barres de progression
 
 ### Fixed
 
@@ -119,8 +140,12 @@ profil
 - Correction de l'utilisation incorrecte de `withResponse:true` dans certaines commandes
 - Correction de problèmes d'édition de message (`msg.edit is not a function`) dans certaines animations
 
+- Correction d'un bug dans la commande dev `/hardpity` empêchant certains utilisateurs d'être détectés
+- Correction d'un problème d'identifiant utilisateur lors de la sélection des sets
+
 - Stabilisation globale du système d'achievements
 - Stabilisation globale du système d'interactions Discord du bot
+- Stabilisation du système de leaderboard
 
 ---
 

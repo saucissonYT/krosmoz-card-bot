@@ -37,36 +37,38 @@ Canvas (images inventaire)
 architecture modulaire (systems/)
 
 📂 Structure du projet
-krosmoz-card-bot
-│
-├ commands
-│ ├ joueur
-│ ├ admin
-│ └ dev
-│
-├ systems
-│
-├ cards
-│ ├ images
-│ ├ cards.json
-│ └ sets.json
-│
-├ data                # données persistantes (Railway / local)
-│ ├ users             # fichiers joueurs individuels
-│ │ ├ 123456789.json
-│ │ ├ 987654321.json
-│ │ └ ...
-│ │
-│ ├ market.json
-│ ├ marketHistory.json
-│ ├ devs.json
-│ └ cards.json
-│
-├ index.js
-├ deployCommands.js
-├ package.json
-├ CHANGELOG.md
-└ README.md
+
+krosmoz-card-bot  
+│  
+├ commands  
+│ ├ joueur  
+│ ├ admin  
+│ └ dev  
+│  
+├ systems  
+│  
+├ cards  
+│ ├ images  
+│ ├ cards.json  
+│ └ sets.json  
+│  
+├ data                # données persistantes (Railway / local)  
+│ ├ users             # fichiers joueurs individuels  
+│ │ ├ 123456789.json  
+│ │ ├ 987654321.json  
+│ │ └ ...  
+│ │  
+│ ├ market.json  
+│ ├ marketHistory.json  
+│ ├ devs.json  
+│ └ cards.json  
+│  
+├ index.js  
+├ deployCommands.js  
+├ package.json  
+├ CHANGELOG.md  
+└ README.md  
+
 🧠 Architecture
 
 Le bot utilise une architecture modulaire basée sur des systèmes indépendants situés dans :
@@ -76,30 +78,37 @@ systems/
 Chaque système gère une mécanique spécifique du jeu.
 
 ⚙️ Systèmes principaux
-système	rôle
-dataManager	gestion des données persistantes
-userSystem	gestion des utilisateurs
-cardRegistry	indexation des cartes
-cardId	gestion des identifiants de cartes
+
+système | rôle  
+dataManager | gestion des données persistantes  
+userSystem | gestion des utilisateurs  
+cardRegistry | indexation des cartes  
+cardId | gestion des identifiants de cartes  
+
 🎮 Gameplay
-système	rôle
-pack	ouverture de packs
-packEngine	génération des cartes
-setSystem	gestion des sets
-fusion	fusion de cartes
+
+système | rôle  
+pack | ouverture de packs  
+packEngine | génération des cartes  
+setSystem | gestion des sets  
+fusion | fusion de cartes  
+
 🪙 Économie
-système	rôle
-economy	gestion des kamas
-market	marché des cartes
-tradeSystem	échanges entre joueurs
-rewards	attribution des récompenses
+
+système | rôle  
+economy | gestion des kamas  
+market | marché des cartes  
+tradeSystem | échanges entre joueurs  
+rewards | attribution des récompenses  
+
 📈 Progression
-système	rôle
-progressionSystem	gestion de l'XP
-rankSystem	gestion des rangs
-achievementRegistry	définition des succès
-achievementEngine	moteur d'achievements
-achievementCheck	déclenchement automatique
+
+système | rôle  
+progressionSystem | gestion de l'XP  
+rankSystem | gestion des rangs  
+achievementRegistry | définition des succès  
+achievementCheck | détection automatique des succès  
+achievementNotifier | affichage et attribution des récompenses  
 
 Les succès permettent de débloquer :
 
@@ -109,17 +118,36 @@ titres
 
 progression
 
+🧠 Pipeline des Achievements
+
+Les actions du jeu déclenchent automatiquement la vérification des succès.
+
+Action joueur  
+↓  
+achievementCheck()  
+↓  
+détection des succès débloqués  
+↓  
+achievementNotifier  
+↓  
+affichage des succès + attribution des récompenses
+
 🎁 Activités
-système	rôle
-dailySystem	récompenses quotidiennes
-eventSystem	gestion des événements
+
+système | rôle  
+dailySystem | récompenses quotidiennes  
+eventSystem | gestion des événements  
+
 🛠 Outils internes
-système	rôle
-inventoryImage	génération d'image inventaire
-auditSystem	logs développeur
-antiAbuse	protection anti-abus
-devSystem	outils développeur
+
+système | rôle  
+inventoryImage | génération d'image inventaire  
+auditSystem | logs développeur  
+antiAbuse | protection anti-abus  
+devSystem | outils développeur  
+
 🔗 Schéma simplifié
+
                 Discord Commands
                        │
                        ▼
@@ -136,21 +164,23 @@ devSystem	outils développeur
                        │
                        ▼
                      /data
+
 📦 Stockage des données
 
 Le bot utilise un système de stockage basé sur des fichiers JSON.
 
-/data
-   users/
-      123456789.json
-      987654321.json
-   market.json
-   marketHistory.json
-   devs.json
-   cards.json
-users.json
+/data  
+   users/  
+      123456789.json  
+      987654321.json  
+   market.json  
+   marketHistory.json  
+   devs.json  
+   cards.json  
 
-Stocke :
+Chaque utilisateur possède son propre fichier JSON.
+
+Ces fichiers stockent :
 
 inventaire de cartes
 
@@ -179,16 +209,19 @@ Structure :
  "set": "incarnam",
  "image": "1_cra_incarnam_c.jpg"
 }
+
 ⭐ Raretés
-Rareté	Emoji
-C	⚪
-U	🟢
-R	🔵
-SR	🟣
-HR	🔴
-UR	🟡
-S	✨
-SSR	🌈
+
+Rareté | Emoji  
+C | ⚪  
+U | 🟢  
+R | 🔵  
+SR | 🟣  
+HR | 🔴  
+UR | 🟡  
+S | ✨  
+SSR | 🌈  
+
 ✨ SSR Shiny
 
 Les cartes SSR possèdent une variante extrêmement rare appelée SSR Shiny.
@@ -211,28 +244,33 @@ Chaque set possède son compteur de pity indépendant.
 
 Exemple :
 
-Incarnam → pity SSR 12
-Astrub → pity SSR 3
-Amakna → pity SSR 0
+Incarnam → pity SSR 12  
+Astrub → pity SSR 3  
+Amakna → pity SSR 0  
+
 Hard Pity
-Rareté	Garantie
-UR	10 packs
-SSR	50 packs
+
+Rareté | Garantie  
+UR | 10 packs  
+SSR | 50 packs  
+
 Soft Pity
-Packs sans SSR	Chance SSR
-0-20	0.05%
-20-30	0.1%
-30-40	0.3%
-40-49	1%
-50	SSR garantie
+
+Packs sans SSR | Chance SSR  
+0-20 | 0.05%  
+20-30 | 0.1%  
+30-40 | 0.3%  
+40-49 | 1%  
+50 | SSR garantie  
+
 🎁 Lucky Pack
 
 Chaque pack possède 10% de chance d'être un Lucky Pack.
 
 Un Lucky Pack donne :
 
-5 cartes normales
-+ 1 carte bonus
+5 cartes normales  
++ 1 carte bonus  
 
 Certains achievements secrets sont liés à ces événements.
 
@@ -240,33 +278,38 @@ Certains achievements secrets sont liés à ces événements.
 
 Le jeu contient 3 sets principaux totalisant 674 cartes.
 
-☁️ Incarnam
+☁️ Incarnam  
+120 cartes  
 
-120 cartes
+🌾 Astrub  
+258 cartes  
 
-🌾 Astrub
-
-258 cartes
-
-🌽 Amakna
-
-296 cartes
+🌽 Amakna  
+296 cartes  
 
 🎮 Commandes Joueur
+
 Packs
-/krosmoz
-/buypack
-/pity
+
+/krosmoz  
+/buypack  
+/pity  
+
 Inventaire
-/inventaire
-/carte
-/listcards
+
+/inventaire  
+/carte  
+/listcards  
+
 Économie
-/balance
-/sellcard
-/sellduplicates
+
+/balance  
+/sellcard  
+/sellduplicates  
+
 Marché
-/market
+
+/market  
 
 Fonctionnalités :
 
@@ -281,20 +324,28 @@ filtres
 pagination
 
 Progression
-/profil
-/leaderboard
-/titre
+
+/profil  
+/leaderboard  
+/titre  
+
 Gameplay
-/daily
-/fusion
-/trade
+
+/daily  
+/fusion  
+/trade  
+
 Succès
-/achievements
+
+/achievements  
+
 Aide
-/kroshelp
+
+/kroshelp  
+
 🏆 Achievements
 
-Le bot possède 115 succès automatiques et secrets.
+Le bot possède plus de 100 succès automatiques et secrets.
 
 Types de succès :
 
@@ -312,12 +363,12 @@ secrets
 
 Certaines commandes possèdent des succès humoristiques liés à leur utilisation excessive :
 
-/profil
-/leaderboard
-/kroshelp
-/balance
-/inventaire
-/titre
+/profil  
+/leaderboard  
+/kroshelp  
+/balance  
+/inventaire  
+/titre  
 
 Les succès débloquent :
 
@@ -335,39 +386,43 @@ jusqu'à leur découverte.
 
 🧩 Fonctionnalités principales
 
-✔ système de packs gacha
-✔ inventaire paginé
-✔ marché entre joueurs
-✔ échanges sécurisés
-✔ système de sets
-✔ fusion avancée
-✔ 115 achievements
-✔ progression et rangs
-✔ économie avec kamas
-✔ interface Discord interactive
-✔ réponses du bot lorsqu'il est mentionné
-✔ astuces automatiques
-✔ animation d'ouverture de pack
-✔ révélation progressive des cartes
-✔ pity visible dans /krosmoz et /pity
-✔ daily rewards
-✔ trade sécurisé
+✔ système de packs gacha  
+✔ inventaire paginé  
+✔ marché entre joueurs  
+✔ échanges sécurisés  
+✔ système de sets  
+✔ fusion avancée  
+✔ plus de 100 achievements  
+✔ progression et rangs  
+✔ économie avec kamas  
+✔ interface Discord interactive  
+✔ réponses du bot lorsqu'il est mentionné  
+✔ astuces automatiques  
+✔ animation d'ouverture de pack  
+✔ révélation progressive des cartes  
+✔ pity visible dans /krosmoz et /pity  
+✔ daily rewards  
+✔ trade sécurisé  
+✔ leaderboard avec classement visuel et pagination  
+✔ optimisation du leaderboard via cache interne  
+✔ profil spécial aléatoire pour le bot Krosmoz Card  
 
 🔁 Gameplay Loop
 
-1️⃣ ouvrir des packs
-2️⃣ obtenir des cartes
-3️⃣ vendre les doublons
-4️⃣ fusionner les cartes
-5️⃣ compléter les sets
-6️⃣ débloquer des achievements
-7️⃣ gagner de l'XP et monter de niveau
+1️⃣ ouvrir des packs  
+2️⃣ obtenir des cartes  
+3️⃣ vendre les doublons  
+4️⃣ fusionner les cartes  
+5️⃣ compléter les sets  
+6️⃣ débloquer des achievements  
+7️⃣ gagner de l'XP et monter de niveau  
 
 📰 Changelog
 
 Historique des mises à jour :
 
 CHANGELOG.md
+
 👨‍💻 Auteur
 
 Projet créé par :
