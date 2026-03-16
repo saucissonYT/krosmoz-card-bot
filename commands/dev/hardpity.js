@@ -57,6 +57,8 @@ module.exports = {
 
   const id = interaction.customId
 
+  /* ---------------- SELECT SET ---------------- */
+
   if(id.startsWith("hardpityset_")){
 
    const userId = id.split("_")[1]
@@ -79,32 +81,44 @@ module.exports = {
 
   }
 
+  /* ---------------- SELECT TYPE ---------------- */
+
   if(!id.startsWith("hardpity_")) return
 
-  const [, userId, setIdRaw] = id.split("_")
-  const setId = String(setIdRaw)
+  const parts = id.split("_")
+
+  const userId = String(parts[1])
+  const setId = String(parts[2])
 
   const choice = interaction.values[0]
 
   const users = getUsers()
 
-  if(!users[userId])
+  const user = users[userId]
+
+  if(!user){
+
+   console.log("USER NOT FOUND:", userId)
+   console.log("AVAILABLE USERS:", Object.keys(users).slice(0,10))
+
    return interaction.reply({
     content:"Utilisateur introuvable.",
     ephemeral:true
    })
 
-  if(!users[userId].pity)
-   users[userId].pity = {}
+  }
 
-  if(!users[userId].pity[setId])
-   users[userId].pity[setId] = { UR:0, SSR:0 }
+  if(!user.pity)
+   user.pity = {}
+
+  if(!user.pity[setId])
+   user.pity[setId] = { UR:0, SSR:0 }
 
   if(choice === "SSR")
-   users[userId].pity[setId].SSR = 49
+   user.pity[setId].SSR = 49
 
   if(choice === "UR")
-   users[userId].pity[setId].UR = 9
+   user.pity[setId].UR = 9
 
   save()
 
