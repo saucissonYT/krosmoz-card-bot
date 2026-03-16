@@ -111,7 +111,7 @@ module.exports={
    embeds:[embed],
    components:[row],
    files:files,
-   withResponse:true
+   fetchReply:true
   })
 
   const collector=msg.createMessageComponentCollector({time:60000})

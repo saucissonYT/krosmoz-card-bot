@@ -20,7 +20,9 @@ function getSSRRate(pity){
  if(pity < 40) return 0.003
  if(pity < 49) return 0.01
 
- return 1
+ /* hard pity handled elsewhere */
+ return 0.01
+
 }
 
 function rollRarity(pity){
@@ -96,8 +98,6 @@ function generatePack(user,setId){
   const card=randomCard(pool)
 
   if(card){
-
-   /* SHINY SSR */
 
    if(card.rarity==="SSR" && Math.random()<0.005){
 
