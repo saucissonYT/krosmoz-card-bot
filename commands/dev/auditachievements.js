@@ -27,17 +27,40 @@ module.exports={
 
    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
    console.log("CHECK ACHIEVEMENT :",id)
+
    console.log("Nom :",data.name)
-   console.log("Titre :",data.title)
+   console.log("Titre :",data.title || "none")
    console.log("Secret :",data.secret || false)
+   console.log("Trigger :",data.trigger || "none")
+
+   const already=user.achievements?.includes(id)
+
+   console.log("Déjà possédé :",already)
 
    try{
+
+    if(typeof data.condition!=="function"){
+     console.log("❌ CONDITION INVALID")
+     return "error"
+    }
 
     const result=data.condition(user)
 
     console.log("Condition result :",result)
 
+    if(result && !already){
+     console.log("✅ ACHIEVEMENT DISPONIBLE")
+     return "available"
+    }
+
+    if(result && already){
+     console.log("ℹ️ Déjà débloqué")
+     return "owned"
+    }
+
     if(!result){
+
+     console.log("❌ CONDITION NON REMPLIE")
 
      console.log("USER STATS :",JSON.stringify(user.stats,null,2))
      console.log("USER KAMAS :",user.kamas)
@@ -49,11 +72,11 @@ module.exports={
 
     }
 
-    return result
+    return "locked"
 
    }catch(err){
 
-    console.error("ERREUR CONDITION :",err)
+    console.error("⚠️ ERREUR CONDITION :",err)
     return "error"
 
    }
@@ -67,12 +90,14 @@ module.exports={
    const result=debugAchievement(id,data)
 
    const status=
-    result===true ? "✅ Disponible"
+    result==="available" ? "🟢 Débloquable"
+    : result==="owned" ? "🔵 Déjà obtenu"
     : result==="error" ? "⚠️ Erreur"
-    : "❌ Non disponible"
+    : "🔴 Non disponible"
 
    const embed=new EmbedBuilder()
-    .setTitle("🔎 Test Achievement")
+    .setTitle("🔎 Debug Achievement")
+
     .setDescription(
 `ID : **${id}**
 
@@ -80,10 +105,13 @@ ${data.badge} **${data.name}**
 
 👑 Titre : ${data.title || "aucun"}
 
+🎯 Trigger : ${data.trigger || "none"}
+
 🔒 Secret : ${data.secret ? "oui" : "non"}
 
 📊 Statut : ${status}`
     )
+
     .setFooter({
      text:`${index+1}/${list.length}`
     })

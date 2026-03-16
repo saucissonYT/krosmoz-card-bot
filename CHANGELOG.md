@@ -37,12 +37,12 @@ Amakna
 
 ### Changed
 
-Refonte complète du moteur d'achievements
-Les conditions d'achievements sont désormais centralisées dans achievementRegistry
-Simplification de la logique d'achievements dans les commandes
-Les achievements peuvent maintenant attribuer automatiquement un titre
-Amélioration de la gestion des achievements secrets
-Nettoyage des anciens triggers d'achievements dispersés dans le code
+- Refonte complète du moteur d'achievements
+- Les conditions d'achievements sont désormais centralisées dans achievementRegistry
+- Simplification de la logique d'achievements dans les commandes
+- Les achievements peuvent maintenant attribuer automatiquement un titre
+- mélioration de la gestion des achievements secrets
+- Nettoyage des anciens triggers d'achievements dispersés dans le code
 
 ### Improved
 
