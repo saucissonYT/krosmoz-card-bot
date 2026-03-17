@@ -8,6 +8,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+
 [0.17.0] - 2026-03-17
 
 ### Added
@@ -18,64 +19,45 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Nouveau **titre secret** : *Favori du Krosmoz*
 - Nouveaux **achievements secrets liés à Krosmo-bot**
 - Messages aléatoires lors de l’event Krosmo-bot
-
-- Nouvelle commande **/devfusion**
-  - permet de tester les résultats de fusion
-  - simulation **normal / critique / double / triple**
-  - ne consomme **aucune carte**
-
-- Commande admin **/ecogive**
-  - `add`
-  - `remove`
-  - `set`
-
+- Commande admin **/ecogive** `add` `remove` `set`
 - Simulation RNG améliorée dans **/simpack**
 - Simulation **multi-joueurs (50 profils)** pour un pity plus réaliste
 - Calcul plus précis des statistiques de drops
 - Calcul économique plus réaliste dans les simulations
-
 - Affichage détaillé des statistiques dans **/stats**
-  - joueurs
-  - cartes totales
-  - SSR totales
-  - kamas globaux
-  - packs ouverts
-  - fusions
-  - listings du marché
+
 
 ### Changed
 
 - Amélioration de la commande **/daily**
-  - affichage du **streak visuel**
-  - ajout d’**XP progressive**
-  - affichage du **record de streak**
-  - messages aléatoires
-  - visibilité publique de la récompense
-  - correction du calcul du cooldown
-
+- affichage du **streak visuel**
+- ajout d’**XP progressive**
+- affichage du **record de streak**
+- messages aléatoires
+- visibilité publique de la récompense
+- correction du calcul du cooldown
 - Amélioration UX du système **/fusion**
-  - affichage des **chances de fusion dans le résultat**
-  - affichage des **cartes réellement utilisées**
-  - affichage du **nombre de cartes disponibles**
-  - ajout de **compteurs statistiques de fusion**
-  - meilleure gestion des pools de cartes
-
+- affichage des **chances de fusion dans le résultat**
+- affichage des **cartes réellement utilisées**
+- affichage du **nombre de cartes disponibles**
+- ajout de **compteurs statistiques de fusion**
+- meilleure gestion des pools de cartes
 - Amélioration de la commande **/titre**
-  - affichage du **titre actuel**
-  - sélection plus claire via menu
-  - **pagination automatique des titres**
-
+- affichage du **titre actuel**
+- sélection plus claire via menu
+- pagination automatique des titres
 - Amélioration de la commande **/market**
-  - navigation améliorée
-  - bouton retour après affichage des ventes
-  - filtres par **rareté**
-  - recherche par **nom**
-  - pagination du marché
-
+- navigation améliorée
+- bouton retour après affichage des ventes
+- filtres par **rareté**
+- pagination du marché
 - Amélioration du système **/leaderboard**
-  - affichage graphique avec **barres de progression**
-  - pagination stable
-  - meilleure performance via **leaderboard cache**
+- affichage graphique avec **barres de progression**
+- pagination stable
+- meilleure performance via **leaderboard cache**
+- Amélioration de **/inventaire**
+- pagination optimisée
+- filtre par **rareté**
 
 ### Improved
 
@@ -88,35 +70,29 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 ### Fixed
 
 - Correction de la commande **/titre**
-  - erreur Discord liée à la limite de **25 options**
-
+- erreur Discord liée à la limite de **25 options**
 - Correction du système **/daily**
-  - bug affichant des temps absurdes (ex : `492685h`)
-
+- bug affichant des temps absurdes (ex : `492685h`)
 - Correction du système **/leaderboard**
-  - erreur de chargement du module `leaderboardCache`
-
+- erreur de chargement du module `leaderboardCache`
 - Correction du système **/event**
-
-- Correction de la commande **/devpack**
-  - bug `generatePack is not a function`
-
 - Correction de la commande **/simpack**
-  - calcul incorrect du nombre total de cartes
-  - gestion incorrecte des lucky packs
-
+- calcul incorrect du nombre total de cartes
+- gestion incorrecte des lucky packs
 - Correction du **système de pack**
-  - gestion du pity SSR
-  - sécurité du pool de cartes
-  - stabilité du tirage
-
+- gestion du pity SSR
+- sécurité du pool de cartes
+- stabilité du tirage
 - Correction de plusieurs incohérences dans les systèmes de **simulation RNG**
 
 ### Removed
 
 - Suppression de **/krosmodev**
+- Suppression de **/devpack**
+- Suppression de **/setbalance**
 
 ---
+
 
 [0.16.0] - 2026-03-16
 

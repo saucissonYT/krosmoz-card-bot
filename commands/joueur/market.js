@@ -11,6 +11,7 @@ const {
 const {
  getMarket,
  buyCard,
+ addListing,
  getAveragePrices,
  getUserListings,
  removeListing
@@ -54,7 +55,8 @@ module.exports={
    .setDescription(`Que veux-tu faire ?
 
 🛍️ **Acheter une carte**
-📦 **Voir mes ventes**`)
+📦 **Voir mes ventes**
+💰 **Vendre une carte**`)
 
   const row=new ActionRowBuilder().addComponents(
 
@@ -66,7 +68,12 @@ module.exports={
    new ButtonBuilder()
     .setCustomId("market_my")
     .setLabel("Mes ventes")
-    .setStyle(ButtonStyle.Primary)
+    .setStyle(ButtonStyle.Primary),
+
+   new ButtonBuilder()
+    .setCustomId("market_sell")
+    .setLabel("Vendre")
+    .setStyle(ButtonStyle.Danger)
 
   )
 
@@ -94,6 +101,32 @@ module.exports={
    state.rarity=null
    state.name=null
    return this.renderMarket(interaction)
+  }
+
+  if(interaction.customId==="market_sell"){
+
+   const modal=new ModalBuilder()
+    .setCustomId("marketSellModal")
+    .setTitle("Vendre une carte")
+
+   const cardInput=new TextInputBuilder()
+    .setCustomId("cardId")
+    .setLabel("ID de la carte")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+
+   const priceInput=new TextInputBuilder()
+    .setCustomId("price")
+    .setLabel("Prix en kamas")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+
+   modal.addComponents(
+    new ActionRowBuilder().addComponents(cardInput),
+    new ActionRowBuilder().addComponents(priceInput)
+   )
+
+   return interaction.showModal(modal)
   }
 
   if(interaction.customId==="market_next"){
@@ -151,8 +184,6 @@ module.exports={
 
    return interaction.showModal(modal)
   }
-
-  /* MES VENTES */
 
   if(interaction.customId==="market_my"){
 
@@ -397,6 +428,26 @@ module.exports={
     content:"❌ Ce menu ne t'appartient pas.",
     flags:64
    })
+
+  if(interaction.customId==="marketSellModal"){
+
+   const cardId=interaction.fields.getTextInputValue("cardId")
+   const price=parseInt(interaction.fields.getTextInputValue("price"))
+
+   const result=addListing(userId,cardId,price)
+
+   if(result?.error)
+    return interaction.reply({
+     content:`❌ ${result.error}`,
+     flags:64
+    })
+
+   return interaction.reply({
+    content:"✅ Carte mise en vente.",
+    flags:64
+   })
+
+  }
 
   if(interaction.customId==="marketBuyModal"){
 
