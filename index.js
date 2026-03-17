@@ -203,20 +203,8 @@ client.on("interactionCreate",async interaction=>{
 
    if(interaction.customId==="choose_title"){
 
-    const {getUser,save}=require("./systems/userSystem")
-
-    const user = getUser(interaction.user.id)
-
-    const title = interaction.values[0]
-
-    user.title = title
-
-    save()
-
-    return interaction.update({
-     content:`👑 Titre sélectionné : **${title}**`,
-     components:[]
-    })
+    const command = require("./commands/joueur/titre")
+    return command.select(interaction)
 
    }
 
@@ -257,6 +245,13 @@ client.on("interactionCreate",async interaction=>{
    if(interaction.customId.startsWith("trade_")){
 
     const command = require("./commands/joueur/trade")
+    return command.button(interaction)
+
+   }
+
+   if(interaction.customId.startsWith("title_")){
+
+    const command = require("./commands/joueur/titre")
     return command.button(interaction)
 
    }

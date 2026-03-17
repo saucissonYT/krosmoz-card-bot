@@ -21,8 +21,6 @@ module.exports = {
   .setName("titre")
   .setDescription("Choisir ton titre"),
 
- /* ================= COMMANDE ================= */
-
  async execute(interaction){
 
   const user = getUser(interaction.user.id)
@@ -33,9 +31,7 @@ module.exports = {
   const titles = user.titles || ["Nouveau"]
   const currentTitle = user.title || titles[0]
 
-  titleState[interaction.user.id] = {
-   page:0
-  }
+  titleState[interaction.user.id] = { page:0 }
 
   const {embed,components} = this.buildMenu(interaction.user.id,titles,currentTitle)
 
@@ -52,8 +48,6 @@ module.exports = {
 
  },
 
- /* ================= MENU BUILDER ================= */
-
  buildMenu(userId,titles,currentTitle){
 
   const state = titleState[userId]
@@ -66,19 +60,17 @@ module.exports = {
    .setCustomId("choose_title")
    .setPlaceholder("Choisir un titre")
    .addOptions(
-
     slice.map(t => ({
      label:t,
      value:t,
      description: t === currentTitle ? "Titre actuel" : undefined,
      default: t === currentTitle
     }))
-
    )
 
   const menuRow = new ActionRowBuilder().addComponents(menu)
 
-  const totalPages = Math.ceil(titles.length/PAGE_SIZE)
+  const totalPages = Math.max(1,Math.ceil(titles.length/PAGE_SIZE))
 
   const navRow = new ActionRowBuilder().addComponents(
 
@@ -109,15 +101,18 @@ module.exports = {
 
  },
 
- /* ================= SELECT ================= */
-
  async select(interaction){
 
   if(interaction.customId !== "choose_title")
    return
 
-  const user = getUser(interaction.user.id)
+  if(!titleState[interaction.user.id])
+   return interaction.reply({
+    content:"❌ Ce menu ne t'appartient pas.",
+    flags:64
+   })
 
+  const user = getUser(interaction.user.id)
   const title = interaction.values[0]
 
   user.title = title
@@ -136,14 +131,15 @@ module.exports = {
 
  },
 
- /* ================= BUTTON ================= */
-
  async button(interaction){
 
   const userId = interaction.user.id
 
   if(!titleState[userId])
-   return
+   return interaction.reply({
+    content:"❌ Ce menu ne t'appartient pas.",
+    flags:64
+   })
 
   const user = getUser(userId)
   const titles = user.titles || ["Nouveau"]
@@ -157,7 +153,7 @@ module.exports = {
   if(interaction.customId==="title_prev")
    state.page--
 
-  const totalPages = Math.ceil(titles.length/PAGE_SIZE)
+  const totalPages = Math.max(1,Math.ceil(titles.length/PAGE_SIZE))
 
   state.page = Math.max(0,Math.min(state.page,totalPages-1))
 

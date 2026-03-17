@@ -19,7 +19,7 @@ const {
 const { getCards } = require("../../systems/cardRegistry")
 const cards = getCards()
 
-const marketState = {}
+const marketState={}
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -51,12 +51,10 @@ module.exports={
 
   const embed=new EmbedBuilder()
    .setTitle("🛒 Marché")
-   .setDescription(
-`Que veux-tu faire ?
+   .setDescription(`Que veux-tu faire ?
 
 🛍️ **Acheter une carte**
-📦 **Voir mes ventes**`
-   )
+📦 **Voir mes ventes**`)
 
   const row=new ActionRowBuilder().addComponents(
 
@@ -198,6 +196,26 @@ module.exports={
     embeds:[embed],
     components:[row]
    })
+
+  }
+
+  if(interaction.customId==="market_remove_modal"){
+
+   const modal=new ModalBuilder()
+    .setCustomId("marketRemoveModal")
+    .setTitle("Retirer une vente")
+
+   const input=new TextInputBuilder()
+    .setCustomId("listingId")
+    .setLabel("ID du listing")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true)
+
+   modal.addComponents(
+    new ActionRowBuilder().addComponents(input)
+   )
+
+   return interaction.showModal(modal)
 
   }
 
