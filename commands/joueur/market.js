@@ -13,8 +13,7 @@ const {
  buyCard,
  addListing,
  getUserListings,
- removeListing,
- getAveragePrices
+ removeListing
 } = require("../../systems/market")
 
 const { getCardsById } = require("../../systems/cardRegistry")
@@ -22,18 +21,13 @@ const { getUser } = require("../../systems/userSystem")
 
 const cardsById = getCardsById()
 
-const PAGE_SIZE = 5
-
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
-
-const rarities=["C","U","R","SR","HR","UR","S","SSR"]
+const PAGE_SIZE=10
+const SELL_PAGE_SIZE=4
 
 const state={}
 
@@ -47,17 +41,16 @@ module.exports={
 
   state[userId]={
    page:0,
-   rarity:null,
-   sort:"price"
+   sellPage:0
   }
 
   const embed=new EmbedBuilder()
    .setTitle("🛒 Marché")
    .setDescription(`Que veux-tu faire ?
 
-🛍️ Acheter une carte
-💰 Vendre une carte
-📦 Mes ventes`)
+🛍️ Acheter une carte  
+💰 Vendre une carte  
+📦 Voir mes ventes`)
 
   const row=new ActionRowBuilder().addComponents(
 
@@ -88,13 +81,15 @@ module.exports={
  async button(interaction){
 
   const userId=interaction.user.id
-
-  if(!state[userId])
-   state[userId]={page:0,rarity:null,sort:"price"}
-
   const s=state[userId]
 
-/* ---------- ACHETER ---------- */
+  if(!s)
+   return interaction.reply({
+    content:"❌ Menu expiré.",
+    flags:64
+   })
+
+  /* ---------------- BUY MARKET ---------------- */
 
   if(interaction.customId==="market_buy"){
    s.page=0
@@ -111,120 +106,66 @@ module.exports={
    return this.renderMarket(interaction)
   }
 
-  if(interaction.customId==="sort_price"){
-   s.sort="price"
-   return this.renderMarket(interaction)
-  }
+  if(interaction.customId.startsWith("market_buy_")){
 
-  if(interaction.customId==="sort_rarity"){
-   s.sort="rarity"
-   return this.renderMarket(interaction)
-  }
-
-  if(interaction.customId==="filter_clear"){
-   s.rarity=null
-   return this.renderMarket(interaction)
-  }
-
-  if(interaction.customId.startsWith("filter_")){
-
-   const rarity=interaction.customId.split("_")[1]
-
-   if(rarities.includes(rarity)){
-    s.rarity=rarity
-    s.page=0
-   }
-
-   return this.renderMarket(interaction)
-
-  }
-
-  if(interaction.customId.startsWith("buy_")){
-
-   const listingId=parseInt(interaction.customId.split("_")[1])
+   const listingId=parseInt(interaction.customId.split("_")[2])
 
    const result=buyCard(userId,listingId)
 
    if(result?.error)
     return interaction.reply({content:`❌ ${result.error}`,flags:64})
 
-   return interaction.reply({content:"✅ Carte achetée.",flags:64})
-
+   return interaction.reply({
+    content:"✅ Carte achetée.",
+    flags:64
+   })
   }
 
-/* ---------- VENDRE ---------- */
+  /* ---------------- SELL MENU ---------------- */
 
   if(interaction.customId==="market_sell"){
-
-   const user=getUser(userId)
-
-   const inventory=Object.entries(user.cards||{})
-
-   if(inventory.length===0)
-    return interaction.reply({content:"📦 Tu n'as aucune carte.",flags:64})
-
-   const embed=new EmbedBuilder()
-    .setTitle("💰 Choisis une carte à vendre")
-
-   const rows=[]
-
-   inventory.slice(0,10).forEach(([id,count])=>{
-
-    const card=cardsById[id]
-
-    embed.addFields({
-     name:`${rarityEmoji[card.rarity]} ${card.name}`,
-     value:`Quantité : x${count}`,
-     inline:false
-    })
-
-    rows.push(
-     new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-       .setCustomId(`sell_${id}`)
-       .setLabel("Vendre")
-       .setStyle(ButtonStyle.Danger)
-     )
-    )
-
-   })
-
-   return interaction.update({
-    embeds:[embed],
-    components:rows
-   })
-
+   s.sellPage=0
+   return this.renderSell(interaction)
   }
 
-  if(interaction.customId.startsWith("sell_")){
+  if(interaction.customId==="sell_next"){
+   s.sellPage++
+   return this.renderSell(interaction)
+  }
 
-   const cardId=interaction.customId.split("_")[1]
+  if(interaction.customId==="sell_prev"){
+   if(s.sellPage>0) s.sellPage--
+   return this.renderSell(interaction)
+  }
+
+  if(interaction.customId.startsWith("sell_card_")){
+
+   const cardId=interaction.customId.split("_")[2]
 
    const modal=new ModalBuilder()
-    .setCustomId(`sellmodal_${cardId}`)
+    .setCustomId(`sellModal_${cardId}`)
     .setTitle("Prix de vente")
 
-   const priceInput=new TextInputBuilder()
+   const input=new TextInputBuilder()
     .setCustomId("price")
     .setLabel("Prix en kamas")
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
 
    modal.addComponents(
-    new ActionRowBuilder().addComponents(priceInput)
+    new ActionRowBuilder().addComponents(input)
    )
 
    return interaction.showModal(modal)
-
   }
 
-/* ---------- MES VENTES ---------- */
+  /* ---------------- MY LISTINGS ---------------- */
 
   if(interaction.customId==="market_my"){
 
    const listings=getUserListings(userId)
 
-   if(listings.length===0)
+   if(!listings.length)
     return interaction.update({
      content:"Tu n'as aucune vente active.",
      embeds:[],
@@ -236,7 +177,7 @@ module.exports={
 
    const rows=[]
 
-   listings.forEach(l=>{
+   listings.slice(0,4).forEach(l=>{
 
     const card=cardsById[l.card]
 
@@ -257,6 +198,15 @@ module.exports={
 
    })
 
+   rows.push(
+    new ActionRowBuilder().addComponents(
+     new ButtonBuilder()
+      .setCustomId("market_back")
+      .setLabel("Retour")
+      .setStyle(ButtonStyle.Secondary)
+    )
+   )
+
    return interaction.update({
     embeds:[embed],
     components:rows
@@ -266,48 +216,33 @@ module.exports={
 
   if(interaction.customId.startsWith("remove_")){
 
-   const id=parseInt(interaction.customId.split("_")[1])
+   const listingId=parseInt(interaction.customId.split("_")[1])
 
-   const result=removeListing(userId,id)
+   const result=removeListing(userId,listingId)
 
    if(result?.error)
     return interaction.reply({content:`❌ ${result.error}`,flags:64})
 
-   return interaction.reply({content:"📦 Vente retirée.",flags:64})
+   return interaction.reply({
+    content:"📦 Vente retirée.",
+    flags:64
+   })
+  }
+
+  if(interaction.customId==="market_back"){
+   return this.execute(interaction)
   }
 
  },
+
+ /* ---------------- MARKET VIEW ---------------- */
 
  async renderMarket(interaction){
 
   const userId=interaction.user.id
   const s=state[userId]
 
-  let market=getMarket()
-
-  const averages=getAveragePrices()
-
-  if(s.rarity){
-
-   market=market.filter(l=>{
-    const card=cardsById[l.card]
-    return card.rarity===s.rarity
-   })
-
-  }
-
-  if(s.sort==="price")
-   market.sort((a,b)=>a.price-b.price)
-
-  if(s.sort==="rarity")
-   market.sort((a,b)=>{
-
-    const ca=cardsById[a.card]
-    const cb=cardsById[b.card]
-
-    return rarityOrder[cb.rarity]-rarityOrder[ca.rarity]
-
-   })
+  const market=getMarket()
 
   const start=s.page*PAGE_SIZE
   const slice=market.slice(start,start+PAGE_SIZE)
@@ -323,14 +258,14 @@ module.exports={
 
    embed.addFields({
     name:`${rarityEmoji[card.rarity]} ${card.name}`,
-    value:`${l.price} kamas${averages[l.card] ? ` • 📊 ${averages[l.card]}`:""}`,
+    value:`${l.price} kamas`,
     inline:false
    })
 
    rows.push(
     new ActionRowBuilder().addComponents(
      new ButtonBuilder()
-      .setCustomId(`buy_${l.id}`)
+      .setCustomId(`market_buy_${l.id}`)
       .setLabel("Acheter")
       .setStyle(ButtonStyle.Success)
     )
@@ -338,71 +273,28 @@ module.exports={
 
   })
 
-/* TRI */
+  rows.push(
+   new ActionRowBuilder().addComponents(
 
-  const sortRow=new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+     .setCustomId("market_prev")
+     .setEmoji("⬅")
+     .setStyle(ButtonStyle.Secondary),
 
-   new ButtonBuilder()
-    .setCustomId("sort_price")
-    .setLabel("Prix")
-    .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
+     .setCustomId("market_next")
+     .setEmoji("➡")
+     .setStyle(ButtonStyle.Secondary),
 
-   new ButtonBuilder()
-    .setCustomId("sort_rarity")
-    .setLabel("Rareté")
-    .setStyle(ButtonStyle.Primary)
+    new ButtonBuilder()
+     .setCustomId("market_back")
+     .setLabel("Retour")
+     .setStyle(ButtonStyle.Secondary)
 
+   )
   )
 
-/* FILTRES */
-
-  const rarityRow1=new ActionRowBuilder()
-
-  rarities.slice(0,4).forEach(r=>{
-   rarityRow1.addComponents(
-    new ButtonBuilder()
-     .setCustomId(`filter_${r}`)
-     .setLabel(r)
-     .setStyle(ButtonStyle.Secondary)
-   )
-  })
-
-  const rarityRow2=new ActionRowBuilder()
-
-  rarities.slice(4).forEach(r=>{
-   rarityRow2.addComponents(
-    new ButtonBuilder()
-     .setCustomId(`filter_${r}`)
-     .setLabel(r)
-     .setStyle(ButtonStyle.Secondary)
-   )
-  })
-
-/* NAV */
-
-  const nav=new ActionRowBuilder().addComponents(
-
-   new ButtonBuilder()
-    .setCustomId("market_prev")
-    .setEmoji("⬅")
-    .setStyle(ButtonStyle.Secondary),
-
-   new ButtonBuilder()
-    .setCustomId("market_next")
-    .setEmoji("➡")
-    .setStyle(ButtonStyle.Secondary),
-
-   new ButtonBuilder()
-    .setCustomId("filter_clear")
-    .setLabel("Reset")
-    .setStyle(ButtonStyle.Danger)
-
-  )
-
-  const payload={
-   embeds:[embed],
-   components:[...rows,sortRow,rarityRow1,rarityRow2,nav]
-  }
+  const payload={embeds:[embed],components:rows}
 
   if(interaction.isButton())
    return interaction.update(payload)
@@ -411,19 +303,96 @@ module.exports={
 
  },
 
+ /* ---------------- SELL VIEW ---------------- */
+
+ async renderSell(interaction){
+
+  const userId=interaction.user.id
+  const s=state[userId]
+
+  const user=getUser(userId)
+
+  const cards=Object.entries(user.cards||{})
+
+  const start=s.sellPage*SELL_PAGE_SIZE
+  const slice=cards.slice(start,start+SELL_PAGE_SIZE)
+
+  const embed=new EmbedBuilder()
+   .setTitle("💰 Choisis une carte à vendre")
+
+  const rows=[]
+
+  slice.forEach(([cardId,count])=>{
+
+   const card=cardsById[cardId]
+
+   embed.addFields({
+    name:`${rarityEmoji[card.rarity]} ${card.name}`,
+    value:`Quantité : ${count}`,
+    inline:false
+   })
+
+   rows.push(
+    new ActionRowBuilder().addComponents(
+     new ButtonBuilder()
+      .setCustomId(`sell_card_${cardId}`)
+      .setLabel("Vendre")
+      .setStyle(ButtonStyle.Success)
+    )
+   )
+
+  })
+
+  rows.push(
+   new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("sell_prev")
+     .setEmoji("⬅")
+     .setStyle(ButtonStyle.Secondary),
+
+    new ButtonBuilder()
+     .setCustomId("sell_next")
+     .setEmoji("➡")
+     .setStyle(ButtonStyle.Secondary),
+
+    new ButtonBuilder()
+     .setCustomId("market_back")
+     .setLabel("Retour")
+     .setStyle(ButtonStyle.Secondary)
+
+   )
+  )
+
+  const payload={embeds:[embed],components:rows}
+
+  if(interaction.isButton())
+   return interaction.update(payload)
+
+  return interaction.editReply(payload)
+
+ },
+
+ /* ---------------- MODAL ---------------- */
+
  async modal(interaction){
 
-  if(!interaction.customId.startsWith("sellmodal_")) return
+  if(!interaction.customId.startsWith("sellModal_")) return
 
   const userId=interaction.user.id
   const cardId=interaction.customId.split("_")[1]
 
-  const price=parseInt(interaction.fields.getTextInputValue("price"))
+  const price=parseInt(
+   interaction.fields.getTextInputValue("price")
+  )
 
   const result=addListing(userId,cardId,price)
 
   if(result?.error)
-   return interaction.reply({content:`❌ ${result.error}`,flags:64})
+   return interaction.reply({
+    content:`❌ ${result.error}`,
+    flags:64
+   })
 
   return interaction.reply({
    content:"✅ Carte mise en vente.",
