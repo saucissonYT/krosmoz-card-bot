@@ -148,6 +148,62 @@ hotHand:{
  condition:()=>false
 },
 
+/* ================= KROSMOSHOP ================= */
+
+shopBuy1:{
+ name:"Premier Achat",
+ badge:"🛒",
+ description:"Acheter une carte au KrosmoShop.",
+ title:"Client du KrosmoShop",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=1
+},
+
+shopBuy10:{
+ name:"Client Fidèle",
+ badge:"💰",
+ description:"Acheter 10 cartes au KrosmoShop.",
+ title:"Collectionneur du KrosmoShop",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=10
+},
+
+shopBuy100:{
+ name:"Marchand du Krosmoz",
+ badge:"📦",
+ description:"Acheter 100 cartes au KrosmoShop.",
+ title:"Marchand du Krosmoz",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=100
+},
+
+shopBuy1000:{
+ name:"Empereur du Shop",
+ badge:"👑",
+ description:"Acheter 1000 cartes au KrosmoShop.",
+ title:"Empereur du KrosmoShop",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=1000
+},
+
+shopSSR:{
+ name:"Client Premium",
+ badge:"🌈",
+ description:"Acheter une SSR au KrosmoShop.",
+ title:"Client Premium",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.ssrBought>=1
+},
+
+shop10SSR:{
+ name:"Collectionneur Divin",
+ badge:"✨",
+ description:"Acheter 10 SSR au KrosmoShop.",
+ title:"Collectionneur Divin",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.ssrBought>=10
+},
+
 /* ================= SSR ================= */
 
 firstSSR:{

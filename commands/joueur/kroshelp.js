@@ -16,10 +16,10 @@ function mainMenu(){
   .setDescription(
 `Bienvenue dans **Krosmoz Card Bot**
 
-🎴 Ouvre des packs
-📚 Collectionne des cartes
-💰 Gagne des kamas
-⭐ Progresse et débloque des succès
+🎴 Ouvre des packs  
+📚 Collectionne des cartes  
+💰 Gagne des kamas  
+⭐ Progresse et débloque des succès  
 
 Choisis une catégorie ci-dessous.`
   )
@@ -116,14 +116,16 @@ module.exports = {
    embed=new EmbedBuilder()
     .setTitle("🎴 Commandes Cartes")
     .setDescription(
-`/krosmoz → Ouvrir un pack
+`/krosmoz → Ouvrir un pack  
 
-/inventaire → Voir ton inventaire
-/carte id:<id> → Voir une carte précise
+/inventaire → Voir ton inventaire  
 
-/listcards → Explorer les cartes
+/carte id:<id> → Voir une carte précise  
 
-/fusion → Fusionner des cartes
+/listcards → Explorer toutes les cartes  
+
+/fusion → Fusionner des cartes  
+
 /trade → Échanger des cartes`
     )
     .setColor(0x3498DB)
@@ -137,12 +139,15 @@ module.exports = {
    embed=new EmbedBuilder()
     .setTitle("💰 Économie")
     .setDescription(
-`/buypack → Acheter un pack
+`/buypack → Acheter un pack  
 
-/sellcard → Vendre une carte
-/sellduplicates → Vendre tes doublons
+/sellcard → Vendre une carte  
 
-/market → Accéder au marché`
+/sellduplicates → Vendre tous tes doublons  
+
+/market → Marché entre joueurs  
+
+/krosmoshop → Boutique spéciale du Krosmoz`
     )
     .setColor(0x2ECC71)
 
@@ -155,13 +160,13 @@ module.exports = {
    embed=new EmbedBuilder()
     .setTitle("📚 Collection")
     .setDescription(
-`/inventaire → Voir ta collection
+`/inventaire → Voir ta collection  
 
-/listcards → Explorer toutes les cartes
+/listcards → Explorer toutes les cartes  
 
-/carte id:<id> → Voir une carte précise
+/carte id:<id> → Voir une carte précise  
 
-/pity → Voir ton pity par set
+/pity → Voir ton pity par set  
 
 /achievements → Voir tes succès`
     )
@@ -176,9 +181,9 @@ module.exports = {
    embed=new EmbedBuilder()
     .setTitle("⭐ Progression")
     .setDescription(
-`/profil → Voir ton profil joueur
+`/profil → Voir ton profil joueur  
 
-/daily → Récompense quotidienne
+/daily → Récompense quotidienne  
 
 /kroshelp → Afficher cette aide`
     )
