@@ -1,4 +1,4 @@
-const generatePack = require("./pack")
+const { generatePack } = require("./pack")
 const { rewardKamas } = require("./rewards")
 const { addXP } = require("./progressionSystem")
 const achievements = require("./achievementRegistry")
@@ -82,8 +82,6 @@ function openPack(user,setId){
   if(card.rarity==="SSR"){
    user.stats.ssrPulled++
 
-   /* SSR STREAK */
-
    user.stats.ssrStreak++
 
    if(user.stats.ssrStreak>=2)
@@ -101,8 +99,6 @@ function openPack(user,setId){
   }
 
  }
-
- /* THREE STARS */
 
  const hrCount=pack.filter(c=>c?.rarity==="HR").length
  if(hrCount>=3)
@@ -135,17 +131,11 @@ function openPack(user,setId){
  if(luckyPack && ssrCount>=3)
   giveAchievement(user,"impossible")
 
- /* LUCKY START */
-
  if(user.stats.packsOpened===0 && ssrCount>0)
   giveAchievement(user,"luckyStart")
 
- /* HOT HAND */
-
  if(ssrCount>=3)
   giveAchievement(user,"hotHand")
-
- /* PITY BREAKER */
 
  if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
   giveAchievement(user,"pityBreaker")
