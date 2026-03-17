@@ -5,8 +5,9 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const {generatePack,packText,rarityEmoji,giveCard} = require("../../systems/pack")
-const {rewardKamas} = require("../../systems/economy")
+const { generatePack } = require("../../systems/pack")
+const { rewardKamas } = require("../../systems/economy")
+const { giveCard, packText, rarityEmoji } = require("../../systems/packHelpers")
 
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
@@ -44,7 +45,7 @@ module.exports={
   if(interaction.user.id !== OWNER_ID)
    return interaction.reply({
     content:"Commande dev.",
-    ephemeral:true
+    flags:64
    })
 
   const setId =
@@ -62,9 +63,9 @@ module.exports={
 
    for(let i=0;i<amount;i++){
 
-    const pack = generatePack(user,setId)
+    const result = generatePack(user,setId)
 
-    pulls.push(...pack)
+    pulls.push(...result.pack)
 
    }
 
@@ -94,7 +95,8 @@ ${lines.join("\n")}
 
   /* PACK NORMAL */
 
-  const pack = generatePack(user,setId)
+  const result = generatePack(user,setId)
+  const pack = result.pack
 
   const embed = new EmbedBuilder()
    .setTitle(`🎴 DEV PACK (${setId})`)
@@ -128,7 +130,7 @@ ${lines.join("\n")}
    if(i.user.id !== interaction.user.id)
     return i.reply({
      content:"Pas ton pack.",
-     ephemeral:true
+     flags:64
     })
 
    const index=parseInt(i.customId.split("_")[1])

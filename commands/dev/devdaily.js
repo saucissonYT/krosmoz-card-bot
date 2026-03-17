@@ -1,39 +1,76 @@
-const {
- SlashCommandBuilder,
- EmbedBuilder
-} = require("discord.js")
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
-const { getUser } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { claimDaily } = require("../../systems/dailySystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
+const { isDev } = require("../../systems/devSystem")
 
-module.exports={
+module.exports = {
 
  name:"devdaily",
 
  data:new SlashCommandBuilder()
   .setName("devdaily")
-  .setDescription("Simuler un daily (DEV)"),
+  .setDescription("Simuler un daily (DEV)")
+
+  .addUserOption(option=>
+   option.setName("joueur")
+   .setDescription("Joueur cible")
+   .setRequired(false)
+  )
+
+  .addStringOption(option=>
+   option.setName("type")
+   .setDescription("Type de daily")
+   .setRequired(false)
+   .addChoices(
+    {name:"Normal",value:"normal"},
+    {name:"Double",value:"double"},
+    {name:"SSR",value:"ssr"},
+    {name:"Streak 7",value:"streak"}
+   )
+  ),
 
  async execute(interaction){
 
-  const user=getUser(interaction.user.id)
+  if(!isDev(interaction.user.id))
+   return interaction.reply({
+    content:"Commande dev.",
+    flags:64
+   })
 
-  /* force le daily */
+  const target =
+   interaction.options.getUser("joueur") || interaction.user
+
+  const type =
+   interaction.options.getString("type") || "normal"
+
+  const user = getUser(target.id)
+
+  /* FORCER TYPES */
+
+  if(type==="double")
+   user.devDailyForce="double"
+
+  if(type==="ssr")
+   user.devDailyForce="ssr"
+
+  if(type==="streak")
+   user.dailyStreak=6
 
   const result = await claimDaily(interaction,user)
 
-  const embed=new EmbedBuilder()
+  const embed = new EmbedBuilder()
    .setTitle("🧪 DEV DAILY")
    .setColor("#2ecc71")
 
   if(result.reward.type==="pack"){
-   embed.setDescription(`📦 Tu reçois **${result.reward.value} pack(s)**`)
+   embed.setDescription(`📦 **${target.username}** reçoit **${result.reward.value} pack(s)**`)
   }
 
   if(result.reward.type==="kamas"){
-   embed.setDescription(`💰 Tu reçois **${result.reward.value} kamas**`)
+   embed.setDescription(`💰 **${target.username}** reçoit **${result.reward.value} kamas**`)
   }
 
   if(result.reward.type==="ssr"){
@@ -66,52 +103,23 @@ Carte SSR obtenue :
   if(result.doubleReward){
 
    embed.addFields({
-    name:"🎉 Double Daily !",
-    value:"Tes récompenses ont été **doublées**.",
+    name:"🎉 Double Daily",
+    value:"Récompense doublée",
     inline:false
    })
 
   }
 
-  if(result.assiduUnlocked){
-
-   embed.addFields({
-    name:"🏆 Succès débloqué",
-    value:"**Assidu**",
-    inline:false
-   })
-
-  }
-
-  if(result.dailyAchievements && result.dailyAchievements.length){
-
-   for(const ach of result.dailyAchievements){
-
-    embed.addFields({
-     name:"🏆 Succès Daily",
-     value:
-`**${ach.name}**
-
-Titre : ${ach.title}
-+${ach.xp} XP
-+${ach.kamas} kamas`,
-     inline:false
-    })
-
-   }
-
-  }
-
-  /* ACHIEVEMENTS */
-
-  const unlockedDaily = achievementCheck(user,"daily")
-  const unlockedEco = achievementCheck(user,"economy")
+  save()
 
   await interaction.reply({
    embeds:[embed]
   })
 
-  const unlocked=[...unlockedDaily,...unlockedEco]
+  const unlocked=[
+   ...achievementCheck(user,"daily"),
+   ...achievementCheck(user,"economy")
+  ]
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)

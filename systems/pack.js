@@ -37,8 +37,7 @@ function rollRarity(pity){
 
  for(const rarity of rarityOrder){
 
-  if(rarity==="SSR")
-   continue
+  if(rarity==="SSR") continue
 
   cumulative+=rarityRates[rarity]
 
@@ -62,11 +61,8 @@ function generatePack(user,setId){
  if(!setCards || setCards.length===0)
   return {pack:[],luckyPack:false}
 
- if(!user.pity)
-  user.pity={}
-
- if(!user.pity[setId])
-  user.pity[setId]={UR:0,SSR:0}
+ if(!user.pity) user.pity={}
+ if(!user.pity[setId]) user.pity[setId]={UR:0,SSR:0}
 
  const pity=user.pity[setId]
 
@@ -83,11 +79,10 @@ function generatePack(user,setId){
 
   let rarity
 
-  if(i===4 && forced){
+  if(i===4 && forced)
    rarity=forced
-  }else{
+  else
    rarity=rollRarity(pity.SSR)
-  }
 
   let pool=setCards.filter(c=>c.rarity===rarity)
 
@@ -96,24 +91,25 @@ function generatePack(user,setId){
 
   const card=randomCard(pool)
 
-  if(card){
+  if(!card) continue
 
-   if(card.rarity==="SSR" && Math.random()<0.005){
+  if(card.rarity==="SSR" && Math.random()<0.005){
 
-    pack.push({
-     ...card,
-     shiny:true
-    })
+   pack.push({
+    ...card,
+    shiny:true
+   })
 
-   }else{
+  }else{
 
-    pack.push(card)
-
-   }
+   pack.push(card)
 
   }
 
  }
+
+ if(pack.length===0)
+  return {pack:[],luckyPack:false}
 
  const best=pack.reduce((a,b)=>
   rarityOrder.indexOf(b.rarity)>
@@ -157,4 +153,6 @@ function generatePack(user,setId){
 
 }
 
-module.exports=generatePack
+module.exports={
+ generatePack
+}

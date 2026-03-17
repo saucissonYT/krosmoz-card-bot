@@ -12,63 +12,112 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ### Added
 
-- Event spécial Krosmo-bot dans /trade
-- Krosmo-bot peut voler une carte lors d’un échange
-- 1% de chance que Krosmo-bot rende une SSR aléatoire
-- Nouveau titre secret : "Favori du Krosmoz"
-- Nouveaux achievements secrets liés à Krosmo-bot
+- Event spécial **Krosmo-bot** dans `/trade`
+- Krosmo-bot peut **voler une carte lors d’un échange**
+- **1% de chance** que Krosmo-bot rende une **SSR aléatoire**
+- Nouveau **titre secret** : *Favori du Krosmoz*
+- Nouveaux **achievements secrets liés à Krosmo-bot**
 - Messages aléatoires lors de l’event Krosmo-bot
-- Commande admin /ecogive,add,remove,set
-- Simulation RNG améliorée dans /simpack
-- Simulation multi-joueurs pour un pity plus réaliste
-- Affichage détaillé des statistiques dans /stats :
-joueurs
-cartes totales
-SSR totales
-kamas globaux
-packs ouverts
-fusions
-listings du marché
+
+- Nouvelle commande **/devfusion**
+  - permet de tester les résultats de fusion
+  - simulation **normal / critique / double / triple**
+  - ne consomme **aucune carte**
+
+- Commande admin **/ecogive**
+  - `add`
+  - `remove`
+  - `set`
+
+- Simulation RNG améliorée dans **/simpack**
+- Simulation **multi-joueurs (50 profils)** pour un pity plus réaliste
+- Calcul plus précis des statistiques de drops
+- Calcul économique plus réaliste dans les simulations
+
+- Affichage détaillé des statistiques dans **/stats**
+  - joueurs
+  - cartes totales
+  - SSR totales
+  - kamas globaux
+  - packs ouverts
+  - fusions
+  - listings du marché
 
 ### Changed
 
-- Amélioration de la commande /daily
-affichage du streak visuel
-ajout d’XP progressive
-affichage du streak maximum
-messages aléatoires
-visibilité publique de la récompense
-- Amélioration UX du système de fusion
-affichage du nombre de cartes disponibles
-affichage de la carte utilisée pour la fusion
-ajout de compteurs de statistiques
-- Amélioration de la commande /titre
-affichage du titre actuel
-sélection plus claire via menu
-- Amélioration de la commande /market
-navigation améliorée
-bouton retour après affichage des ventes
+- Amélioration de la commande **/daily**
+  - affichage du **streak visuel**
+  - ajout d’**XP progressive**
+  - affichage du **record de streak**
+  - messages aléatoires
+  - visibilité publique de la récompense
+  - correction du calcul du cooldown
+
+- Amélioration UX du système **/fusion**
+  - affichage des **chances de fusion dans le résultat**
+  - affichage des **cartes réellement utilisées**
+  - affichage du **nombre de cartes disponibles**
+  - ajout de **compteurs statistiques de fusion**
+  - meilleure gestion des pools de cartes
+
+- Amélioration de la commande **/titre**
+  - affichage du **titre actuel**
+  - sélection plus claire via menu
+  - **pagination automatique des titres**
+
+- Amélioration de la commande **/market**
+  - navigation améliorée
+  - bouton retour après affichage des ventes
+  - filtres par **rareté**
+  - recherche par **nom**
+  - pagination du marché
+
+- Amélioration du système **/leaderboard**
+  - affichage graphique avec **barres de progression**
+  - pagination stable
+  - meilleure performance via **leaderboard cache**
 
 ### Improved
 
-- Stabilisation des interactions Discord dans plusieurs commandes
-- Amélioration des outils dev pour le debug RNG et économie
-- Nettoyage du code dans plusieurs commandes internes
+- Stabilisation globale des **interactions Discord**
+- Sécurisation des **menus pour éviter l’utilisation par un autre joueur**
+- Amélioration des outils **dev pour le debug RNG**
+- Amélioration des outils **dev pour tester l’économie**
+- Optimisation du **système de pack opening**
 
 ### Fixed
 
-- Correction de la commande /titre
-- Correction de la commande admin /stats
-- Correction du système /event
-- Correction du système /devpack
-- Correction de plusieurs incohérences dans les systèmes de simulation RNG
+- Correction de la commande **/titre**
+  - erreur Discord liée à la limite de **25 options**
+
+- Correction du système **/daily**
+  - bug affichant des temps absurdes (ex : `492685h`)
+
+- Correction du système **/leaderboard**
+  - erreur de chargement du module `leaderboardCache`
+
+- Correction du système **/event**
+
+- Correction de la commande **/devpack**
+  - bug `generatePack is not a function`
+
+- Correction de la commande **/simpack**
+  - calcul incorrect du nombre total de cartes
+  - gestion incorrecte des lucky packs
+
+- Correction du **système de pack**
+  - gestion du pity SSR
+  - sécurité du pool de cartes
+  - stabilité du tirage
+
+- Correction de plusieurs incohérences dans les systèmes de **simulation RNG**
 
 ### Removed
 
-- Suppression de la commande dev /devgive (outil devenu inutile)
-- Suppression de /krosmodev
+- Suppression de **/krosmodev**
 
 ---
+
 [0.16.0] - 2026-03-16
 
 ### Added

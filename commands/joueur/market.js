@@ -19,26 +19,15 @@ const {
 const { getCards } = require("../../systems/cardRegistry")
 const cards = getCards()
 
+const marketState = {}
+
 const rarityEmoji={
- C:"⚪",
- U:"🟢",
- R:"🔵",
- SR:"🟣",
- HR:"🔴",
- UR:"🟡",
- S:"✨",
- SSR:"🌈"
+ C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
+ HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
 const rarityOrder={
- SSR:8,
- S:7,
- UR:6,
- HR:5,
- SR:4,
- R:3,
- U:2,
- C:1
+ SSR:8,S:7,UR:6,HR:5,SR:4,R:3,U:2,C:1
 }
 
 const rarities=["C","U","R","SR","HR","UR","S","SSR"]
@@ -48,14 +37,17 @@ const PAGE_SIZE=10
 module.exports={
 
  name:"market",
- description:"Marché des cartes",
-
- marketPage:0,
- marketSort:"price",
- rarityFilter:null,
- nameFilter:null,
 
  async execute(interaction){
+
+  const userId=interaction.user.id
+
+  marketState[userId]={
+   page:0,
+   sort:"price",
+   rarity:null,
+   name:null
+  }
 
   const embed=new EmbedBuilder()
    .setTitle("🛒 Marché")
@@ -89,37 +81,47 @@ module.exports={
 
  async button(interaction){
 
+  const userId=interaction.user.id
+
+  if(!marketState[userId])
+   return interaction.reply({
+    content:"❌ Ce menu ne t'appartient pas.",
+    flags:64
+   })
+
+  const state=marketState[userId]
+
   if(interaction.customId==="market_buy"){
-   this.marketPage=0
-   this.rarityFilter=null
-   this.nameFilter=null
+   state.page=0
+   state.rarity=null
+   state.name=null
    return this.renderMarket(interaction)
   }
 
   if(interaction.customId==="market_next"){
-   this.marketPage++
+   state.page++
    return this.renderMarket(interaction)
   }
 
   if(interaction.customId==="market_prev"){
-   if(this.marketPage>0) this.marketPage--
+   if(state.page>0) state.page--
    return this.renderMarket(interaction)
   }
 
   if(interaction.customId==="market_sort_price"){
-   this.marketSort="price"
+   state.sort="price"
    return this.renderMarket(interaction)
   }
 
   if(interaction.customId==="market_sort_rarity"){
-   this.marketSort="rarity"
+   state.sort="rarity"
    return this.renderMarket(interaction)
   }
 
   if(interaction.customId==="market_filter_clear"){
-   this.rarityFilter=null
-   this.nameFilter=null
-   this.marketPage=0
+   state.rarity=null
+   state.name=null
+   state.page=0
    return this.renderMarket(interaction)
   }
 
@@ -127,8 +129,8 @@ module.exports={
 
    const rarity=interaction.customId.split("_")[3]
 
-   this.rarityFilter=rarity
-   this.marketPage=0
+   state.rarity=rarity
+   state.page=0
 
    return this.renderMarket(interaction)
   }
@@ -150,14 +152,13 @@ module.exports={
    )
 
    return interaction.showModal(modal)
-
   }
 
   /* MES VENTES */
 
   if(interaction.customId==="market_my"){
 
-   const listings=getUserListings(interaction.user.id)
+   const listings=getUserListings(userId)
 
    if(listings.length===0)
     return interaction.update({
@@ -200,38 +201,8 @@ module.exports={
 
   }
 
-  /* RETOUR */
-
   if(interaction.customId==="market_back"){
-
-   const embed=new EmbedBuilder()
-    .setTitle("🛒 Marché")
-    .setDescription(
-`Que veux-tu faire ?
-
-🛍️ **Acheter une carte**
-📦 **Voir mes ventes**`
-    )
-
-   const row=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("market_buy")
-     .setLabel("Acheter")
-     .setStyle(ButtonStyle.Success),
-
-    new ButtonBuilder()
-     .setCustomId("market_my")
-     .setLabel("Mes ventes")
-     .setStyle(ButtonStyle.Primary)
-
-   )
-
-   return interaction.update({
-    embeds:[embed],
-    components:[row]
-   })
-
+   return this.execute(interaction)
   }
 
   if(interaction.customId==="market_buy_modal"){
@@ -254,50 +225,28 @@ module.exports={
 
   }
 
-  if(interaction.customId==="market_remove_modal"){
-
-   const modal=new ModalBuilder()
-    .setCustomId("marketRemoveModal")
-    .setTitle("Retirer une vente")
-
-   const input=new TextInputBuilder()
-    .setCustomId("listingId")
-    .setLabel("ID du listing")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   modal.addComponents(
-    new ActionRowBuilder().addComponents(input)
-   )
-
-   return interaction.showModal(modal)
-
-  }
-
  },
 
  async renderMarket(interaction){
 
-  let market=getMarket()
+  const userId=interaction.user.id
+  const state=marketState[userId]
 
+  let market=getMarket()
   const averages=getAveragePrices()
 
-  /* FILTRE RARETE */
-
-  if(this.rarityFilter){
+  if(state.rarity){
 
    market=market.filter(l=>{
     const card=cards.find(c=>c.id==l.card)
-    return card?.rarity===this.rarityFilter
+    return card?.rarity===state.rarity
    })
 
   }
 
-  /* FILTRE NOM */
+  if(state.name){
 
-  if(this.nameFilter){
-
-   const name=this.nameFilter.toLowerCase()
+   const name=state.name.toLowerCase()
 
    market=market.filter(l=>{
     const card=cards.find(c=>c.id==l.card)
@@ -306,22 +255,20 @@ module.exports={
 
   }
 
-  /* TRI */
-
-  if(this.marketSort==="price")
+  if(state.sort==="price")
    market.sort((a,b)=>a.price-b.price)
 
-  if(this.marketSort==="rarity")
+  if(state.sort==="rarity")
    market.sort((a,b)=>{
 
-    const cardA=cards.find(c=>c.id==a.card)
-    const cardB=cards.find(c=>c.id==b.card)
+    const ca=cards.find(c=>c.id==a.card)
+    const cb=cards.find(c=>c.id==b.card)
 
-    return rarityOrder[cardB.rarity]-rarityOrder[cardA.rarity]
+    return rarityOrder[cb.rarity]-rarityOrder[ca.rarity]
 
    })
 
-  const start=this.marketPage*PAGE_SIZE
+  const start=state.page*PAGE_SIZE
   const slice=market.slice(start,start+PAGE_SIZE)
 
   const lines=slice.map(l=>{
@@ -337,10 +284,8 @@ module.exports={
   const totalPages=Math.max(1,Math.ceil(market.length/PAGE_SIZE))
 
   const embed=new EmbedBuilder()
-   .setTitle(`🛒 Marché — Page ${this.marketPage+1}/${totalPages}`)
+   .setTitle(`🛒 Marché — Page ${state.page+1}/${totalPages}`)
    .setDescription(lines.join("\n")||"Aucun résultat.")
-
-  /* NAVIGATION */
 
   const nav=new ActionRowBuilder().addComponents(
 
@@ -355,8 +300,6 @@ module.exports={
     .setStyle(ButtonStyle.Secondary)
 
   )
-
-  /* TRI */
 
   const sort=new ActionRowBuilder().addComponents(
 
@@ -381,8 +324,6 @@ module.exports={
     .setStyle(ButtonStyle.Success)
 
   )
-
-  /* FILTRE RARETE */
 
   const rarityButtons=new ActionRowBuilder()
 
@@ -430,13 +371,22 @@ module.exports={
 
  async modal(interaction){
 
+  const userId=interaction.user.id
+  const state=marketState[userId]
+
+  if(!state)
+   return interaction.reply({
+    content:"❌ Ce menu ne t'appartient pas.",
+    flags:64
+   })
+
   if(interaction.customId==="marketBuyModal"){
 
    const listingId=parseInt(
     interaction.fields.getTextInputValue("listingId")
    )
 
-   const result=buyCard(interaction.user.id,listingId)
+   const result=buyCard(userId,listingId)
 
    if(result?.error)
     return interaction.reply({
@@ -457,7 +407,7 @@ module.exports={
     interaction.fields.getTextInputValue("listingId")
    )
 
-   const result=removeListing(interaction.user.id,listingId)
+   const result=removeListing(userId,listingId)
 
    if(result?.error)
     return interaction.reply({
@@ -476,8 +426,8 @@ module.exports={
 
    const name=interaction.fields.getTextInputValue("cardName")
 
-   this.nameFilter=name
-   this.marketPage=0
+   state.name=name
+   state.page=0
 
    return this.renderMarket(interaction)
 

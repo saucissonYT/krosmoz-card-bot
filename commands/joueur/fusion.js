@@ -6,6 +6,9 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { addXP } = require("../../systems/progressionSystem")
 
+const setsData = require("../../cards/sets.json")
+const sets = Array.isArray(setsData) ? setsData : setsData.sets
+
 const cards = getCards()
 
 const rarityOrder = [
@@ -47,6 +50,12 @@ data:new SlashCommandBuilder()
  option.setName("set")
  .setDescription("Set des cartes")
  .setRequired(true)
+ .addChoices(
+  ...sets.map(s=>({
+   name:s.name,
+   value:s.id
+  }))
+ )
 )
 
 .addStringOption(option=>
@@ -217,18 +226,7 @@ return interaction.reply({content:"Erreur de pool.",flags:64})
 
 const embed = new EmbedBuilder()
 .setTitle("⚗️ Fusion en cours...")
-.setDescription(`
-Set : **${setName}**
-
-Cartes ${rarityEmoji[rarity]} disponibles : **${pool.length}**
-
-Fusion de **${cost} doublons**
-
-📊 Chances
-🔥 Critique : **10%**
-🌈 Triple : **0.5%**
-✨ Double : **10%**
-`)
+.setDescription(`Fusion de **${cost} doublons ${rarityEmoji[rarity]}**`)
 
 await interaction.reply({embeds:[embed]})
 const msg = await interaction.fetchReply()
@@ -286,13 +284,15 @@ const rewardLines = rewards.map(c =>
 /* FUSION STATS */
 
 const fusionStats = `
-📊 **Tes stats fusion**
+📊 **Stats fusion**
 
 Fusions : **${user.stats.fusions||0}**
 🔥 Critiques : **${user.stats.fusionCrit||0}**
 ✨ Doubles : **${user.stats.fusionDouble||0}**
 🌈 Triples : **${user.stats.tripleFusion||0}**
 `
+
+/* RESULT */
 
 const resultEmbed = new EmbedBuilder()
 .setTitle("⚗️ Fusion terminée")
@@ -310,6 +310,12 @@ ${cost} ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
 **Résultat**
 
 ${rewardLines.join("\n")}
+
+📊 **Chances**
+
+🔥 Critique : **10%**
+🌈 Triple : **0.5%**
+✨ Double : **10%**
 
 ${fusionStats}
 `)

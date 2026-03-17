@@ -15,7 +15,7 @@ const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","�
 function bar(value,max){
 
  const size=10
- const percent=value/max
+ const percent=max>0 ? value/max : 0
 
  const filled=Math.round(size*percent)
  const empty=size-filled
@@ -47,9 +47,11 @@ module.exports={
 
   function build(){
 
-   const data=rankings[mode]
+   const data=rankings[mode] || []
 
    const maxPage=Math.max(1,Math.ceil(data.length/perPage))
+
+   page=Math.max(1,Math.min(page,maxPage))
 
    const start=(page-1)*perPage
    const slice=data.slice(start,start+perPage)
@@ -62,6 +64,7 @@ module.exports={
     const medal=medals[i] || `#${rank}`
 
     return `${medal} <@${r.id}> — **${r.value}** ${bar(r.value,maxValue)}`
+
    })
 
    const playerIndex=data.findIndex(r=>String(r.id)===interaction.user.id)
@@ -142,9 +145,7 @@ module.exports={
    if(i.customId==="lb_next") page++
    if(i.customId==="lb_prev") page--
 
-   const {embed,row,maxPage}=build()
-
-   page=Math.max(1,Math.min(page,maxPage))
+   const {embed,row}=build()
 
    await i.update({
     embeds:[embed],

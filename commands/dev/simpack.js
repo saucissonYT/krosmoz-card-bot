@@ -71,6 +71,7 @@ module.exports = {
   }
 
   let totalKamas=0
+  let totalCards=0
 
   for(let i=0;i<packs;i++){
 
@@ -80,6 +81,8 @@ module.exports = {
 
    const result = generatePack(user,setId)
    const pack = result.pack
+
+   totalCards += pack.length
 
    for(const card of pack){
 
@@ -95,8 +98,6 @@ module.exports = {
 
   }
 
-  const totalCards = packs * 5
-
   const avgCard = totalKamas / totalCards
   const avgPack = avgCard * 5
   const avg10 = avgPack * 10
@@ -107,6 +108,8 @@ module.exports = {
 `🎴 Simulation ${packs} packs
 Set : ${setId}
 Pity : ${pity ? "ON" : "OFF"}
+
+Cartes générées : ${totalCards}
 
 `
 

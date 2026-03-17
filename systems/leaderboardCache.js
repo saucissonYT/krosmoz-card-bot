@@ -1,141 +1,93 @@
-const {
- EmbedBuilder,
- ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle
-} = require("discord.js")
+const { getUsers } = require("./userSystem")
 
-const { getUser } = require("../../systems/userSystem")
-const { getLeaderboard } = require("../../systems/leaderboardCache")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
+let cache = null
+let lastBuild = 0
 
-const medals=["🥇","🥈","🥉","🏅","🏅","🏅","🏅","🏅","🏅","🏅"]
+const CACHE_TIME = 30000
 
-module.exports={
+function buildLeaderboard(){
 
- name:"leaderboard",
- description:"Voir les classements",
+ const users = getUsers()
 
- async execute(interaction){
+ const boards={
+  collection:[],
+  wealth:[],
+  ssr:[],
+  packs:[],
+  achievements:[],
+  level:[]
+ }
 
-  await interaction.deferReply()
+ for(const id in users){
 
-  const self = getUser(interaction.user.id)
+  const u = users[id]
 
-  if(!self.stats) self.stats={}
-  self.stats.leaderboardViews=(self.stats.leaderboardViews||0)+1
+  if(!u) continue
 
-  const unlocked = achievementCheck(self,"social")
+  const cards = Object.values(u.cards || {})
+   .reduce((a,b)=>a+b,0)
 
-  const rankings = getLeaderboard()
-
-  let mode="collection"
-  let page=1
-  const perPage=10
-
-  function build(){
-
-   const data=rankings[mode]
-
-   const maxPage=Math.max(1,Math.ceil(data.length/perPage))
-
-   const start=(page-1)*perPage
-   const slice=data.slice(start,start+perPage)
-
-   const lines=slice.map((r,i)=>
-    `${medals[i]||"•"} <@${r.id}> — **${r.value}**`
-   )
-
-   const playerIndex=data.findIndex(r=>String(r.id)===interaction.user.id)
-
-   let playerLine="Non classé"
-
-   if(playerIndex!==-1){
-
-    const rank=playerIndex+1
-    const value=data[playerIndex].value
-
-    playerLine=`#${rank} — ${value}`
-
-   }
-
-   const titles={
-    collection:"📚 Collection",
-    wealth:"💰 Richesse",
-    ssr:"🌈 Cartes SSR",
-    packs:"📦 Packs ouverts",
-    achievements:"🏆 Succès",
-    level:"⭐ Niveau"
-   }
-
-   const embed=new EmbedBuilder()
-    .setTitle(`🏆 Leaderboard — ${titles[mode]}`)
-    .setDescription(lines.join("\n") || "Aucun joueur")
-    .addFields({
-     name:"Ta position",
-     value:playerLine
-    })
-    .setFooter({
-     text:`Page ${page}/${maxPage}`
-    })
-    .setColor("#f1c40f")
-
-   const row=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("lb_prev")
-     .setLabel("⬅️")
-     .setStyle(ButtonStyle.Primary)
-     .setDisabled(page===1),
-
-    new ButtonBuilder()
-     .setCustomId("lb_next")
-     .setLabel("➡️")
-     .setStyle(ButtonStyle.Primary)
-     .setDisabled(page===maxPage)
-
-   )
-
-   return {embed,row,maxPage}
-
-  }
-
-  const {embed,row}=build()
-
-  await interaction.editReply({
-   embeds:[embed],
-   components:[row]
-  })
-
-  const msg = await interaction.fetchReply()
-
-  if(unlocked.length)
-   await notifyAchievements(interaction,unlocked)
-
-  const collector=msg.createMessageComponentCollector({
-   time:180000
-  })
-
-  collector.on("collect",async i=>{
-
-   if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ton menu.",flags:64})
-
-   if(i.customId==="lb_next") page++
-   if(i.customId==="lb_prev") page--
-
-   const {embed,row,maxPage}=build()
-
-   page=Math.max(1,Math.min(page,maxPage))
-
-   await i.update({
-    embeds:[embed],
-    components:[row]
+  const ssr = Object.entries(u.cards || {})
+   .filter(([id,count])=>{
+    const rarity = id.toString().startsWith("SSR")
+    return rarity
    })
+   .reduce((a,[,count])=>a+count,0)
 
+  boards.collection.push({
+   id,
+   value:cards
+  })
+
+  boards.wealth.push({
+   id,
+   value:u.kamas || 0
+  })
+
+  boards.ssr.push({
+   id,
+   value:ssr
+  })
+
+  boards.packs.push({
+   id,
+   value:u.stats?.packsOpened || 0
+  })
+
+  boards.achievements.push({
+   id,
+   value:(u.achievements || []).length
+  })
+
+  boards.level.push({
+   id,
+   value:u.progression?.level || 0
   })
 
  }
 
+ for(const key in boards){
+
+  boards[key].sort((a,b)=>b.value-a.value)
+
+ }
+
+ cache = boards
+ lastBuild = Date.now()
+
+}
+
+function getLeaderboard(){
+
+ const now = Date.now()
+
+ if(!cache || now-lastBuild > CACHE_TIME)
+  buildLeaderboard()
+
+ return cache
+
+}
+
+module.exports={
+ getLeaderboard
 }

@@ -27,9 +27,9 @@ module.exports={
    const now=Date.now()
    const cooldown=24*60*60*1000
 
-   const lastClaim=user.daily?.lastClaim||0
+   const lastClaim=user.daily?.lastDaily||0
    const next=lastClaim+cooldown
-   const remaining=next-now
+   const remaining=Math.max(0,next-now)
 
    const hours=Math.floor(remaining/(1000*60*60))
    const minutes=Math.floor((remaining%(1000*60*60))/(1000*60))
