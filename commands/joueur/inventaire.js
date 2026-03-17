@@ -15,6 +15,10 @@ const rarityEmoji={
  HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
+const rarityOrder={
+ C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
+}
+
 module.exports={
 
  name:"inventaire",
@@ -99,20 +103,49 @@ module.exports={
    return
   }
 
+  let filter=null
+  let sort="id"
+
   const perPage=20
   let page=1
-  const totalPages=Math.max(1,Math.ceil(inventory.length/perPage))
 
-  function build(page){
+  function applyFilters(){
+
+   let list=[...inventory]
+
+   if(filter)
+    list=list.filter(e=>e.card.rarity===filter)
+
+   if(sort==="name")
+    list.sort((a,b)=>a.card.name.localeCompare(b.card.name))
+
+   if(sort==="rarity")
+    list.sort((a,b)=>rarityOrder[b.card.rarity]-rarityOrder[a.card.rarity])
+
+   if(sort==="count")
+    list.sort((a,b)=>b.count-a.count)
+
+   return list
+
+  }
+
+  function build(){
+
+   const data=applyFilters()
+
+   const totalPages=Math.max(1,Math.ceil(data.length/perPage))
+
+   page=Math.max(1,Math.min(page,totalPages))
 
    const start=(page-1)*perPage
-   const data=inventory.slice(start,start+perPage)
 
-   const lines=data.map(e=>{
+   const slice=data.slice(start,start+perPage)
+
+   const lines=slice.map(e=>{
 
     const emoji=rarityEmoji[e.card.rarity]||""
 
-    return `#${e.card.id} • ${emoji} ${e.card.name} - x${e.count}`
+    return `#${e.card.id} • ${emoji} ${e.card.name} • x${e.count}`
 
    })
 
@@ -120,34 +153,87 @@ module.exports={
     .setTitle(`🎴 Inventaire de ${interaction.user.username}`)
     .setDescription(lines.join("\n") || "Aucune carte.")
     .setFooter({
-     text:`${inventory.length} cartes • Page ${page}/${totalPages}`
+     text:`${data.length} cartes • Page ${page}/${totalPages}`
     })
 
-   const row=new ActionRowBuilder().addComponents(
+   const nav=new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("prev")
-     .setLabel("⬅️")
+     .setEmoji("⬅")
      .setStyle(ButtonStyle.Secondary)
      .setDisabled(page===1),
 
     new ButtonBuilder()
      .setCustomId("next")
-     .setLabel("➡️")
+     .setEmoji("➡")
      .setStyle(ButtonStyle.Secondary)
      .setDisabled(page===totalPages)
 
    )
 
-   return {embed,row}
+   const sortRow=new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("sort_name")
+     .setLabel("Nom")
+     .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+     .setCustomId("sort_rarity")
+     .setLabel("Rareté")
+     .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+     .setCustomId("sort_count")
+     .setLabel("Quantité")
+     .setStyle(ButtonStyle.Primary)
+
+   )
+
+   const rarityRow1=new ActionRowBuilder()
+
+   ;["C","U","R","SR"].forEach(r=>{
+    rarityRow1.addComponents(
+     new ButtonBuilder()
+      .setCustomId(`filter_${r}`)
+      .setLabel(r)
+      .setStyle(ButtonStyle.Secondary)
+    )
+   })
+
+   const rarityRow2=new ActionRowBuilder()
+
+   ;["HR","UR","S","SSR"].forEach(r=>{
+    rarityRow2.addComponents(
+     new ButtonBuilder()
+      .setCustomId(`filter_${r}`)
+      .setLabel(r)
+      .setStyle(ButtonStyle.Secondary)
+    )
+   })
+
+   const clearRow=new ActionRowBuilder().addComponents(
+
+    new ButtonBuilder()
+     .setCustomId("filter_clear")
+     .setLabel("Reset")
+     .setStyle(ButtonStyle.Danger)
+
+   )
+
+   return {
+    embed,
+    components:[nav,sortRow,rarityRow1,rarityRow2,clearRow]
+   }
 
   }
 
-  const {embed,row}=build(page)
+  const built=build()
 
   const msg=await interaction.editReply({
-   embeds:[embed],
-   components:[row],
+   embeds:[built.embed],
+   components:built.components,
    withResponse:true
   })
 
@@ -169,13 +255,21 @@ module.exports={
    if(i.customId==="next") page++
    if(i.customId==="prev") page--
 
-   page=Math.max(1,Math.min(page,totalPages))
+   if(i.customId==="sort_name") sort="name"
+   if(i.customId==="sort_rarity") sort="rarity"
+   if(i.customId==="sort_count") sort="count"
 
-   const {embed,row}=build(page)
+   if(i.customId.startsWith("filter_"))
+    filter=i.customId.split("_")[1]
+
+   if(i.customId==="filter_clear")
+    filter=null
+
+   const built=build()
 
    await i.update({
-    embeds:[embed],
-    components:[row]
+    embeds:[built.embed],
+    components:built.components
    })
 
   })

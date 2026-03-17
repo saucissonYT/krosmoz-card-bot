@@ -111,7 +111,7 @@ module.exports={
 
    const cardInput=new TextInputBuilder()
     .setCustomId("cardId")
-    .setLabel("ID de la carte")
+    .setLabel("ID de la carte (visible dans /inventaire)")
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
 
@@ -411,10 +411,15 @@ module.exports={
 
   )
 
-  return interaction.update({
+  const payload={
    embeds:[embed],
    components:[nav,sort,rarityButtons,rarityButtons2,clear]
-  })
+  }
+
+  if(interaction.deferred || interaction.replied)
+   return interaction.editReply(payload)
+
+  return interaction.update(payload)
 
  },
 
