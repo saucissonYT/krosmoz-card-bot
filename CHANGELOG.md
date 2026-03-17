@@ -8,6 +8,67 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+[0.17.0] - 2026-03-17
+
+### Added
+
+- Event spécial Krosmo-bot dans /trade
+- Krosmo-bot peut voler une carte lors d’un échange
+- 1% de chance que Krosmo-bot rende une SSR aléatoire
+- Nouveau titre secret : "Favori du Krosmoz"
+- Nouveaux achievements secrets liés à Krosmo-bot
+- Messages aléatoires lors de l’event Krosmo-bot
+- Commande admin /ecogive,add,remove,set
+- Simulation RNG améliorée dans /simpack
+- Simulation multi-joueurs pour un pity plus réaliste
+- Affichage détaillé des statistiques dans /stats :
+joueurs
+cartes totales
+SSR totales
+kamas globaux
+packs ouverts
+fusions
+listings du marché
+
+### Changed
+
+- Amélioration de la commande /daily
+affichage du streak visuel
+ajout d’XP progressive
+affichage du streak maximum
+messages aléatoires
+visibilité publique de la récompense
+- Amélioration UX du système de fusion
+affichage du nombre de cartes disponibles
+affichage de la carte utilisée pour la fusion
+ajout de compteurs de statistiques
+- Amélioration de la commande /titre
+affichage du titre actuel
+sélection plus claire via menu
+- Amélioration de la commande /market
+navigation améliorée
+bouton retour après affichage des ventes
+
+### Improved
+
+- Stabilisation des interactions Discord dans plusieurs commandes
+- Amélioration des outils dev pour le debug RNG et économie
+- Nettoyage du code dans plusieurs commandes internes
+
+### Fixed
+
+- Correction de la commande /titre
+- Correction de la commande admin /stats
+- Correction du système /event
+- Correction du système /devpack
+- Correction de plusieurs incohérences dans les systèmes de simulation RNG
+
+### Removed
+
+- Suppression de la commande dev /devgive (outil devenu inutile)
+- Suppression de /krosmodev
+
+---
 [0.16.0] - 2026-03-16
 
 ### Added

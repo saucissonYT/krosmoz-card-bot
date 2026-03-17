@@ -7,6 +7,8 @@ const {
  getEventRemaining
 } = require("../../systems/eventSystem")
 
+const { isDev } = require("../../systems/devSystem")
+
 module.exports = {
 
  name: "event",
@@ -32,6 +34,13 @@ module.exports = {
 
  async execute(interaction) {
 
+  if(!isDev(interaction.user.id)){
+   return interaction.reply({
+    content:"❌ Commande réservée aux développeurs.",
+    ephemeral:true
+   })
+  }
+
   const sub = interaction.options.getSubcommand()
 
   await interaction.deferReply()
@@ -39,6 +48,19 @@ module.exports = {
   /* START */
 
   if(sub === "start"){
+
+   if(isSSREvent()){
+
+    const remaining = Math.ceil(getEventRemaining()/60000)
+
+    const embed = new EmbedBuilder()
+     .setTitle("⚠️ Event déjà actif")
+     .setDescription(`Il reste **${remaining} minutes**.`)
+     .setColor("Orange")
+
+    return interaction.editReply({embeds:[embed]})
+
+   }
 
    startSSREvent(interaction.channel)
 
@@ -55,10 +77,21 @@ module.exports = {
 
   if(sub === "stop"){
 
+   if(!isSSREvent()){
+
+    const embed = new EmbedBuilder()
+     .setTitle("⚠️ Aucun event actif")
+     .setColor("Orange")
+
+    return interaction.editReply({embeds:[embed]})
+
+   }
+
    stopSSREvent()
 
    const embed = new EmbedBuilder()
     .setTitle("⛔ Event arrêté")
+    .setDescription("Les taux SSR sont revenus à la normale.")
     .setColor("Red")
 
    return interaction.editReply({embeds:[embed]})
@@ -85,7 +118,7 @@ module.exports = {
     const remaining = Math.ceil(getEventRemaining()/60000)
 
     embed
-     .setDescription(`🟢 Event SSR actif\nTemps restant : ${remaining} minutes`)
+     .setDescription(`🟢 Event SSR actif\nTemps restant : **${remaining} minutes**`)
      .setColor("Green")
 
    }

@@ -18,6 +18,7 @@ module.exports={
  name:"devpack",
 
  options:[
+
   {
    name:"set",
    description:"Set à tester",
@@ -27,7 +28,15 @@ module.exports={
     name:s.name,
     value:s.id
    }))
+  },
+
+  {
+   name:"amount",
+   description:"Nombre de packs à générer",
+   type:4,
+   required:false
   }
+
  ],
 
  async execute(interaction,user,save){
@@ -42,6 +51,49 @@ module.exports={
    interaction.options.getString("set") ||
    sets[0].id
 
+  const amount =
+   interaction.options.getInteger("amount") || 1
+
+  /* MULTI PACK DEBUG */
+
+  if(amount > 1){
+
+   let pulls = []
+
+   for(let i=0;i<amount;i++){
+
+    const pack = generatePack(user,setId)
+
+    pulls.push(...pack)
+
+   }
+
+   const rarityCount={}
+
+   pulls.forEach(card=>{
+    rarityCount[card.rarity]=(rarityCount[card.rarity]||0)+1
+   })
+
+   const lines = Object.entries(rarityCount)
+    .map(([r,q])=>`${rarityEmoji[r]} ${r} : ${q}`)
+
+   const embed = new EmbedBuilder()
+
+    .setTitle(`🎴 DEV PACK x${amount}`)
+    .setDescription(`
+Set : **${setId}**
+
+Cartes tirées : **${pulls.length}**
+
+${lines.join("\n")}
+`)
+
+   return interaction.reply({embeds:[embed]})
+
+  }
+
+  /* PACK NORMAL */
+
   const pack = generatePack(user,setId)
 
   const embed = new EmbedBuilder()
@@ -50,7 +102,7 @@ module.exports={
 
   const row = new ActionRowBuilder()
 
-  pack.forEach((card,index)=>{
+  pack.slice(0,5).forEach((card,index)=>{
 
    row.addComponents(
     new ButtonBuilder()

@@ -41,6 +41,16 @@ const cardValues={
 
 const TRADE_COOLDOWN = 30000
 
+/* ================= KROSMO BOT MESSAGES ================= */
+
+const scamMessages=[
+"🤖 Merci pour la carte.\n\nTraitement en cours...\n\nCarte conservée.",
+"🤖 Transaction validée.\n\nCarte confisquée pour inspection.",
+"🤖 Merci.\n\n...\n\nPourquoi me regardes-tu comme ça ?",
+"🤖 Carte reçue.\n\nContribution au Krosmoz appréciée.",
+"🤖 Échange terminé.\n\n...\n\nJe ne me souviens pas avoir promis quelque chose."
+]
+
 module.exports={
 
 data:new SlashCommandBuilder()
@@ -289,6 +299,74 @@ async button(interaction){
  const from = getUser(trade.from)
  const to = getUser(trade.to)
 
+ /* ================= KROSMO BOT EVENT ================= */
+
+ if(action==="accept" && trade.to === interaction.client.user.id){
+
+  const stolenCard = cards.find(c=>c.id==trade.giveCard)
+
+  from.cards[trade.giveCard]--
+
+  if(from.cards[trade.giveCard]<=0)
+   delete from.cards[trade.giveCard]
+
+  if(!from.stats) from.stats={}
+  from.stats.scammedByBot = true
+
+  let description = scamMessages[Math.floor(Math.random()*scamMessages.length)]
+
+  /* 1% SSR */
+
+  if(Math.random() < 0.01){
+
+   const ssrPool = cards.filter(c=>c.rarity==="SSR")
+   const reward = ssrPool[Math.floor(Math.random()*ssrPool.length)]
+
+   from.cards[reward.id]=(from.cards[reward.id]||0)+1
+
+   if(!from.titles) from.titles=[]
+
+   if(!from.titles.includes("Favori du Krosmoz"))
+    from.titles.push("Favori du Krosmoz")
+
+   description = `🤖 ...
+
+Attends.
+
+Krosmo-bot revient.
+
+🌈 **${reward.name}** obtenu !
+
+👑 Nouveau titre :
+**Favori du Krosmoz**`
+  }
+
+  save()
+
+  activeUsers.delete(trade.from)
+  activeUsers.delete(trade.to)
+  deleteTrade(tradeId)
+
+  const embed = new EmbedBuilder()
+   .setTitle("🤖 Échange avec Krosmo-bot")
+   .setDescription(description)
+   .setColor("#e74c3c")
+
+  await interaction.update({
+   embeds:[embed],
+   components:[]
+  })
+
+  const unlocked = achievementCheck(from,"secret")
+
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
+
+  return
+ }
+
+ /* ================= NORMAL TRADE ================= */
+
  if(action==="accept" && interaction.user.id !== trade.to){
   return interaction.reply({
    content:"❌ Seul le joueur ciblé peut accepter l'échange.",
@@ -320,15 +398,6 @@ async button(interaction){
   to.cards[trade.giveCard]=(to.cards[trade.giveCard]||0)+1
 
   save()
-
-  const unlockedFrom = achievementCheck(from,"collection")
-  const unlockedTo = achievementCheck(to,"collection")
-
-  if(unlockedFrom.length)
-   await notifyAchievements(interaction,unlockedFrom)
-
-  if(unlockedTo.length)
-   await notifyAchievements(interaction,unlockedTo)
 
   activeUsers.delete(trade.from)
   activeUsers.delete(trade.to)

@@ -52,35 +52,42 @@ module.exports = {
   const pity =
    interaction.options.getBoolean("pity") ?? true
 
-  const rarityCount = {
-   C: 0,
-   U: 0,
-   R: 0,
-   SR: 0,
-   HR: 0,
-   UR: 0,
-   S: 0,
-   SSR: 0
+  /* MULTI JOUEURS FAKE */
+
+  const fakeUsers=[]
+
+  for(let i=0;i<50;i++)
+   fakeUsers.push({pity:{}})
+
+  const rarityCount={
+   C:0,
+   U:0,
+   R:0,
+   SR:0,
+   HR:0,
+   UR:0,
+   S:0,
+   SSR:0
   }
 
-  let totalKamas = 0
+  let totalKamas=0
 
-  const fakeUser = { pity:{} }
+  for(let i=0;i<packs;i++){
 
-  for (let i = 0; i < packs; i++) {
+   const user = pity
+    ? fakeUsers[Math.floor(Math.random()*fakeUsers.length)]
+    : {pity:{}}
 
-   const user = pity ? fakeUser : { pity:{} }
-
-   const result = generatePack(user, setId)
+   const result = generatePack(user,setId)
    const pack = result.pack
 
-   for (const card of pack) {
+   for(const card of pack){
 
     if(rarityCount[card.rarity] !== undefined)
      rarityCount[card.rarity]++
 
     totalKamas += rewardKamas(
-     { kamas:0 },
+     {kamas:0},
      card.rarity
     )
 
@@ -89,9 +96,12 @@ module.exports = {
   }
 
   const totalCards = packs * 5
+
   const avgCard = totalKamas / totalCards
   const avgPack = avgCard * 5
   const avg10 = avgPack * 10
+
+  /* RESULTATS DROPS */
 
   let dropResult =
 `🎴 Simulation ${packs} packs
@@ -100,7 +110,7 @@ Pity : ${pity ? "ON" : "OFF"}
 
 `
 
-  for (const rarity in rarityCount) {
+  for(const rarity in rarityCount){
 
    const count = rarityCount[rarity]
    const percent = ((count / totalCards) * 100).toFixed(4)
@@ -108,6 +118,8 @@ Pity : ${pity ? "ON" : "OFF"}
    dropResult += `${rarity} : ${count} (${percent}%)\n`
 
   }
+
+  /* RESULTATS ECONOMIE */
 
   const ecoResult =
 `💰 Économie
@@ -139,7 +151,6 @@ Prix pack conseillé : ${Math.ceil(avg10)}
   await interaction.reply({
 
    content:`\`\`\`\n${dropResult}\n\`\`\``,
-
    components:[row]
 
   })

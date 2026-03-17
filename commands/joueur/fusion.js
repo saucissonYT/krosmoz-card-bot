@@ -106,12 +106,14 @@ content:`❌ Il faut **${cost} doublons ${rarityEmoji[rarity]}**.`,
 flags:64
 })
 
+/* CARTES UTILISÉES */
+
 let remaining = cost
+const usedCards = {}
 
 for(const card of pool){
 
 const count = user.cards?.[card.id] || 0
-
 const usable = Math.max(0,count-1)
 
 if(usable <= 0) continue
@@ -121,12 +123,16 @@ const take = Math.min(usable,remaining)
 user.cards[card.id] -= take
 remaining -= take
 
+usedCards[card.id]=(usedCards[card.id]||0)+take
+
 if(user.cards[card.id] <= 0)
 delete user.cards[card.id]
 
 if(remaining <= 0) break
 
 }
+
+/* STATS */
 
 if(!user.stats) user.stats={}
 
@@ -140,6 +146,8 @@ user.stats.tripleFusionToday = 0
 user.stats.lastTripleReset = now
 
 }
+
+/* RNG */
 
 const roll = Math.random()
 
@@ -205,14 +213,27 @@ c.rarity === targetRarity
 if(rewardPool.length === 0)
 return interaction.reply({content:"Erreur de pool.",flags:64})
 
+/* EMBED START */
+
 const embed = new EmbedBuilder()
 .setTitle("⚗️ Fusion en cours...")
-.setDescription(`${cost} ${rarityEmoji[rarity]} utilisées`)
+.setDescription(`
+Set : **${setName}**
+
+Cartes ${rarityEmoji[rarity]} disponibles : **${pool.length}**
+
+Fusion de **${cost} doublons**
+
+📊 Chances
+🔥 Critique : **10%**
+🌈 Triple : **0.5%**
+✨ Double : **10%**
+`)
 
 await interaction.reply({embeds:[embed]})
 const msg = await interaction.fetchReply()
 
-await sleep(800)
+await sleep(900)
 
 embed.setDescription(`
 ${cost} ${rarityEmoji[rarity]}
@@ -222,9 +243,11 @@ ${rarityEmoji[targetRarity]}
 
 await msg.edit({embeds:[embed]})
 
-await sleep(800)
+await sleep(900)
 
-const rewards = []
+/* REWARDS */
+
+const rewards=[]
 
 for(let i=0;i<quantity;i++){
 
@@ -232,13 +255,11 @@ const card = rewardPool[Math.floor(Math.random()*rewardPool.length)]
 
 rewards.push(card)
 
-user.cards[card.id] =
-(user.cards[card.id] || 0) + 1
+user.cards[card.id]=(user.cards[card.id]||0)+1
 
 }
 
 addXP(user,xpGain)
-
 save()
 
 let unlocked=[]
@@ -246,20 +267,51 @@ let unlocked=[]
 unlocked.push(...achievementCheck(user,"fusion"))
 unlocked.push(...achievementCheck(user,"collection"))
 
-const lines = rewards.map(c =>
+/* DISPLAY USED */
+
+const usedLines = Object.entries(usedCards).map(([id,q])=>{
+
+const card = cards.find(c=>c.id==id)
+
+return `${rarityEmoji[card.rarity]} ${card.name} ×${q}`
+
+})
+
+/* DISPLAY REWARD */
+
+const rewardLines = rewards.map(c =>
 `${rarityEmoji[c.rarity]} ${c.name}`
 )
+
+/* FUSION STATS */
+
+const fusionStats = `
+📊 **Tes stats fusion**
+
+Fusions : **${user.stats.fusions||0}**
+🔥 Critiques : **${user.stats.fusionCrit||0}**
+✨ Doubles : **${user.stats.fusionDouble||0}**
+🌈 Triples : **${user.stats.tripleFusion||0}**
+`
 
 const resultEmbed = new EmbedBuilder()
 .setTitle("⚗️ Fusion terminée")
 .setDescription(`
 ${message}
 
+**Cartes utilisées**
+
+${usedLines.join("\n")}
+
 ${cost} ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
 
 ⭐ XP gagnée : **${xpGain}**
 
-${lines.join("\n")}
+**Résultat**
+
+${rewardLines.join("\n")}
+
+${fusionStats}
 `)
 
 await msg.edit({embeds:[resultEmbed]})
