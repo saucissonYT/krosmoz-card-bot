@@ -9,6 +9,109 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+---
+
+[0.18.0] - 2026-03-18
+
+### Added
+
+- Nouveau système **KrosmoShop** (`/krosmoshop`)
+- Shop quotidien avec **15 cartes fixes**
+- Distribution :
+  - 1 SSR
+  - 2 S
+  - 3 UR
+  - 4 HR
+  - 5 SR
+- Prix fixes par rareté (SSR → SR)
+- Reset automatique **à minuit (heure FR)**
+- Génération aléatoire avec **mélange de tous les sets**
+- Système **anti-abus** :
+  - 1 achat max par carte par jour
+  - shop partagé global (pas de stock limité)
+- Auto-création du fichier **krosmoshop.json**
+- Ajout de statistiques joueur :
+  - `krosmoshopStats.cardsBought`
+  - `krosmoshopStats.ssrBought`
+- Ajout de nouveaux **achievements KrosmoShop** :
+  - Acheter 1 / 10 / 100 / 1000 cartes
+  - Acheter une SSR
+- Intégration complète du trigger **"krosmoshop"** dans le système d’achievements
+- Ajout de la **pity S (30 pulls)** dans le système de packs
+- Support complet de la pity S dans :
+  - `/krosmoz`
+  - `/pity`
+  - `/hardpity`
+- Ajout du **Hard Pity S** pour les outils dev
+- Amélioration de la commande **/simpack**
+- Simulation désormais **100% fidèle au système réel**
+- Intégration de la pity S dans les simulations
+- Meilleure cohérence entre RNG réel et simulation
+
+### Changed
+
+- Refonte complète de la commande **/market**
+- retour à un système simple :
+  - vente via ID
+  - UX clarifiée
+- ajout d’un **tip utilisateur** :
+  - ID visible dans `/inventaire`
+- amélioration de la navigation du marché
+- stabilisation des boutons et modals
+- correction de la gestion des états (`marketState`)
+- Amélioration du système de pity :
+- nouvelle hiérarchie :
+  - UR → 10
+  - S → 30
+  - SSR → 50
+- meilleure progression entre raretés
+- Amélioration de **/krosmoz**
+- affichage de la pity S dans le menu des sets
+- affichage dans le résultat de pack
+- Amélioration de **/pity**
+- ajout de la barre de progression S
+- meilleure lisibilité globale
+
+### Improved
+
+- Cohérence globale du système RNG
+- Simulation désormais fiable pour équilibrage économique
+- Meilleure intégration entre : market, shop, packs
+- Amélioration de la logique de progression joueur
+- Meilleure scalabilité du système d’achievements
+- Stabilisation des interactions (select menu, modals, boutons)
+- Amélioration de la persistance des données (Railway safe)
+
+### Fixed
+
+- Correction du système **/market**
+- bug empêchant la mise en vente via modal
+- problème "Utilisateur introuvable"
+- problème de state non persisté
+- Correction des interactions Discord
+- select menu non routé (krosmoshop)
+- échec d’interaction après 3s
+- Correction du **KrosmoShop**
+- erreur `ENOENT` (fichier inexistant)
+- duplication des options dans le select menu
+- reset incorrect du shop à chaque restart
+- Correction du système de pity
+- ajout de la clé `S` dans toutes les structures
+- fix des resets incorrects
+- Correction de **/simpack**
+- incohérence entre simulation et RNG réel
+- absence de la pity S
+- Correction de plusieurs erreurs liées aux modals et interactions Discord
+
+### Removed
+
+- Suppression des anciennes tentatives UX complexes du market
+- Suppression des systèmes instables de sélection de cartes à vendre
+
+---
+
+---
+
 [0.17.0] - 2026-03-17
 
 ### Added

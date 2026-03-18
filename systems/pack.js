@@ -21,7 +21,6 @@ function getSSRRate(pity){
  if(pity < 49) return 0.01
 
  return 0.01
-
 }
 
 function rollRarity(pity){
@@ -43,11 +42,9 @@ function rollRarity(pity){
 
   if(r<=cumulative)
    return rarity
-
  }
 
  return "C"
-
 }
 
 function randomCard(pool){
@@ -62,7 +59,8 @@ function generatePack(user,setId){
   return {pack:[],luckyPack:false}
 
  if(!user.pity) user.pity={}
- if(!user.pity[setId]) user.pity[setId]={UR:0,SSR:0}
+ if(!user.pity[setId])
+  user.pity[setId]={UR:0,S:0,SSR:0}
 
  const pity=user.pity[setId]
 
@@ -70,8 +68,12 @@ function generatePack(user,setId){
 
  let forced=null
 
+ /* -------- PRIORITÉ DES PITY -------- */
+
  if(pity.SSR>=49)
   forced="SSR"
+ else if(pity.S>=29)
+  forced="S"
  else if(pity.UR>=9)
   forced="UR"
 
@@ -116,19 +118,30 @@ function generatePack(user,setId){
   rarityOrder.indexOf(a.rarity)?b:a
  )
 
+ /* -------- RESET PITY -------- */
+
  if(best.rarity==="SSR"){
 
   pity.SSR=0
+  pity.S=0
   pity.UR=0
+
+ }else if(best.rarity==="S"){
+
+  pity.S=0
+  pity.UR=0
+  pity.SSR++
 
  }else if(best.rarity==="UR"){
 
   pity.UR=0
+  pity.S++
   pity.SSR++
 
  }else{
 
   pity.UR++
+  pity.S++
   pity.SSR++
 
  }

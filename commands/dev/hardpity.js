@@ -63,8 +63,6 @@ module.exports = {
 
   const id = interaction.customId
 
-  /* ---------- CHOIX SET ---------- */
-
   if(id.startsWith("hardpityset:")){
 
    const userId = id.split(":")[1]
@@ -75,6 +73,7 @@ module.exports = {
     .setPlaceholder("Choisir la hard pity")
     .addOptions([
      {label:"Hard Pity SSR",value:"SSR",emoji:"🌈"},
+     {label:"Hard Pity S",value:"S",emoji:"✨"},
      {label:"Hard Pity UR",value:"UR",emoji:"🔥"}
     ])
 
@@ -86,8 +85,6 @@ module.exports = {
    })
 
   }
-
-  /* ---------- CHOIX TYPE ---------- */
 
   if(!id.startsWith("hardpity:")) return
 
@@ -104,10 +101,13 @@ module.exports = {
    user.pity = {}
 
   if(!user.pity[setId])
-   user.pity[setId] = { UR:0, SSR:0 }
+   user.pity[setId] = { UR:0, S:0, SSR:0 }
 
   if(choice === "SSR")
    user.pity[setId].SSR = 49
+
+  if(choice === "S")
+   user.pity[setId].S = 29
 
   if(choice === "UR")
    user.pity[setId].UR = 9

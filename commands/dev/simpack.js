@@ -49,15 +49,20 @@ module.exports = {
    interaction.options.getString("set") ||
    sets[0].id
 
-  const pity =
+  const pityEnabled =
    interaction.options.getBoolean("pity") ?? true
 
   /* MULTI JOUEURS FAKE */
 
   const fakeUsers=[]
 
-  for(let i=0;i<50;i++)
-   fakeUsers.push({pity:{}})
+  for(let i=0;i<50;i++){
+   fakeUsers.push({
+    pity:{
+     [setId]:{UR:0,S:0,SSR:0}
+    }
+   })
+  }
 
   const rarityCount={
    C:0,
@@ -75,9 +80,9 @@ module.exports = {
 
   for(let i=0;i<packs;i++){
 
-   const user = pity
+   const user = pityEnabled
     ? fakeUsers[Math.floor(Math.random()*fakeUsers.length)]
-    : {pity:{}}
+    : {pity:{[setId]:{UR:0,S:0,SSR:0}}}
 
    const result = generatePack(user,setId)
    const pack = result.pack
@@ -107,7 +112,7 @@ module.exports = {
   let dropResult =
 `🎴 Simulation ${packs} packs
 Set : ${setId}
-Pity : ${pity ? "ON" : "OFF"}
+Pity : ${pityEnabled ? "ON" : "OFF"}
 
 Cartes générées : ${totalCards}
 

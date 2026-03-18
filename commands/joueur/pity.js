@@ -10,7 +10,6 @@ function progressBar(value,max){
  const empty=10-filled
 
  return "🟩".repeat(filled)+"⬛".repeat(empty)
-
 }
 
 module.exports = {
@@ -29,9 +28,10 @@ module.exports = {
 
   for(const set of sets){
 
-   const pity = user.pity[set.id] || {UR:0,SSR:0}
+   const pity = user.pity[set.id] || {UR:0,S:0,SSR:0}
 
    const urBar = progressBar(pity.UR,10)
+   const sBar = progressBar(pity.S,30)
    const ssrBar = progressBar(pity.SSR,50)
 
    lines.push(
@@ -39,6 +39,9 @@ module.exports = {
 
 🟡 UR : ${pity.UR}/10
 ${urBar}
+
+✨ S : ${pity.S}/30
+${sBar}
 
 🌈 SSR : ${pity.SSR}/50
 ${ssrBar}`

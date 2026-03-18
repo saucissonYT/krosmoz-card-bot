@@ -106,14 +106,14 @@ module.exports={
 
   const options = sets.slice(0,25).map(set=>{
 
-   const pity=user.pity[set.id] || {SSR:0,UR:0}
+   const pity=user.pity[set.id] || {SSR:0,S:0,UR:0}
    const completion=getSetCompletion(user,set.id)
 
    return{
     label:set.name,
     value:set.id,
     description:
-`SSR ${pity.SSR}/50 • UR ${pity.UR}/10 • 📚 ${completion.owned}/${completion.total}`
+`SSR ${pity.SSR}/50 • S ${pity.S}/30 • UR ${pity.UR}/10 • 📚 ${completion.owned}/${completion.total}`
    }
 
   })
@@ -146,7 +146,7 @@ ${getCooldownText(user)}`,
 
   if(!user.pity) user.pity={}
   if(!user.pity[setId])
-   user.pity[setId]={SSR:0,UR:0}
+   user.pity[setId]={SSR:0,S:0,UR:0}
 
   if(!user.stats) user.stats={}
 
@@ -223,8 +223,6 @@ ${getCooldownText(user)}`,
 
   save()
 
-  /* ---------- ACHIEVEMENTS ---------- */
-
   let unlocked=[]
 
   unlocked.push(...achievementCheck(user,"pack"))
@@ -240,6 +238,7 @@ ${getCooldownText(user)}`,
     {name:"💰 Kamas gagnés",value:`+${kamasGain}`,inline:true},
     {name:"⭐ XP gagnée",value:`+${xpGain}`,inline:true},
     {name:"🌈 SSR Pity",value:`${pity.SSR}/50`,inline:true},
+    {name:"✨ S Pity",value:`${pity.S}/30`,inline:true},
     {name:"🟡 UR Pity",value:`${pity.UR}/10`,inline:true}
    )
    .setColor(rarityColor[best.rarity])
