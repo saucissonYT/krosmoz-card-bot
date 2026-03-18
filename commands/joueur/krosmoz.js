@@ -106,14 +106,22 @@ module.exports={
 
   const options = sets.slice(0,25).map(set=>{
 
-   const pity=user.pity[set.id] || {SSR:0,S:0,UR:0}
+   if(!user.pity[set.id])
+    user.pity[set.id]={SSR:0,S:0,UR:0}
+
+   const pity=user.pity[set.id]
+
+   const ssr = pity.SSR ?? 0
+   const s = pity.S ?? 0
+   const ur = pity.UR ?? 0
+
    const completion=getSetCompletion(user,set.id)
 
    return{
     label:set.name,
     value:set.id,
     description:
-`SSR ${pity.SSR}/50 • S ${pity.S}/30 • UR ${pity.UR}/10 • 📚 ${completion.owned}/${completion.total}`
+`SSR ${ssr}/50 • S ${s}/30 • UR ${ur}/10 • 📚 ${completion.owned}/${completion.total}`
    }
 
   })
@@ -147,6 +155,13 @@ ${getCooldownText(user)}`,
   if(!user.pity) user.pity={}
   if(!user.pity[setId])
    user.pity[setId]={SSR:0,S:0,UR:0}
+
+  const pity = user.pity[setId]
+
+  /* ✅ FIX SAFE INIT */
+  if(pity.S === undefined) pity.S = 0
+  if(pity.UR === undefined) pity.UR = 0
+  if(pity.SSR === undefined) pity.SSR = 0
 
   if(!user.stats) user.stats={}
 
@@ -228,8 +243,6 @@ ${getCooldownText(user)}`,
   unlocked.push(...achievementCheck(user,"pack"))
   unlocked.push(...achievementCheck(user,"collection"))
   unlocked.push(...achievementCheck(user,"economy"))
-
-  const pity=user.pity[setId]
 
   const finalEmbed=new EmbedBuilder()
    .setTitle("🎴 Pack ouvert !")

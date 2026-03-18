@@ -13,6 +13,8 @@ const rarityRates={
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
+/* ---------- SSR SOFT PITY ---------- */
+
 function getSSRRate(pity){
 
  if(pity < 20) return 0.0005
@@ -23,12 +25,38 @@ function getSSRRate(pity){
  return 0.01
 }
 
-function rollRarity(pity){
+/* ---------- S SOFT PITY (NEW) ---------- */
 
- const ssrRate=getSSRRate(pity)
+function getSRate(pity){
+
+ if(pity < 15) return 0.0015
+ if(pity < 20) return 0.003
+ if(pity < 25) return 0.006
+ if(pity < 28) return 0.012
+ if(pity < 29) return 0.03
+
+ return 0.03
+}
+
+/* ---------- ROLL ---------- */
+
+function rollRarity(pitySSR,pityS){
+
+ /* PRIORITÉ : SSR */
+
+ const ssrRate = getSSRRate(pitySSR)
 
  if(Math.random() < ssrRate)
   return "SSR"
+
+ /* PUIS S */
+
+ const sRate = getSRate(pityS)
+
+ if(Math.random() < sRate)
+  return "S"
+
+ /* POOL NORMAL (S retiré) */
 
  const r=Math.random()
 
@@ -36,7 +64,7 @@ function rollRarity(pity){
 
  for(const rarity of rarityOrder){
 
-  if(rarity==="SSR") continue
+  if(rarity==="SSR" || rarity==="S") continue
 
   cumulative+=rarityRates[rarity]
 
@@ -59,16 +87,22 @@ function generatePack(user,setId){
   return {pack:[],luckyPack:false}
 
  if(!user.pity) user.pity={}
- if(!user.pity[setId])
+
+ if(!user.pity[setId]){
   user.pity[setId]={UR:0,S:0,SSR:0}
+ }
 
  const pity=user.pity[setId]
+
+ if(pity.UR === undefined) pity.UR = 0
+ if(pity.S === undefined) pity.S = 0
+ if(pity.SSR === undefined) pity.SSR = 0
 
  const pack=[]
 
  let forced=null
 
- /* -------- PRIORITÉ DES PITY -------- */
+ /* -------- HARD PITY -------- */
 
  if(pity.SSR>=49)
   forced="SSR"
@@ -81,10 +115,11 @@ function generatePack(user,setId){
 
   let rarity
 
-  if(i===4 && forced)
+  if(i===4 && forced){
    rarity=forced
-  else
-   rarity=rollRarity(pity.SSR)
+  }else{
+   rarity=rollRarity(pity.SSR,pity.S)
+  }
 
   let pool=setCards.filter(c=>c.rarity===rarity)
 
@@ -126,16 +161,16 @@ function generatePack(user,setId){
   pity.S=0
   pity.UR=0
 
- }else if(best.rarity==="S"){
-
-  pity.S=0
-  pity.UR=0
-  pity.SSR++
-
  }else if(best.rarity==="UR"){
 
   pity.UR=0
   pity.S++
+  pity.SSR++
+
+ }else if(best.rarity==="S"){
+
+  pity.S=0
+  pity.UR++
   pity.SSR++
 
  }else{

@@ -103,14 +103,21 @@ module.exports = {
   if(!user.pity[setId])
    user.pity[setId] = { UR:0, S:0, SSR:0 }
 
+  const pity = user.pity[setId]
+
+  /* ✅ FIX SAFE INIT */
+  if(pity.S === undefined) pity.S = 0
+  if(pity.UR === undefined) pity.UR = 0
+  if(pity.SSR === undefined) pity.SSR = 0
+
   if(choice === "SSR")
-   user.pity[setId].SSR = 49
+   pity.SSR = 49
 
   if(choice === "S")
-   user.pity[setId].S = 29
+   pity.S = 29
 
   if(choice === "UR")
-   user.pity[setId].UR = 9
+   pity.UR = 9
 
   save()
 

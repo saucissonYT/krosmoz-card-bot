@@ -235,14 +235,22 @@ UR | 10 packs
 S | 30 packs
 SSR | 50 packs  
 
-Soft Pity (SSR)
+Soft Pity (S & SSR)
 
 Packs sans SSR | Chance SSR  
-0-20 | 0.05%  
-20-30 | 0.1%  
-30-40 | 0.3%  
-40-49 | 1%  
-50 | SSR garantie  
+20    | 0.05%  
+30    | 0.10%  
+40    | 0.30%  
+49    | 1.00%  
+50    | SSR garantie  
+
+Packs sans SSR | Chance SSR  
+< 15  | 0.15%  
+15    | 0.30%  
+20    | 0.60%  
+25    | 1.20%
+28    | 3.00%  
+29    | SSR garantie  
 
 🎁 Lucky Pack
 
@@ -395,11 +403,11 @@ Historique des mises à jour :
 
 📷 Screenshots
 
-  <p align="center">
-  <img src="screenshots/pack.png" width="30%"/>
-  <img src="screenshots/profil.png" width="30%"/>
-  <img src="screenshots/succès.png" width="30%"/>
-  <img src="screenshots/carte.png" width="30%"/>
+<p align="center">
+  <img src="screenshots/pack.PNG" width="30%"/>
+  <img src="screenshots/profil.PNG" width="30%"/>
+  <img src="screenshots/succès.PNG" width="30%"/>
+  <img src="screenshots/carte.PNG" width="30%"/>
 </p>
 
 
