@@ -173,7 +173,14 @@ client.on("interactionCreate",async interaction=>{
 
   }
 
+  /* 🔥 SELECT MENUS */
   if(interaction.isStringSelectMenu()){
+
+   // ✅ FIX KROSMOSHOP
+   if(interaction.customId==="krosmoshop_buy"){
+    const command = require("./commands/joueur/krosmoshop")
+    return command.select(interaction)
+   }
 
    if(interaction.customId==="krosmoz_set"){
     const command = require("./commands/joueur/krosmoz")
@@ -231,7 +238,8 @@ client.on("interactionCreate",async interaction=>{
 
   }
 
-  /* 🔥 FIX ICI */
+  /* ---------------- MODALS ---------------- */
+
   if(interaction.isModalSubmit()){
 
    console.log("📝 Modal :",interaction.customId)
@@ -257,15 +265,19 @@ client.on("interactionCreate",async interaction=>{
   console.error("❌ ERREUR :",error)
 
   if(interaction.replied || interaction.deferred){
+
    await interaction.followUp({
     content:"❌ Une erreur est survenue.",
     ephemeral:true
    })
+
   }else{
+
    await interaction.reply({
     content:"❌ Une erreur est survenue.",
     ephemeral:true
    })
+
   }
 
  }
