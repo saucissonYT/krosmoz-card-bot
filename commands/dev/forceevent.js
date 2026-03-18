@@ -1,118 +1,88 @@
 const {
- SlashCommandBuilder
+ SlashCommandBuilder,
+ ActionRowBuilder,
+ StringSelectMenuBuilder
 } = require("discord.js")
 
-const {
- startEvent,
- stopEvent,
- getEvent
-} = require("../../systems/eventEngine")
-
-const events = require("../../systems/eventRegistry")
 const { isDev } = require("../../systems/devSystem")
+const { startEvent, stopEvent } = require("../../systems/eventSystem")
 
-/* 🔎 MAP EVENTS */
-
-const eventMap = Object.fromEntries(
- events.map(e => [e.id.toLowerCase(), e])
-)
+const EVENTS = require("../../systems/eventRegistry")
 
 module.exports = {
 
- data: new SlashCommandBuilder()
+ data:new SlashCommandBuilder()
   .setName("forceevent")
-  .setDescription("Forcer un événement (DEV)")
-
-  .addSubcommand(sub =>
-   sub
-    .setName("start")
-    .setDescription("Démarrer un event spécifique")
-    .addStringOption(option =>
-     option
-      .setName("event")
-      .setDescription("Nom de l'event")
-      .setRequired(true)
-      .addChoices(
-       ...events.map(e => ({
-        name: e.name,
-        value: e.id.toLowerCase()
-       }))
-      )
-    )
+  .setDescription("Forcer un event")
+  .addSubcommand(sub=>
+   sub.setName("start")
+    .setDescription("Lancer un event")
   )
-
-  .addSubcommand(sub =>
-   sub
-    .setName("stop")
-    .setDescription("Arrêter l'event en cours")
+  .addSubcommand(sub=>
+   sub.setName("stop")
+    .setDescription("Stop l'event")
   ),
 
  async execute(interaction){
 
-  /* 🔒 CHECK DEV */
-
   if(!isDev(interaction.user.id)){
    return interaction.reply({
-    content:"⛔ Commande réservée aux développeurs.",
+    content:"⛔ Dev uniquement.",
     ephemeral:true
    })
   }
 
   const sub = interaction.options.getSubcommand()
 
-  /* 🚀 START */
+  /* ---------------- START ---------------- */
 
   if(sub === "start"){
 
-   const current = getEvent()
+   const options = Object.keys(EVENTS).map(key=>({
+    label:EVENTS[key].name,
+    value:key
+   }))
 
-   if(current){
-    return interaction.reply({
-     content:`⚠️ Un event est déjà actif : **${current.name}**`,
-     ephemeral:true
-    })
-   }
+   const menu = new StringSelectMenuBuilder()
+    .setCustomId("forceevent_select")
+    .setPlaceholder("Choisir un event")
+    .addOptions(options.slice(0,25))
 
-   const eventId = interaction.options.getString("event")
-   const event = eventMap[eventId]
-
-   if(!event){
-    return interaction.reply({
-     content:"❌ Event invalide.",
-     ephemeral:true
-    })
-   }
-
-   startEvent(event, interaction.channel)
+   const row = new ActionRowBuilder().addComponents(menu)
 
    return interaction.reply({
-    content:`🎰 Event forcé : **${event.name}**`,
+    content:"🎯 Choisis un event à lancer",
+    components:[row],
     ephemeral:true
    })
 
   }
 
-  /* 🛑 STOP */
+  /* ---------------- STOP ---------------- */
 
   if(sub === "stop"){
 
-   const current = getEvent()
-
-   if(!current){
-    return interaction.reply({
-     content:"⚠️ Aucun event actif.",
-     ephemeral:true
-    })
-   }
-
    stopEvent(interaction.channel)
 
-   return interaction.reply({
-    content:`⛔ Event arrêté : **${current.name}**`,
-    ephemeral:true
-   })
-
+   return interaction.reply("⛔ Event arrêté.")
   }
+
+ },
+
+ async select(interaction){
+
+  if(interaction.customId !== "forceevent_select") return
+
+  if(!isDev(interaction.user.id)) return
+
+  const eventKey = interaction.values[0]
+
+  startEvent(interaction.channel,eventKey)
+
+  await interaction.update({
+   content:`✅ Event lancé : **${eventKey}**`,
+   components:[]
+  })
 
  }
 
