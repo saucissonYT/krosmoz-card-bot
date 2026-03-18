@@ -18,8 +18,6 @@ function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
 
-/* ---------- COLORS ---------- */
-
 const rarityColor={
  C:"#95a5a6",
  U:"#2ecc71",
@@ -54,8 +52,6 @@ module.exports = {
 
   const user = getUser(interaction.user.id)
 
-  /* ---------- INIT ---------- */
-
   initUserEvent(user)
 
   const check = canUseEventPack(user)
@@ -69,7 +65,6 @@ module.exports = {
 
   user.event.used++
 
-  /* 🔧 FIX : éviter interaction failed */
   await interaction.deferReply()
 
   await interaction.editReply("🎴 Ouverture du pack d'event...")
@@ -93,11 +88,7 @@ module.exports = {
 
   await sleep(1000)
 
-  /* ---------- PACK ---------- */
-
   const pack = generateEventPack(user,event)
-
-  /* ---------- REWARDS ---------- */
 
   let kamas = 0
   let xp = 20
@@ -109,45 +100,43 @@ module.exports = {
 
   xp += pack.length * 2
 
+  /* ---------- EVENT MULTIPLIERS ---------- */
+
+  if(event.key === "enutrof"){
+   kamas *= 5 // ✅ FIX
+  }
+
+  if(event.key === "feca"){
+   xp *= 5 // ✅ FIX
+  }
+
   addXP(user,xp)
 
-  /* ===================== */
-  /*        SRAM UX        */
-  /* ===================== */
+  /* ---------- SRAM ANIMATION ---------- */
+
+  let revealed=[]
 
   if(event.key === "sram"){
 
-   const hidden = pack.map(()=> "❓ Carte inconnue")
+   for(const card of pack){
 
-   await message.edit({
-    embeds:[
-     new EmbedBuilder()
-      .setTitle("🕶️ Pack mystérieux")
-      .setDescription(hidden.join("\n"))
-      .setColor("#2c3e50")
-    ]
-   })
+    revealed.push("❓ ???")
 
-   await sleep(2000)
+    await message.edit({
+     embeds:[
+      new EmbedBuilder()
+       .setTitle("🕶️ Pack mystérieux")
+       .setDescription(revealed.join("\n"))
+       .setColor("#2c3e50")
+     ]
+    })
 
-   const reveal = pack.map(c=>
-    `${rarityEmoji[c.rarity]} **${c.name}** \`${c.rarity}\``
-   )
+    await sleep(500)
+   }
 
-   await message.edit({
-    embeds:[
-     new EmbedBuilder()
-      .setTitle("🎴 Révélation")
-      .setDescription(reveal.join("\n"))
-      .setColor(rarityColor[pack[0]?.rarity] || "#9b59b6")
-    ]
-   })
+   await sleep(1000)
 
-  }else{
-
-   /* ---------- REVEAL ---------- */
-
-   let revealed=[]
+   revealed = []
 
    for(const card of pack){
 
@@ -155,43 +144,46 @@ module.exports = {
 
     revealed.push(line)
 
-    const embed = new EmbedBuilder()
-     .setTitle("🎴 Ouverture du pack")
-     .setDescription(revealed.join("\n"))
-     .setColor(rarityColor[card.rarity] || "#9b59b6")
+    await message.edit({
+     embeds:[
+      new EmbedBuilder()
+       .setTitle("🎴 Révélation")
+       .setDescription(revealed.join("\n"))
+       .setColor(rarityColor[card.rarity] || "#9b59b6")
+     ]
+    })
 
-    await message.edit({embeds:[embed]})
+    await sleep(500)
+   }
+
+  }else{
+
+   for(const card of pack){
+
+    const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
+
+    revealed.push(line)
+
+    await message.edit({
+     embeds:[
+      new EmbedBuilder()
+       .setTitle("🎴 Ouverture du pack")
+       .setDescription(revealed.join("\n"))
+       .setColor(rarityColor[card.rarity] || "#9b59b6")
+     ]
+    })
 
     await sleep(500)
    }
   }
 
-  /* ---------- BONUS EVENTS ---------- */
-
-  if(event.key === "enutrof"){
-
-   if(Math.random()<0.001){
-    kamas += 50000
-   }else if(Math.random()<0.01){
-    kamas += 10000
-   }
-  }
-
-  if(event.key === "feca"){
-
-   if(Math.random()<0.001){
-    xp *= 10
-   }else if(Math.random()<0.01){
-    xp *= 5
-   }
-  }
-
-  /* ---------- FINAL EMBED ---------- */
+  /* ---------- FINAL ---------- */
 
   const remaining = user.event.tickets - user.event.used
 
   const finalEmbed = new EmbedBuilder()
    .setTitle(`🎁 ${event.name}`)
+   .setDescription(revealed.join("\n"))
    .addFields(
     {name:"💰 Kamas",value:`+${kamas}`,inline:true},
     {name:"⭐ XP",value:`+${xp}`,inline:true},
@@ -199,10 +191,7 @@ module.exports = {
    )
    .setColor("#f1c40f")
 
-  await interaction.followUp({
-   embeds:[finalEmbed],
-   ephemeral:true
-  })
+  await message.edit({ embeds:[finalEmbed] })
 
   save()
 

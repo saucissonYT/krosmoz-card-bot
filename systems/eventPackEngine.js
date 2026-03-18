@@ -8,6 +8,10 @@ function randomCard(pool){
  return pool[Math.floor(Math.random()*pool.length)]
 }
 
+function randomInt(min,max){
+ return Math.floor(Math.random()*(max-min+1))+min
+}
+
 function generateBasePack(size=5){
  const pack=[]
  for(let i=0;i<size;i++){
@@ -19,7 +23,7 @@ function generateBasePack(size=5){
 /* ---------- ENIRIPSA ---------- */
 function eniripsaPack(){
  return cards
-  .filter(c=>!["C","U"].includes(c.rarity))
+  .filter(c=>!["C","U","R"].includes(c.rarity))
   .sort(()=>Math.random()-0.5)
   .slice(0,5)
 }
@@ -27,12 +31,16 @@ function eniripsaPack(){
 /* ---------- SADIDA ---------- */
 function sadidaPack(){
  const pack=generateBasePack(5)
- for(let i=0;i<2;i++){
-  if(Math.random()<0.30){
-   const c=pack[Math.floor(Math.random()*pack.length)]
-   if(c) pack.push({...c})
+
+ let dupCount=0
+
+ for(let i=0;i<pack.length;i++){
+  if(Math.random()<0.35 && dupCount<2){
+   pack.push({...pack[i]})
+   dupCount++
   }
  }
+
  return pack
 }
 
@@ -44,144 +52,274 @@ function generateEventPack(user,event){
 
  switch(event.id){
 
+  /* ---------- ENIRIPSA ---------- */
   case "ENIRIPSA":
    pack = eniripsaPack()
+   pack.push(randomCard(cards.filter(c=>!["C","U","R"].includes(c.rarity))))
    break
 
+  /* ---------- SADIDA ---------- */
   case "SADIDA":
    pack = sadidaPack()
    break
 
+  /* ---------- CRA ---------- */
   case "CRA":
+   pack = generateBasePack(5)
+
    if(event.data?.targetId){
-    pack = generateBasePack(5)
+
+    let count=0
+
     for(let i=0;i<pack.length;i++){
-     if(Math.random()<0.20){
+
+     if(Math.random()<0.20 && count<2){
       const target = cards.find(c=>c.id===event.data.targetId)
-      if(target) pack[i]=target
+      if(target){
+       pack[i]=target
+       count++
+      }
      }
+
     }
+
    }
    break
 
+  /* ---------- XELOR ---------- */
   case "XELOR":
-   pack = generateBasePack(5)
-   if(Math.random()<0.33){
-    pack = generateBasePack(5)
-   }
-   break
 
-  case "IOP":
    pack = generateBasePack(5)
-   if(Math.random()<0.5){
-    pack.push(randomCard(cards.filter(c=>["UR","S"].includes(c.rarity))))
-   }
-   break
 
-  case "SRAM":
-   pack = generateBasePack(5)
-   pack.push(randomCard(cards))
-   break
+   const extra = randomInt(1,3)
+   const remove = randomInt(1,2)
 
-  case "SACRIEUR":
-   pack = generateBasePack(5)
-   pack = pack.map(c=>{
-    if(Math.random()<0.25){
-     return randomCard(cards)
-    }
-    return c
-   })
-   break
+   pack.sort((a,b)=>rarityOrder.indexOf(a.rarity)-rarityOrder.indexOf(b.rarity))
 
-  case "ZOBAL":
-   pack = generateBasePack(5)
-   const c = pack[0]
-   if(c && c.rarity !== "SSR"){
-    const i = rarityOrder.indexOf(c.rarity)+1
-    const next = rarityOrder[i]
-    const pool = cards.filter(x=>x.rarity===next)
-    if(pool.length) pack[0] = randomCard(pool)
-   }
-   break
+   pack.splice(0,remove)
 
-  case "HUPPERMAGE":
-   pack = generateBasePack(5)
-   if(Math.random()<0.5){
+   for(let i=0;i<extra;i++){
     pack.push(randomCard(cards))
    }
+
    break
 
-  case "PANDAWA":
+  /* ---------- IOP ---------- */
+  case "IOP":
+
    pack = generateBasePack(5)
-   if(Math.random()<0.4){
-    pack.push({...pack[0]})
-   }
+
+   const hrPool = cards.filter(c=>c.rarity==="HR")
+   const urPool = cards.filter(c=>c.rarity==="UR")
+
+   if(hrPool.length) pack.push(randomCard(hrPool))
+   if(urPool.length) pack.push(randomCard(urPool))
+
    break
 
+  /* ---------- SRAM ---------- */
+  case "SRAM":
+
+   pack = generateBasePack(5)
+   pack.push(randomCard(cards))
+
+   break
+
+  /* ---------- SACRIEUR ---------- */
+  case "SACRIEUR":
+
+   pack = generateBasePack(5)
+
+   pack = pack.map(c=>{
+
+    if(["S","SSR"].includes(c.rarity)) return c
+
+    if(Math.random()<0.5){
+     return randomCard(cards.filter(x=>!["SSR"].includes(x.rarity)))
+    }
+
+    return c
+
+   })
+
+   break
+
+  /* ---------- ZOBAL ---------- */
+  case "ZOBAL":
+
+   pack = generateBasePack(5)
+
+   const boostCount = randomInt(1,2)
+
+   for(let i=0;i<boostCount;i++){
+
+    const index = Math.floor(Math.random()*pack.length)
+    const c = pack[index]
+
+    if(!c || c.rarity==="SSR") continue
+
+    const next = rarityOrder[rarityOrder.indexOf(c.rarity)+1]
+
+    const pool = cards.filter(x=>x.rarity===next)
+
+    if(pool.length) pack[index] = randomCard(pool)
+
+   }
+
+   pack.push(randomCard(cards))
+
+   break
+
+  /* ---------- HUPPERMAGE ---------- */
+  case "HUPPERMAGE":
+
+   pack = generateBasePack(5)
+
+   const bonus = randomInt(1,3)
+
+   for(let i=0;i<bonus;i++){
+    pack.push(randomCard(cards))
+   }
+
+   break
+
+  /* ---------- PANDAWA ---------- */
+  case "PANDAWA":
+
+   pack = generateBasePack(5)
+
+   for(let i=0;i<pack.length;i++){
+
+    const r = pack[i].rarity
+
+    let chance = 0.1
+
+    if(r==="U") chance=0.3
+    if(r==="R") chance=0.2
+    if(r==="SR") chance=0.15
+
+    if(Math.random()<chance){
+     pack.push({...pack[i]})
+    }
+
+   }
+
+   break
+
+  /* ---------- OSAMODAS ---------- */
   case "OSAMODAS":
-   pack = generateBasePack(1)
-   const base = pack[0]
-   for(let i=0;i<6;i++){
+
+   const basePool = cards.filter(c=>["R","SR","HR","UR"].includes(c.rarity))
+   const base = randomCard(basePool)
+
+   const size = randomInt(7,10)
+
+   pack = []
+
+   for(let i=0;i<size;i++){
     pack.push({...base})
    }
+
    break
 
+  /* ---------- ECAFLIP ---------- */
   case "ECAFLIP":
-   if(Math.random()<0.5){
-    pack = generateBasePack(5)
-   }else{
-    pack = cards
-     .filter(c=>["UR","S","SSR"].includes(c.rarity))
-     .sort(()=>Math.random()-0.5)
-     .slice(0,5)
-   }
-   break
 
-  case "FECA":
    pack = cards
-    .filter(c=>!["C","U"].includes(c.rarity))
+    .filter(c=>["SR","HR","UR","S","SSR"].includes(c.rarity))
     .sort(()=>Math.random()-0.5)
     .slice(0,5)
+
    break
 
-  case "ROUBLARD":
-   pack = generateBasePack(7)
-   break
-
-  case "STEAMER":
-   pack = cards
-    .sort(()=>Math.random()-0.5)
-    .slice(0,5)
-   break
-
-  case "ELIOTROPE":
-   const p1 = generateBasePack(5)
-   const p2 = generateBasePack(5)
-   pack = Math.random()<0.5 ? p1 : p2
-   break
-
-  case "ENUTROF":
-   pack = generateBasePack(5)
-   break
-
+  /* ---------- OUGINAK ---------- */
   case "OUGINAK":
+
    pack = cards
     .filter(c=>["C","U","R"].includes(c.rarity))
     .sort(()=>Math.random()-0.5)
     .slice(0,5)
+
+   pack.push(randomCard(cards))
+   pack.push(randomCard(cards))
+
    break
 
-  case "FORGELANCE":
+  /* ---------- FECA ---------- */
+  case "FECA":
+
+   pack = cards
+    .filter(c=>!["C","U"].includes(c.rarity))
+    .sort(()=>Math.random()-0.5)
+    .slice(0,5)
+
+   break
+
+  /* ---------- ENUTROF ---------- */
+  case "ENUTROF":
+
    pack = generateBasePack(5)
-   pack = pack.map(c=>{
-    if(Math.random()<0.30){
-     const i=rarityOrder.indexOf(c.rarity)+1
-     const next=rarityOrder[i]
-     const pool=cards.filter(x=>x.rarity===next)
-     if(pool.length) return randomCard(pool)
+
+   break
+
+  /* ---------- ROUBLARD ---------- */
+  case "ROUBLARD":
+
+   pack = generateBasePack(8)
+
+   break
+
+  /* ---------- STEAMER ---------- */
+  case "STEAMER":
+
+   pack = []
+
+   for(let i=0;i<5;i++){
+
+    const randomRarity = rarityOrder[Math.floor(Math.random()*rarityOrder.length)]
+
+    const pool = cards.filter(c=>c.rarity===randomRarity)
+
+    if(pool.length){
+     pack.push(randomCard(pool))
+    }else{
+     pack.push(randomCard(cards))
     }
+
+   }
+
+   break
+
+  /* ---------- ELIOTROPE ---------- */
+  case "ELIOTROPE":
+
+   const hr = randomCard(cards.filter(c=>c.rarity==="HR"))
+   const ur = randomCard(cards.filter(c=>c.rarity==="UR"))
+   const s = randomCard(cards.filter(c=>c.rarity==="S"))
+
+   pack = [hr,ur,s].filter(Boolean)
+
+   break
+
+  /* ---------- FORGELANCE ---------- */
+  case "FORGELANCE":
+
+   pack = generateBasePack(5)
+
+   pack = pack.map(c=>{
+
+    if(c.rarity==="SSR") return c
+
+    const next = rarityOrder[rarityOrder.indexOf(c.rarity)+1]
+
+    const pool = cards.filter(x=>x.rarity===next)
+
+    if(pool.length) return randomCard(pool)
+
     return c
+
    })
+
    break
 
  }

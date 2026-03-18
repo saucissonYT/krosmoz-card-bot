@@ -5,7 +5,7 @@ let midTimeout = null
 const EVENTS = require("./eventRegistry")
 
 function randomTickets(){
- return Math.floor(Math.random()*4)+2 // 2 → 5
+ return Math.floor(Math.random()*2)+2 // ✅ 2 → 3 FIX
 }
 
 function pickRandomEvent(){
@@ -34,8 +34,6 @@ function startEvent(channel, forced=null){
   endTime: Date.now() + (15 * 60000)
  }
 
- /* START MESSAGE */
-
  if(channel){
   channel.send(
 `🎰 **${event.name}**
@@ -46,8 +44,6 @@ ${event.start}
 👉 Utilisez \`/eventpack\``
   )
  }
-
- /* MID MESSAGE */
 
  midTimeout = setTimeout(()=>{
   if(channel && currentEvent){
@@ -62,10 +58,7 @@ ${event.mid}
   }
  }, (15 * 60000) / 2)
 
- /* END MESSAGE */
-
  timeout = setTimeout(()=>{
-
   if(channel && currentEvent){
    channel.send(
 `📊 **${event.name} terminé**
@@ -73,14 +66,9 @@ ${event.mid}
 ${event.end}`
    )
   }
-
   currentEvent = null
-
  }, 15 * 60000)
-
 }
-
-/* ---------------- STOP EVENT ---------------- */
 
 function stopEvent(channel){
 
@@ -94,19 +82,13 @@ function stopEvent(channel){
  currentEvent = null
 }
 
-/* ---------------- GET EVENT ---------------- */
-
 function getEvent(){
  return currentEvent
 }
 
-/* ---------------- CHECK ---------------- */
-
 function isEventActive(){
  return currentEvent !== null
 }
-
-/* ---------------- USER INIT ---------------- */
 
 function initUserEvent(user){
 
@@ -124,8 +106,6 @@ function initUserEvent(user){
  }
 
 }
-
-/* ---------------- CAN USE ---------------- */
 
 function canUseEventPack(user){
 
