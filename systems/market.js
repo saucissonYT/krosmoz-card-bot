@@ -1,4 +1,5 @@
 const { data, save } = require("./dataManager")
+const { getUser } = require("./userSystem") // ✅ FIX
 
 const rarityOrder={
  C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
@@ -12,13 +13,13 @@ if(!data.market)
 if(!data.marketHistory)
  data.marketHistory=[]
 
-/* ---------------- ID SECURISE ---------------- */
+/* ---------------- ID ---------------- */
 
 function generateId(){
  return Date.now() + Math.floor(Math.random()*1000)
 }
 
-/* ---------------- ANTI MANIPULATION ---------------- */
+/* ---------------- AVERAGES ---------------- */
 
 function getAveragePrices(){
 
@@ -38,7 +39,6 @@ function getAveragePrices(){
  for(const card in prices){
 
   const list=prices[card]
-
   const sum=list.reduce((a,b)=>a+b,0)
 
   averages[card]=Math.floor(sum/list.length)
@@ -48,38 +48,17 @@ function getAveragePrices(){
  return averages
 }
 
-/* ---------------- TRI MARCHE ---------------- */
-
-function sortMarket(market,cards){
-
- market.sort((a,b)=>{
-
-  const ca = cards.find(c=>c.id==a.card)
-  const cb = cards.find(c=>c.id==b.card)
-
-  if(!ca || !cb) return 0
-
-  const r = rarityOrder[cb.rarity]-rarityOrder[ca.rarity]
-
-  if(r!==0) return r
-
-  return a.price-b.price
-
- })
-
-}
-
-/* ---------------- AJOUT LISTING ---------------- */
+/* ---------------- ADD LISTING ---------------- */
 
 function addListing(sellerId,cardId,price){
 
  const market = data.market
- const users = data.users
+
+ // ✅ FIX ICI
+ const seller = getUser(sellerId)
 
  if(!sellerId || !cardId || !price)
   return {error:"Paramètres invalides"}
-
- const seller = users[sellerId]
 
  if(!seller)
   return {error:"Utilisateur introuvable"}
@@ -104,7 +83,6 @@ function addListing(sellerId,cardId,price){
 
   if(price > maxPrice)
    return {error:`Prix trop élevé (max ${maxPrice})`}
-
  }
 
  const id = generateId()
@@ -132,23 +110,22 @@ function addListing(sellerId,cardId,price){
  return listing
 }
 
-/* ---------------- ACHAT ---------------- */
+/* ---------------- BUY ---------------- */
 
 function buyCard(buyerId,listingId){
 
  const market = data.market
- const users = data.users
 
  const listing = market.find(l=>l.id===listingId)
-
  if(!listing)
   return {error:"Annonce introuvable"}
 
  if(listing.seller === buyerId)
   return {error:"Tu ne peux pas acheter ta propre carte"}
 
- const seller = users[listing.seller]
- const buyer = users[buyerId]
+ // ✅ FIX ICI
+ const seller = getUser(listing.seller)
+ const buyer = getUser(buyerId)
 
  if(!seller || !buyer)
   return {error:"Utilisateur introuvable"}
@@ -166,7 +143,6 @@ function buyCard(buyerId,listingId){
  if(!seller.stats) seller.stats={}
 
  buyer.cards[listing.card]=(buyer.cards[listing.card]||0)+1
-
  buyer.stats.cardsBought=(buyer.stats.cardsBought||0)+1
 
  data.market = market.filter(l=>l.id!==listingId)
@@ -187,22 +163,21 @@ function buyCard(buyerId,listingId){
  return {success:true}
 }
 
-/* ---------------- RETIRER LISTING ---------------- */
+/* ---------------- REMOVE ---------------- */
 
 function removeListing(userId,listingId){
 
  const market = data.market
- const users = data.users
 
  const listing = market.find(l=>l.id===listingId)
-
  if(!listing)
   return {error:"Annonce introuvable"}
 
  if(listing.seller !== userId)
   return {error:"Cette annonce ne t'appartient pas"}
 
- const user = users[userId]
+ // ✅ FIX ICI
+ const user = getUser(userId)
 
  if(!user.cards) user.cards={}
 
@@ -215,7 +190,7 @@ function removeListing(userId,listingId){
  return {success:true}
 }
 
-/* ---------------- GET MARKET ---------------- */
+/* ---------------- GET ---------------- */
 
 function getMarket(){
  return data.market || []
@@ -231,6 +206,5 @@ module.exports={
  getMarket,
  removeListing,
  getUserListings,
- getAveragePrices,
- sortMarket
+ getAveragePrices
 }
