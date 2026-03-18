@@ -38,13 +38,11 @@ function getTodayFR(){
 
 function initShop(){
 
- // 🔥 FIX DOSSIER
  if(!fs.existsSync(DATA_DIR)){
   console.log("[KROSMOSHOP] Création dossier /data")
-  fs.mkdirSync(DATA_DIR, { recursive:true })
+  fs.mkdirSync(DATA_DIR,{recursive:true})
  }
 
- // 🔥 FIX FICHIER
  if(!fs.existsSync(SHOP_PATH)){
   console.log("[KROSMOSHOP] Création fichier shop")
 
@@ -91,13 +89,29 @@ function generateShop(){
   cards:[]
  }
 
+ const used = new Set()
+
  Object.entries(DISTRIBUTION).forEach(([rarity,count])=>{
 
   const pool=getCardsByRarity(rarity)
 
+  let attempts = 0
+
   for(let i=0;i<count;i++){
 
-   const card=randomFrom(pool)
+   let card
+
+   do{
+    card = randomFrom(pool)
+    attempts++
+   }
+   while(used.has(card.id) && attempts < 100)
+
+   if(used.has(card.id)){
+    console.log("[KROSMOSHOP] doublon autorisé (pool trop petit)")
+   }
+
+   used.add(card.id)
 
    shop.cards.push({
     card:card.id,
@@ -202,7 +216,6 @@ function buyFromShop(userId,cardId){
   rarity:entry.rarity,
   unlocked
  }
-
 }
 
 module.exports={
