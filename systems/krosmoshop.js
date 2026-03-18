@@ -3,10 +3,12 @@ const path = require("path")
 
 const { getCardsById } = require("./cardRegistry")
 const { data, save } = require("./dataManager")
+const { achievementCheck } = require("./achievementCheck")
 
 const cardsById = getCardsById()
 
-const SHOP_PATH = path.join(__dirname, "../data/krosmoshop.json")
+const DATA_DIR = path.join(__dirname, "../data")
+const SHOP_PATH = path.join(DATA_DIR, "krosmoshop.json")
 
 const PRICES = {
  SSR:3000,
@@ -36,8 +38,15 @@ function getTodayFR(){
 
 function initShop(){
 
+ // 🔥 FIX DOSSIER
+ if(!fs.existsSync(DATA_DIR)){
+  console.log("[KROSMOSHOP] Création dossier /data")
+  fs.mkdirSync(DATA_DIR, { recursive:true })
+ }
+
+ // 🔥 FIX FICHIER
  if(!fs.existsSync(SHOP_PATH)){
-  console.log("[KROSMOSHOP] Création fichier")
+  console.log("[KROSMOSHOP] Création fichier shop")
 
   fs.writeFileSync(
    SHOP_PATH,
@@ -103,7 +112,6 @@ function generateShop(){
  saveShop(shop)
 
  return shop
-
 }
 
 /* ---------------- GET SHOP ---------------- */
@@ -119,11 +127,9 @@ function getShop(){
   console.log("[KROSMOSHOP] Reset journalier")
 
   shop=generateShop()
-
  }
 
  return shop
-
 }
 
 /* ---------------- BUY ---------------- */
@@ -161,7 +167,7 @@ function buyFromShop(userId,cardId){
  if(user.kamas<entry.price)
   return {error:"Kamas insuffisants"}
 
- /* ---- TRANSACTION ---- */
+ /* -------- TRANSACTION -------- */
 
  user.kamas-=entry.price
 
@@ -170,7 +176,7 @@ function buyFromShop(userId,cardId){
 
  user.krosmoshop[today][cardId]=true
 
- /* ---- STATS ---- */
+ /* -------- STATS -------- */
 
  if(!user.krosmoshopStats)
   user.krosmoshopStats={
@@ -183,11 +189,19 @@ function buyFromShop(userId,cardId){
  if(entry.rarity==="SSR")
   user.krosmoshopStats.ssrBought++
 
+ /* -------- ACHIEVEMENTS -------- */
+
+ const unlocked = achievementCheck(user,"krosmoshop")
+
  save()
 
  console.log("[KROSMOSHOP] achat OK",cardId,userId)
 
- return {success:true,rarity:entry.rarity}
+ return {
+  success:true,
+  rarity:entry.rarity,
+  unlocked
+ }
 
 }
 

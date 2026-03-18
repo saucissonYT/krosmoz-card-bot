@@ -6,6 +6,7 @@ const {
 
 const { getShop, buyFromShop } = require("../../systems/krosmoshop")
 const { getCards } = require("../../systems/cardRegistry")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const cards = getCards()
 
@@ -28,13 +29,15 @@ module.exports={
 
    const card = cards.find(card=>card.id==c.card)
 
+   if(!card) return `❌ Carte inconnue (ID:${c.card})`
+
    return `${rarityEmoji[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
 
   })
 
   const embed = new EmbedBuilder()
    .setTitle("🛒 KrosmoShop du jour")
-   .setDescription(lines.join("\n"))
+   .setDescription(lines.join("\n") || "Aucune carte.")
 
   const select = new StringSelectMenuBuilder()
    .setCustomId("krosmoshop_buy")
@@ -43,6 +46,7 @@ module.exports={
   shop.forEach(c=>{
 
    const card = cards.find(card=>card.id==c.card)
+   if(!card) return
 
    select.addOptions({
     label: card.name,
@@ -75,10 +79,16 @@ module.exports={
     flags:64
    })
 
-  return interaction.reply({
+  await interaction.reply({
    content:"🛒 Achat effectué.",
    flags:64
   })
+
+  /* 🔥 ACHIEVEMENTS */
+
+  if(result.unlocked?.length){
+   await notifyAchievements(interaction,result.unlocked)
+  }
 
  }
 
