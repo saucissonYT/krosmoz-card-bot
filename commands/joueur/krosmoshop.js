@@ -6,6 +6,7 @@ const {
 
 const { getShop, buyFromShop } = require("../../systems/krosmoshop")
 const { getCards } = require("../../systems/cardRegistry")
+const { getUser } = require("../../systems/userSystem") // 🔥 NEW
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const cards = getCards()
@@ -22,6 +23,8 @@ module.exports={
 
  async execute(interaction){
 
+  const user = getUser(interaction.user.id) // 🔥 NEW
+
   const shopData = getShop()
   const shop = shopData.cards
 
@@ -31,7 +34,11 @@ module.exports={
 
    if(!card) return `❌ Carte inconnue (ID:${c.card})`
 
-   return `${rarityEmoji[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
+   /* 🔥 CHECK OWNERSHIP */
+   const count = user.cards?.[c.card] || 0
+   const icon = count > 0 ? "✅" : "❌"
+
+   return `${icon} ${rarityEmoji[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
 
   })
 
@@ -48,8 +55,12 @@ module.exports={
    const card = cards.find(card=>card.id==c.card)
    if(!card) return
 
+   /* 🔥 CHECK OWNERSHIP */
+   const count = user.cards?.[c.card] || 0
+   const icon = count > 0 ? "✅" : "❌"
+
    select.addOptions({
-    label: card.name,
+    label: `${icon} ${card.name}`, // 🔥 ICON IN LABEL
     description: `${c.price} kamas`,
     value: String(c.card)
    })

@@ -1,0 +1,20 @@
+module.exports = [
+ { id: "LUCKY", name: "Pluie de Chance", duration: 600000, type:"PACK" },
+ { id: "ENIRIPSA", name: "Grâce d’Eniripsa", duration: 600000, type:"PACK" },
+ { id: "SADIDA", name: "Harmonie Naturelle", duration: 600000, type:"PACK" },
+ { id: "IOP", name: "Fureur du Iop", duration: 600000, type:"PACK" },
+ { id: "CRA", name: "Chasseur de Prime", duration: 600000, type:"PACK" },
+ { id: "XELOR", name: "Distorsion Temporelle", duration: 600000, type:"PACK" },
+ { id: "SRAM", name: "Voile de l’Ombre", duration: 600000, type:"PACK" },
+ { id: "SACRIEUR", name: "Souffrance Croissante", duration: 600000, type:"PACK" },
+ { id: "ZOBAL", name: "Masques Trompeurs", duration: 600000, type:"PACK" },
+ { id: "HUPPERMAGE", name: "Équilibre Élémentaire", duration: 600000, type:"PACK" },
+ { id: "PANDAWA", name: "Ivresse Mystique", duration: 600000, type:"PACK" },
+ { id: "OSAMODAS", name: "Troupeau Sauvage", duration: 600000, type:"PACK" },
+ { id: "ECAFLIP", name: "Chance ou Chaos", duration: 600000, type:"PACK" },
+ { id: "FECA", name: "Bouclier Protecteur", duration: 600000, type:"PACK" },
+ { id: "ROUBLARD", name: "Explosion Contrôlée", duration: 600000, type:"PACK" },
+ { id: "STEAMER", name: "Machine Instable", duration: 600000, type:"PACK" },
+ { id: "ELIOTROPE", name: "Failles Dimensionnelles", duration: 600000, type:"PACK" },
+ { id: "ENUTROF", name: "Trésor Antique", duration: 600000, type:"PACK" }
+]
