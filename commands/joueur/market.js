@@ -18,6 +18,8 @@ const {
 } = require("../../systems/market")
 
 const { getCards } = require("../../systems/cardRegistry")
+const { getUser } = require("../../systems/userSystem")
+
 const cards = getCards()
 
 const marketState={}
@@ -145,65 +147,6 @@ module.exports={
    return interaction.showModal(modal)
   }
 
-  if(interaction.customId==="market_my"){
-
-   const listings=getUserListings(userId)
-
-   if(listings.length===0)
-    return interaction.update({
-     content:"Tu n'as aucune vente active.",
-     embeds:[],
-     components:[]
-    })
-
-   const lines=listings.map(l=>{
-    const card=cards.find(c=>c.id==l.card)
-    return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas`
-   })
-
-   const embed=new EmbedBuilder()
-    .setTitle("📦 Mes ventes")
-    .setDescription(lines.join("\n"))
-
-   const row=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("market_remove_modal")
-     .setLabel("Retirer une vente")
-     .setStyle(ButtonStyle.Danger),
-
-    new ButtonBuilder()
-     .setCustomId("market_back")
-     .setLabel("Retour")
-     .setStyle(ButtonStyle.Secondary)
-
-   )
-
-   return interaction.update({
-    embeds:[embed],
-    components:[row]
-   })
-  }
-
-  if(interaction.customId==="market_remove_modal"){
-
-   const modal=new ModalBuilder()
-    .setCustomId("marketRemoveModal")
-    .setTitle("Retirer une vente")
-
-   const input=new TextInputBuilder()
-    .setCustomId("listingId")
-    .setLabel("ID du listing")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   modal.addComponents(
-    new ActionRowBuilder().addComponents(input)
-   )
-
-   return interaction.showModal(modal)
-  }
-
   if(interaction.customId==="market_back"){
    return this.execute(interaction)
   }
@@ -216,7 +159,6 @@ module.exports={
   const state=marketState[userId]
 
   let market=getMarket()
-  const averages=getAveragePrices()
 
   market.sort((a,b)=>a.price-b.price)
 
@@ -226,18 +168,14 @@ module.exports={
   const lines=slice.map(l=>{
 
    const card=cards.find(c=>c.id==l.card)
-   const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}`:""
 
-   return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
+   return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas`
 
   })
 
   const embed=new EmbedBuilder()
    .setTitle(`🛒 Marché`)
-   .setDescription(
-(lines.join("\n")||"Aucun résultat.") + 
-`\n\n💡 Utilise le bouton **Acheter ID**`
-   )
+   .setDescription(lines.join("\n")||"Aucun résultat.")
 
   const row1=new ActionRowBuilder().addComponents(
 
@@ -278,7 +216,64 @@ module.exports={
 
  async modal(interaction){
 
-  /* BUY */
+/* ---------------- SELL DEBUG ---------------- */
+
+  if(interaction.customId==="marketSellModal"){
+
+   const userId=interaction.user.id
+
+   let cardId=interaction.fields.getTextInputValue("cardId").trim()
+   const price=parseInt(interaction.fields.getTextInputValue("price"))
+
+   const user=getUser(userId)
+
+   console.log("=== MARKET SELL DEBUG ===")
+   console.log("Input cardId:", cardId)
+   console.log("Parsed price:", price)
+   console.log("User cards:", user.cards)
+
+   /* FIX TYPE */
+   if(user.cards){
+
+    // cas string vs number mismatch
+    if(!user.cards[cardId]){
+
+     const matchKey=Object.keys(user.cards).find(k=>String(k)===String(cardId))
+
+     if(matchKey){
+      console.log("Fix match key:", matchKey)
+      cardId=matchKey
+     }
+    }
+
+   }
+
+   console.log("Final cardId used:", cardId)
+   console.log("User has card?:", user.cards?.[cardId])
+
+   if(!cardId || isNaN(price))
+    return interaction.reply({
+     content:"❌ Entrée invalide.",
+     flags:64
+    })
+
+   const result=addListing(userId,cardId,price)
+
+   console.log("Result:", result)
+
+   if(result?.error)
+    return interaction.reply({
+     content:`❌ ${result.error}`,
+     flags:64
+    })
+
+   return interaction.reply({
+    content:"✅ Carte mise en vente.",
+    flags:64
+   })
+  }
+
+/* ---------------- BUY ---------------- */
 
   if(interaction.customId==="marketBuyModal"){
 
@@ -297,34 +292,7 @@ module.exports={
    })
   }
 
-  /* SELL */
-
-  if(interaction.customId==="marketSellModal"){
-
-   const cardId = interaction.fields.getTextInputValue("cardId").trim()
-   const price = parseInt(interaction.fields.getTextInputValue("price"))
-
-   if(!cardId || isNaN(price))
-    return interaction.reply({
-     content:"❌ Entrée invalide.",
-     flags:64
-    })
-
-   const result = addListing(interaction.user.id, cardId, price)
-
-   if(result?.error)
-    return interaction.reply({
-     content:`❌ ${result.error}`,
-     flags:64
-    })
-
-   return interaction.reply({
-    content:"✅ Carte mise en vente.",
-    flags:64
-   })
-  }
-
-  /* REMOVE */
+/* ---------------- REMOVE ---------------- */
 
   if(interaction.customId==="marketRemoveModal"){
 
