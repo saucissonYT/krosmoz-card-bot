@@ -2,93 +2,122 @@ const { data, save, loadUser } = require("./dataManager")
 
 const users = data.users
 
-/* ---------------- MIGRATION INVENTAIRE ---------------- */
+/* ---------------- DEFAULT STRUCTURES ---------------- */
 
-function migrateInventories(){
+function ensurePity(pity){
 
- let changed = false
+ if(!pity) return {}
 
- for(const id in users){
+ for(const setId in pity){
 
-  const user = users[id]
+  const p = pity[setId]
 
-  if(!user.cards) continue
+  if(!pity[setId])
+   pity[setId]={UR:0,S:0,SSR:0}
 
-  if(Array.isArray(user.cards)){
-
-   const newCards = {}
-
-   for(const cardId of user.cards){
-
-    const key = String(cardId)
-
-    if(!newCards[key])
-     newCards[key] = 0
-
-    newCards[key]++
-
-   }
-
-   user.cards = newCards
-   user._dirty = true
-   changed = true
-
-  }
-
-  if(user.cards["[object Object]"]){
-
-   delete user.cards["[object Object]"]
-   user._dirty = true
-   changed = true
-
-  }
+  if(p.UR === undefined) p.UR = 0
+  if(p.S === undefined) p.S = 0
+  if(p.SSR === undefined) p.SSR = 0
 
  }
 
- if(changed){
-
-  console.log("Migration des inventaires effectuée.")
-  save()
-
- }
-
+ return pity
 }
 
-/* ---------------- MIGRATION PACKS ---------------- */
+function ensureStats(user, now){
 
-function migratePacks(){
-
- let changed = false
-
- for(const id in users){
-
-  const user = users[id]
-
-  if(user.packs === undefined){
-
-   user.packs = 0
-   user._dirty = true
-   changed = true
-
-  }
-
+ if(!user.stats){
+  user.stats = {}
  }
 
- if(changed){
+ const s = user.stats
 
-  console.log("Migration des packs effectuée.")
-  save()
+ if(s.cardsSold === undefined) s.cardsSold = 0
+ if(s.cardsBought === undefined) s.cardsBought = 0
+ if(s.ssrPulled === undefined) s.ssrPulled = 0
+ if(s.shinySSR === undefined) s.shinySSR = 0
+ if(s.ssrStreak === undefined) s.ssrStreak = 0
+ if(s.fusions === undefined) s.fusions = 0
+ if(s.fusionCrit === undefined) s.fusionCrit = 0
+ if(s.fusionDouble === undefined) s.fusionDouble = 0
 
- }
+ if(s.tripleFusionToday === undefined) s.tripleFusionToday = 0
+ if(s.lastTripleReset === undefined) s.lastTripleReset = now
 
+ if(s.packsOpened === undefined) s.packsOpened = 0
+ if(s.packsBought === undefined) s.packsBought = 0
+
+ return s
 }
 
-/* ---------------- MIGRATION USERS ---------------- */
+function ensureEconomy(user){
 
-function migrateUsers(){
+ if(user.kamas === undefined) user.kamas = 0
+ if(user.packs === undefined) user.packs = 0
+
+ return user
+}
+
+function ensureAchievements(user){
+
+ if(!user.achievements) user.achievements = []
+ if(!user.titles) user.titles = ["Nouveau"]
+ if(!user.title) user.title = "Nouveau"
+
+ return user
+}
+
+function ensureKrosmoShop(user){
+
+ if(!user.krosmoshop)
+  user.krosmoshop = {}
+
+ if(!user.krosmoshopStats){
+  user.krosmoshopStats = {
+   cardsBought:0,
+   ssrBought:0
+  }
+ }
+
+ if(user.krosmoshopStats.cardsBought === undefined)
+  user.krosmoshopStats.cardsBought = 0
+
+ if(user.krosmoshopStats.ssrBought === undefined)
+  user.krosmoshopStats.ssrBought = 0
+
+ return user
+}
+
+function ensureProgression(user){
+
+ if(!user.progression){
+  user.progression={
+   level:1,
+   xp:0,
+   totalXp:0
+  }
+ }
+
+ return user
+}
+
+function ensureDaily(user){
+
+ if(!user.daily){
+  user.daily = {
+   streak:0,
+   lastDaily:0
+  }
+ }
+
+ return user
+}
+
+/* ---------------- MIGRATION GLOBAL ---------------- */
+
+function migrateAll(){
 
  let changed = false
-
  const now = Date.now()
 
  for(const id in users){
@@ -96,116 +125,38 @@ function migrateUsers(){
   const user = users[id]
 
   if(!user.cards){
-   user.cards = {}
-   user._dirty = true
+   user.cards={}
    changed = true
   }
 
-  if(user.kamas === undefined){
-   user.kamas = 0
-   user._dirty = true
-   changed = true
-  }
-
-  if(user.lastPack === undefined){
-   user.lastPack = 0
-   user._dirty = true
-   changed = true
-  }
-
-  if(user.lastClaim === undefined){
-   user.lastClaim = 0
-   user._dirty = true
-   changed = true
-  }
+  ensureEconomy(user)
+  ensureAchievements(user)
+  ensureProgression(user)
+  ensureDaily(user)
+  ensureKrosmoShop(user)
+  ensureStats(user, now)
 
   if(!user.pity){
-   user.pity = {}
-   user._dirty = true
+   user.pity={}
    changed = true
   }
 
-  if(!user.achievements){
-   user.achievements = []
-   user._dirty = true
-   changed = true
-  }
+  ensurePity(user.pity)
 
-  if(!user.titles){
-   user.titles = ["Nouveau"]
-   user._dirty = true
-   changed = true
-  }
-
-  if(!user.title){
-   user.title = "Nouveau"
-   user._dirty = true
-   changed = true
-  }
-
-  if(!user.progression){
-   user.progression={
-    level:1,
-    xp:0,
-    totalXp:0
-   }
-   user._dirty = true
-   changed = true
-  }
-
-  if(!user.stats){
-   user.stats = {
-    cardsSold:0,
-    ssrPulled:0,
-    fusions:0,
-    fusionCrit:0,
-    fusionDouble:0,
-    tripleFusionToday:0,
-    lastTripleReset:now,
-    packsOpened:0,
-    packsBought:0
-   }
-   user._dirty = true
-   changed = true
-  }
-
-  if(user.stats.tripleFusionToday === undefined){
-   user.stats.tripleFusionToday = 0
-   user._dirty = true
-   changed = true
-  }
-
-  if(user.stats.lastTripleReset === undefined){
-   user.stats.lastTripleReset = now
-   user._dirty = true
-   changed = true
-  }
-
-  if(!user.daily){
-   user.daily = {
-    streak:0,
-    lastDaily:0
-   }
-   user._dirty = true
-   changed = true
-  }
+  user._dirty = true
 
  }
 
  if(changed){
-
-  console.log("Migration des utilisateurs effectuée.")
+  console.log("Migration globale des users effectuée.")
   save()
-
  }
 
 }
 
-/* ---------------- LANCEMENT MIGRATIONS ---------------- */
+/* ---------------- INIT ---------------- */
 
-migrateInventories()
-migratePacks()
-migrateUsers()
+migrateAll()
 
 /* ---------------- USER MANAGEMENT ---------------- */
 
@@ -213,9 +164,9 @@ function getUser(id){
 
  let user = loadUser(id)
 
- if(!user){
+ const now = Date.now()
 
-  const now = Date.now()
+ if(!user){
 
   user = {
    cards:{},
@@ -234,7 +185,10 @@ function getUser(id){
    },
    stats:{
     cardsSold:0,
+    cardsBought:0,
     ssrPulled:0,
+    shinySSR:0,
+    ssrStreak:0,
     fusions:0,
     fusionCrit:0,
     fusionDouble:0,
@@ -243,6 +197,11 @@ function getUser(id){
     packsOpened:0,
     packsBought:0
    },
+   krosmoshop:{},
+   krosmoshopStats:{
+    cardsBought:0,
+    ssrBought:0
+   },
    daily:{
     streak:0,
     lastDaily:0
@@ -250,12 +209,23 @@ function getUser(id){
   }
 
   user._dirty = true
-
   users[id] = user
-
   save()
-
  }
+
+ /* 🔥 RUNTIME SELF-HEAL */
+
+ ensureEconomy(user)
+ ensureAchievements(user)
+ ensureProgression(user)
+ ensureDaily(user)
+ ensureKrosmoShop(user)
+ ensureStats(user, now)
+
+ if(!user.pity)
+  user.pity = {}
+
+ ensurePity(user.pity)
 
  user._dirty = true
 

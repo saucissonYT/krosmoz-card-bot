@@ -408,6 +408,7 @@ Historique des mises à jour :
   <img src="screenshots/profil.PNG" width="30%"/>
   <img src="screenshots/succès.PNG" width="30%"/>
   <img src="screenshots/carte.PNG" width="30%"/>
+  <img src="screenshots/daily.PNG" width="30%"/>
 </p>
 
 
