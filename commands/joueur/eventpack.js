@@ -1,83 +1,202 @@
-let currentEvent = null
-let timeout = null
-let midTimeout = null
+const {
+ EmbedBuilder
+} = require("discord.js")
 
-const EVENTS = require("./eventRegistry")
+const {
+ getEvent,
+ isEventActive,
+ initUserEvent,
+ canUseEventPack
+} = require("../../systems/eventSystem")
 
-function pickRandomEvent(){
+const { generateEventPack } = require("../../systems/eventPackEngine")
+const { getUser, save } = require("../../systems/userSystem")
+const { rewardKamas } = require("../../systems/rewards")
+const { addXP } = require("../../systems/progressionSystem")
 
- const keys = Object.keys(EVENTS)
-
- return keys[Math.floor(Math.random()*keys.length)]
+function sleep(ms){
+ return new Promise(r=>setTimeout(r,ms))
 }
 
-/* ---------------- START EVENT ---------------- */
+/* ---------- COLORS ---------- */
 
-function startEvent(channel, forced=null){
-
- if(timeout) clearTimeout(timeout)
- if(midTimeout) clearTimeout(midTimeout)
-
- const key = forced || pickRandomEvent()
- const event = EVENTS[key]
-
- currentEvent = {
-  key,
-  ...event,
-  endTime: Date.now() + (15 * 60000)
- }
-
- /* START MESSAGE */
- if(channel)
-  channel.send(event.start)
-
- /* MID MESSAGE */
- midTimeout = setTimeout(()=>{
-  if(channel && currentEvent)
-   channel.send(event.mid)
- }, (15 * 60000) / 2)
-
- /* END MESSAGE */
- timeout = setTimeout(()=>{
-
-  if(channel && currentEvent)
-   channel.send(event.end)
-
-  currentEvent = null
-
- }, 15 * 60000)
-
+const rarityColor={
+ C:"#95a5a6",
+ U:"#2ecc71",
+ R:"#3498db",
+ SR:"#9b59b6",
+ HR:"#e74c3c",
+ UR:"#f1c40f",
+ S:"#ecf0f1",
+ SSR:"#ffcc00"
 }
 
-/* ---------------- STOP EVENT ---------------- */
-
-function stopEvent(channel){
-
- if(timeout) clearTimeout(timeout)
- if(midTimeout) clearTimeout(midTimeout)
-
- if(currentEvent && channel){
-  channel.send(currentEvent.end)
- }
-
- currentEvent = null
-}
-
-/* ---------------- GET EVENT ---------------- */
-
-function getEvent(){
- return currentEvent
-}
-
-/* ---------------- CHECK ---------------- */
-
-function isEventActive(){
- return currentEvent !== null
+const rarityEmoji={
+ C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
+ HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
 module.exports = {
- startEvent,
- stopEvent,
- getEvent,
- isEventActive
+
+ name:"eventpack",
+ description:"Ouvrir un pack d'event",
+
+ async execute(interaction){
+
+  const event = getEvent()
+
+  if(!isEventActive()){
+   return interaction.reply({
+    content:"❌ Aucun event actif.",
+    ephemeral:true
+   })
+  }
+
+  const user = getUser(interaction.user.id)
+
+  /* ---------- INIT ---------- */
+
+  initUserEvent(user)
+
+  const check = canUseEventPack(user)
+
+  if(!check.ok){
+   return interaction.reply({
+    content:`❌ ${check.error}`,
+    ephemeral:true
+   })
+  }
+
+  user.event.used++
+
+  await interaction.reply("🎴 Ouverture du pack d'event...")
+
+  await sleep(800)
+
+  const message = await interaction.channel.send({
+   embeds:[
+    new EmbedBuilder()
+     .setTitle("📦 Pack en cours...")
+     .setDescription("✨ Une énergie étrange se forme...")
+     .setColor("#9b59b6")
+   ]
+  })
+
+  await sleep(1000)
+
+  /* ---------- PACK ---------- */
+
+  const pack = generateEventPack(user,event)
+
+  /* ---------- REWARDS ---------- */
+
+  let kamas = 0
+  let xp = 20
+
+  for(const card of pack){
+   user.cards[card.id]=(user.cards[card.id]||0)+1
+   kamas += rewardKamas(user,card.rarity)
+  }
+
+  xp += pack.length * 2
+
+  addXP(user,xp)
+
+  /* ===================== */
+  /*        SRAM UX        */
+  /* ===================== */
+
+  if(event.key === "sram"){
+
+   const hidden = pack.map(()=> "❓ Carte inconnue")
+
+   await message.edit({
+    embeds:[
+     new EmbedBuilder()
+      .setTitle("🕶️ Pack mystérieux")
+      .setDescription(hidden.join("\n"))
+      .setColor("#2c3e50")
+    ]
+   })
+
+   await sleep(2000)
+
+   const reveal = pack.map(c=>
+    `${rarityEmoji[c.rarity]} **${c.name}** \`${c.rarity}\``
+   )
+
+   await message.edit({
+    embeds:[
+     new EmbedBuilder()
+      .setTitle("🎴 Révélation")
+      .setDescription(reveal.join("\n"))
+      .setColor(rarityColor[pack[0]?.rarity] || "#9b59b6")
+    ]
+   })
+
+  }else{
+
+   /* ---------- REVEAL ---------- */
+
+   let revealed=[]
+
+   for(const card of pack){
+
+    const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
+
+    revealed.push(line)
+
+    const embed = new EmbedBuilder()
+     .setTitle("🎴 Ouverture du pack")
+     .setDescription(revealed.join("\n"))
+     .setColor(rarityColor[card.rarity] || "#9b59b6")
+
+    await message.edit({embeds:[embed]})
+
+    await sleep(500)
+   }
+  }
+
+  /* ---------- BONUS EVENTS ---------- */
+
+  if(event.key === "enutrof"){
+
+   if(Math.random()<0.001){
+    kamas += 50000
+   }else if(Math.random()<0.01){
+    kamas += 10000
+   }
+  }
+
+  if(event.key === "feca"){
+
+   if(Math.random()<0.001){
+    xp *= 10
+   }else if(Math.random()<0.01){
+    xp *= 5
+   }
+  }
+
+  /* ---------- FINAL EMBED ---------- */
+
+  const remaining = user.event.tickets - user.event.used
+
+  const finalEmbed = new EmbedBuilder()
+   .setTitle(`🎁 ${event.name}`)
+   .addFields(
+    {name:"💰 Kamas",value:`+${kamas}`,inline:true},
+    {name:"⭐ XP",value:`+${xp}`,inline:true},
+    {name:"🎟️ Tickets",value:`${remaining}/${user.event.tickets}`,inline:true}
+   )
+   .setColor("#f1c40f")
+
+  await interaction.followUp({
+   embeds:[finalEmbed],
+   ephemeral:true
+  })
+
+  save()
+
+ }
+
 }
