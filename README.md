@@ -4,37 +4,25 @@ Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes
 
 Les joueurs peuvent :
 
-ouvrir des packs
-
-collectionner des cartes
-
-gagner des kamas
-
-compléter des sets
-
-faire des échanges
-
-vendre des cartes sur un marché
-
-débloquer des succès
-
-progresser en niveau et rang
-
-interagir avec le bot via mentions
+- ouvrir des packs
+- collectionner des cartes
+- gagner des kamas
+- compléter des sets
+- faire des échanges
+- vendre des cartes sur un marché
+- débloquer des succès
+- progresser en niveau et rang
+- interagir avec le bot via mentions
 
 Le bot est conçu avec une architecture modulaire Node.js afin de faciliter l'ajout de contenu et de nouvelles fonctionnalités.
 
 ⚙️ Technologies utilisées
 
-Node.js
-
-discord.js v14
-
-JSON Database
-
-Canvas (images inventaire)
-
-architecture modulaire (systems/)
+- Node.js
+- discord.js v14
+- JSON Database
+- Canvas (images inventaire)
+- architecture modulaire (systems/)
 
 📂 Structure du projet
 
@@ -112,11 +100,9 @@ achievementNotifier | affichage et attribution des récompenses
 
 Les succès permettent de débloquer :
 
-badges
-
-titres
-
-progression
+- badges
+- titres
+- progression
 
 🧠 Pipeline des Achievements
 
@@ -182,17 +168,14 @@ Chaque utilisateur possède son propre fichier JSON.
 
 Ces fichiers stockent :
 
-inventaire de cartes
+- inventaire de cartes
 
-kamas
-
-achievements
-
-progression
-
-statistiques
-
-titres
+- kamas
+- achievements
+- progression
+- statistiques
+- titres
+- pity
 
 🎴 Cartes
 
@@ -228,13 +211,10 @@ Les cartes SSR possèdent une variante extrêmement rare appelée SSR Shiny.
 
 Caractéristiques :
 
-⭐ 0.5% de chance lors d'une SSR
-
-✨ icône spéciale
-
-🌟 embed visuel unique
-
-🏆 achievement spécial
+- ⭐ 0.5% de chance lors d'une SSR
+- ✨ icône spéciale
+- 🌟 embed visuel unique
+- 🏆 achievement spécial
 
 Les SSR Shiny sont purement cosmétiques.
 
@@ -252,9 +232,10 @@ Hard Pity
 
 Rareté | Garantie  
 UR | 10 packs  
+S | 30 packs
 SSR | 50 packs  
 
-Soft Pity
+Soft Pity (SSR)
 
 Packs sans SSR | Chance SSR  
 0-20 | 0.05%  
@@ -310,20 +291,16 @@ Inventaire
 Marché
 
 /market  
+/krosmoshop
 
 Fonctionnalités :
 
-achat
-
-vente
-
-tri
-
-filtres
-
-pagination
-
-Progression
+- achat
+- vente
+- tri
+- filtres
+- pagination
+- Progression
 
 /profil  
 /leaderboard  
@@ -349,19 +326,14 @@ Le bot possède plus de 100 succès automatiques et secrets.
 
 Types de succès :
 
-progression (packs, niveau, collection)
+- progression (packs, niveau, collection)
+- économie (kamas, ventes, achats)
+- gameplay (fusion, SSR, packs spéciaux)
+- social (mentions, interactions)
+- RNG extrême
+- secrets
 
-économie (kamas, ventes, achats)
-
-gameplay (fusion, SSR, packs spéciaux)
-
-social (mentions, interactions)
-
-RNG extrême
-
-secrets
-
-Certaines commandes possèdent des succès humoristiques liés à leur utilisation excessive :
+Certaines commandes possèdent des succès liés à leur utilisation excessive :
 
 /profil  
 /leaderboard  
@@ -372,11 +344,9 @@ Certaines commandes possèdent des succès humoristiques liés à leur utilisati
 
 Les succès débloquent :
 
-badges
-
-titres
-
-progression
+- badges
+- titres
+- progression
 
 Les succès secrets apparaissent comme :
 
@@ -404,7 +374,7 @@ jusqu'à leur découverte.
 ✔ daily rewards  
 ✔ trade sécurisé  
 ✔ leaderboard avec classement visuel et pagination  
-✔ optimisation du leaderboard via cache interne  
+✔ admin shop reset journalier avec /krosmoshop
 ✔ profil spécial aléatoire pour le bot Krosmoz Card  
 
 🔁 Gameplay Loop
@@ -422,6 +392,16 @@ jusqu'à leur découverte.
 Historique des mises à jour :
 
 [Voir le changelog](CHANGELOG.md)
+
+📷 Screenshots
+
+  <p align="center">
+  <img src="assets/pack.png" width="30%"/>
+  <img src="assets/profil.png" width="30%"/>
+  <img src="assets/succès.png" width="30%"/>
+  <img src="assets/carte.png" width="30%"/>
+</p>
+
 
 👨‍💻 Auteur
 
