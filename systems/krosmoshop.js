@@ -2,7 +2,7 @@ const fs = require("fs")
 const path = require("path")
 
 const { getCardsById } = require("./cardRegistry")
-const { data, save } = require("./dataManager")
+const { getUser, save } = require("./userSystem") // ✅ FIX
 const { achievementCheck } = require("./achievementCheck")
 
 const cardsById = getCardsById()
@@ -39,13 +39,10 @@ function getTodayFR(){
 function initShop(){
 
  if(!fs.existsSync(DATA_DIR)){
-  console.log("[KROSMOSHOP] Création dossier /data")
   fs.mkdirSync(DATA_DIR,{recursive:true})
  }
 
  if(!fs.existsSync(SHOP_PATH)){
-  console.log("[KROSMOSHOP] Création fichier shop")
-
   fs.writeFileSync(
    SHOP_PATH,
    JSON.stringify({
@@ -95,21 +92,15 @@ function generateShop(){
 
   const pool=getCardsByRarity(rarity)
 
-  let attempts = 0
-
   for(let i=0;i<count;i++){
 
    let card
+   let attempts = 0
 
    do{
     card = randomFrom(pool)
     attempts++
-   }
-   while(used.has(card.id) && attempts < 100)
-
-   if(used.has(card.id)){
-    console.log("[KROSMOSHOP] doublon autorisé (pool trop petit)")
-   }
+   }while(used.has(card.id) && attempts < 50)
 
    used.add(card.id)
 
@@ -132,15 +123,16 @@ function generateShop(){
 
 function getShop(){
 
- let shop=loadShop()
+ let shop = loadShop()
 
- const today=getTodayFR()
+ const today = getTodayFR()
 
- if(shop.lastReset !== today){
+ // 🔥 CRUCIAL : seulement si jour différent
+ if(!shop.lastReset || shop.lastReset !== today){
 
-  console.log("[KROSMOSHOP] Reset journalier")
+  console.log("[KROSMOSHOP] RESET JOURNALIER")
 
-  shop=generateShop()
+  shop = generateShop()
  }
 
  return shop
@@ -152,8 +144,7 @@ function buyFromShop(userId,cardId){
 
  const shop=getShop()
 
- const users=data.users
- const user=users[userId]
+ const user = getUser(userId) // ✅ FIX
 
  if(!user){
   console.log("[KROSMOSHOP] user introuvable",userId)
@@ -162,10 +153,8 @@ function buyFromShop(userId,cardId){
 
  const entry=shop.cards.find(c=>String(c.card)===String(cardId))
 
- if(!entry){
-  console.log("[KROSMOSHOP] carte introuvable",cardId)
+ if(!entry)
   return {error:"Carte introuvable dans le shop"}
- }
 
  if(!user.krosmoshop)
   user.krosmoshop={}
@@ -176,7 +165,7 @@ function buyFromShop(userId,cardId){
   user.krosmoshop[today]={}
 
  if(user.krosmoshop[today][cardId])
-  return {error:"Tu as déjà acheté cette carte aujourd'hui."}
+  return {error:"Déjà achetée aujourd'hui."}
 
  if(user.kamas<entry.price)
   return {error:"Kamas insuffisants"}
@@ -208,8 +197,6 @@ function buyFromShop(userId,cardId){
  const unlocked = achievementCheck(user,"krosmoshop")
 
  save()
-
- console.log("[KROSMOSHOP] achat OK",cardId,userId)
 
  return {
   success:true,
