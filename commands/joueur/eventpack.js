@@ -69,11 +69,20 @@ module.exports = {
 
   user.event.used++
 
-  await interaction.reply("🎴 Ouverture du pack d'event...")
+  /* 🔧 FIX : éviter interaction failed */
+  await interaction.deferReply()
+
+  await interaction.editReply("🎴 Ouverture du pack d'event...")
 
   await sleep(800)
 
-  const message = await interaction.channel.send({
+  const channel = interaction.channel
+
+  if(!channel){
+   return interaction.editReply("❌ Impossible d'accéder au channel.")
+  }
+
+  const message = await channel.send({
    embeds:[
     new EmbedBuilder()
      .setTitle("📦 Pack en cours...")

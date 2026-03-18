@@ -34,6 +34,9 @@ module.exports = {
 
   const sub = interaction.options.getSubcommand()
 
+  /* 🔧 FIX */
+  await interaction.deferReply({ ephemeral:true })
+
   /* ---------------- START ---------------- */
 
   if(sub === "start"){
@@ -50,10 +53,9 @@ module.exports = {
 
    const row = new ActionRowBuilder().addComponents(menu)
 
-   return interaction.reply({
+   return interaction.editReply({
     content:"🎯 Choisis un event à lancer",
-    components:[row],
-    ephemeral:true
+    components:[row]
    })
 
   }
@@ -64,7 +66,7 @@ module.exports = {
 
    stopEvent(interaction.channel)
 
-   return interaction.reply("⛔ Event arrêté.")
+   return interaction.editReply("⛔ Event arrêté.")
   }
 
  },

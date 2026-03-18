@@ -52,22 +52,23 @@ module.exports = {
 
   const sub = interaction.options.getSubcommand()
 
+  /* 🔧 FIX : éviter interaction failed */
+  await interaction.deferReply({ ephemeral:true })
+
   /* ---------------- START RANDOM ---------------- */
 
   if(sub === "start"){
 
    if(isEventActive()){
-    return interaction.reply({
-     content:"⚠️ Un event est déjà actif.",
-     ephemeral:true
+    return interaction.editReply({
+     content:"⚠️ Un event est déjà actif."
     })
    }
 
    startEvent(interaction.channel)
 
-   return interaction.reply({
-    content:"🎰 Event lancé aléatoirement.",
-    ephemeral:true
+   return interaction.editReply({
+    content:"🎰 Event lancé aléatoirement."
    })
   }
 
@@ -75,22 +76,21 @@ module.exports = {
 
   if(sub === "force"){
 
-   const options = Object.keys(EVENTS).map(key=>({
+   const options = Object.keys(EVENTS).map(key => ({
     label:EVENTS[key].name,
     value:key
    }))
 
    const menu = new StringSelectMenuBuilder()
-    .setCustomId("krosmoevent_select")
+    .setCustomId(`krosmoevent_select_${interaction.user.id}`) // 🔧 FIX ownership
     .setPlaceholder("Choisir un event")
     .addOptions(options.slice(0,25))
 
    const row = new ActionRowBuilder().addComponents(menu)
 
-   return interaction.reply({
+   return interaction.editReply({
     content:"🎯 Choisis un event à lancer",
-    components:[row],
-    ephemeral:true
+    components:[row]
    })
   }
 
@@ -99,17 +99,15 @@ module.exports = {
   if(sub === "stop"){
 
    if(!isEventActive()){
-    return interaction.reply({
-     content:"⚠️ Aucun event actif.",
-     ephemeral:true
+    return interaction.editReply({
+     content:"⚠️ Aucun event actif."
     })
    }
 
    stopEvent(interaction.channel)
 
-   return interaction.reply({
-    content:"⛔ Event arrêté.",
-    ephemeral:true
+   return interaction.editReply({
+    content:"⛔ Event arrêté."
    })
   }
 
@@ -120,9 +118,8 @@ module.exports = {
    const event = getEvent()
 
    if(!event){
-    return interaction.reply({
-     content:"🔴 Aucun event actif.",
-     ephemeral:true
+    return interaction.editReply({
+     content:"🔴 Aucun event actif."
     })
    }
 
@@ -138,9 +135,8 @@ module.exports = {
     )
     .setColor("Purple")
 
-   return interaction.reply({
-    embeds:[embed],
-    ephemeral:true
+   return interaction.editReply({
+    embeds:[embed]
    })
   }
 
@@ -150,7 +146,17 @@ module.exports = {
 
  async select(interaction){
 
-  if(interaction.customId !== "krosmoevent_select") return
+  if(!interaction.customId.startsWith("krosmoevent_select_")) return
+
+  const ownerId = interaction.customId.split("_")[1]
+
+  /* 🔧 FIX ownership */
+  if(interaction.user.id !== ownerId){
+   return interaction.reply({
+    content:"❌ Pas ton menu.",
+    ephemeral:true
+   })
+  }
 
   if(!isDev(interaction.user.id)) return
 
