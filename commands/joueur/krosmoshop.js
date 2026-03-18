@@ -69,22 +69,19 @@ module.exports={
 
   if(interaction.customId !== "krosmoshop_buy") return
 
+  // 🔥 FIX INTERACTION FAILED
+  await interaction.deferReply({ flags:64 })
+
   const cardId = parseInt(interaction.values[0])
 
   const result = buyFromShop(interaction.user.id, cardId)
 
   if(result?.error)
-   return interaction.reply({
-    content:`❌ ${result.error}`,
-    flags:64
-   })
+   return interaction.editReply(`❌ ${result.error}`)
 
-  await interaction.reply({
-   content:"🛒 Achat effectué.",
-   flags:64
-  })
+  await interaction.editReply("🛒 Achat effectué.")
 
-  /* 🔥 ACHIEVEMENTS */
+  /* -------- ACHIEVEMENTS -------- */
 
   if(result.unlocked?.length){
    await notifyAchievements(interaction,result.unlocked)
