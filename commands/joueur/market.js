@@ -85,7 +85,7 @@ module.exports={
 
   const state=marketState[userId]
 
-/* ---------------- ACHETER ---------------- */
+/* ---------- ACHETER ---------- */
 
   if(interaction.customId==="market_buy"){
    state.page=0
@@ -121,7 +121,7 @@ module.exports={
    return interaction.showModal(modal)
   }
 
-/* ---------------- VENDRE ---------------- */
+/* ---------- VENDRE ---------- */
 
   if(interaction.customId==="market_sell"){
 
@@ -131,7 +131,7 @@ module.exports={
 
    const cardInput=new TextInputBuilder()
     .setCustomId("cardId")
-    .setLabel("ID de la carte (voir /inventaire)")
+    .setLabel("ID de la carte (visible dans /inventaire)")
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
 
@@ -149,7 +149,7 @@ module.exports={
    return interaction.showModal(modal)
   }
 
-/* ---------------- MES VENTES ---------------- */
+/* ---------- MES VENTES ---------- */
 
   if(interaction.customId==="market_my"){
 
@@ -230,9 +230,12 @@ module.exports={
   const slice=market.slice(start,start+PAGE_SIZE)
 
   const lines=slice.map(l=>{
+
    const card=cards.find(c=>c.id==l.card)
    const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}`:""
+
    return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
+
   })
 
   const embed=new EmbedBuilder()
@@ -278,7 +281,7 @@ module.exports={
 
  async modal(interaction){
 
-/* ---------------- BUY ---------------- */
+/* ---------- BUY ---------- */
 
   if(interaction.customId==="marketBuyModal"){
 
@@ -297,39 +300,35 @@ module.exports={
    })
   }
 
-/* ---------------- SELL (FIX ICI) ---------------- */
+/* ---------- SELL (FIX ICI) ---------- */
 
   if(interaction.customId==="marketSellModal"){
 
-   const rawCardId = interaction.fields.getTextInputValue("cardId")
-   const cardId = parseInt(rawCardId)
-   const price = parseInt(interaction.fields.getTextInputValue("price"))
+   await interaction.deferReply({ flags:64 })
 
-   if(isNaN(cardId) || isNaN(price))
-    return interaction.reply({
-     content:"❌ ID ou prix invalide.",
-     flags:64
-    })
-
-   const result = addListing(
-    interaction.user.id,
-    cardId, // ✅ FIX IMPORTANT
-    price
+   const cardId=parseInt(
+    interaction.fields.getTextInputValue("cardId")
    )
 
-   if(result?.error)
-    return interaction.reply({
-     content:`❌ ${result.error}`,
-     flags:64
-    })
+   const price=parseInt(
+    interaction.fields.getTextInputValue("price")
+   )
 
-   return interaction.reply({
-    content:`🛒 Carte mise en vente pour **${price} kamas**.`,
-    flags:64
+   if(isNaN(cardId) || isNaN(price)){
+    return interaction.editReply("❌ ID ou prix invalide.")
+   }
+
+   const result=addListing(interaction.user.id,cardId,price)
+
+   if(result?.error)
+    return interaction.editReply(`❌ ${result.error}`)
+
+   return interaction.editReply({
+    content:"🛒 Carte mise en vente."
    })
   }
 
-/* ---------------- REMOVE ---------------- */
+/* ---------- REMOVE ---------- */
 
   if(interaction.customId==="marketRemoveModal"){
 

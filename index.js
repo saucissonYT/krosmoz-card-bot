@@ -164,134 +164,90 @@ client.on("interactionCreate",async interaction=>{
 
  try{
 
-  /* ---------------- SLASH COMMAND ---------------- */
-
   if(interaction.isChatInputCommand()){
 
-   console.log(`⚡ Commande : ${interaction.commandName}`)
-
    const command = client.commands.get(interaction.commandName)
-
-   if(!command){
-    console.log("❌ Commande introuvable")
-    return
-   }
+   if(!command) return
 
    await command.execute(interaction)
 
   }
 
-  /* ---------------- SELECT MENU ---------------- */
-
   if(interaction.isStringSelectMenu()){
 
-   console.log(`📦 Menu : ${interaction.customId}`)
-
    if(interaction.customId==="krosmoz_set"){
-
     const command = require("./commands/joueur/krosmoz")
     return command.select(interaction)
-
    }
 
    if(interaction.customId.startsWith("hardpity")){
-
     const command = require("./commands/dev/hardpity")
     return command.select(interaction)
-
    }
 
    if(interaction.customId==="choose_title"){
-
     const command = require("./commands/joueur/titre")
     return command.select(interaction)
-
    }
 
    if(interaction.customId.startsWith("trade_menu")){
-
     const command = require("./commands/joueur/trade")
     return command.menu(interaction)
-
    }
 
    if(interaction.customId==="sellcard_select"){
-
     const command = require("./commands/joueur/sellcard")
     return command.select(interaction)
-
    }
 
   }
-
-  /* ---------------- BOUTONS ---------------- */
 
   if(interaction.isButton()){
 
    if(interaction.customId.startsWith("help_")){
-
     const command = require("./commands/joueur/kroshelp")
     return command.button(interaction)
-
    }
 
    if(interaction.customId.startsWith("devhelp_")){
-
     const command = require("./commands/dev/devhelp")
     return command.button(interaction)
-
    }
 
    if(interaction.customId.startsWith("trade_")){
-
     const command = require("./commands/joueur/trade")
     return command.button(interaction)
-
    }
 
    if(interaction.customId.startsWith("title_")){
-
     const command = require("./commands/joueur/titre")
     return command.button(interaction)
-
    }
 
-   /* -------- MARKET BUTTONS -------- */
-
    if(interaction.customId.startsWith("market_")){
-
     const command = require("./commands/joueur/market")
     return command.button(interaction)
-
    }
 
   }
 
-  /* ---------------- MODALS ---------------- */
-
+  /* 🔥 FIX ICI */
   if(interaction.isModalSubmit()){
 
    console.log("📝 Modal :",interaction.customId)
 
-   if(interaction.customId.startsWith("marketmodal_")){
+   if(
+    interaction.customId==="marketSellModal" ||
+    interaction.customId==="marketBuyModal" ||
+    interaction.customId==="marketRemoveModal"
+   ){
+    const command = require("./commands/joueur/market")
+    return command.modal(interaction)
+   }
 
+   if(interaction.customId.startsWith("marketmodal_")){
     const command = require("./commands/joueur/carte")
     return command.modal(interaction)
-
-   }
-
-   if(interaction.customId==="marketBuyModal"){
-
-    const command = require("./commands/joueur/market")
-    return command.modal(interaction)
-
-   }
-
-   if(interaction.customId==="marketRemoveModal"){
-
-    const command = require("./commands/joueur/market")
-    return command.modal(interaction)
-
    }
 
   }
@@ -301,25 +257,19 @@ client.on("interactionCreate",async interaction=>{
   console.error("❌ ERREUR :",error)
 
   if(interaction.replied || interaction.deferred){
-
    await interaction.followUp({
     content:"❌ Une erreur est survenue.",
     ephemeral:true
    })
-
   }else{
-
    await interaction.reply({
     content:"❌ Une erreur est survenue.",
     ephemeral:true
    })
-
   }
 
  }
 
 })
-
-/* ---------------- LOGIN ---------------- */
 
 client.login(process.env.TOKEN)
