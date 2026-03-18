@@ -3,15 +3,14 @@ let timeout = null
 let midTimeout = null
 
 const EVENTS = require("./eventRegistry")
+const { getCards } = require("./cardRegistry")
 
 function randomTickets(){
- return Math.floor(Math.random()*2)+2 // ✅ 2 → 3 FIX
+ return Math.floor(Math.random()*2)+2 // 2 → 3
 }
 
 function pickRandomEvent(){
-
  const keys = Object.keys(EVENTS)
-
  return keys[Math.floor(Math.random()*keys.length)]
 }
 
@@ -27,10 +26,28 @@ function startEvent(channel, forced=null){
 
  const tickets = randomTickets()
 
+ let data = {}
+
+ /* 🎯 CRA TARGET */
+ if(key === "cra"){
+  const sCards = getCards().filter(c=>c.rarity==="S")
+  const target = sCards[Math.floor(Math.random()*sCards.length)]
+  if(target){
+   data.targetId = target.id
+   data.targetName = target.name
+  }
+ }
+
  currentEvent = {
+  id:key,
   key,
   ...event,
   tickets,
+  data,
+  stats:{
+   packs:0,
+   ssr:0
+  },
   endTime: Date.now() + (15 * 60000)
  }
 
@@ -39,6 +56,8 @@ function startEvent(channel, forced=null){
 `🎰 **${event.name}**
 
 ${event.start}
+
+${key==="cra" && data.targetName ? `🎯 Cible : **${data.targetName}**\n` : ""}
 
 🎟️ Chaque joueur reçoit **${tickets} tickets**
 👉 Utilisez \`/eventpack\``
@@ -52,23 +71,27 @@ ${event.start}
 
 ${event.mid}
 
-🎟️ Il vous reste des tickets !
-👉 \`/eventpack\``
+🎟️ Il vous reste des tickets !`
    )
   }
- }, (15 * 60000) / 2)
+ }, (15 * 60000)/2)
 
  timeout = setTimeout(()=>{
   if(channel && currentEvent){
    channel.send(
 `📊 **${event.name} terminé**
 
-${event.end}`
+${event.end}
+
+📦 Packs ouverts : **${currentEvent.stats.packs}**
+🌈 SSR obtenues : **${currentEvent.stats.ssr}**`
    )
   }
   currentEvent = null
  }, 15 * 60000)
 }
+
+/* ---------------- STOP EVENT ---------------- */
 
 function stopEvent(channel){
 
@@ -82,13 +105,10 @@ function stopEvent(channel){
  currentEvent = null
 }
 
-function getEvent(){
- return currentEvent
-}
+function getEvent(){ return currentEvent }
+function isEventActive(){ return currentEvent !== null }
 
-function isEventActive(){
- return currentEvent !== null
-}
+/* ---------------- USER INIT ---------------- */
 
 function initUserEvent(user){
 
@@ -96,16 +116,15 @@ function initUserEvent(user){
  if(!event) return
 
  if(!user.event || user.event.id !== event.key){
-
   user.event = {
    id:event.key,
    tickets:event.tickets,
    used:0
   }
-
  }
-
 }
+
+/* ---------------- CAN USE ---------------- */
 
 function canUseEventPack(user){
 

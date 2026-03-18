@@ -11,7 +11,7 @@ const {
 
 const { generateEventPack } = require("../../systems/eventPackEngine")
 const { getUser, save } = require("../../systems/userSystem")
-const { rewardKamas } = require("../../systems/rewards")
+const { rewardKamas } = require("../../systems/economy")
 const { addXP } = require("../../systems/progressionSystem")
 
 function sleep(ms){
@@ -88,7 +88,9 @@ module.exports = {
 
   await sleep(1000)
 
-  const pack = generateEventPack(user,event)
+  const result = generateEventPack(user,event)
+  const pack = result.pack || result
+  const flags = result.flags || []
 
   let kamas = 0
   let xp = 20
@@ -96,94 +98,88 @@ module.exports = {
   for(const card of pack){
    user.cards[card.id]=(user.cards[card.id]||0)+1
    kamas += rewardKamas(user,card.rarity)
+
+   if(event.stats && card.rarity==="SSR"){
+    event.stats.ssr = (event.stats.ssr||0)+1
+   }
   }
 
   xp += pack.length * 2
 
-  /* ---------- EVENT MULTIPLIERS ---------- */
-
-  if(event.key === "enutrof"){
-   kamas *= 5 // ✅ FIX
-  }
-
-  if(event.key === "feca"){
-   xp *= 5 // ✅ FIX
-  }
+  if(event.key === "enutrof") kamas *= 5
+  if(event.key === "feca") xp *= 5
 
   addXP(user,xp)
 
-  /* ---------- SRAM ANIMATION ---------- */
-
-  let revealed=[]
+  if(event.stats){
+   event.stats.packs = (event.stats.packs||0)+1
+  }
 
   if(event.key === "sram"){
 
-   for(const card of pack){
+   const hidden = pack.map(()=> "❓ ???")
 
-    revealed.push("❓ ???")
+   let tmp=[]
+
+   for(const h of hidden){
+    tmp.push(h)
 
     await message.edit({
      embeds:[
       new EmbedBuilder()
        .setTitle("🕶️ Pack mystérieux")
-       .setDescription(revealed.join("\n"))
+       .setDescription(tmp.join("\n"))
        .setColor("#2c3e50")
      ]
     })
 
-    await sleep(500)
+    await sleep(400)
    }
 
-   await sleep(1000)
+   await sleep(800)
 
-   revealed = []
+   const reveal = pack.map(c=>
+    `${rarityEmoji[c.rarity]} **${c.name}** \`${c.rarity}\``
+   )
 
-   for(const card of pack){
-
-    const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
-
-    revealed.push(line)
-
-    await message.edit({
-     embeds:[
-      new EmbedBuilder()
-       .setTitle("🎴 Révélation")
-       .setDescription(revealed.join("\n"))
-       .setColor(rarityColor[card.rarity] || "#9b59b6")
-     ]
-    })
-
-    await sleep(500)
-   }
+   await message.edit({
+    embeds:[
+     new EmbedBuilder()
+      .setTitle("🎴 Révélation")
+      .setDescription(reveal.join("\n"))
+      .setColor(rarityColor[pack[0]?.rarity] || "#9b59b6")
+    ]
+   })
 
   }else{
 
+   let revealed=[]
+
    for(const card of pack){
 
     const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
 
     revealed.push(line)
 
-    await message.edit({
-     embeds:[
-      new EmbedBuilder()
-       .setTitle("🎴 Ouverture du pack")
-       .setDescription(revealed.join("\n"))
-       .setColor(rarityColor[card.rarity] || "#9b59b6")
-     ]
-    })
+    const embed = new EmbedBuilder()
+     .setTitle("🎴 Ouverture du pack")
+     .setDescription(revealed.join("\n"))
+     .setColor(rarityColor[card.rarity] || "#9b59b6")
+
+    await message.edit({embeds:[embed]})
 
     await sleep(500)
    }
   }
 
-  /* ---------- FINAL ---------- */
-
   const remaining = user.event.tickets - user.event.used
 
   const finalEmbed = new EmbedBuilder()
    .setTitle(`🎁 ${event.name}`)
-   .setDescription(revealed.join("\n"))
+   .setDescription(
+    pack.map(c=>`${rarityEmoji[c.rarity]} **${c.name}**`).join("\n")
+    + (flags.length ? "\n\n" + flags.join("\n") : "")
+   )
    .addFields(
     {name:"💰 Kamas",value:`+${kamas}`,inline:true},
     {name:"⭐ XP",value:`+${xp}`,inline:true},
@@ -191,7 +187,7 @@ module.exports = {
    )
    .setColor("#f1c40f")
 
-  await message.edit({ embeds:[finalEmbed] })
+  await message.edit({embeds:[finalEmbed]})
 
   save()
 

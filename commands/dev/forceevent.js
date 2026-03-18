@@ -34,10 +34,7 @@ module.exports = {
 
   const sub = interaction.options.getSubcommand()
 
-  /* 🔧 FIX */
   await interaction.deferReply({ ephemeral:true })
-
-  /* ---------------- START ---------------- */
 
   if(sub === "start"){
 
@@ -60,8 +57,6 @@ module.exports = {
 
   }
 
-  /* ---------------- STOP ---------------- */
-
   if(sub === "stop"){
 
    stopEvent(interaction.channel)
@@ -77,11 +72,13 @@ module.exports = {
 
   if(!isDev(interaction.user.id)) return
 
+  await interaction.deferUpdate()
+
   const eventKey = interaction.values[0]
 
   startEvent(interaction.channel,eventKey)
 
-  await interaction.update({
+  await interaction.editReply({
    content:`✅ Event lancé : **${eventKey}**`,
    components:[]
   })
