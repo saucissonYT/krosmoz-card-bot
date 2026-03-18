@@ -395,10 +395,10 @@ Historique des mises à jour :
 
 📷 Screenshots
 
-  <p align="center">
+<p align="center">
   <img src="screenshots/pack.png" width="30%"/>
   <img src="screenshots/profil.png" width="30%"/>
-  <img src="screenshots/succès.png" width="30%"/>
+  <img src="screenshots/succes.png" width="30%"/>
   <img src="screenshots/carte.png" width="30%"/>
 </p>
 
