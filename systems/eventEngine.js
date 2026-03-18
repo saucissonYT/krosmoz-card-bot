@@ -6,31 +6,50 @@ function randomTickets(){
  return Math.floor(Math.random()*4)+2
 }
 
-/* 🎭 MESSAGES */
+/* 🎭 DESCRIPTIONS EVENTS */
 
-const eventMessages = {
+const eventDescriptions = {
 
- CRA:{
-  start:(data)=>`🎯 Une cible est désignée !
-La carte **${data?.targetName || "inconnue"}** est traquée (20% drop)`,
-  mid:"🏹 La chasse continue... ne relâchez pas vos efforts !"
- },
+ CRA:(data)=>`🎯 Carte ciblée : **${data?.targetName || "?"}**
+→ 20% de chance de la drop dans chaque slot`,
 
- XELOR:{
-  start:"⏳ Le temps se fracture...\nLe destin peut être réécrit.",
-  mid:"⌛ Les failles temporelles persistent..."
- },
+ XELOR:`⏳ 33% de chance de relancer complètement le pack`,
 
- ENUTROF:{
-  start:"💰 Enutrof est d'humeur généreuse...\nLes richesses affluent.",
-  mid:"🪙 Le trésor n'est pas encore épuisé..."
- },
+ SRAM:`🕶️ Pack caché + 1 carte bonus`,
 
- FECA:{
-  start:"🛡️ Féca vous protège...\nL'expérience est amplifiée.",
-  mid:"🛡️ Le bouclier tient toujours..."
- }
+ IOP:`🔥 Chance d'obtenir une carte UR/S supplémentaire`,
 
+ SACRIEUR:`💀 25% de chance que chaque carte se transforme aléatoirement`,
+
+ ZOBAL:`🎭 Une carte du pack est améliorée d'une rareté`,
+
+ HUPPERMAGE:`🧠 50% de chance d'obtenir une carte bonus`,
+
+ PANDAWA:`🍺 Duplication possible d'une carte du pack`,
+
+ OSAMODAS:`🐉 Pack composé de copies d'une même carte`,
+
+ ECAFLIP:`🎲 Soit un pack nul, soit un pack très puissant`,
+
+ OUGINAK:`🐺 RNG fortement défavorable (majorité C/U)`,
+
+ FECA:`🛡️ Minimum R garanti + bonus XP
+🎰 Jackpot XP possible (1% / 0.1%)`,
+
+ ENUTROF:`💰 Bonus kamas
+🎰 Jackpot possible (1% / 0.1%)`,
+
+ ROUBLARD:`💣 Packs de 7 cartes au lieu de 5`,
+
+ STEAMER:`⚙️ RNG totalement chaotique`,
+
+ ELIOTROPE:`🌀 Deux packs générés, un seul conservé`,
+
+ ENIRIPSA:`✨ Aucune carte C/U (minimum R)`,
+
+ SADIDA:`🌿 30% de dupliquer une carte (max 2 fois)`,
+
+ FORGELANCE:`⚔️ 30% de chance d'améliorer chaque carte`
 }
 
 /* 🚀 START */
@@ -40,7 +59,7 @@ function startEvent(event, channel){
  if(timeout) clearTimeout(timeout)
  if(midTimeout) clearTimeout(midTimeout)
 
- /* 🎯 DATA EVENT (CRA target) */
+ /* 🎯 DATA (CRA) */
 
  if(event.id === "CRA"){
   const cards = require("./cardRegistry").getCards()
@@ -54,10 +73,11 @@ function startEvent(event, channel){
   }
  }
 
- const msg = eventMessages[event.id]
+ const tickets = randomTickets()
 
  currentEvent = {
   ...event,
+  tickets, // IMPORTANT
   startTime: Date.now(),
   endTime: Date.now()+event.duration,
   stats:{
@@ -68,33 +88,39 @@ function startEvent(event, channel){
   }
  }
 
+ const desc = eventDescriptions[event.id]
+  ? (typeof eventDescriptions[event.id] === "function"
+     ? eventDescriptions[event.id](event.data)
+     : eventDescriptions[event.id])
+  : "Un événement mystérieux..."
+
  if(channel){
-
-  const startMsg = msg?.start
-   ? (typeof msg.start === "function" ? msg.start(event.data) : msg.start)
-   : `🎰 ${event.name} démarre !`
-
   channel.send(
 `🎰 **${event.name}**
 
-${startMsg}
+${desc}
 
-🎟️ Vous avez reçu entre **2 et 5 tickets**
-👉 \`/eventpack\` pour ouvrir vos packs`
+🎟️ Vous avez reçu **${tickets} tickets**
+👉 Utilisez \`/eventpack\` pour jouer`
   )
  }
+
+ /* MID */
 
  midTimeout = setTimeout(()=>{
   if(currentEvent && channel){
    channel.send(
 `⏳ **${event.name} en cours**
 
-${msg?.mid || "L'event continue..."}
+${desc}
 
-👉 \`/eventpack\` !`
+🎟️ Il vous reste des tickets !
+👉 \`/eventpack\``
    )
   }
  }, event.duration/2)
+
+ /* END */
 
  timeout = setTimeout(()=>{
   stopEvent(channel)
@@ -126,7 +152,9 @@ function stopEvent(channel){
 
 /* 📌 */
 
-function getEvent(){ return currentEvent }
+function getEvent(){
+ return currentEvent
+}
 
 /* 🎟️ */
 
@@ -136,11 +164,13 @@ function initUserEvent(user){
  if(!event) return
 
  if(!user.event || user.event.id !== event.id){
+
   user.event = {
    id:event.id,
-   tickets:randomTickets(),
+   tickets:event.tickets, // FIX IMPORTANT
    used:0
   }
+
  }
 
 }
