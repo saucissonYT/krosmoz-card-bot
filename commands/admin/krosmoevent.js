@@ -1,47 +1,173 @@
-const { SlashCommandBuilder } = require("discord.js")
+const {
+ SlashCommandBuilder,
+ ActionRowBuilder,
+ StringSelectMenuBuilder,
+ EmbedBuilder
+} = require("discord.js")
 
-const { startEvent, getEvent } = require("../../systems/eventEngine")
-const events = require("../../systems/eventRegistry")
+const { isDev } = require("../../systems/devSystem")
+const {
+ startEvent,
+ stopEvent,
+ getEvent,
+ isEventActive
+} = require("../../systems/eventSystem")
+
+const EVENTS = require("../../systems/eventRegistry")
 
 module.exports = {
 
  data: new SlashCommandBuilder()
   .setName("krosmoevent")
-  .setDescription("Lancer un event aléatoire"),
+  .setDescription("Gestion des events Krosmoz")
+
+  .addSubcommand(sub =>
+   sub.setName("start")
+    .setDescription("Lancer un event (random)")
+  )
+
+  .addSubcommand(sub =>
+   sub.setName("force")
+    .setDescription("Forcer un event spécifique")
+  )
+
+  .addSubcommand(sub =>
+   sub.setName("stop")
+    .setDescription("Arrêter l'event")
+  )
+
+  .addSubcommand(sub =>
+   sub.setName("status")
+    .setDescription("Voir l'event actuel")
+  ),
 
  async execute(interaction){
 
-  /* 🔒 CHECK ADMIN */
-
-  if(!interaction.member.permissions.has("Administrator")){
+  if(!isDev(interaction.user.id)){
    return interaction.reply({
-    content:"❌ Commande réservée aux administrateurs.",
+    content:"⛔ Dev uniquement.",
     ephemeral:true
    })
   }
 
-  /* ⚠️ CHECK EVENT EXISTANT */
+  const sub = interaction.options.getSubcommand()
 
-  const current = getEvent()
+  /* ---------------- START RANDOM ---------------- */
 
-  if(current){
+  if(sub === "start"){
+
+   if(isEventActive()){
+    return interaction.reply({
+     content:"⚠️ Un event est déjà actif.",
+     ephemeral:true
+    })
+   }
+
+   startEvent(interaction.channel)
+
    return interaction.reply({
-    content:`⚠️ Un event est déjà actif : **${current.name}**`,
+    content:"🎰 Event lancé aléatoirement.",
     ephemeral:true
    })
   }
 
-  /* 🎰 RANDOM EVENT */
+  /* ---------------- FORCE EVENT ---------------- */
 
-  const event = events[Math.floor(Math.random()*events.length)]
+  if(sub === "force"){
 
-  /* 🚀 START */
+   const options = Object.keys(EVENTS).map(key=>({
+    label:EVENTS[key].name,
+    value:key
+   }))
 
-  startEvent(event, interaction.channel)
+   const menu = new StringSelectMenuBuilder()
+    .setCustomId("krosmoevent_select")
+    .setPlaceholder("Choisir un event")
+    .addOptions(options.slice(0,25))
 
-  await interaction.reply({
-   content:`🎰 Event lancé : **${event.name}**`,
-   ephemeral:true
+   const row = new ActionRowBuilder().addComponents(menu)
+
+   return interaction.reply({
+    content:"🎯 Choisis un event à lancer",
+    components:[row],
+    ephemeral:true
+   })
+  }
+
+  /* ---------------- STOP ---------------- */
+
+  if(sub === "stop"){
+
+   if(!isEventActive()){
+    return interaction.reply({
+     content:"⚠️ Aucun event actif.",
+     ephemeral:true
+    })
+   }
+
+   stopEvent(interaction.channel)
+
+   return interaction.reply({
+    content:"⛔ Event arrêté.",
+    ephemeral:true
+   })
+  }
+
+  /* ---------------- STATUS ---------------- */
+
+  if(sub === "status"){
+
+   const event = getEvent()
+
+   if(!event){
+    return interaction.reply({
+     content:"🔴 Aucun event actif.",
+     ephemeral:true
+    })
+   }
+
+   const remaining = Math.max(0, event.endTime - Date.now())
+   const minutes = Math.ceil(remaining / 60000)
+
+   const embed = new EmbedBuilder()
+    .setTitle("📊 Event en cours")
+    .setDescription(`🎰 **${event.name}**`)
+    .addFields(
+     { name:"Effet", value:event.effect || "Inconnu" },
+     { name:"Temps restant", value:`${minutes} min` }
+    )
+    .setColor("Purple")
+
+   return interaction.reply({
+    embeds:[embed],
+    ephemeral:true
+   })
+  }
+
+ },
+
+ /* ---------------- SELECT MENU ---------------- */
+
+ async select(interaction){
+
+  if(interaction.customId !== "krosmoevent_select") return
+
+  if(!isDev(interaction.user.id)) return
+
+  const eventKey = interaction.values[0]
+
+  if(isEventActive()){
+   return interaction.update({
+    content:"⚠️ Un event est déjà actif.",
+    components:[]
+   })
+  }
+
+  startEvent(interaction.channel, eventKey)
+
+  await interaction.update({
+   content:`✅ Event forcé : **${EVENTS[eventKey].name}**`,
+   components:[]
   })
 
  }
