@@ -24,19 +24,33 @@ const DISTRIBUTION = {
  SR:5
 }
 
+/* ---------------- DATE FR ---------------- */
+
+function getTodayFR(){
+ return new Date().toLocaleDateString("fr-FR", {
+  timeZone:"Europe/Paris"
+ })
+}
+
+/* ---------------- INIT ---------------- */
+
 function initShop(){
 
  if(!fs.existsSync(SHOP_PATH)){
+  console.log("[KROSMOSHOP] Création fichier")
+
   fs.writeFileSync(
    SHOP_PATH,
    JSON.stringify({
-    rotation:0,
+    lastReset:null,
     cards:[]
    },null,2)
   )
  }
 
 }
+
+/* ---------------- LOAD / SAVE ---------------- */
 
 function loadShop(){
  initShop()
@@ -47,6 +61,8 @@ function saveShop(shop){
  fs.writeFileSync(SHOP_PATH,JSON.stringify(shop,null,2))
 }
 
+/* ---------------- UTILS ---------------- */
+
 function randomFrom(array){
  return array[Math.floor(Math.random()*array.length)]
 }
@@ -55,10 +71,14 @@ function getCardsByRarity(rarity){
  return Object.values(cardsById).filter(c=>c.rarity===rarity)
 }
 
+/* ---------------- GENERATE ---------------- */
+
 function generateShop(){
 
+ console.log("[KROSMOSHOP] Génération du shop")
+
  const shop={
-  rotation:Date.now()+86400000,
+  lastReset:getTodayFR(),
   cards:[]
  }
 
@@ -86,17 +106,27 @@ function generateShop(){
 
 }
 
+/* ---------------- GET SHOP ---------------- */
+
 function getShop(){
 
  let shop=loadShop()
 
- if(Date.now()>shop.rotation){
+ const today=getTodayFR()
+
+ if(shop.lastReset !== today){
+
+  console.log("[KROSMOSHOP] Reset journalier")
+
   shop=generateShop()
+
  }
 
  return shop
 
 }
+
+/* ---------------- BUY ---------------- */
 
 function buyFromShop(userId,cardId){
 
@@ -105,27 +135,42 @@ function buyFromShop(userId,cardId){
  const users=data.users
  const user=users[userId]
 
- if(!user) return {error:"Utilisateur introuvable"}
+ if(!user){
+  console.log("[KROSMOSHOP] user introuvable",userId)
+  return {error:"Utilisateur introuvable"}
+ }
 
  const entry=shop.cards.find(c=>String(c.card)===String(cardId))
 
- if(!entry) return {error:"Carte introuvable dans le shop"}
+ if(!entry){
+  console.log("[KROSMOSHOP] carte introuvable",cardId)
+  return {error:"Carte introuvable dans le shop"}
+ }
 
- if(!user.krosmoshop) user.krosmoshop={}
- if(user.krosmoshop[cardId])
+ if(!user.krosmoshop)
+  user.krosmoshop={}
+
+ const today=getTodayFR()
+
+ if(!user.krosmoshop[today])
+  user.krosmoshop[today]={}
+
+ if(user.krosmoshop[today][cardId])
   return {error:"Tu as déjà acheté cette carte aujourd'hui."}
 
  if(user.kamas<entry.price)
   return {error:"Kamas insuffisants"}
+
+ /* ---- TRANSACTION ---- */
 
  user.kamas-=entry.price
 
  if(!user.cards) user.cards={}
  user.cards[entry.card]=(user.cards[entry.card]||0)+1
 
- user.krosmoshop[entry.card]=true
+ user.krosmoshop[today][cardId]=true
 
- /* -------- STATS SHOP -------- */
+ /* ---- STATS ---- */
 
  if(!user.krosmoshopStats)
   user.krosmoshopStats={
@@ -139,6 +184,8 @@ function buyFromShop(userId,cardId){
   user.krosmoshopStats.ssrBought++
 
  save()
+
+ console.log("[KROSMOSHOP] achat OK",cardId,userId)
 
  return {success:true,rarity:entry.rarity}
 

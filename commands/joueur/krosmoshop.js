@@ -1,18 +1,13 @@
 const {
  EmbedBuilder,
  ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle
+ StringSelectMenuBuilder
 } = require("discord.js")
 
 const { getShop, buyFromShop } = require("../../systems/krosmoshop")
-const { getCardsById } = require("../../systems/cardRegistry")
-const { getUser } = require("../../systems/userSystem")
+const { getCards } = require("../../systems/cardRegistry")
 
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-const cardsById=getCardsById()
+const cards = getCards()
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -22,68 +17,63 @@ const rarityEmoji={
 module.exports={
 
  name:"krosmoshop",
+ description:"Shop quotidien",
 
  async execute(interaction){
 
-  const shop=getShop()
+  const shopData = getShop()
+  const shop = shopData.cards
 
-  const embed=new EmbedBuilder()
-   .setTitle("🏪 KrosmoShop")
-   .setDescription(`Boutique officielle du Krosmoz.
+  const lines = shop.map(c=>{
 
-Chaque aventurier peut acheter **une copie de chaque carte par jour**.`)
+   const card = cards.find(card=>card.id==c.card)
 
-  const rows=[]
-
-  shop.cards.forEach(entry=>{
-
-   const card=cardsById[entry.card]
-
-   embed.addFields({
-    name:`${rarityEmoji[card.rarity]} ${card.name}`,
-    value:`${entry.price} kamas`,
-    inline:false
-   })
-
-   rows.push(
-    new ActionRowBuilder().addComponents(
-     new ButtonBuilder()
-      .setCustomId(`kshop_buy_${entry.card}`)
-      .setLabel("Acheter")
-      .setStyle(ButtonStyle.Success)
-    )
-   )
+   return `${rarityEmoji[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
 
   })
 
+  const embed = new EmbedBuilder()
+   .setTitle("🛒 KrosmoShop du jour")
+   .setDescription(lines.join("\n"))
+
+  const select = new StringSelectMenuBuilder()
+   .setCustomId("krosmoshop_buy")
+   .setPlaceholder("Acheter une carte")
+
+  shop.forEach(c=>{
+
+   const card = cards.find(card=>card.id==c.card)
+
+   select.addOptions({
+    label: card.name,
+    description: `${c.price} kamas`,
+    value: String(c.card)
+   })
+
+  })
+
+  const row = new ActionRowBuilder().addComponents(select)
+
   await interaction.reply({
    embeds:[embed],
-   components:rows
+   components:[row]
   })
 
  },
 
- async button(interaction){
+ async select(interaction){
 
-  if(!interaction.customId.startsWith("kshop_buy_")) return
+  if(interaction.customId !== "krosmoshop_buy") return
 
-  const userId=interaction.user.id
-  const cardId=interaction.customId.split("_")[2]
+  const cardId = parseInt(interaction.values[0])
 
-  const result=buyFromShop(userId,cardId)
+  const result = buyFromShop(interaction.user.id, cardId)
 
   if(result?.error)
    return interaction.reply({
     content:`❌ ${result.error}`,
     flags:64
    })
-
-  const user=getUser(userId)
-
-  const unlocked=achievementCheck(user,"krosmoshop")
-
-  if(unlocked.length)
-   await notifyAchievements(interaction,unlocked)
 
   return interaction.reply({
    content:"🛒 Achat effectué.",
