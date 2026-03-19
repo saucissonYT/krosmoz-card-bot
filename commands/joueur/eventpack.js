@@ -158,8 +158,6 @@ module.exports = {
     await sleep(400)
    }
 
-   /* ⚠️ JAMAIS DE REVEAL */
-
    const remaining = user.event.tickets - user.event.used
 
    const finalEmbed = new EmbedBuilder()
@@ -198,17 +196,32 @@ module.exports = {
    await sleep(500)
   }
 
-  /* ---------- RP / META ---------- */
+  /* ---------- RP / META COMPLET ---------- */
 
   let extra=""
+
+  if(meta.mutations?.length){
+   extra += "\n💀 Mutations :\n" + meta.mutations.join("\n")
+  }
+
+  if(meta.upgrades?.length){
+   extra += "\n🎭 Upgrades :\n" + meta.upgrades.join("\n")
+  }
+
+  if(meta.duplicates?.length){
+   extra += "\n🍺 Doublons :\n" + meta.duplicates.join("\n")
+  }
+
+  if(meta.added?.length){
+   extra += "\n✨ Cartes ajoutées :\n" + meta.added.join("\n")
+  }
 
   if(meta.chaos){
    extra += `\n⚙️ Chaos : ${meta.chaos.join(", ")}`
   }
 
-  if(meta.xelor){
-   extra += `\n⏳ ${meta.xelor.removed.length} cartes supprimées`
-   extra += `\n⏳ ${meta.xelor.added.length} cartes ajoutées`
+  if(meta.removed){
+   extra += `\n⏳ Supprimées : ${meta.removed.join(", ")}`
   }
 
   if(flags.length){

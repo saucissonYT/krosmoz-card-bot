@@ -52,8 +52,19 @@ module.exports = {
 
   const sub = interaction.options.getSubcommand()
 
-  /* 🔧 FIX : éviter interaction failed */
-  await interaction.deferReply({ ephemeral:true })
+  const channel = interaction.channel
+
+  if(!channel){
+   return interaction.reply({
+    content:"❌ Impossible de récupérer le channel.",
+    ephemeral:true
+   })
+  }
+
+  /* 🔧 FIX */
+  if(!interaction.deferred && !interaction.replied){
+   await interaction.deferReply({ ephemeral:true })
+  }
 
   /* ---------------- START RANDOM ---------------- */
 
@@ -65,7 +76,7 @@ module.exports = {
     })
    }
 
-   startEvent(interaction.channel)
+   startEvent(channel)
 
    return interaction.editReply({
     content:"🎰 Event lancé aléatoirement."
@@ -82,7 +93,7 @@ module.exports = {
    }))
 
    const menu = new StringSelectMenuBuilder()
-    .setCustomId(`krosmoevent_select_${interaction.user.id}`) // 🔧 FIX ownership
+    .setCustomId(`krosmoevent_select_${interaction.user.id}`)
     .setPlaceholder("Choisir un event")
     .addOptions(options.slice(0,25))
 
@@ -104,7 +115,7 @@ module.exports = {
     })
    }
 
-   stopEvent(interaction.channel)
+   stopEvent(channel)
 
    return interaction.editReply({
     content:"⛔ Event arrêté."
@@ -148,9 +159,8 @@ module.exports = {
 
   if(!interaction.customId.startsWith("krosmoevent_select_")) return
 
-  const ownerId = interaction.customId.split("_")[1]
+  const ownerId = interaction.customId.split("_")[2] // 🔧 FIX
 
-  /* 🔧 FIX ownership */
   if(interaction.user.id !== ownerId){
    return interaction.reply({
     content:"❌ Pas ton menu.",
@@ -159,6 +169,15 @@ module.exports = {
   }
 
   if(!isDev(interaction.user.id)) return
+
+  const channel = interaction.channel
+
+  if(!channel){
+   return interaction.reply({
+    content:"❌ Channel introuvable.",
+    ephemeral:true
+   })
+  }
 
   const eventKey = interaction.values[0]
 
@@ -169,7 +188,7 @@ module.exports = {
    })
   }
 
-  startEvent(interaction.channel, eventKey)
+  startEvent(channel, eventKey)
 
   await interaction.update({
    content:`✅ Event forcé : **${EVENTS[eventKey].name}**`,

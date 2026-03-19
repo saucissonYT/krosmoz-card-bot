@@ -2,17 +2,15 @@ const EVENTS = {
 
  iop:{
   name:"🔥 Iop",
-  effect:"Boost UR & S",
+  effect:"Boost HR & UR",
 
   start:`🔥 **Iop entre en rage !**
-La puissance brute envahit les packs !
+La puissance brute explose !
 
-💥 UR & S fortement augmentées`,
+💥 HR & UR dominent les packs`,
 
   mid:`🔥 **La rage continue !**
-Les coups pleuvent encore !
-
-💥 Toujours boost UR & S`,
+Les coups deviennent encore plus violents !`,
 
   end:`🔥 **Iop se calme...**
 La puissance redescend.`
@@ -23,24 +21,20 @@ La puissance redescend.`
   effect:"Carte S ciblée (20%)",
 
   start:`🎯 **Cra vise sa proie...**
-Une carte rare est traquée !
-
-🎯 20% de chance d'obtenir une S spécifique`,
+Une cible rare est traquée !`,
 
   mid:`🎯 **La chasse continue...**
-Les flèches ne ratent pas leur cible.`,
+Impossible d’échapper aux flèches.`,
 
   end:`🎯 **Cra relâche son arc.**`
  },
 
  xelor:{
   name:"⏳ Xelor",
-  effect:"Relance du pack",
+  effect:"Altération du pack",
 
   start:`⏳ **Xelor manipule le temps...**
-Ton destin peut changer !
-
-🔁 Pack relançable une fois`,
+Certaines cartes disparaissent, d'autres apparaissent.`,
 
   mid:`⏳ **Le temps se fissure encore...**`,
 
@@ -52,9 +46,7 @@ Ton destin peut changer !
   effect:"Pack caché + carte bonus",
 
   start:`🕶️ **Le Voile de l’Ombre tombe...**
-Tu ne vois plus rien...
-
-🎴 Pack caché + 1 carte bonus`,
+Tu ne vois plus rien...`,
 
   mid:`🕶️ **Les ombres persistent...**`,
 
@@ -66,9 +58,7 @@ Tu ne vois plus rien...
   effect:"Mutation cartes",
 
   start:`💀 **Le sang appelle le chaos...**
-Les cartes mutent !
-
-🧬 Chaque carte peut devenir une autre`,
+Les cartes mutent violemment !`,
 
   mid:`💀 **La douleur amplifie la mutation...**`,
 
@@ -80,9 +70,7 @@ Les cartes mutent !
   effect:"+1 rareté",
 
   start:`🎭 **Zobal change de masque...**
-La réalité se déforme !
-
-⬆️ Une carte améliorée`,
+Certaines cartes évoluent !`,
 
   mid:`🎭 **Les masques se succèdent...**`,
 
@@ -91,12 +79,10 @@ La réalité se déforme !
 
  huppermage:{
   name:"🧠 Huppermage",
-  effect:"Carte bonus (50%)",
+  effect:"Cartes bonus",
 
   start:`🧠 **Les éléments s'alignent...**
-Une carte peut apparaître !
-
-✨ 50% chance carte bonus`,
+Des cartes supplémentaires apparaissent !`,
 
   mid:`🧠 **L'équilibre persiste...**`,
 
@@ -108,9 +94,7 @@ Une carte peut apparaître !
   effect:"Duplication",
 
   start:`🍺 **Pandawa partage...**
-Les cartes se multiplient !
-
-🔁 Duplication possible`,
+Certaines cartes se dupliquent !`,
 
   mid:`🍺 **La fête continue...**`,
 
@@ -119,12 +103,10 @@ Les cartes se multiplient !
 
  osamodas:{
   name:"🐉 Osamodas",
-  effect:"Pack cohérent",
+  effect:"Pack homogène",
 
   start:`🐉 **Osamodas invoque un troupeau...**
-Toutes les cartes se ressemblent !
-
-📦 Pack homogène (7-10 cartes)`,
+Toutes les cartes seront similaires !`,
 
   mid:`🐉 **Les créatures répondent...**`,
 
@@ -136,9 +118,7 @@ Toutes les cartes se ressemblent !
   effect:"RNG chance",
 
   start:`🎲 **Ecaflip lance les dés...**
-Chance ou malchance ?
-
-🍀 RNG extrême (bon)`,
+La chance est avec toi !`,
 
   mid:`🎲 **Tout peut arriver...**`,
 
@@ -150,9 +130,7 @@ Chance ou malchance ?
   effect:"RNG malchance",
 
   start:`🐺 **Ouginak grogne...**
-La malchance arrive !
-
-💀 RNG extrême (mauvais)`,
+La malchance s’abat !`,
 
   mid:`🐺 **La chasse est difficile...**`,
 
@@ -161,12 +139,10 @@ La malchance arrive !
 
  feca:{
   name:"🛡️ Feca",
-  effect:"No C/U + XP jackpot",
+  effect:"No C/U + XP boost",
 
   start:`🛡️ **Feca protège les héros...**
-Plus de faiblesse !
-
-✨ Pas de C/U + XP boost + jackpot`,
+Plus aucune carte faible !`,
 
   mid:`🛡️ **Le bouclier tient...**`,
 
@@ -175,12 +151,10 @@ Plus de faiblesse !
 
  enutrof:{
   name:"💰 Enutrof",
-  effect:"Kamas x5 + jackpot",
+  effect:"Kamas x5",
 
   start:`💰 **Enutrof est généreux !**
-Les richesses affluent !
-
-💸 Kamas x5 + jackpot`,
+Les richesses affluent !`,
 
   mid:`💰 **L’or continue de tomber...**`,
 
@@ -189,12 +163,10 @@ Les richesses affluent !
 
  roublard:{
   name:"💣 Roublard",
-  effect:"+2 cartes",
+  effect:"+3 cartes",
 
   start:`💣 **Roublard prépare son coup...**
-Plus de loot !
-
-📦 Packs à 7 cartes`,
+Plus de cartes dans les packs !`,
 
   mid:`💣 **Les bombes explosent...**`,
 
@@ -206,9 +178,7 @@ Plus de loot !
   effect:"RNG chaos",
 
   start:`⚙️ **La machine s'emballe...**
-Tout devient instable !
-
-🎲 RNG totalement modifiée`,
+Les probabilités deviennent instables !`,
 
   mid:`⚙️ **Le chaos persiste...**`,
 
@@ -217,12 +187,10 @@ Tout devient instable !
 
  eliotrope:{
   name:"🌀 Eliotrope",
-  effect:"2 packs → 1",
+  effect:"Pack spécial",
 
   start:`🌀 **Un portail s'ouvre...**
-Deux réalités !
-
-📦 Choix entre 2 packs`,
+Des cartes venues d'autres dimensions apparaissent !`,
 
   mid:`🌀 **Les dimensions vibrent...**`,
 
@@ -231,12 +199,10 @@ Deux réalités !
 
  eniripsa:{
   name:"✨ Eniripsa",
-  effect:"No C/U",
+  effect:"No C/U/R",
 
-  start:`✨ **Eniripsa soigne le destin...**
-Plus de cartes faibles !
-
-🌟 Pas de C/U`,
+  start:`✨ **Eniripsa purifie les packs...**
+Plus aucune carte faible !`,
 
   mid:`✨ **L'énergie persiste...**`,
 
@@ -245,12 +211,10 @@ Plus de cartes faibles !
 
  sadida:{
   name:"🌿 Sadida",
-  effect:"Duplication 30%",
+  effect:"Duplication",
 
   start:`🌿 **La nature s’éveille...**
-Les cartes poussent !
-
-🌿 30% duplication (max 2)`,
+Les cartes se multiplient !`,
 
   mid:`🌿 **La forêt s'étend...**`,
 
@@ -262,9 +226,7 @@ Les cartes poussent !
   effect:"+1 rareté globale",
 
   start:`⚔️ **Les armes s’embrasent...**
-Tout devient plus fort !
-
-⬆️ Toutes les cartes boostées`,
+Toutes les cartes sont améliorées !`,
 
   mid:`⚔️ **Le feu persiste...**`,
 
