@@ -67,13 +67,12 @@ module.exports = {
 
    /* ================= PACK ================= */
 
-   let pack=[], flags=[], meta={}
+   let pack=[], meta={}
 
    try {
     const result = generateEventPack(user,event)
 
     pack = result?.pack || []
-    flags = result?.flags || []
     meta = result?.meta || {}
 
    } catch(e){
@@ -218,12 +217,8 @@ module.exports = {
     rp += `\n🎭 Améliorations :\n` + meta.upgrades.join("\n")
    }
 
-   if(event.key === "pandawa" && meta.duplicates?.length){
-    rp += `\n🍺 ${meta.duplicates.length} duplication(s)`
-   }
-
-   if(event.key === "sadida" && meta.duplicates?.length){
-    rp += `\n🌿 ${meta.duplicates.length} duplication(s)`
+   if(meta.duplicates?.length){
+    rp += `\n🔁 ${meta.duplicates.length} duplication(s)`
    }
 
    if(meta.chaos?.length){
@@ -231,11 +226,17 @@ module.exports = {
    }
 
    if(meta.downgrades?.length){
-    rp += `\n🐺 Dégradation :\n` + meta.downgrades.join("\n")
+    rp += `\n🐺 Dégradations :\n` + meta.downgrades.join("\n")
    }
 
    if(meta.jackpot){
     rp += `\n💰 JACKPOT !`
+   }
+
+   /* ===== UX EVENT ===== */
+
+   if(meta.ux?.length){
+    rp += "\n\n✨ Effet de l'événement :\n" + meta.ux.join("\n")
    }
 
    /* ================= FINAL ================= */
@@ -249,7 +250,7 @@ module.exports = {
    await message.edit({
     embeds:[
      new EmbedBuilder()
-      .setTitle(`🎁 ${event.name}`)
+      .setTitle(`🎁 ${event.name}${meta.ux?.[0] ? " • " + meta.ux[0] : ""}`)
       .setDescription(description)
       .addFields(
        {name:"💰 Kamas",value:`+${kamas}`,inline:true},
