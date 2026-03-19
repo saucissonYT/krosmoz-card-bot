@@ -63,9 +63,9 @@ function generateEventPack(user,event){
   added:[],
   removed:[],
   chaos:[],
-  downgrades:[], // 🔥 NEW
+  downgrades:[],
   jackpot:false,
-  luck:false     // 🔥 NEW (ecaflip)
+  luck:false
  }
 
  switch(event.key){
@@ -103,21 +103,24 @@ function generateEventPack(user,event){
    break
   }
 
-  /* ===== XELOR ===== */
+  /* ===== XELOR (FIX UX READY) ===== */
   case "xelor":{
    pack.sort((a,b)=>rarityOrder.indexOf(a.rarity)-rarityOrder.indexOf(b.rarity))
 
-   const removed=pack.splice(0,Math.floor(Math.random()*2)+1)
+   const removed = pack.splice(0,Math.floor(Math.random()*2)+1)
+   meta.removed = removed.map(c=>c.name)
 
    const addCount=Math.floor(Math.random()*3)+1
 
    for(let i=0;i<addCount;i++){
     const c=randomCard(cards)
     pack.push(c)
-    meta.added.push(c.name)
+
+    meta.added.push({
+     name:c.name
+    })
    }
 
-   meta.removed = removed.map(c=>c.name)
    break
   }
 
@@ -174,11 +177,12 @@ function generateEventPack(user,event){
    break
   }
 
-  /* ===== PANDAWA ===== */
+  /* ===== PANDAWA (FIX CRITIQUE) ===== */
   case "pandawa":{
    const newPack=[]
 
    for(const c of pack){
+
     newPack.push(c)
 
     let chance=0.3
@@ -187,8 +191,14 @@ function generateEventPack(user,event){
     if(c.rarity==="SSR") chance=0.05
 
     if(Math.random()<chance){
-     newPack.push({...c})
-     meta.duplicates.push(c.name)
+
+     const clone = {...c}
+     newPack.push(clone)
+
+     meta.duplicates.push({
+      original:c.name,
+      copy:clone.name
+     })
     }
    }
 
@@ -280,7 +290,7 @@ function generateEventPack(user,event){
 
   /* ===== ROUBLARD ===== */
   case "roublard":{
-   pack = pack.slice(0,5) // 🔥 FIX
+   pack = pack.slice(0,5)
    pack.push(...Array(3).fill(0).map(()=>randomCard(cards)))
    break
   }
@@ -320,7 +330,10 @@ function generateEventPack(user,event){
    for(const c of [...pack]){
     if(Math.random()<0.35 && dup<2){
      pack.push({...c})
-     meta.duplicates.push(c.name)
+     meta.duplicates.push({
+      original:c.name,
+      copy:c.name
+     })
      dup++
     }
    }

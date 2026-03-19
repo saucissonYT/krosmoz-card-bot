@@ -156,17 +156,37 @@ module.exports = {
 
     /* ===== VISUAL EFFECTS ===== */
 
-    if(meta.duplicates?.includes(card.name)){
-     if(event.key === "pandawa") line += " 🍺"
-     if(event.key === "sadida") line += " 🌿"
+    // 🐼 Pandawa → uniquement copie
+    if(event.key === "pandawa" && meta.duplicates){
+     const isCopy = meta.duplicates.some(d => d.copy === card.name)
+     if(isCopy) line += " 🍺"
     }
 
+    // 🌿 Sadida
+    if(event.key === "sadida" && meta.duplicates){
+     const isCopy = meta.duplicates.some(d => d.copy === card.name)
+     if(isCopy) line += " 🌿"
+    }
+
+    // 💀 Sacrieur
     if(meta.mutations?.some(m=>m.includes(card.name))){
      line += " 💀"
     }
 
+    // 🎭 Zobal / Forgelance
     if(meta.upgrades?.some(u=>u.includes(card.name))){
      line += " 🎭"
+    }
+
+    // ⏳ Xelor (cartes ajoutées)
+    if(event.key === "xelor" && meta.added){
+     const isAdded = meta.added.some(a => a.name === card.name)
+     if(isAdded) line += " ⏳"
+    }
+
+    // 🐺 Ouginak
+    if(meta.downgrades?.some(d=>d.includes(card.name))){
+     line += " 🐺"
     }
 
     revealed.push(line)
@@ -186,16 +206,16 @@ module.exports = {
     await sleep(420)
    }
 
-   /* ================= RP SYSTEM ================= */
+   /* ================= RP ================= */
 
    let rp = ""
 
    if(meta.removed?.length){
-    rp += `\n⏳ ${meta.removed.length} carte(s) supprimée(s)`
+    rp += `\n⏳ ${meta.removed.length} carte(s) ont disparu...`
    }
 
    if(meta.added?.length){
-    rp += `\n✨ ${meta.added.length} carte(s) ajoutée(s)`
+    rp += `\n⏳ ${meta.added.length} carte(s) sont apparues...`
    }
 
    if(meta.mutations?.length){
@@ -222,16 +242,8 @@ module.exports = {
     rp += `\n🐺 Dégradation :\n` + meta.downgrades.join("\n")
    }
 
-   if(event.key === "ecaflip"){
-    if(meta.jackpot){
-     rp += `\n🎲💥 JACKPOT !`
-    } else if(meta.luck){
-     rp += `\n🎲 La chance a amélioré le pack...`
-    }
-   }
-
-   if(flags.length){
-    rp += "\n\n" + flags.join("\n")
+   if(meta.jackpot){
+    rp += `\n💰 JACKPOT !`
    }
 
    /* ================= FINAL ================= */
@@ -256,7 +268,7 @@ module.exports = {
     ]
    })
 
-   /* ================= VOICE LINE (🔥 NEW) ================= */
+   /* ================= VOICE LINE ================= */
 
    let bestRarity = null
 
@@ -275,7 +287,6 @@ module.exports = {
 
     if(pool.length){
      const line = pool[Math.floor(Math.random()*pool.length)]
-
      await channel.send(`💬 ${event.name} : ${line}`)
     }
    }
