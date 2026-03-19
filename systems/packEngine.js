@@ -1,4 +1,4 @@
-const { generatePack } = require("./pack")
+const { generatePack: coreGeneratePack } = require("./pack") // 🔥 FIX
 const { rewardKamas } = require("./rewards")
 const { addXP } = require("./progressionSystem")
 const achievements = require("./achievementRegistry")
@@ -8,6 +8,16 @@ const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 const rarityXP={
  C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
+
+/* ================= FIX CRITIQUE ================= */
+
+// 👉 Wrapper pour compatibilité event system
+function generatePack(user){
+ const result = coreGeneratePack(user)
+ return result?.pack || []
+}
+
+/* ================================================= */
 
 function giveAchievement(user,id){
 
@@ -29,7 +39,7 @@ function giveAchievement(user,id){
 
 function openPack(user,setId){
 
- const result = generatePack(user,setId)
+ const result = coreGeneratePack(user,setId)
 
  const pack = result?.pack || []
  const luckyPack = result?.luckyPack || false
@@ -81,7 +91,6 @@ function openPack(user,setId){
 
   if(card.rarity==="SSR"){
    user.stats.ssrPulled++
-
    user.stats.ssrStreak++
 
    if(user.stats.ssrStreak>=2)
@@ -115,12 +124,8 @@ function openPack(user,setId){
  let duplicates=0
 
  for(const id of ids){
-
-  if(seen.has(id))
-   duplicates++
-
+  if(seen.has(id)) duplicates++
   seen.add(id)
-
  }
 
  if(duplicates>=2)
@@ -168,11 +173,9 @@ function openPack(user,setId){
  let dailyBonus=false
 
  if(user.dailyXP !== today){
-
   xpGain*=2
   user.dailyXP=today
   dailyBonus=true
-
  }
 
  if(best)
@@ -192,6 +195,9 @@ function openPack(user,setId){
 
 }
 
+/* ================= EXPORT FIX ================= */
+
 module.exports={
- openPack
+ openPack,
+ generatePack // 🔥 IMPORTANT
 }
