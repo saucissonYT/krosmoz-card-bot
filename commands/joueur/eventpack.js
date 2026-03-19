@@ -12,7 +12,7 @@ const {
 
 const { generateEventPack } = require("../../systems/eventPackEngine")
 const { getUser, save } = require("../../systems/userSystem")
-const { applyEventRewards } = require("../../systems/rewardSystem") // ✅ NEW
+const { applyEventRewards } = require("../../systems/rewardSystem")
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
@@ -46,7 +46,7 @@ module.exports = {
   if(!isEventActive()){
    return interaction.reply({
     content:"❌ Aucun event actif.",
-    ephemeral:true
+    flags:64
    })
   }
 
@@ -54,12 +54,19 @@ module.exports = {
 
   initUserEvent(user)
 
+  if(!user.event){
+   return interaction.reply({
+    content:"❌ Erreur event user.",
+    flags:64
+   })
+  }
+
   const check = canUseEventPack(user)
 
   if(!check.ok){
    return interaction.reply({
     content:`❌ ${check.error}`,
-    ephemeral:true
+    flags:64
    })
   }
 
@@ -88,14 +95,42 @@ module.exports = {
 
   /* ---------- PACK ---------- */
 
-  const result = generateEventPack(user,event)
-  const pack = result.pack || result
-  const flags = result.flags || []
-  const meta = result.meta || {}
+  let pack=[]
+  let flags=[]
+  let meta={}
 
-  /* ---------- APPLY REWARDS (NEW CORE) ---------- */
+  try {
+   const result = generateEventPack(user,event)
 
-  const { kamas, xp, jackpotMessage } = applyEventRewards(user, pack, event, meta)
+   pack = result?.pack || []
+   flags = result?.flags || []
+   meta = result?.meta || {}
+
+  } catch(e){
+   console.error("PACK ERROR:", e)
+   return interaction.editReply("❌ Erreur génération pack.")
+  }
+
+  if(!Array.isArray(pack) || pack.length === 0){
+   return interaction.editReply("❌ Pack invalide.")
+  }
+
+  /* ---------- REWARDS ---------- */
+
+  let kamas=0
+  let xp=0
+  let jackpotMessage=null
+
+  try {
+   const result = applyEventRewards(user, pack, event, meta)
+
+   kamas = result?.kamas || 0
+   xp = result?.xp || 0
+   jackpotMessage = result?.jackpotMessage
+
+  } catch(e){
+   console.error("REWARD ERROR:", e)
+  }
 
   if(jackpotMessage){
    channel.send(jackpotMessage)
@@ -110,11 +145,12 @@ module.exports = {
    let revealed=[]
 
    for(let i=0;i<pack.length;i++){
+
     revealed.push("❓ ???")
 
     const embed = new EmbedBuilder()
      .setTitle("🕶️ Pack mystérieux")
-     .setDescription(revealed.join("\n"))
+     .setDescription(revealed.join("\n") || "❓ ???")
      .setColor("#2c3e50")
 
     await message.edit({embeds:[embed]})
@@ -144,15 +180,17 @@ module.exports = {
 
   for(const card of pack){
 
+   if(!card || !card.id) continue
+
    user.cards[card.id]=(user.cards[card.id]||0)+1
 
-   const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
+   const line = `${rarityEmoji[card.rarity] || "❓"} **${card.name || "???"}** \`${card.rarity || "?"}\``
 
    revealed.push(line)
 
    const embed = new EmbedBuilder()
     .setTitle(`🎴 Ouverture (${pack.length} cartes)`)
-    .setDescription(revealed.join("\n"))
+    .setDescription(revealed.join("\n") || "❌ Erreur affichage")
     .setColor(rarityColor[card.rarity] || "#9b59b6")
 
    await message.edit({embeds:[embed]})
@@ -193,9 +231,11 @@ module.exports = {
 
   const remaining = user.event.tickets - user.event.used
 
+  const description = (revealed.join("\n") + extra).trim()
+
   const finalEmbed = new EmbedBuilder()
    .setTitle(`🎁 ${event.name}`)
-   .setDescription(revealed.join("\n") + extra)
+   .setDescription(description || "❌ Aucune carte générée.")
    .addFields(
     {name:"💰 Kamas",value:`+${kamas}`,inline:true},
     {name:"⭐ XP",value:`+${xp}`,inline:true},
