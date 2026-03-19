@@ -1,7 +1,5 @@
 const {
- SlashCommandBuilder,
- ActionRowBuilder,
- StringSelectMenuBuilder
+ SlashCommandBuilder
 } = require("discord.js")
 
 const { isDev } = require("../../systems/devSystem")
@@ -17,6 +15,17 @@ module.exports = {
   .addSubcommand(sub=>
    sub.setName("start")
     .setDescription("Lancer un event")
+    .addStringOption(opt=>
+     opt.setName("classe")
+      .setDescription("Classe de l'event")
+      .setRequired(true)
+      .addChoices(
+       ...Object.keys(EVENTS).map(k=>({
+        name:EVENTS[k].name,
+        value:k
+       }))
+      )
+    )
   )
   .addSubcommand(sub=>
    sub.setName("stop")
@@ -34,55 +43,31 @@ module.exports = {
 
   const sub = interaction.options.getSubcommand()
 
-  await interaction.deferReply({ ephemeral:true })
+  /* ---------- START ---------- */
 
   if(sub === "start"){
 
-   const options = Object.keys(EVENTS).map(key=>({
-    label:EVENTS[key].name,
-    value:key
-   }))
+   const key = interaction.options.getString("classe")
 
-   const menu = new StringSelectMenuBuilder()
-    .setCustomId("forceevent_select")
-    .setPlaceholder("Choisir un event")
-    .addOptions(options.slice(0,25))
+   startEvent(interaction.channel,key)
 
-   const row = new ActionRowBuilder().addComponents(menu)
-
-   return interaction.editReply({
-    content:"🎯 Choisis un event à lancer",
-    components:[row]
+   return interaction.reply({
+    content:`✅ Event lancé : **${EVENTS[key].name}**`,
+    ephemeral:true
    })
-
   }
+
+  /* ---------- STOP ---------- */
 
   if(sub === "stop"){
 
    stopEvent(interaction.channel)
 
-   return interaction.editReply("⛔ Event arrêté.")
+   return interaction.reply({
+    content:"⛔ Event arrêté.",
+    ephemeral:true
+   })
   }
 
- },
-
- async select(interaction){
-
-  if(interaction.customId !== "forceevent_select") return
-
-  if(!isDev(interaction.user.id)) return
-
-  await interaction.deferUpdate()
-
-  const eventKey = interaction.values[0]
-
-  startEvent(interaction.channel,eventKey)
-
-  await interaction.editReply({
-   content:`✅ Event lancé : **${eventKey}**`,
-   components:[]
-  })
-
  }
-
 }
