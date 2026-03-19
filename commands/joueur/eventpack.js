@@ -29,125 +29,172 @@ const rarityEmoji={
 module.exports = {
 
  name:"eventpack",
- description:"Ouvrir un pack d'event",
 
  async execute(interaction){
 
-  const event = getEvent()
+  console.log("=== EVENTPACK START ===")
 
-  if(!isEventActive()){
-   return interaction.reply({ content:"❌ Aucun event actif.", flags:64 })
-  }
+  try {
 
-  const user = getUser(interaction.user.id)
+   const event = getEvent()
+   console.log("EVENT:", event)
 
-  initUserEvent(user)
+   if(!isEventActive()){
+    console.log("NO EVENT")
+    return interaction.reply({ content:"❌ Aucun event actif.", flags:64 })
+   }
 
-  const check = canUseEventPack(user)
+   const user = getUser(interaction.user.id)
+   console.log("USER:", user?.id)
 
-  if(!check.ok){
-   return interaction.reply({ content:`❌ ${check.error}`, flags:64 })
-  }
+   initUserEvent(user)
+   console.log("USER EVENT:", user.event)
 
-  user.event.used++
+   const check = canUseEventPack(user)
+   console.log("CHECK:", check)
 
-  await interaction.deferReply()
-  await interaction.editReply("🎴 Ouverture du pack d'event...")
+   if(!check.ok){
+    return interaction.reply({ content:`❌ ${check.error}`, flags:64 })
+   }
 
-  const channel = interaction.channel
+   user.event.used++
 
-  const message = await channel.send({
-   embeds:[
-    new EmbedBuilder()
-     .setTitle("📦 Pack en cours...")
-     .setDescription("✨ Une énergie étrange se forme...")
-     .setColor("#9b59b6")
+   await interaction.deferReply()
+   await interaction.editReply("🎴 Ouverture du pack d'event...")
+
+   console.log("STEP: message initial envoyé")
+
+   const channel = interaction.channel
+
+   const message = await channel.send({
+    embeds:[
+     new EmbedBuilder()
+      .setTitle("📦 Pack en cours...")
+      .setDescription("✨ Une énergie étrange se forme...")
    ]
-  })
+   })
 
-  /* ---------- PACK ---------- */
+   console.log("STEP: embed envoyé")
 
-  let pack=[], flags=[], meta={}
+   /* ================= PACK ================= */
 
-  try {
-   const result = generateEventPack(user,event)
+   let pack=[], flags=[], meta={}
 
-   console.log("EVENT:", event.key)
-   console.log("RESULT:", result)
+   try {
 
-   pack = result?.pack || []
-   flags = result?.flags || []
-   meta = result?.meta || {}
+    console.log("STEP: generateEventPack CALL")
 
-  } catch(e){
-   console.error("PACK ERROR:", e)
-   return interaction.editReply("❌ Erreur génération pack.")
-  }
+    const result = generateEventPack(user,event)
 
-  if(!Array.isArray(pack) || pack.length === 0){
-   return interaction.editReply("❌ Pack invalide.")
-  }
+    console.log("RESULT:", result)
 
-  /* ---------- REWARDS ---------- */
+    pack = result?.pack || []
+    flags = result?.flags || []
+    meta = result?.meta || {}
 
-  let kamas=0, xp=0, jackpotMessage=null
+    console.log("PACK:", pack)
 
-  try {
-   const r = applyEventRewards(user, pack, event, meta)
-   kamas=r.kamas||0
-   xp=r.xp||0
-   jackpotMessage=r.jackpotMessage
-  } catch(e){
-   console.error("REWARD ERROR:", e)
-  }
+   } catch(e){
+    console.error("❌ PACK ERROR:", e)
+    return interaction.editReply("❌ Erreur génération pack.")
+   }
 
-  if(jackpotMessage) channel.send(jackpotMessage)
+   if(!Array.isArray(pack)){
+    console.error("PACK NOT ARRAY")
+    return interaction.editReply("❌ Pack invalide.")
+   }
 
-  registerEventPack(pack)
+   if(pack.length === 0){
+    console.error("PACK EMPTY")
+    return interaction.editReply("❌ Pack vide.")
+   }
 
-  /* ---------- REVEAL ---------- */
+   console.log("STEP: pack OK")
 
-  let revealed=[]
+   /* ================= REWARD ================= */
 
-  for(const card of pack){
+   let kamas=0, xp=0, jackpotMessage=null
 
-   if(!card || !card.id) continue
+   try {
+    console.log("STEP: reward start")
 
-   user.cards[card.id]=(user.cards[card.id]||0)+1
+    const r = applyEventRewards(user, pack, event, meta)
 
-   const line = `${rarityEmoji[card.rarity]||"❓"} **${card.name||"???"}**`
+    kamas=r?.kamas||0
+    xp=r?.xp||0
+    jackpotMessage=r?.jackpotMessage
 
-   revealed.push(line)
+    console.log("REWARD:", {kamas,xp})
+
+   } catch(e){
+    console.error("❌ REWARD ERROR:", e)
+   }
+
+   if(jackpotMessage){
+    channel.send(jackpotMessage)
+   }
+
+   registerEventPack(pack)
+
+   console.log("STEP: reveal start")
+
+   /* ================= REVEAL ================= */
+
+   let revealed=[]
+
+   for(const card of pack){
+
+    console.log("CARD:", card)
+
+    if(!card){
+     console.log("SKIP NULL CARD")
+     continue
+    }
+
+    user.cards[card.id]=(user.cards[card.id]||0)+1
+
+    const line = `${rarityEmoji[card.rarity]||"❓"} ${card.name||"???"}`
+    revealed.push(line)
+
+    try {
+     await message.edit({
+      embeds:[
+       new EmbedBuilder()
+        .setTitle(`🎴 Ouverture (${pack.length})`)
+        .setDescription(revealed.join("\n") || "...")
+     ]
+     })
+    } catch(e){
+     console.error("❌ EDIT ERROR:", e)
+    }
+
+    await sleep(300)
+   }
+
+   console.log("STEP: reveal done")
+
+   const description = revealed.join("\n").trim()
 
    await message.edit({
     embeds:[
      new EmbedBuilder()
-      .setTitle(`🎴 Ouverture (${pack.length})`)
-      .setDescription(revealed.join("\n") || "...")
-      .setColor(rarityColor[card.rarity]||"#9b59b6")
+      .setTitle(`🎁 ${event.name}`)
+      .setDescription(description || "❌ Aucune carte")
+      .addFields(
+       {name:"💰 Kamas",value:`+${kamas}`,inline:true},
+       {name:"⭐ XP",value:`+${xp}`,inline:true},
+       {name:"🎟️ Tickets",value:`${user.event.tickets-user.event.used}/${user.event.tickets}`,inline:true}
+      )
     ]
    })
 
-   await sleep(300)
+   console.log("=== EVENTPACK END ===")
+
+   save()
+
+  } catch(e){
+   console.error("❌ GLOBAL ERROR:", e)
   }
-
-  const description = revealed.join("\n").trim()
-
-  await message.edit({
-   embeds:[
-    new EmbedBuilder()
-     .setTitle(`🎁 ${event.name}`)
-     .setDescription(description || "❌ Aucune carte")
-     .addFields(
-      {name:"💰 Kamas",value:`+${kamas}`,inline:true},
-      {name:"⭐ XP",value:`+${xp}`,inline:true},
-      {name:"🎟️ Tickets",value:`${user.event.tickets-user.event.used}/${user.event.tickets}`,inline:true}
-     )
-     .setColor("#f1c40f")
-   ]
-  })
-
-  save()
 
  }
 }
