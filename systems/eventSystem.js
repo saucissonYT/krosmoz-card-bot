@@ -6,7 +6,7 @@ const EVENTS = require("./eventRegistry")
 const { getCards } = require("./cardRegistry")
 
 function randomTickets(){
- return Math.floor(Math.random()*2)+2 // 2 → 3
+ return Math.floor(Math.random()*2)+2
 }
 
 function pickRandomEvent(){
@@ -33,8 +33,6 @@ function startEvent(channel, forced=null){
 
  let data = {}
 
- /* ---------- TARGET (CRA) ---------- */
-
  if(event.needsTarget){
   const sCards = getCards().filter(c=>c.rarity==="S")
   const target = sCards[Math.floor(Math.random()*sCards.length)]
@@ -45,10 +43,9 @@ function startEvent(channel, forced=null){
   }
  }
 
- /* ---------- CREATE EVENT ---------- */
-
  currentEvent = {
-  key, // 🔥 source unique
+  key,
+  uid: Date.now(), // 🔥 IMPORTANT
   name: event.name,
   start: event.start,
   mid: event.mid,
@@ -65,8 +62,6 @@ function startEvent(channel, forced=null){
   endTime: Date.now() + (15 * 60000)
  }
 
- /* ---------- START MESSAGE ---------- */
-
  if(channel){
   channel.send(
 `🎰 **${event.name}**
@@ -80,8 +75,6 @@ ${event.needsTarget && data.targetName ? `🎯 Cible : **${data.targetName}**\n`
   )
  }
 
- /* ---------- MID ---------- */
-
  midTimeout = setTimeout(()=>{
   if(channel && currentEvent){
    channel.send(
@@ -93,8 +86,6 @@ ${currentEvent.mid}
    )
   }
  }, (15 * 60000)/2)
-
- /* ---------- END ---------- */
 
  timeout = setTimeout(()=>{
   if(channel && currentEvent){
@@ -114,7 +105,7 @@ ${currentEvent.end}
  }, 15 * 60000)
 }
 
-/* ---------------- STOP EVENT ---------------- */
+/* ---------------- STOP ---------------- */
 
 function stopEvent(channel){
 
@@ -130,13 +121,8 @@ function stopEvent(channel){
 
 /* ---------------- GETTERS ---------------- */
 
-function getEvent(){
- return currentEvent
-}
-
-function isEventActive(){
- return currentEvent !== null
-}
+function getEvent(){ return currentEvent }
+function isEventActive(){ return currentEvent !== null }
 
 /* ---------------- USER INIT ---------------- */
 
@@ -145,18 +131,18 @@ function initUserEvent(user){
  const event = getEvent()
  if(!event) return
 
- // 🔥 RESET SI EVENT DIFFÉRENT OU CORRUPT
  if(
   !user.event ||
-  user.event.id !== event.key ||
-  user.event.tickets === undefined
+  user.event.uid !== event.uid
  ){
   user.event = {
    id: event.key,
+   uid: event.uid,
    tickets: event.tickets,
    used: 0
   }
  }
+
 }
 
 /* ---------------- CAN USE ---------------- */
@@ -165,22 +151,15 @@ function canUseEventPack(user){
 
  const event = getEvent()
 
- if(!event)
-  return {ok:false,error:"Aucun event actif"}
-
- if(!user.event)
-  return {ok:false,error:"Pas de tickets"}
-
- if(user.event.id !== event.key)
-  return {ok:false,error:"Tickets expirés"}
-
- if(user.event.used >= user.event.tickets)
-  return {ok:false,error:"Plus de tickets"}
+ if(!event) return {ok:false,error:"Aucun event actif"}
+ if(!user.event) return {ok:false,error:"Pas de tickets"}
+ if(user.event.uid !== event.uid) return {ok:false,error:"Tickets expirés"}
+ if(user.event.used >= user.event.tickets) return {ok:false,error:"Plus de tickets"}
 
  return {ok:true}
 }
 
-/* ---------------- EVENT STATS ---------------- */
+/* ---------------- STATS ---------------- */
 
 function registerEventPack(pack){
 
@@ -196,8 +175,6 @@ function registerEventPack(pack){
  }
 
 }
-
-/* ---------------- EXPORT ---------------- */
 
 module.exports = {
  startEvent,

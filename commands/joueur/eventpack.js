@@ -1,6 +1,4 @@
-const {
- EmbedBuilder
-} = require("discord.js")
+const { EmbedBuilder } = require("discord.js")
 
 const {
  getEvent,
@@ -19,14 +17,8 @@ function sleep(ms){
 }
 
 const rarityColor={
- C:"#95a5a6",
- U:"#2ecc71",
- R:"#3498db",
- SR:"#9b59b6",
- HR:"#e74c3c",
- UR:"#f1c40f",
- S:"#ecf0f1",
- SSR:"#ffcc00"
+ C:"#95a5a6",U:"#2ecc71",R:"#3498db",SR:"#9b59b6",
+ HR:"#e74c3c",UR:"#f1c40f",S:"#ecf0f1",SSR:"#ffcc00"
 }
 
 const rarityEmoji={
@@ -44,30 +36,17 @@ module.exports = {
   const event = getEvent()
 
   if(!isEventActive()){
-   return interaction.reply({
-    content:"❌ Aucun event actif.",
-    flags:64
-   })
+   return interaction.reply({ content:"❌ Aucun event actif.", flags:64 })
   }
 
   const user = getUser(interaction.user.id)
 
   initUserEvent(user)
 
-  if(!user.event){
-   return interaction.reply({
-    content:"❌ Erreur event user.",
-    flags:64
-   })
-  }
-
   const check = canUseEventPack(user)
 
   if(!check.ok){
-   return interaction.reply({
-    content:`❌ ${check.error}`,
-    flags:64
-   })
+   return interaction.reply({ content:`❌ ${check.error}`, flags:64 })
   }
 
   user.event.used++
@@ -75,12 +54,7 @@ module.exports = {
   await interaction.deferReply()
   await interaction.editReply("🎴 Ouverture du pack d'event...")
 
-  await sleep(800)
-
   const channel = interaction.channel
-  if(!channel){
-   return interaction.editReply("❌ Impossible d'accéder au channel.")
-  }
 
   const message = await channel.send({
    embeds:[
@@ -91,16 +65,15 @@ module.exports = {
    ]
   })
 
-  await sleep(1000)
-
   /* ---------- PACK ---------- */
 
-  let pack=[]
-  let flags=[]
-  let meta={}
+  let pack=[], flags=[], meta={}
 
   try {
    const result = generateEventPack(user,event)
+
+   console.log("EVENT:", event.key)
+   console.log("RESULT:", result)
 
    pack = result?.pack || []
    flags = result?.flags || []
@@ -117,62 +90,20 @@ module.exports = {
 
   /* ---------- REWARDS ---------- */
 
-  let kamas=0
-  let xp=0
-  let jackpotMessage=null
+  let kamas=0, xp=0, jackpotMessage=null
 
   try {
-   const result = applyEventRewards(user, pack, event, meta)
-
-   kamas = result?.kamas || 0
-   xp = result?.xp || 0
-   jackpotMessage = result?.jackpotMessage
-
+   const r = applyEventRewards(user, pack, event, meta)
+   kamas=r.kamas||0
+   xp=r.xp||0
+   jackpotMessage=r.jackpotMessage
   } catch(e){
    console.error("REWARD ERROR:", e)
   }
 
-  if(jackpotMessage){
-   channel.send(jackpotMessage)
-  }
+  if(jackpotMessage) channel.send(jackpotMessage)
 
   registerEventPack(pack)
-
-  /* ================= SRAM ================= */
-
-  if(event.key === "sram"){
-
-   let revealed=[]
-
-   for(let i=0;i<pack.length;i++){
-
-    revealed.push("❓ ???")
-
-    const embed = new EmbedBuilder()
-     .setTitle("🕶️ Pack mystérieux")
-     .setDescription(revealed.join("\n") || "❓ ???")
-     .setColor("#2c3e50")
-
-    await message.edit({embeds:[embed]})
-    await sleep(400)
-   }
-
-   const remaining = user.event.tickets - user.event.used
-
-   const finalEmbed = new EmbedBuilder()
-    .setTitle(`🕶️ ${event.name}`)
-    .setDescription("❓ Les cartes restent inconnues...")
-    .addFields(
-     {name:"💰 Kamas",value:`+${kamas}`,inline:true},
-     {name:"⭐ XP",value:`+${xp}`,inline:true},
-     {name:"🎟️ Tickets",value:`${remaining}/${user.event.tickets}`,inline:true}
-    )
-    .setColor("#2c3e50")
-
-   await message.edit({embeds:[finalEmbed]})
-   save()
-   return
-  }
 
   /* ---------- REVEAL ---------- */
 
@@ -184,69 +115,39 @@ module.exports = {
 
    user.cards[card.id]=(user.cards[card.id]||0)+1
 
-   const line = `${rarityEmoji[card.rarity] || "❓"} **${card.name || "???"}** \`${card.rarity || "?"}\``
+   const line = `${rarityEmoji[card.rarity]||"❓"} **${card.name||"???"}**`
 
    revealed.push(line)
 
-   const embed = new EmbedBuilder()
-    .setTitle(`🎴 Ouverture (${pack.length} cartes)`)
-    .setDescription(revealed.join("\n") || "❌ Erreur affichage")
-    .setColor(rarityColor[card.rarity] || "#9b59b6")
+   await message.edit({
+    embeds:[
+     new EmbedBuilder()
+      .setTitle(`🎴 Ouverture (${pack.length})`)
+      .setDescription(revealed.join("\n") || "...")
+      .setColor(rarityColor[card.rarity]||"#9b59b6")
+    ]
+   })
 
-   await message.edit({embeds:[embed]})
-   await sleep(500)
+   await sleep(300)
   }
 
-  /* ---------- META ---------- */
+  const description = revealed.join("\n").trim()
 
-  let extra=""
-
-  if(meta.mutations?.length){
-   extra += "\n💀 Mutations :\n" + meta.mutations.join("\n")
-  }
-
-  if(meta.upgrades?.length){
-   extra += "\n🎭 Upgrades :\n" + meta.upgrades.join("\n")
-  }
-
-  if(meta.duplicates?.length){
-   extra += "\n🍺 Doublons :\n" + meta.duplicates.join("\n")
-  }
-
-  if(meta.added?.length){
-   extra += "\n✨ Cartes ajoutées :\n" + meta.added.join("\n")
-  }
-
-  if(meta.chaos?.length){
-   extra += `\n⚙️ Chaos : ${meta.chaos.join(", ")}`
-  }
-
-  if(meta.removed?.length){
-   extra += `\n⏳ Supprimées : ${meta.removed.join(", ")}`
-  }
-
-  if(flags.length){
-   extra += "\n\n" + flags.join("\n")
-  }
-
-  const remaining = user.event.tickets - user.event.used
-
-  const description = (revealed.join("\n") + extra).trim()
-
-  const finalEmbed = new EmbedBuilder()
-   .setTitle(`🎁 ${event.name}`)
-   .setDescription(description || "❌ Aucune carte générée.")
-   .addFields(
-    {name:"💰 Kamas",value:`+${kamas}`,inline:true},
-    {name:"⭐ XP",value:`+${xp}`,inline:true},
-    {name:"🎟️ Tickets",value:`${remaining}/${user.event.tickets}`,inline:true}
-   )
-   .setColor("#f1c40f")
-
-  await message.edit({embeds:[finalEmbed]})
+  await message.edit({
+   embeds:[
+    new EmbedBuilder()
+     .setTitle(`🎁 ${event.name}`)
+     .setDescription(description || "❌ Aucune carte")
+     .addFields(
+      {name:"💰 Kamas",value:`+${kamas}`,inline:true},
+      {name:"⭐ XP",value:`+${xp}`,inline:true},
+      {name:"🎟️ Tickets",value:`${user.event.tickets-user.event.used}/${user.event.tickets}`,inline:true}
+     )
+     .setColor("#f1c40f")
+   ]
+  })
 
   save()
 
  }
-
 }
