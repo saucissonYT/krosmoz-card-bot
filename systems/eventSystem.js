@@ -18,6 +18,13 @@ function pickRandomEvent(){
 
 function startEvent(channel, forced=null){
 
+ // 🔥 FIX CRITIQUE : empêche multi-event
+ if(currentEvent && !forced){
+  console.log("⚠️ Event déjà actif, lancement ignoré")
+  return false
+ }
+
+ // 🔥 reset timers uniquement si forced
  if(timeout) clearTimeout(timeout)
  if(midTimeout) clearTimeout(midTimeout)
 
@@ -26,7 +33,7 @@ function startEvent(channel, forced=null){
 
  if(!event){
   console.error("❌ Event introuvable :", key)
-  return
+  return false
  }
 
  const tickets = randomTickets()
@@ -45,7 +52,7 @@ function startEvent(channel, forced=null){
 
  currentEvent = {
   key,
-  uid: Date.now(), // 🔥 IMPORTANT
+  uid: Date.now(), // 🔥 unique event id
   name: event.name,
   start: event.start,
   mid: event.mid,
@@ -62,6 +69,8 @@ function startEvent(channel, forced=null){
   endTime: Date.now() + (15 * 60000)
  }
 
+ console.log("🎰 EVENT START:", key, "| Tickets:", tickets)
+
  if(channel){
   channel.send(
 `🎰 **${event.name}**
@@ -75,6 +84,8 @@ ${event.needsTarget && data.targetName ? `🎯 Cible : **${data.targetName}**\n`
   )
  }
 
+ /* ---------- MID ---------- */
+
  midTimeout = setTimeout(()=>{
   if(channel && currentEvent){
    channel.send(
@@ -86,6 +97,8 @@ ${currentEvent.mid}
    )
   }
  }, (15 * 60000)/2)
+
+ /* ---------- END ---------- */
 
  timeout = setTimeout(()=>{
   if(channel && currentEvent){
@@ -100,9 +113,13 @@ ${currentEvent.end}
    )
   }
 
+  console.log("🏁 EVENT END:", currentEvent?.key)
+
   currentEvent = null
 
  }, 15 * 60000)
+
+ return true
 }
 
 /* ---------------- STOP ---------------- */
@@ -115,6 +132,8 @@ function stopEvent(channel){
  if(currentEvent && channel){
   channel.send(currentEvent.end || "Event terminé.")
  }
+
+ console.log("🛑 EVENT STOP:", currentEvent?.key)
 
  currentEvent = null
 }
@@ -142,7 +161,6 @@ function initUserEvent(user){
    used: 0
   }
  }
-
 }
 
 /* ---------------- CAN USE ---------------- */
@@ -175,6 +193,8 @@ function registerEventPack(pack){
  }
 
 }
+
+/* ---------------- EXPORT ---------------- */
 
 module.exports = {
  startEvent,

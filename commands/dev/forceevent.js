@@ -3,7 +3,7 @@ const {
 } = require("discord.js")
 
 const { isDev } = require("../../systems/devSystem")
-const { startEvent, stopEvent } = require("../../systems/eventSystem")
+const { startEvent, stopEvent, getEvent, isEventActive } = require("../../systems/eventSystem")
 
 const EVENTS = require("../../systems/eventRegistry")
 
@@ -34,38 +34,77 @@ module.exports = {
 
  async execute(interaction){
 
+  /* ---------- DEV CHECK ---------- */
+
   if(!isDev(interaction.user.id)){
    return interaction.reply({
     content:"⛔ Dev uniquement.",
-    ephemeral:true
+    flags:64
    })
   }
 
   const sub = interaction.options.getSubcommand()
 
-  /* ---------- START ---------- */
+  /* ================= START ================= */
 
   if(sub === "start"){
 
    const key = interaction.options.getString("classe")
 
-   startEvent(interaction.channel,key)
+   if(!EVENTS[key]){
+    return interaction.reply({
+     content:"❌ Event invalide.",
+     flags:64
+    })
+   }
+
+   // 🔥 check si déjà un event actif
+   if(isEventActive()){
+    const current = getEvent()
+
+    return interaction.reply({
+     content:`⚠️ Un event est déjà actif : **${current.name}**\nUtilise \`/forceevent stop\` avant.`,
+     flags:64
+    })
+   }
+
+   const started = startEvent(interaction.channel, key)
+
+   if(!started){
+    return interaction.reply({
+     content:"❌ Impossible de lancer l'event.",
+     flags:64
+    })
+   }
+
+   console.log("🛠️ FORCE EVENT START:", key)
 
    return interaction.reply({
     content:`✅ Event lancé : **${EVENTS[key].name}**`,
-    ephemeral:true
+    flags:64
    })
   }
 
-  /* ---------- STOP ---------- */
+  /* ================= STOP ================= */
 
   if(sub === "stop"){
 
+   if(!isEventActive()){
+    return interaction.reply({
+     content:"⚠️ Aucun event actif.",
+     flags:64
+    })
+   }
+
+   const current = getEvent()
+
    stopEvent(interaction.channel)
 
+   console.log("🛠️ FORCE EVENT STOP:", current?.key)
+
    return interaction.reply({
-    content:"⛔ Event arrêté.",
-    ephemeral:true
+    content:`⛔ Event arrêté : **${current?.name}**`,
+    flags:64
    })
   }
 

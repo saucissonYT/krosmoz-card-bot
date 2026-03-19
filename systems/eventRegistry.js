@@ -4,8 +4,7 @@ const EVENTS = {
   name:"🔥 Iop",
   effect:"Boost HR & UR",
   type:"rarity_boost",
-
-  allowMultiSSR:true, // ✅ important
+  allowMultiSSR:true,
 
   start:`🔥 **Iop entre en rage !**
 La puissance brute explose !
@@ -16,15 +15,18 @@ La puissance brute explose !
 Les coups deviennent encore plus violents !`,
 
   end:`🔥 **Iop se calme...**
-La puissance redescend.`
+La puissance redescend.`,
+
+  rp:{
+   bonus:"💥 Une puissance écrasante envahit le pack..."
+  }
  },
 
  cra:{
   name:"🎯 Cra",
   effect:"Carte S ciblée (20%)",
   type:"target",
-
-  needsTarget:true, // ✅ important
+  needsTarget:true,
 
   start:`🎯 **Cra vise sa proie...**
 Une cible rare est traquée !`,
@@ -32,7 +34,11 @@ Une cible rare est traquée !`,
   mid:`🎯 **La chasse continue...**
 Impossible d’échapper aux flèches.`,
 
-  end:`🎯 **Cra relâche son arc.**`
+  end:`🎯 **Cra relâche son arc.**`,
+
+  rp:{
+   target:"🎯 Une cible précise a été touchée !"
+  }
  },
 
  xelor:{
@@ -45,7 +51,12 @@ Certaines cartes disparaissent, d'autres apparaissent.`,
 
   mid:`⏳ **Le temps se fissure encore...**`,
 
-  end:`⏳ **Le temps reprend son cours.**`
+  end:`⏳ **Le temps reprend son cours.**`,
+
+  rp:{
+   removed:"⏳ Le temps efface certaines cartes...",
+   added:"⏳ De nouvelles cartes surgissent d’un futur instable..."
+  }
  },
 
  sram:{
@@ -58,7 +69,11 @@ Tu ne vois plus rien...`,
 
   mid:`🕶️ **Les ombres persistent...**`,
 
-  end:`🕶️ **La lumière revient.**`
+  end:`🕶️ **La lumière revient.**`,
+
+  rp:{
+   hidden:"🕶️ Le pack est entièrement dissimulé..."
+  }
  },
 
  sacrieur:{
@@ -71,7 +86,11 @@ Les cartes mutent violemment !`,
 
   mid:`💀 **La douleur amplifie la mutation...**`,
 
-  end:`💀 **Le sacrifice prend fin.**`
+  end:`💀 **Le sacrifice prend fin.**`,
+
+  rp:{
+   mutation:"💀 Les cartes subissent une transformation brutale..."
+  }
  },
 
  zobal:{
@@ -84,7 +103,11 @@ Certaines cartes évoluent !`,
 
   mid:`🎭 **Les masques se succèdent...**`,
 
-  end:`🎭 **Zobal disparaît.**`
+  end:`🎭 **Zobal disparaît.**`,
+
+  rp:{
+   upgrade:"🎭 Un masque révèle le potentiel caché des cartes..."
+  }
  },
 
  huppermage:{
@@ -97,7 +120,11 @@ Des cartes supplémentaires apparaissent !`,
 
   mid:`🧠 **L'équilibre persiste...**`,
 
-  end:`🧠 **Les éléments se dispersent.**`
+  end:`🧠 **Les éléments se dispersent.**`,
+
+  rp:{
+   added:"🧠 L'équilibre élémentaire génère de nouvelles cartes..."
+  }
  },
 
  pandawa:{
@@ -110,7 +137,11 @@ Certaines cartes se dupliquent !`,
 
   mid:`🍺 **La fête continue...**`,
 
-  end:`🍺 **La fête est finie.**`
+  end:`🍺 **La fête est finie.**`,
+
+  rp:{
+   duplicate:"🍺 Une tournée générale ! Certaines cartes se multiplient..."
+  }
  },
 
  osamodas:{
@@ -123,7 +154,11 @@ Toutes les cartes seront similaires !`,
 
   mid:`🐉 **Les créatures répondent...**`,
 
-  end:`🐉 **Les invocations disparaissent.**`
+  end:`🐉 **Les invocations disparaissent.**`,
+
+  rp:{
+   structure:"🐉 Une armée uniforme prend forme..."
+  }
  },
 
  ecaflip:{
@@ -136,7 +171,11 @@ La chance est avec toi !`,
 
   mid:`🎲 **Tout peut arriver...**`,
 
-  end:`🎲 **La chance s'évapore.**`
+  end:`🎲 **La chance s'évapore.**`,
+
+  rp:{
+   luck:"🎲 La chance explose, les cartes brillent !"
+  }
  },
 
  ouginak:{
@@ -149,7 +188,11 @@ La malchance s’abat !`,
 
   mid:`🐺 **La chasse est difficile...**`,
 
-  end:`🐺 **Le calme revient.**`
+  end:`🐺 **Le calme revient.**`,
+
+  rp:{
+   bad:"🐺 Une aura sombre affaiblit le pack..."
+  }
  },
 
  feca:{
@@ -162,7 +205,12 @@ Plus aucune carte faible !`,
 
   mid:`🛡️ **Le bouclier tient...**`,
 
-  end:`🛡️ **La protection disparaît.**`
+  end:`🛡️ **La protection disparaît.**`,
+
+  rp:{
+   protection:"🛡️ Les cartes faibles sont repoussées...",
+   xp:"✨ Une énergie protectrice amplifie l'expérience..."
+  }
  },
 
  enutrof:{
@@ -175,7 +223,12 @@ Les richesses affluent !`,
 
   mid:`💰 **L’or continue de tomber...**`,
 
-  end:`💰 **Les richesses s'arrêtent.**`
+  end:`💰 **Les richesses s'arrêtent.**`,
+
+  rp:{
+   kamas:"💰 Une pluie de kamas s’abat sur toi !",
+   jackpot:"💰💰 JACKPOT ! Un trésor caché apparaît !"
+  }
  },
 
  roublard:{
@@ -188,7 +241,11 @@ Plus de cartes dans les packs !`,
 
   mid:`💣 **Les bombes explosent...**`,
 
-  end:`💣 **Silence...**`
+  end:`💣 **Silence...**`,
+
+  rp:{
+   added:"💣 Explosion ! Des cartes supplémentaires apparaissent..."
+  }
  },
 
  steamer:{
@@ -201,7 +258,11 @@ Les probabilités deviennent instables !`,
 
   mid:`⚙️ **Le chaos persiste...**`,
 
-  end:`⚙️ **Le système se stabilise.**`
+  end:`⚙️ **Le système se stabilise.**`,
+
+  rp:{
+   chaos:"⚙️ Le système devient imprévisible..."
+  }
  },
 
  eliotrope:{
@@ -214,7 +275,11 @@ Des cartes venues d'autres dimensions apparaissent !`,
 
   mid:`🌀 **Les dimensions vibrent...**`,
 
-  end:`🌀 **Le portail se ferme.**`
+  end:`🌀 **Le portail se ferme.**`,
+
+  rp:{
+   special:"🌀 Une faille dimensionnelle altère le pack..."
+  }
  },
 
  eniripsa:{
@@ -227,7 +292,11 @@ Plus aucune carte faible !`,
 
   mid:`✨ **L'énergie persiste...**`,
 
-  end:`✨ **La magie s'efface.**`
+  end:`✨ **La magie s'efface.**`,
+
+  rp:{
+   filter:"✨ Les cartes faibles sont purifiées..."
+  }
  },
 
  sadida:{
@@ -240,7 +309,11 @@ Les cartes se multiplient !`,
 
   mid:`🌿 **La forêt s'étend...**`,
 
-  end:`🌿 **La nature se calme.**`
+  end:`🌿 **La nature se calme.**`,
+
+  rp:{
+   duplicate:"🌿 La nature fait éclore des copies..."
+  }
  },
 
  forgelance:{
@@ -253,7 +326,11 @@ Toutes les cartes sont améliorées !`,
 
   mid:`⚔️ **Le feu persiste...**`,
 
-  end:`⚔️ **La forge refroidit.**`
+  end:`⚔️ **La forge refroidit.**`,
+
+  rp:{
+   upgrade:"⚔️ La forge améliore toutes les cartes..."
+  }
  }
 
 }
