@@ -14,6 +14,29 @@ function pickRandomEvent(){
  return keys[Math.floor(Math.random()*keys.length)]
 }
 
+/* ---------------- END EVENT (FACTORISÉ) ---------------- */
+
+function endEvent(channel){
+
+ if(!currentEvent) return
+
+ if(channel){
+  channel.send(
+`📊 **${currentEvent.name} terminé**
+
+${currentEvent.end}
+
+📦 Packs ouverts : **${currentEvent.stats.packs}**
+🌈 SSR obtenues : **${currentEvent.stats.ssr}**
+🎴 Cartes obtenues : **${currentEvent.stats.totalCards}**`
+  )
+ }
+
+ console.log("🏁 EVENT END:", currentEvent.key, currentEvent.stats)
+
+ currentEvent = null
+}
+
 /* ---------------- START EVENT ---------------- */
 
 function startEvent(channel, forced=null){
@@ -59,7 +82,7 @@ function startEvent(channel, forced=null){
   allowMultiSSR: event.allowMultiSSR || false,
   tickets,
   data,
-  voiceLines: event.voiceLines, // ✅ FIX
+  voiceLines: event.voiceLines,
   stats:{
    packs:0,
    ssr:0,
@@ -100,22 +123,7 @@ ${currentEvent.mid}
  /* ---------- END ---------- */
 
  timeout = setTimeout(()=>{
-  if(channel && currentEvent && currentEvent.stats){
-   channel.send(
-`📊 **${currentEvent.name} terminé**
-
-${currentEvent.end}
-
-📦 Packs ouverts : **${currentEvent.stats.packs}**
-🌈 SSR obtenues : **${currentEvent.stats.ssr}**
-🎴 Cartes obtenues : **${currentEvent.stats.totalCards}**`
-   )
-  }
-
-  console.log("🏁 EVENT END:", currentEvent?.key, currentEvent?.stats)
-
-  currentEvent = null
-
+  endEvent(channel)
  }, 15 * 60000)
 
  return true
@@ -128,13 +136,9 @@ function stopEvent(channel){
  if(timeout) clearTimeout(timeout)
  if(midTimeout) clearTimeout(midTimeout)
 
- if(currentEvent && channel){
-  channel.send(currentEvent.end || "Event terminé.")
- }
+ endEvent(channel)
 
  console.log("🛑 EVENT STOP:", currentEvent?.key)
-
- currentEvent = null
 }
 
 /* ---------------- GETTERS ---------------- */
