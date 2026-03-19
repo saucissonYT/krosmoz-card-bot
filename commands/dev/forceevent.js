@@ -6,8 +6,6 @@ const { isDev } = require("../../systems/devSystem")
 const { startEvent, stopEvent, getEvent, isEventActive } = require("../../systems/eventSystem")
 
 const EVENTS = require("../../systems/eventRegistry")
-console.log("LOADED EVENTS:", Object.keys(EVENTS))
-console.log("COUNT:", Object.keys(EVENTS).length)
 
 module.exports = {
 

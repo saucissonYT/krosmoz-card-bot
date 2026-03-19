@@ -17,9 +17,7 @@ Les coups deviennent encore plus violents !`,
   end:`🔥 **Iop se calme...**
 La puissance redescend.`,
 
-  rp:{
-   bonus:"💥 Une puissance écrasante envahit le pack..."
-  },
+  rp:{ bonus:"💥 Une puissance écrasante envahit le pack..." },
 
   voiceLines:{
    S:[
@@ -44,14 +42,10 @@ La puissance redescend.`,
   start:`🎯 **Cra vise sa proie...**
 Une cible rare est traquée !`,
 
-  mid:`🎯 **La chasse continue...**
-Impossible d’échapper aux flèches.`,
-
+  mid:`🎯 **La chasse continue...**`,
   end:`🎯 **Cra relâche son arc.**`,
 
-  rp:{
-   target:"🎯 Une cible précise a été touchée !"
-  },
+  rp:{ target:"🎯 Une cible précise a été touchée !" },
 
   voiceLines:{
    S:[
@@ -72,16 +66,13 @@ Impossible d’échapper aux flèches.`,
   effect:"Altération du pack",
   type:"manipulation",
 
-  start:`⏳ **Xelor manipule le temps...**
-Certaines cartes disparaissent, d'autres apparaissent.`,
-
+  start:`⏳ **Xelor manipule le temps...**`,
   mid:`⏳ **Le temps se fissure encore...**`,
-
   end:`⏳ **Le temps reprend son cours.**`,
 
   rp:{
    removed:"⏳ Le temps efface certaines cartes...",
-   added:"⏳ De nouvelles cartes surgissent d’un futur instable..."
+   added:"⏳ De nouvelles cartes surgissent..."
   },
 
   voiceLines:{
@@ -100,19 +91,13 @@ Certaines cartes disparaissent, d'autres apparaissent.`,
 
  sram:{
   name:"🕶️ Sram",
-  effect:"Pack caché + carte bonus",
   type:"hidden",
 
-  start:`🕶️ **Le Voile de l’Ombre tombe...**
-Tu ne vois plus rien...`,
-
+  start:`🕶️ **Le Voile de l’Ombre tombe...**`,
   mid:`🕶️ **Les ombres persistent...**`,
-
   end:`🕶️ **La lumière revient.**`,
 
-  rp:{
-   hidden:"🕶️ Le pack est entièrement dissimulé..."
-  },
+  rp:{ hidden:"🕶️ Le pack est dissimulé..." },
 
   voiceLines:{
    S:[
@@ -130,19 +115,13 @@ Tu ne vois plus rien...`,
 
  sacrieur:{
   name:"💀 Sacrieur",
-  effect:"Mutation cartes",
   type:"mutation",
 
-  start:`💀 **Le sang appelle le chaos...**
-Les cartes mutent violemment !`,
-
-  mid:`💀 **La douleur amplifie la mutation...**`,
-
+  start:`💀 **Le sang appelle le chaos...**`,
+  mid:`💀 **La douleur amplifie...**`,
   end:`💀 **Le sacrifice prend fin.**`,
 
-  rp:{
-   mutation:"💀 Les cartes subissent une transformation brutale..."
-  },
+  rp:{ mutation:"💀 Mutation violente..." },
 
   voiceLines:{
    S:[
@@ -160,49 +139,37 @@ Les cartes mutent violemment !`,
 
  zobal:{
   name:"🎭 Zobal",
-  effect:"+1 rareté",
   type:"upgrade",
 
-  start:`🎭 **Zobal change de masque...**
-Certaines cartes évoluent !`,
-
+  start:`🎭 **Zobal change de masque...**`,
   mid:`🎭 **Les masques se succèdent...**`,
-
   end:`🎭 **Zobal disparaît.**`,
 
-  rp:{
-   upgrade:"🎭 Un masque révèle le potentiel caché des cartes..."
-  },
+  rp:{ upgrade:"🎭 Évolution..." },
 
   voiceLines:{
    S:[
-    "🎭 Un masque… intéressant.",
+    "🎭 Un masque intéressant.",
     "🎭 Tu changes… comme moi.",
     "🎭 Une évolution subtile."
    ],
    SSR:[
-    "🎭💥 Magnifique transformation.",
+    "🎭💥 Transformation parfaite.",
     "🎭 Tu maîtrises les masques.",
-    "🎭 Une évolution parfaite."
+    "🎭 Une évolution totale."
    ]
   }
  },
 
  huppermage:{
   name:"🧠 Huppermage",
-  effect:"Cartes bonus",
   type:"volume",
 
-  start:`🧠 **Les éléments s'alignent...**
-Des cartes supplémentaires apparaissent !`,
-
+  start:`🧠 **Les éléments s'alignent...**`,
   mid:`🧠 **L'équilibre persiste...**`,
-
   end:`🧠 **Les éléments se dispersent.**`,
 
-  rp:{
-   added:"🧠 L'équilibre élémentaire génère de nouvelles cartes..."
-  },
+  rp:{ added:"🧠 Création..." },
 
   voiceLines:{
    S:[
@@ -212,7 +179,7 @@ Des cartes supplémentaires apparaissent !`,
    ],
    SSR:[
     "🧠💥 Parfait équilibre.",
-    "✨ Une convergence absolue.",
+    "✨ Convergence absolue.",
     "🧠 Les éléments s’inclinent."
    ]
   }
@@ -220,25 +187,19 @@ Des cartes supplémentaires apparaissent !`,
 
  pandawa:{
   name:"🍺 Pandawa",
-  effect:"Duplication",
   type:"duplication",
 
-  start:`🍺 **Pandawa partage...**
-Certaines cartes se dupliquent !`,
-
+  start:`🍺 **Pandawa partage...**`,
   mid:`🍺 **La fête continue...**`,
-
   end:`🍺 **La fête est finie.**`,
 
-  rp:{
-   duplicate:"🍺 Une tournée générale ! Certaines cartes se multiplient..."
-  },
+  rp:{ duplicate:"🍺 Duplication..." },
 
   voiceLines:{
    S:[
-    "🍺 Pas mal ! On remet ça ?",
-    "🍻 Ça commence à être sympa !",
-    "🍺 Allez, encore une !"
+    "🍺 Pas mal ! Encore !",
+    "🍻 Ça devient intéressant !",
+    "🍺 Une petite de plus !"
    ],
    SSR:[
     "🍺💥 TOURNÉE GÉNÉRALE !!",
@@ -247,11 +208,270 @@ Certaines cartes se dupliquent !`,
    ]
   }
  },
+ 
+ osamodas:{
+  name:"🐉 Osamodas",
+  type:"structure",
 
- /* ================= SUITE IDENTIQUE POUR TOUTES LES CLASSES ================= */
+  start:`🐉 Invocation...`,
+  mid:`🐉 Les créatures répondent...`,
+  end:`🐉 Disparition.`,
 
- /* ⚠️ Je coupe ici sinon message trop long */
- /* MAIS : je peux te générer les 19 classes complètes */
+  rp:{ structure:"🐉 Uniformité..." },
+
+  voiceLines:{
+   S:[
+    "🐉 Une créature intéressante.",
+    "🐉 Le lien se forme.",
+    "🐉 Elles répondent à ton appel."
+   ],
+   SSR:[
+    "🐉💥 Une invocation parfaite.",
+    "🐉 Une armée t’obéit.",
+    "🐉 Puissance sauvage."
+   ]
+  }
+ },
+
+ ecaflip:{
+  name:"🎲 Ecaflip",
+  type:"rng",
+
+  start:`🎲 RNG...`,
+  mid:`🎲 Chaos...`,
+  end:`🎲 Fin.`,
+
+  rp:{ luck:"🎲 Chance..." },
+
+  voiceLines:{
+   S:[
+    "🎲 La chance sourit.",
+    "😏 Intéressant...",
+    "🎲 Continue à jouer..."
+   ],
+   SSR:[
+    "🎲💥 JACKPOT !!",
+    "😼 Tu défies le destin.",
+    "🎲 Chance maximale."
+   ]
+  }
+ },
+
+ ouginak:{
+  name:"🐺 Ouginak",
+  type:"rng_negative",
+
+  start:`🐺 Malchance...`,
+  mid:`🐺 Difficulté...`,
+  end:`🐺 Fin.`,
+
+  rp:{ bad:"🐺 Faiblesse..." },
+
+  voiceLines:{
+   S:[
+    "🐺 Tu survies...",
+    "⚔️ Faible... mais acceptable.",
+    "🐺 Continue."
+   ],
+   SSR:[
+    "🐺 ...Impressionnant.",
+    "⚔️ Tu tiens bon.",
+    "🐺 Tu résistes."
+   ]
+  }
+ },
+
+ feca:{
+  name:"🛡️ Feca",
+  type:"reward",
+
+  start:`🛡️ Protection...`,
+  mid:`🛡️ Bouclier...`,
+  end:`🛡️ Fin.`,
+
+  rp:{ protection:"🛡️ Protection..." },
+
+  voiceLines:{
+   S:[
+    "🛡️ Protégé.",
+    "✨ Stable.",
+    "🛡️ Contrôle."
+   ],
+   SSR:[
+    "🛡️💥 Défense parfaite.",
+    "✨ Protection absolue.",
+    "🛡️ Rien ne passe."
+   ]
+  }
+ },
+
+ enutrof:{
+  name:"💰 Enutrof",
+  type:"reward",
+
+  start:`💰 Richesse...`,
+  mid:`💰 Gain...`,
+  end:`💰 Fin.`,
+
+  rp:{ kamas:"💰 Gain..." },
+
+  voiceLines:{
+   S:[
+    "💰 Pas mal...",
+    "💰 Ça rapporte.",
+    "💰 Continue."
+   ],
+   SSR:[
+    "💰💥 JACKPOT !!",
+    "💰 Une fortune !",
+    "💰 Incroyable richesse."
+   ]
+  }
+ },
+
+ roublard:{
+  name:"💣 Roublard",
+  type:"volume",
+
+  start:`💣 Explosion...`,
+  mid:`💣 Chaos...`,
+  end:`💣 Silence.`,
+
+  rp:{ added:"💣 Boom..." },
+
+  voiceLines:{
+   S:[
+    "💣 Ça explose doucement.",
+    "💣 Intéressant.",
+    "💣 Ça monte..."
+   ],
+   SSR:[
+    "💣💥 EXPLOSION !!",
+    "💣 Tout saute !",
+    "💣 Chaos total."
+   ]
+  }
+ },
+
+ steamer:{
+  name:"⚙️ Steamer",
+  type:"chaos",
+
+  start:`⚙️ Chaos...`,
+  mid:`⚙️ Instable...`,
+  end:`⚙️ Stable.`,
+
+  rp:{ chaos:"⚙️ Chaos..." },
+
+  voiceLines:{
+   S:[
+    "⚙️ Instabilité détectée.",
+    "⚙️ Variation acceptable.",
+    "⚙️ Système fluctuant."
+   ],
+   SSR:[
+    "⚙️💥 ANOMALIE MAX.",
+    "⚙️ Chaos total.",
+    "⚙️ Instabilité critique."
+   ]
+  }
+ },
+
+ eliotrope:{
+  name:"🌀 Eliotrope",
+  type:"special",
+
+  start:`🌀 Portail...`,
+  mid:`🌀 Vibrations...`,
+  end:`🌀 Fermeture.`,
+
+  rp:{ special:"🌀 Distorsion..." },
+
+  voiceLines:{
+   S:[
+    "🌀 Une faille mineure.",
+    "🌀 Étrange...",
+    "🌀 Distorsion..."
+   ],
+   SSR:[
+    "🌀💥 Une faille parfaite.",
+    "🌀 Les dimensions cèdent.",
+    "🌀 Réalité brisée."
+   ]
+  }
+ },
+
+ eniripsa:{
+  name:"✨ Eniripsa",
+  type:"filter",
+
+  start:`✨ Purification...`,
+  mid:`✨ Énergie...`,
+  end:`✨ Fin.`,
+
+  rp:{ filter:"✨ Purifié..." },
+
+  voiceLines:{
+   S:[
+    "✨ Pur.",
+    "✨ Stable.",
+    "✨ Équilibré."
+   ],
+   SSR:[
+    "✨💥 Parfait.",
+    "✨ Pureté absolue.",
+    "✨ Lumière totale."
+   ]
+  }
+ },
+
+ sadida:{
+  name:"🌿 Sadida",
+  type:"duplication",
+
+  start:`🌿 Nature...`,
+  mid:`🌿 Croissance...`,
+  end:`🌿 Calme.`,
+
+  rp:{ duplicate:"🌿 Duplication..." },
+
+  voiceLines:{
+   S:[
+    "🌿 Ça pousse...",
+    "🌱 Intéressant.",
+    "🌿 Croissance."
+   ],
+   SSR:[
+    "🌿💥 Explosion de vie !",
+    "🌱 Multiplication totale.",
+    "🌿 La nature domine."
+   ]
+  }
+ },
+
+ forgelance:{
+  name:"⚔️ Forgelance",
+  type:"upgrade_global",
+
+  start:`⚔️ Forge...`,
+  mid:`⚔️ Feu...`,
+  end:`⚔️ Fin.`,
+
+  rp:{ upgrade:"⚔️ Upgrade..." },
+
+  voiceLines:{
+   S:[
+    "⚔️ Forgé.",
+    "🔥 Chauffe...",
+    "⚔️ Solide."
+   ],
+   SSR:[
+    "⚔️💥 Parfaitement forgé.",
+    "🔥 Arme ultime.",
+    "⚔️ Puissance maximale."
+   ]
+  }
+ }
 
 }
 
