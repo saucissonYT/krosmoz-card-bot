@@ -1,4 +1,5 @@
-const { generatePack: coreGeneratePack } = require("./pack") // 🔥 FIX
+const { generatePack: coreGeneratePack } = require("./pack")
+const { getCards } = require("./cardRegistry")
 const { rewardKamas } = require("./rewards")
 const { addXP } = require("./progressionSystem")
 const achievements = require("./achievementRegistry")
@@ -9,25 +10,58 @@ const rarityXP={
  C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
 
-/* ================= FIX CRITIQUE ================= */
+/* ================= CORE WRAPPER ================= */
 
-// 👉 Wrapper pour compatibilité event system
 function generatePack(user){
- const result = coreGeneratePack(user)
- return result?.pack || []
+
+ let setId = user.lastSet
+
+ if(!setId && user.pity){
+  const keys = Object.keys(user.pity)
+  if(keys.length) setId = keys[0]
+ }
+
+ if(!setId){
+  console.error("❌ NO SET ID FOR USER", user.id)
+  return []
+ }
+
+ const result = coreGeneratePack(user,setId)
+
+ if(!result || !Array.isArray(result.pack)){
+  console.error("❌ INVALID PACK RESULT", result)
+  return []
+ }
+
+ return result.pack
 }
 
-/* ================================================= */
+/* ================= GLOBAL / CUSTOM ================= */
+
+function generateGlobalPack(size=5){
+ const cards = getCards()
+ if(!cards.length) return []
+
+ return Array.from({length:size},()=>cards[Math.floor(Math.random()*cards.length)])
+}
+
+function generateCustomPack(pool,size=5){
+ if(!pool || !pool.length){
+  console.error("❌ EMPTY CUSTOM POOL")
+  return []
+ }
+
+ return Array.from({length:size},()=>pool[Math.floor(Math.random()*pool.length)])
+}
+
+/* ================= ACHIEVEMENTS ================= */
 
 function giveAchievement(user,id){
 
  if(!achievements[id]) return false
 
- if(!user.achievements)
-  user.achievements=[]
-
- if(user.achievements.includes(id))
-  return false
+ if(!user.achievements) user.achievements=[]
+ if(user.achievements.includes(id)) return false
 
  user.achievements.push(id)
 
@@ -36,6 +70,8 @@ function giveAchievement(user,id){
 
  return true
 }
+
+/* ================= OPEN PACK ================= */
 
 function openPack(user,setId){
 
@@ -63,27 +99,17 @@ function openPack(user,setId){
  if(!user.stats) user.stats={}
  if(!user.cards) user.cards={}
 
- if(user.stats.ssrPulled===undefined)
-  user.stats.ssrPulled=0
-
- if(user.stats.packsOpened===undefined)
-  user.stats.packsOpened=0
-
- if(user.stats.shinySSR===undefined)
-  user.stats.shinySSR=0
-
- if(user.stats.lastSSR===undefined)
-  user.stats.lastSSR=false
-
- if(user.stats.ssrStreak===undefined)
-  user.stats.ssrStreak=0
+ if(user.stats.ssrPulled===undefined) user.stats.ssrPulled=0
+ if(user.stats.packsOpened===undefined) user.stats.packsOpened=0
+ if(user.stats.shinySSR===undefined) user.stats.shinySSR=0
+ if(user.stats.lastSSR===undefined) user.stats.lastSSR=false
+ if(user.stats.ssrStreak===undefined) user.stats.ssrStreak=0
 
  for(const card of pack){
 
   if(!card || card.id===undefined) continue
 
-  if(!user.cards[card.id])
-   discovered.push(card)
+  if(!user.cards[card.id]) discovered.push(card)
 
   user.cards[card.id]=(user.cards[card.id]||0)+1
 
@@ -97,8 +123,7 @@ function openPack(user,setId){
     giveAchievement(user,"ssrStreak")
 
    user.stats.lastSSR=true
-
-  }else{
+  } else {
    user.stats.ssrStreak=0
   }
 
@@ -106,15 +131,12 @@ function openPack(user,setId){
    user.stats.shinySSR++
    giveAchievement(user,"shinySSR")
   }
-
  }
 
  const hrCount=pack.filter(c=>c?.rarity==="HR").length
- if(hrCount>=3)
-  giveAchievement(user,"threeStars")
+ if(hrCount>=3) giveAchievement(user,"threeStars")
 
  const rarities=pack.map(c=>c?.rarity).filter(Boolean)
-
  if(rarities.includes("SSR") && rarities.includes("UR"))
   giveAchievement(user,"packDivin")
 
@@ -128,43 +150,26 @@ function openPack(user,setId){
   seen.add(id)
  }
 
- if(duplicates>=2)
-  giveAchievement(user,"pileOuFace")
+ if(duplicates>=2) giveAchievement(user,"pileOuFace")
 
  const ssrCount=pack.filter(c=>c?.rarity==="SSR").length
 
- if(luckyPack && ssrCount>=3)
-  giveAchievement(user,"impossible")
-
- if(user.stats.packsOpened===0 && ssrCount>0)
-  giveAchievement(user,"luckyStart")
-
- if(ssrCount>=3)
-  giveAchievement(user,"hotHand")
+ if(luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
+ if(user.stats.packsOpened===0 && ssrCount>0) giveAchievement(user,"luckyStart")
+ if(ssrCount>=3) giveAchievement(user,"hotHand")
 
  if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
   giveAchievement(user,"pityBreaker")
 
  const hour=new Date().getHours()
-
- if(hour>=3 && hour<5)
-  giveAchievement(user,"nightPlayer")
+ if(hour>=3 && hour<5) giveAchievement(user,"nightPlayer")
 
  let best=null
 
  for(const card of pack){
-
   if(!card) continue
-
-  if(!best)
+  if(!best || rarityOrder.indexOf(card.rarity)>rarityOrder.indexOf(best.rarity))
    best=card
-
-  else if(
-   rarityOrder.indexOf(card.rarity)>
-   rarityOrder.indexOf(best.rarity)
-  )
-   best=card
-
  }
 
  let xpGain=20
@@ -178,8 +183,7 @@ function openPack(user,setId){
   dailyBonus=true
  }
 
- if(best)
-  xpGain+=rarityXP[best.rarity] || 0
+ if(best) xpGain+=rarityXP[best.rarity] || 0
 
  addXP(user,xpGain)
 
@@ -192,12 +196,13 @@ function openPack(user,setId){
   best,
   dailyBonus
  }
-
 }
 
-/* ================= EXPORT FIX ================= */
+/* ================= EXPORT ================= */
 
 module.exports={
  openPack,
- generatePack // 🔥 IMPORTANT
+ generatePack,
+ generateGlobalPack,
+ generateCustomPack
 }

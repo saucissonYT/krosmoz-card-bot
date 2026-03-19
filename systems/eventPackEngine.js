@@ -1,5 +1,5 @@
 const { getCards } = require("./cardRegistry")
-const { generatePack } = require("./packEngine")
+const { generatePack, generateGlobalPack, generateCustomPack } = require("./packEngine")
 
 const cards = getCards()
 
@@ -64,7 +64,6 @@ function generateEventPack(user,event){
   /* ===== IOP ===== */
   case "iop":{
    const newPack=[]
-
    newPack.push(randomCard(cardsByRarity["HR"]))
    newPack.push(randomCard(cardsByRarity["UR"]))
 
@@ -180,7 +179,7 @@ function generateEventPack(user,event){
     if(c.rarity==="SSR") chance=0.05
 
     if(Math.random()<chance){
-     newPack.push(c)
+     newPack.push({...c})
      meta.duplicates.push(c.name)
     }
    }
@@ -226,9 +225,10 @@ function generateEventPack(user,event){
 
   /* ===== OUGINAK ===== */
   case "ouginak":{
-   pack = cards.filter(c=>["C","U","R","SR"].includes(c.rarity))
-    .sort(()=>Math.random()-0.5)
-    .slice(0,7)
+   pack = generateCustomPack(
+    cards.filter(c=>["C","U","R","SR"].includes(c.rarity)),
+    7
+   )
    break
   }
 
@@ -259,24 +259,7 @@ function generateEventPack(user,event){
 
   /* ===== STEAMER ===== */
   case "steamer":{
-   pack=[]
-
-   for(let i=0;i<5;i++){
-    let rarity
-
-    const r = Math.random()
-    if(r<0.05) rarity="SSR"
-    else if(r<0.15) rarity="S"
-    else if(r<0.3) rarity="UR"
-    else if(r<0.5) rarity="HR"
-    else if(r<0.7) rarity="SR"
-    else if(r<0.85) rarity="R"
-    else if(r<0.95) rarity="U"
-    else rarity="C"
-
-    pack.push(randomCard(cardsByRarity[rarity]))
-   }
-
+   pack = generateGlobalPack(5)
    meta.chaos = pack.map(c=>c.rarity)
    break
   }
@@ -308,7 +291,7 @@ function generateEventPack(user,event){
 
    for(const c of [...pack]){
     if(Math.random()<0.35 && dup<2){
-     pack.push(c)
+     pack.push({...c})
      meta.duplicates.push(c.name)
      dup++
     }
