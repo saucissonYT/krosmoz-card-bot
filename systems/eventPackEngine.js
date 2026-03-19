@@ -1,40 +1,40 @@
 const { getCards } = require("./cardRegistry")
+const { generatePack } = require("./packEngine")
 
 const cards = getCards()
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
+/* ================= PRECOMPUTE ================= */
+
+const cardsByRarity = {}
+for(const r of rarityOrder){
+ cardsByRarity[r] = cards.filter(c=>c.rarity===r)
+}
+
 function randomCard(pool){
  return pool[Math.floor(Math.random()*pool.length)]
 }
 
-function generateBasePack(size=5){
- const pack=[]
- for(let i=0;i<size;i++){
-  pack.push(randomCard(cards))
- }
- return pack
+function upgradeRarity(card){
+ const i = rarityOrder.indexOf(card.rarity)
+ const next = rarityOrder[i+1]
+ if(!next) return card
+ return randomCard(cardsByRarity[next]) || card
 }
 
-function upgradeRarity(card){
- const index = rarityOrder.indexOf(card.rarity)
- if(index === -1) return card
-
- const next = rarityOrder[index+1]
- if(!next) return card
-
- const pool = cards.filter(c=>c.rarity===next)
- return pool.length ? randomCard(pool) : card
+function upgradeSoftUR(card){
+ const i = rarityOrder.indexOf(card.rarity)
+ const target = Math.min(i+2, rarityOrder.indexOf("UR"))
+ return randomCard(cardsByRarity[rarityOrder[target]]) || card
 }
 
 function limitSSR(pack){
  let found=false
-
  return pack.map(c=>{
   if(c.rarity==="SSR"){
    if(found){
-    const pool = cards.filter(x=>x.rarity==="S")
-    return randomCard(pool)
+    return randomCard(cardsByRarity["S"])
    }
    found=true
   }
@@ -42,60 +42,62 @@ function limitSSR(pack){
  })
 }
 
+/* ================= ENGINE ================= */
+
 function generateEventPack(user,event){
 
- let pack = generateBasePack(5)
- let flags = []
- let meta = {
+ let pack = generatePack(user)
+
+ let flags=[]
+ let meta={
   mutations:[],
   upgrades:[],
   duplicates:[],
-  added:[]
+  added:[],
+  removed:[],
+  chaos:[],
+  jackpot:false
  }
 
- switch(event.id){
+ switch(event.key){
 
+  /* ===== IOP ===== */
   case "iop":{
-   pack=[]
-   const hr=cards.filter(c=>c.rarity==="HR")
-   const ur=cards.filter(c=>c.rarity==="UR")
-   const boost=cards.filter(c=>["HR","UR","S"].includes(c.rarity))
+   const newPack=[]
 
-   pack.push(randomCard(hr))
-   pack.push(randomCard(ur))
+   newPack.push(randomCard(cardsByRarity["HR"]))
+   newPack.push(randomCard(cardsByRarity["UR"]))
 
-   while(pack.length<5){
-    pack.push(randomCard(boost))
+   while(newPack.length<pack.length){
+    newPack.push(randomCard(
+     [...cardsByRarity["HR"], ...cardsByRarity["UR"], ...cardsByRarity["S"]]
+    ))
    }
 
-   flags.push("🔥 Rage du Iop")
+   pack = newPack
    break
   }
 
+  /* ===== CRA ===== */
   case "cra":{
-   pack=generateBasePack(5)
-
    if(event.data?.targetId){
     let count=0
 
     for(let i=0;i<pack.length;i++){
-     if(Math.random()<0.20 && count<2){
-      const target=cards.find(c=>c.id===event.data.targetId)
+     if(Math.random()<0.2 && count<2){
+      const target = cards.find(c=>c.id===event.data.targetId)
       if(target){
        pack[i]=target
        count++
       }
      }
     }
-
-    flags.push(`🎯 ${event.data.targetName}`)
    }
    break
   }
 
+  /* ===== XELOR ===== */
   case "xelor":{
-   pack=generateBasePack(5)
-
    pack.sort((a,b)=>rarityOrder.indexOf(a.rarity)-rarityOrder.indexOf(b.rarity))
 
    const removed=pack.splice(0,Math.floor(Math.random()*2)+1)
@@ -109,23 +111,20 @@ function generateEventPack(user,event){
    }
 
    meta.removed = removed.map(c=>c.name)
-
-   flags.push("⏳ Temps altéré")
    break
   }
 
+  /* ===== SRAM ===== */
   case "sram":{
-   pack=generateBasePack(5)
    pack.push(randomCard(cards))
    break
   }
 
+  /* ===== SACRIEUR ===== */
   case "sacrieur":{
-   pack=generateBasePack(5)
-
-   pack=pack.map(c=>{
+   pack = pack.map(c=>{
     if(Math.random()<0.5 && !["S","SSR"].includes(c.rarity)){
-     const newCard=upgradeRarity(upgradeRarity(c))
+     const newCard = upgradeSoftUR(c)
      meta.mutations.push(`${c.name} → ${newCard.name}`)
      return newCard
     }
@@ -134,42 +133,42 @@ function generateEventPack(user,event){
    break
   }
 
+  /* ===== ZOBAL ===== */
   case "zobal":{
-   pack=generateBasePack(5)
-
    const upgrades=Math.floor(Math.random()*2)+1
 
    for(let i=0;i<upgrades;i++){
     const idx=Math.floor(Math.random()*pack.length)
-    const before=pack[idx]
-    const after=upgradeRarity(before)
-
-    meta.upgrades.push(`${before.name} → ${after.name}`)
-
-    pack[idx]=after
+    if(pack[idx].rarity !== "SSR"){
+     const before=pack[idx]
+     const after=upgradeRarity(before)
+     pack[idx]=after
+     meta.upgrades.push(`${before.name} → ${after.name}`)
+    }
    }
 
    pack.push(randomCard(cards))
    break
   }
 
+  /* ===== HUPPERMAGE ===== */
   case "huppermage":{
-   pack=generateBasePack(5)
-
    const bonus=Math.floor(Math.random()*3)+1
 
    for(let i=0;i<bonus;i++){
-    const c=randomCard(cards)
+    const pool = Math.random()<0.35
+     ? cardsByRarity["S"]
+     : cards
+
+    const c=randomCard(pool)
     pack.push(c)
     meta.added.push(c.name)
    }
-
    break
   }
 
+  /* ===== PANDAWA ===== */
   case "pandawa":{
-   pack=generateBasePack(5)
-
    const newPack=[]
 
    for(const c of pack){
@@ -178,9 +177,10 @@ function generateEventPack(user,event){
     let chance=0.3
     if(c.rarity==="UR") chance=0.2
     if(c.rarity==="S") chance=0.1
+    if(c.rarity==="SSR") chance=0.05
 
     if(Math.random()<chance){
-     newPack.push({...c})
+     newPack.push(c)
      meta.duplicates.push(c.name)
     }
    }
@@ -189,104 +189,126 @@ function generateEventPack(user,event){
    break
   }
 
+  /* ===== OSAMODAS ===== */
   case "osamodas":{
-   const base=randomCard(cards.filter(c=>["R","SR","HR","UR","S"].includes(c.rarity)))
+   const pool = [...cardsByRarity["SR"], ...cardsByRarity["HR"], ...cardsByRarity["UR"], ...cardsByRarity["S"]]
+   const base=randomCard(pool)
 
    const size = Math.min(10, Math.max(3,
-    base.rarity==="SSR"?3:
     base.rarity==="S"?3:
     base.rarity==="UR"?4:
     base.rarity==="HR"?4:
-    base.rarity==="SR"?5:
-    base.rarity==="R"?6:7
+    base.rarity==="SR"?5:6
    ))
 
    pack=[]
    for(let i=0;i<size;i++){
-    pack.push({...base})
+    if(Math.random()<0.15){
+     pack.push(randomCard(pool))
+    } else {
+     pack.push(base)
+    }
    }
 
    break
   }
 
+  /* ===== ECAFLIP ===== */
   case "ecaflip":{
-   if(Math.random()<0.6){
-    pack=cards.filter(c=>["UR","S","SSR"].includes(c.rarity))
-     .sort(()=>Math.random()-0.5)
-     .slice(0,5)
-   }
+   pack = pack.map(c=>{
+    if(Math.random()<0.7){
+     return upgradeRarity(upgradeRarity(c))
+    }
+    return upgradeRarity(c)
+   })
    break
   }
 
+  /* ===== OUGINAK ===== */
   case "ouginak":{
-   pack=cards.filter(c=>["C","U","R"].includes(c.rarity))
+   pack = cards.filter(c=>["C","U","R","SR"].includes(c.rarity))
     .sort(()=>Math.random()-0.5)
     .slice(0,7)
    break
   }
 
+  /* ===== FECA ===== */
   case "feca":{
-   pack=cards.filter(c=>!["C","U"].includes(c.rarity))
-    .sort(()=>Math.random()-0.5)
-    .slice(0,5)
+   pack = pack.filter(c=>!["C","U"].includes(c.rarity))
+
+   while(pack.length<5){
+    pack.push(randomCard(cardsByRarity["R"]))
+   }
+
    break
   }
 
+  /* ===== ENUTROF ===== */
   case "enutrof":{
-   pack=generateBasePack(5)
    if(Math.random()<0.01){
     meta.jackpot=true
    }
    break
   }
 
+  /* ===== ROUBLARD ===== */
   case "roublard":{
-   pack=generateBasePack(8)
+   pack.push(...Array(3).fill(0).map(()=>randomCard(cards)))
    break
   }
 
+  /* ===== STEAMER ===== */
   case "steamer":{
    pack=[]
-   const allowed = ["R","SR","HR","UR","S"] // nerf
 
    for(let i=0;i<5;i++){
-    const rarity = allowed[Math.floor(Math.random()*allowed.length)]
-    const pool = cards.filter(c=>c.rarity===rarity)
+    let rarity
 
-    if(pool.length){
-     const c=randomCard(pool)
-     pack.push(c)
-    }
+    const r = Math.random()
+    if(r<0.05) rarity="SSR"
+    else if(r<0.15) rarity="S"
+    else if(r<0.3) rarity="UR"
+    else if(r<0.5) rarity="HR"
+    else if(r<0.7) rarity="SR"
+    else if(r<0.85) rarity="R"
+    else if(r<0.95) rarity="U"
+    else rarity="C"
+
+    pack.push(randomCard(cardsByRarity[rarity]))
    }
 
    meta.chaos = pack.map(c=>c.rarity)
    break
   }
 
+  /* ===== ELIOTROPE ===== */
   case "eliotrope":{
    pack=[
-    randomCard(cards.filter(c=>c.rarity==="HR")),
-    randomCard(cards.filter(c=>c.rarity==="UR")),
-    randomCard(cards.filter(c=>c.rarity==="S"))
+    randomCard(cardsByRarity["HR"]),
+    randomCard(cardsByRarity["UR"]),
+    randomCard(cardsByRarity["S"])
    ]
    break
   }
 
+  /* ===== ENIRIPSA ===== */
   case "eniripsa":{
-   pack=cards.filter(c=>!["C","U","R"].includes(c.rarity))
-    .sort(()=>Math.random()-0.5)
-    .slice(0,6)
+   pack = pack.filter(c=>!["C","U","R"].includes(c.rarity))
+
+   while(pack.length<6){
+    pack.push(randomCard(cardsByRarity["SR"]))
+   }
+
    break
   }
 
+  /* ===== SADIDA ===== */
   case "sadida":{
-   pack=generateBasePack(5)
-
    let dup=0
 
    for(const c of [...pack]){
     if(Math.random()<0.35 && dup<2){
-     pack.push({...c})
+     pack.push(c)
      meta.duplicates.push(c.name)
      dup++
     }
@@ -294,15 +316,17 @@ function generateEventPack(user,event){
    break
   }
 
+  /* ===== FORGELANCE ===== */
   case "forgelance":{
-   pack=generateBasePack(5)
-   pack=pack.map(c=>upgradeRarity(c))
+   pack = pack.map(c=>upgradeRarity(c))
    break
   }
 
  }
 
- pack = limitSSR(pack)
+ if(!event.allowMultiSSR){
+  pack = limitSSR(pack)
+ }
 
  return {pack,flags,meta}
 }

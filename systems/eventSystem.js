@@ -28,10 +28,11 @@ function startEvent(channel, forced=null){
 
  let data = {}
 
- /* 🎯 CRA TARGET */
- if(key === "cra"){
+ /* ✅ REGISTRY-DRIVEN TARGET (CRA) */
+ if(event.needsTarget){
   const sCards = getCards().filter(c=>c.rarity==="S")
   const target = sCards[Math.floor(Math.random()*sCards.length)]
+
   if(target){
    data.targetId = target.id
    data.targetName = target.name
@@ -46,7 +47,8 @@ function startEvent(channel, forced=null){
   data,
   stats:{
    packs:0,
-   ssr:0
+   ssr:0,
+   totalCards:0
   },
   endTime: Date.now() + (15 * 60000)
  }
@@ -57,12 +59,14 @@ function startEvent(channel, forced=null){
 
 ${event.start}
 
-${key==="cra" && data.targetName ? `🎯 Cible : **${data.targetName}**\n` : ""}
+${event.needsTarget && data.targetName ? `🎯 Cible : **${data.targetName}**\n` : ""}
 
 🎟️ Chaque joueur reçoit **${tickets} tickets**
 👉 Utilisez \`/eventpack\``
   )
  }
+
+ /* ---------- MID ---------- */
 
  midTimeout = setTimeout(()=>{
   if(channel && currentEvent){
@@ -76,6 +80,8 @@ ${event.mid}
   }
  }, (15 * 60000)/2)
 
+ /* ---------- END ---------- */
+
  timeout = setTimeout(()=>{
   if(channel && currentEvent){
    channel.send(
@@ -84,7 +90,8 @@ ${event.mid}
 ${event.end}
 
 📦 Packs ouverts : **${currentEvent.stats.packs}**
-🌈 SSR obtenues : **${currentEvent.stats.ssr}**`
+🌈 SSR obtenues : **${currentEvent.stats.ssr}**
+🎴 Cartes obtenues : **${currentEvent.stats.totalCards}**`
    )
   }
   currentEvent = null
@@ -104,6 +111,8 @@ function stopEvent(channel){
 
  currentEvent = null
 }
+
+/* ---------------- GETTERS ---------------- */
 
 function getEvent(){ return currentEvent }
 function isEventActive(){ return currentEvent !== null }
@@ -141,11 +150,31 @@ function canUseEventPack(user){
  return {ok:true}
 }
 
+/* ---------------- EVENT STATS ---------------- */
+
+function registerEventPack(pack){
+
+ if(!currentEvent) return
+
+ currentEvent.stats.packs++
+ currentEvent.stats.totalCards += pack.length
+
+ for(const c of pack){
+  if(c.rarity === "SSR"){
+   currentEvent.stats.ssr++
+  }
+ }
+
+}
+
+/* ---------------- EXPORT ---------------- */
+
 module.exports = {
  startEvent,
  stopEvent,
  getEvent,
  isEventActive,
  initUserEvent,
- canUseEventPack
+ canUseEventPack,
+ registerEventPack
 }

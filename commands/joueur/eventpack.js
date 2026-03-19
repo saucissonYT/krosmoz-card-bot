@@ -6,19 +6,17 @@ const {
  getEvent,
  isEventActive,
  initUserEvent,
- canUseEventPack
+ canUseEventPack,
+ registerEventPack
 } = require("../../systems/eventSystem")
 
 const { generateEventPack } = require("../../systems/eventPackEngine")
 const { getUser, save } = require("../../systems/userSystem")
-const { rewardKamas } = require("../../systems/economy")
-const { addXP } = require("../../systems/progressionSystem")
+const { applyEventRewards } = require("../../systems/rewardSystem") // ✅ NEW
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
-
-/* ---------- COLORS ---------- */
 
 const rarityColor={
  C:"#95a5a6",
@@ -54,8 +52,6 @@ module.exports = {
 
   const user = getUser(interaction.user.id)
 
-  /* ---------- INIT ---------- */
-
   initUserEvent(user)
 
   const check = canUseEventPack(user)
@@ -70,13 +66,11 @@ module.exports = {
   user.event.used++
 
   await interaction.deferReply()
-
   await interaction.editReply("🎴 Ouverture du pack d'event...")
 
   await sleep(800)
 
   const channel = interaction.channel
-
   if(!channel){
    return interaction.editReply("❌ Impossible d'accéder au channel.")
   }
@@ -99,53 +93,23 @@ module.exports = {
   const flags = result.flags || []
   const meta = result.meta || {}
 
-  /* ---------- REWARDS ---------- */
+  /* ---------- APPLY REWARDS (NEW CORE) ---------- */
 
-  let kamas = 0
-  let xp = 20
+  const { kamas, xp, jackpotMessage } = applyEventRewards(user, pack, event, meta)
 
-  for(const card of pack){
-   user.cards[card.id]=(user.cards[card.id]||0)+1
-   kamas += rewardKamas(user,card.rarity)
-
-   if(event.stats && card.rarity==="SSR"){
-    event.stats.ssr = (event.stats.ssr||0)+1
-   }
+  if(jackpotMessage){
+   channel.send(jackpotMessage)
   }
 
-  xp += pack.length * 2
+  registerEventPack(pack)
 
-  /* ---------- MULTIPLIERS ---------- */
-
-  if(event.key === "enutrof"){
-   kamas *= 5
-
-   if(meta.jackpot){
-    kamas *= 3
-    channel.send("💰 **JACKPOT ÉNUTROF !!!**")
-   }
-  }
-
-  if(event.key === "feca"){
-   xp *= 5
-  }
-
-  addXP(user,xp)
-
-  if(event.stats){
-   event.stats.packs = (event.stats.packs||0)+1
-  }
-
-  /* ===================== */
-  /*        SRAM UX        */
-  /* ===================== */
+  /* ================= SRAM ================= */
 
   if(event.key === "sram"){
 
    let revealed=[]
 
    for(let i=0;i<pack.length;i++){
-
     revealed.push("❓ ???")
 
     const embed = new EmbedBuilder()
@@ -154,7 +118,6 @@ module.exports = {
      .setColor("#2c3e50")
 
     await message.edit({embeds:[embed]})
-
     await sleep(400)
    }
 
@@ -171,16 +134,17 @@ module.exports = {
     .setColor("#2c3e50")
 
    await message.edit({embeds:[finalEmbed]})
-
    save()
    return
   }
 
-  /* ---------- REVEAL NORMAL ---------- */
+  /* ---------- REVEAL ---------- */
 
   let revealed=[]
 
   for(const card of pack){
+
+   user.cards[card.id]=(user.cards[card.id]||0)+1
 
    const line = `${rarityEmoji[card.rarity]} **${card.name}** \`${card.rarity}\``
 
@@ -192,11 +156,10 @@ module.exports = {
     .setColor(rarityColor[card.rarity] || "#9b59b6")
 
    await message.edit({embeds:[embed]})
-
    await sleep(500)
   }
 
-  /* ---------- RP / META COMPLET ---------- */
+  /* ---------- META ---------- */
 
   let extra=""
 
@@ -216,19 +179,17 @@ module.exports = {
    extra += "\n✨ Cartes ajoutées :\n" + meta.added.join("\n")
   }
 
-  if(meta.chaos){
+  if(meta.chaos?.length){
    extra += `\n⚙️ Chaos : ${meta.chaos.join(", ")}`
   }
 
-  if(meta.removed){
+  if(meta.removed?.length){
    extra += `\n⏳ Supprimées : ${meta.removed.join(", ")}`
   }
 
   if(flags.length){
    extra += "\n\n" + flags.join("\n")
   }
-
-  /* ---------- FINAL ---------- */
 
   const remaining = user.event.tickets - user.event.used
 

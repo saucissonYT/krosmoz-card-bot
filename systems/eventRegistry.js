@@ -3,6 +3,9 @@ const EVENTS = {
  iop:{
   name:"🔥 Iop",
   effect:"Boost HR & UR",
+  type:"rarity_boost",
+
+  allowMultiSSR:true, // ✅ important
 
   start:`🔥 **Iop entre en rage !**
 La puissance brute explose !
@@ -19,6 +22,9 @@ La puissance redescend.`
  cra:{
   name:"🎯 Cra",
   effect:"Carte S ciblée (20%)",
+  type:"target",
+
+  needsTarget:true, // ✅ important
 
   start:`🎯 **Cra vise sa proie...**
 Une cible rare est traquée !`,
@@ -32,6 +38,7 @@ Impossible d’échapper aux flèches.`,
  xelor:{
   name:"⏳ Xelor",
   effect:"Altération du pack",
+  type:"manipulation",
 
   start:`⏳ **Xelor manipule le temps...**
 Certaines cartes disparaissent, d'autres apparaissent.`,
@@ -44,6 +51,7 @@ Certaines cartes disparaissent, d'autres apparaissent.`,
  sram:{
   name:"🕶️ Sram",
   effect:"Pack caché + carte bonus",
+  type:"hidden",
 
   start:`🕶️ **Le Voile de l’Ombre tombe...**
 Tu ne vois plus rien...`,
@@ -56,6 +64,7 @@ Tu ne vois plus rien...`,
  sacrieur:{
   name:"💀 Sacrieur",
   effect:"Mutation cartes",
+  type:"mutation",
 
   start:`💀 **Le sang appelle le chaos...**
 Les cartes mutent violemment !`,
@@ -68,6 +77,7 @@ Les cartes mutent violemment !`,
  zobal:{
   name:"🎭 Zobal",
   effect:"+1 rareté",
+  type:"upgrade",
 
   start:`🎭 **Zobal change de masque...**
 Certaines cartes évoluent !`,
@@ -80,6 +90,7 @@ Certaines cartes évoluent !`,
  huppermage:{
   name:"🧠 Huppermage",
   effect:"Cartes bonus",
+  type:"volume",
 
   start:`🧠 **Les éléments s'alignent...**
 Des cartes supplémentaires apparaissent !`,
@@ -92,6 +103,7 @@ Des cartes supplémentaires apparaissent !`,
  pandawa:{
   name:"🍺 Pandawa",
   effect:"Duplication",
+  type:"duplication",
 
   start:`🍺 **Pandawa partage...**
 Certaines cartes se dupliquent !`,
@@ -104,6 +116,7 @@ Certaines cartes se dupliquent !`,
  osamodas:{
   name:"🐉 Osamodas",
   effect:"Pack homogène",
+  type:"structure",
 
   start:`🐉 **Osamodas invoque un troupeau...**
 Toutes les cartes seront similaires !`,
@@ -116,6 +129,7 @@ Toutes les cartes seront similaires !`,
  ecaflip:{
   name:"🎲 Ecaflip",
   effect:"RNG chance",
+  type:"rng",
 
   start:`🎲 **Ecaflip lance les dés...**
 La chance est avec toi !`,
@@ -128,6 +142,7 @@ La chance est avec toi !`,
  ouginak:{
   name:"🐺 Ouginak",
   effect:"RNG malchance",
+  type:"rng_negative",
 
   start:`🐺 **Ouginak grogne...**
 La malchance s’abat !`,
@@ -140,6 +155,7 @@ La malchance s’abat !`,
  feca:{
   name:"🛡️ Feca",
   effect:"No C/U + XP boost",
+  type:"reward",
 
   start:`🛡️ **Feca protège les héros...**
 Plus aucune carte faible !`,
@@ -152,6 +168,7 @@ Plus aucune carte faible !`,
  enutrof:{
   name:"💰 Enutrof",
   effect:"Kamas x5",
+  type:"reward",
 
   start:`💰 **Enutrof est généreux !**
 Les richesses affluent !`,
@@ -164,6 +181,7 @@ Les richesses affluent !`,
  roublard:{
   name:"💣 Roublard",
   effect:"+3 cartes",
+  type:"volume",
 
   start:`💣 **Roublard prépare son coup...**
 Plus de cartes dans les packs !`,
@@ -176,6 +194,7 @@ Plus de cartes dans les packs !`,
  steamer:{
   name:"⚙️ Steamer",
   effect:"RNG chaos",
+  type:"chaos",
 
   start:`⚙️ **La machine s'emballe...**
 Les probabilités deviennent instables !`,
@@ -188,6 +207,7 @@ Les probabilités deviennent instables !`,
  eliotrope:{
   name:"🌀 Eliotrope",
   effect:"Pack spécial",
+  type:"special",
 
   start:`🌀 **Un portail s'ouvre...**
 Des cartes venues d'autres dimensions apparaissent !`,
@@ -200,6 +220,7 @@ Des cartes venues d'autres dimensions apparaissent !`,
  eniripsa:{
   name:"✨ Eniripsa",
   effect:"No C/U/R",
+  type:"filter",
 
   start:`✨ **Eniripsa purifie les packs...**
 Plus aucune carte faible !`,
@@ -212,6 +233,7 @@ Plus aucune carte faible !`,
  sadida:{
   name:"🌿 Sadida",
   effect:"Duplication",
+  type:"duplication",
 
   start:`🌿 **La nature s’éveille...**
 Les cartes se multiplient !`,
@@ -224,6 +246,7 @@ Les cartes se multiplient !`,
  forgelance:{
   name:"⚔️ Forgelance",
   effect:"+1 rareté globale",
+  type:"upgrade_global",
 
   start:`⚔️ **Les armes s’embrasent...**
 Toutes les cartes sont améliorées !`,

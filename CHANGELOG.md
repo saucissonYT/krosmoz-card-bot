@@ -9,6 +9,72 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+[0.19.0] - 2026-03-19
+### Added
+
+- Nouveau système KrosmoEvent (/krosmoevent, /eventpack, /forceevent)
+- Implémentation de 19 événements basés sur les classes Krosmoz
+- Système de tickets d’event (2 à 3 par joueur) : non stockables, reset à chaque event
+- Nouvea moteur eventPackEngine : génération dynamique de packs selon l’event actif, support complet des overrides RNG
+- Ajout d’un système meta event pour UX : mutations (Sacrieur), upgrades (Zobal, Forgelance), duplications (Pandawa, Sadida), cartes ajoutées / supprimées (Xelor, Huppermage)
+chaos RNG (Steamer)
+- Ajout des messages RP dynamiques : message de début d’event, message en cours, message de fin
+- Ajout d’un système de statistiques d’event : nombre de packs ouverts, nombre de SSR obtenues, nombre de cartes obtenues 
+- Ajout de multiplicateurs spéciaux : Enutrof → kamas x5 + jackpot caché, Feca → XP x5 + jackpot caché
+- Ajout du système SSR cap (1 max par pack) hors cas spéciaux
+- Ajout de l’animation Sram complète : pack totalement invisible (???), aucune révélation finale
+- Ajout d’un système de logs RP dans les packs : affichage des mutations / upgrades / duplications
+- Ajout du système Steamer RNG dynamique affiché
+- Ajout du système Cra ciblé : carte S spécifique avec affichage RP
+
+### Changed
+
+- Refonte complète du système eventSystem
+- Passage d’un event SSR simple → système modulaire multi-events
+- Refonte de la commande /krosmoevent : gestion start / stop / force / status, sécurisation dev uniquement
+- Amélioration de la commande /eventpack : affichage des tickets restants, fusion du résultat + rewards dans un seul embed
+- Amélioration globale de l’UX des packs event : animations spécifiques par event, affichage du nombre de cartes réel
+- Amélioration du système Osamodas : limitation du nombre de duplications selon rareté
+- Amélioration du système Steamer : RNG chaos limité (évite abus SSR)
+- Amélioration du système Xelor : affichage des cartes retirées / ajoutées
+- Ajustement des probabilités globales pour éviter excès de SSR
+
+### Improved
+
+- Système d’event désormais scalable et extensible
+- Meilleure lisibilité des effets d’event côté joueur
+- UX enrichie avec feedback direct sur chaque modification de pack
+- Meilleure cohérence entre RNG, UX et narration RP
+- Meilleure stabilité globale des interactions Discord (events inclus)
+- Architecture des events désormais découplée du packEngine principal
+
+### Fixed
+
+- Correction de /eventpack : interaction failed : affichage des rewards séparé
+- Correction du système Sram : suppression de la révélation finale
+- Correction du système Roublard : nombre de cartes incorrect
+- Correction du système Eniripsa : suppression des C/U/R non appliquée
+- Correction du système Enutrof : multiplicateur kamas non appliqué
+- Correction du système Feca : multiplicateur XP non appliqué
+- Correction du système Huppermage : cartes bonus non générées
+- Correction du système Pandawa : duplication non fonctionnelle
+- Correction du système Cra : taux incorrect + absence de cible affichée
+- Correction du système Iop: absence de HR/UR garantis
+- Correction du système Steamer : RNG non réellement dynamique
+- Correction du système Xelor : pack non modifié correctement
+- Correction du système Sadida : duplication non appliquée
+- Correction du système Forgelance : upgrade rareté non appliqué
+- Correction de /forceevent : select menu non fonctionnel, problème d’ownership interaction
+- Correction de /krosmoevent : interaction failed, mauvais routing select menu
+- Correction globale des events :  incohérences RNG, absence de feedback UX, effets non appliqués
+
+### Removed
+
+- Suppression complète de l’ancien eventSystem SSR
+- Suppression de la commande /event legacy
+- Suppression des anciennes logiques d’event non modulaires
+
+
 ---
 
 [0.18.0] - 2026-03-18
