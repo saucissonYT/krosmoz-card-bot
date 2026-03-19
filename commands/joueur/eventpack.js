@@ -62,7 +62,7 @@ module.exports = {
      new EmbedBuilder()
       .setTitle("📦 Pack en cours...")
       .setDescription("✨ Une énergie étrange se forme...")
-   ]
+    ]
    })
 
    /* ================= PACK ================= */
@@ -135,7 +135,7 @@ module.exports = {
       new EmbedBuilder()
        .setTitle(`🕶️ ${event.name}`)
        .setDescription("❓ Les cartes restent inconnues...")
-    ]
+     ]
     })
 
     save()
@@ -154,37 +154,29 @@ module.exports = {
 
     let line = `${rarityEmoji[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
 
-    /* ===== VISUAL EFFECTS ===== */
-
-    // 🐼 Pandawa → uniquement copie
     if(event.key === "pandawa" && meta.duplicates){
      const isCopy = meta.duplicates.some(d => d.copy === card.name)
      if(isCopy) line += " 🍺"
     }
 
-    // 🌿 Sadida
     if(event.key === "sadida" && meta.duplicates){
      const isCopy = meta.duplicates.some(d => d.copy === card.name)
      if(isCopy) line += " 🌿"
     }
 
-    // 💀 Sacrieur
     if(meta.mutations?.some(m=>m.includes(card.name))){
      line += " 💀"
     }
 
-    // 🎭 Zobal / Forgelance
     if(meta.upgrades?.some(u=>u.includes(card.name))){
      line += " 🎭"
     }
 
-    // ⏳ Xelor (cartes ajoutées)
     if(event.key === "xelor" && meta.added){
      const isAdded = meta.added.some(a => a.name === card.name)
      if(isAdded) line += " ⏳"
     }
 
-    // 🐺 Ouginak
     if(meta.downgrades?.some(d=>d.includes(card.name))){
      line += " 🐺"
     }

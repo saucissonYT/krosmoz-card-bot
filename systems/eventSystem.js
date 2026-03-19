@@ -18,13 +18,11 @@ function pickRandomEvent(){
 
 function startEvent(channel, forced=null){
 
- // 🔥 FIX CRITIQUE : empêche multi-event
  if(currentEvent && !forced){
   console.log("⚠️ Event déjà actif, lancement ignoré")
   return false
  }
 
- // 🔥 reset timers uniquement si forced
  if(timeout) clearTimeout(timeout)
  if(midTimeout) clearTimeout(midTimeout)
 
@@ -52,7 +50,7 @@ function startEvent(channel, forced=null){
 
  currentEvent = {
   key,
-  uid: Date.now(), // 🔥 unique event id
+  uid: Date.now(),
   name: event.name,
   start: event.start,
   mid: event.mid,
@@ -61,6 +59,7 @@ function startEvent(channel, forced=null){
   allowMultiSSR: event.allowMultiSSR || false,
   tickets,
   data,
+  voiceLines: event.voiceLines, // ✅ FIX
   stats:{
    packs:0,
    ssr:0,
@@ -101,7 +100,7 @@ ${currentEvent.mid}
  /* ---------- END ---------- */
 
  timeout = setTimeout(()=>{
-  if(channel && currentEvent){
+  if(channel && currentEvent && currentEvent.stats){
    channel.send(
 `📊 **${currentEvent.name} terminé**
 
@@ -113,7 +112,7 @@ ${currentEvent.end}
    )
   }
 
-  console.log("🏁 EVENT END:", currentEvent?.key)
+  console.log("🏁 EVENT END:", currentEvent?.key, currentEvent?.stats)
 
   currentEvent = null
 
