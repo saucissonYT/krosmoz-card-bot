@@ -10,6 +10,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 ---
 
 [0.19.0] - 2026-03-19
+
 ### Added
 
 - Nouveau système KrosmoEvent (/krosmoevent, /eventpack, /forceevent)
@@ -27,6 +28,15 @@ chaos RNG (Steamer)
 - Ajout du système Steamer RNG dynamique affiché
 - Ajout du système Cra ciblé : carte S spécifique avec affichage RP
 
+- Ajout du système de voice lines par event (S / SSR) avec déclenchement post-pack
+- Ajout de 3 phrases RP par rareté et par classe (immersion renforcée)
+- Ajout du système de sélection automatique de la meilleure rareté (SSR > S)
+- Ajout d’un système d’affichage visuel contextuel par event (emoji dynamiques sur cartes)
+- Ajout du support des métadonnées enrichies (duplicates structurés, added objects, downgrades)
+- Ajout du support generateCustomPack et generateGlobalPack pour events spéciaux (Steamer, Ouginak, Ecaflip)
+
+---
+
 ### Changed
 
 - Refonte complète du système eventSystem
@@ -39,6 +49,18 @@ chaos RNG (Steamer)
 - Amélioration du système Xelor : affichage des cartes retirées / ajoutées
 - Ajustement des probabilités globales pour éviter excès de SSR
 
+- Refonte complète du système d’affichage des cartes (emoji + nom + rareté texte)
+- Amélioration des animations de reveal avec timing optimisé (perf + lisibilité)
+- Amélioration du système Pandawa : duplication stable avec tracking original/copie
+- Amélioration du système Xelor : structure meta ajoutée pour UX (cartes ajoutées identifiables)
+- Amélioration du système Ouginak : downgrade visible et traçable
+- Amélioration du système Ecaflip : séparation jackpot / luck avec meta dédiée
+- Amélioration du système Roublard : sécurisation du nombre total de cartes (fix 5+3)
+- Amélioration du système Huppermage : équilibrage des pools (boost S/UR)
+- Uniformisation des structures meta entre tous les events (cohérence engine)
+
+---
+
 ### Improved
 
 - Système d’event désormais scalable et extensible
@@ -47,6 +69,15 @@ chaos RNG (Steamer)
 - Meilleure cohérence entre RNG, UX et narration RP
 - Meilleure stabilité globale des interactions Discord (events inclus)
 - Architecture des events désormais découplée du packEngine principal
+
+- Immersion fortement améliorée via voice lines dynamiques contextuelles
+- Lisibilité renforcée grâce aux indicateurs visuels (🍺 💀 🎭 ⏳ 🌿 🐺)
+- Feedback joueur amélioré avec distinction claire des modifications (ajout, suppression, mutation)
+- Meilleure compréhension des effets RNG complexes (Xelor, Steamer, Ecaflip)
+- Fluidité des animations optimisée pour éviter surcharge serveur (multi users)
+- Système eventPackEngine rendu totalement extensible (ajout d’events sans refactor)
+
+---
 
 ### Fixed
 
@@ -66,7 +97,19 @@ chaos RNG (Steamer)
 - Correction du système Forgelance : upgrade rareté non appliqué
 - Correction de /forceevent : select menu non fonctionnel, problème d’ownership interaction
 - Correction de /krosmoevent : interaction failed, mauvais routing select menu
-- Correction globale des events :  incohérences RNG, absence de feedback UX, effets non appliqués
+- Correction globale des events : incohérences RNG, absence de feedback UX, effets non appliqués
+
+- Correction du bug critique eventRegistry tronqué (seulement 8 events chargés)
+- Correction des imports eventRegistry (mauvais fichier chargé / duplication)
+- Correction du bug Pandawa : duplication incohérente et non déterministe
+- Correction du bug Xelor : meta.added non exploitable côté UX
+- Correction du bug Ouginak : downgrade non affiché
+- Correction du bug UX Huppermage : mauvais emoji (⏳ → 🧠)
+- Correction du bug reveal : perte d’informations visuelles (rarity texte manquante)
+- Correction du bug tickets event non reset correctement entre events
+- Correction du bug eventpack bloqué (pack vide / generatePack non exporté)
+
+---
 
 ### Removed
 

@@ -1,7 +1,5 @@
 const {
  SlashCommandBuilder,
- ActionRowBuilder,
- StringSelectMenuBuilder,
  EmbedBuilder
 } = require("discord.js")
 
@@ -29,6 +27,17 @@ module.exports = {
   .addSubcommand(sub =>
    sub.setName("force")
     .setDescription("Forcer un event spécifique")
+    .addStringOption(opt =>
+     opt.setName("event")
+      .setDescription("Choisir un event")
+      .setRequired(true)
+      .addChoices(
+       ...Object.keys(EVENTS).map(key => ({
+        name: EVENTS[key].name,
+        value: key
+       }))
+      )
+    )
   )
 
   .addSubcommand(sub =>
@@ -51,7 +60,6 @@ module.exports = {
   }
 
   const sub = interaction.options.getSubcommand()
-
   const channel = interaction.channel
 
   if(!channel){
@@ -61,7 +69,6 @@ module.exports = {
    })
   }
 
-  /* 🔧 FIX */
   if(!interaction.deferred && !interaction.replied){
    await interaction.deferReply({ ephemeral:true })
   }
@@ -87,21 +94,18 @@ module.exports = {
 
   if(sub === "force"){
 
-   const options = Object.keys(EVENTS).map(key => ({
-    label:EVENTS[key].name,
-    value:key
-   }))
+   const eventKey = interaction.options.getString("event")
 
-   const menu = new StringSelectMenuBuilder()
-    .setCustomId(`krosmoevent_select_${interaction.user.id}`)
-    .setPlaceholder("Choisir un event")
-    .addOptions(options.slice(0,25))
+   if(isEventActive()){
+    return interaction.editReply({
+     content:"⚠️ Un event est déjà actif."
+    })
+   }
 
-   const row = new ActionRowBuilder().addComponents(menu)
+   startEvent(channel, eventKey)
 
    return interaction.editReply({
-    content:"🎯 Choisis un event à lancer",
-    components:[row]
+    content:`✅ Event forcé : **${EVENTS[eventKey].name}**`
    })
   }
 
@@ -150,50 +154,6 @@ module.exports = {
     embeds:[embed]
    })
   }
-
- },
-
- /* ---------------- SELECT MENU ---------------- */
-
- async select(interaction){
-
-  if(!interaction.customId.startsWith("krosmoevent_select_")) return
-
-  const ownerId = interaction.customId.split("_")[2] // 🔧 FIX
-
-  if(interaction.user.id !== ownerId){
-   return interaction.reply({
-    content:"❌ Pas ton menu.",
-    ephemeral:true
-   })
-  }
-
-  if(!isDev(interaction.user.id)) return
-
-  const channel = interaction.channel
-
-  if(!channel){
-   return interaction.reply({
-    content:"❌ Channel introuvable.",
-    ephemeral:true
-   })
-  }
-
-  const eventKey = interaction.values[0]
-
-  if(isEventActive()){
-   return interaction.update({
-    content:"⚠️ Un event est déjà actif.",
-    components:[]
-   })
-  }
-
-  startEvent(channel, eventKey)
-
-  await interaction.update({
-   content:`✅ Event forcé : **${EVENTS[eventKey].name}**`,
-   components:[]
-  })
 
  }
 
