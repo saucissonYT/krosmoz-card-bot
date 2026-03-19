@@ -152,7 +152,22 @@ module.exports = {
 
     user.cards[card.id]=(user.cards[card.id]||0)+1
 
-    const line = `${rarityEmoji[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+    let line = `${rarityEmoji[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+
+    /* ===== VISUAL EFFECTS ===== */
+
+    if(meta.duplicates?.includes(card.name)){
+     if(event.key === "pandawa") line += " 🍺"
+     if(event.key === "sadida") line += " 🌿"
+    }
+
+    if(meta.mutations?.some(m=>m.includes(card.name))){
+     line += " 💀"
+    }
+
+    if(meta.upgrades?.some(u=>u.includes(card.name))){
+     line += " 🎭"
+    }
 
     revealed.push(line)
 
@@ -168,54 +183,64 @@ module.exports = {
      ]
     })
 
-    await sleep(420) // ⚖️ équilibre perf / UX
+    await sleep(420)
    }
 
    /* ================= RP SYSTEM ================= */
 
    let rp = ""
 
-   const rpData = event.rp || {}
-
    if(meta.removed?.length){
-    rp += `\n${rpData.removed || "⏳ Des cartes ont disparu..."}`
+    rp += `\n⏳ ${meta.removed.length} carte(s) supprimée(s)`
    }
 
    if(meta.added?.length){
-    rp += `\n${rpData.added || "✨ De nouvelles cartes apparaissent..."}`
+    rp += `\n✨ ${meta.added.length} carte(s) ajoutée(s)`
    }
 
    if(meta.mutations?.length){
-    rp += `\n${rpData.mutation || "💀 Mutations :"}\n` + meta.mutations.join("\n")
+    rp += `\n💀 Mutations :\n` + meta.mutations.join("\n")
    }
 
    if(meta.upgrades?.length){
-    rp += `\n${rpData.upgrade || "🎭 Améliorations :"}\n` + meta.upgrades.join("\n")
+    rp += `\n🎭 Améliorations :\n` + meta.upgrades.join("\n")
    }
 
-   if(meta.duplicates?.length){
-    rp += `\n${rpData.duplicate || "🍺 Doublons :"}\n` + meta.duplicates.join("\n")
+   if(event.key === "pandawa" && meta.duplicates?.length){
+    rp += `\n🍺 ${meta.duplicates.length} duplication(s)`
+   }
+
+   if(event.key === "sadida" && meta.duplicates?.length){
+    rp += `\n🌿 ${meta.duplicates.length} duplication(s)`
    }
 
    if(meta.chaos?.length){
-    rp += `\n${rpData.chaos || "⚙️ Chaos :"} ${meta.chaos.join(", ")}`
+    rp += `\n⚙️ Chaos : ${meta.chaos.join(", ")}`
    }
 
-   if(meta.jackpot){
-    rp += `\n${rpData.jackpot || "💰 JACKPOT !"}`
+   if(meta.downgrades?.length){
+    rp += `\n🐺 Dégradation :\n` + meta.downgrades.join("\n")
+   }
+
+   if(event.key === "ecaflip"){
+    if(meta.jackpot){
+     rp += `\n🎲💥 JACKPOT !`
+    } else if(meta.luck){
+     rp += `\n🎲 La chance a amélioré le pack...`
+    }
    }
 
    if(flags.length){
     rp += "\n\n" + flags.join("\n")
    }
 
+   /* ================= FINAL ================= */
+
    const description = (
     "✨ Une énergie étrange se dissipe...\n\n" +
     revealed.join("\n") +
     (rp || "")
    ).trim() || "❌ Aucune carte"
-
-   /* ================= FINAL ================= */
 
    await message.edit({
     embeds:[
@@ -230,6 +255,30 @@ module.exports = {
       .setColor("#f1c40f")
     ]
    })
+
+   /* ================= VOICE LINE (🔥 NEW) ================= */
+
+   let bestRarity = null
+
+   for(const c of pack){
+    if(c.rarity === "SSR"){
+     bestRarity = "SSR"
+     break
+    }
+    if(c.rarity === "S"){
+     bestRarity = "S"
+    }
+   }
+
+   if(bestRarity && event.voiceLines?.[bestRarity]){
+    const pool = event.voiceLines[bestRarity]
+
+    if(pool.length){
+     const line = pool[Math.floor(Math.random()*pool.length)]
+
+     await channel.send(`💬 ${event.name} : ${line}`)
+    }
+   }
 
    save()
 

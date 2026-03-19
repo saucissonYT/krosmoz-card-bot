@@ -63,7 +63,9 @@ function generateEventPack(user,event){
   added:[],
   removed:[],
   chaos:[],
-  jackpot:false
+  downgrades:[], // 🔥 NEW
+  jackpot:false,
+  luck:false     // 🔥 NEW (ecaflip)
  }
 
  switch(event.key){
@@ -71,7 +73,6 @@ function generateEventPack(user,event){
   /* ===== IOP ===== */
   case "iop":{
    const newPack=[]
-
    newPack.push(randomCard(cardsByRarity["HR"]))
    newPack.push(randomCard(cardsByRarity["UR"]))
 
@@ -162,7 +163,7 @@ function generateEventPack(user,event){
    const bonus=Math.floor(Math.random()*3)+1
 
    for(let i=0;i<bonus;i++){
-    const pool = Math.random()<0.5 // 🔥 boost S
+    const pool = Math.random()<0.5
      ? [...cardsByRarity["S"], ...cardsByRarity["UR"]]
      : cards
 
@@ -200,11 +201,9 @@ function generateEventPack(user,event){
    const pool = [...cardsByRarity["SR"], ...cardsByRarity["HR"], ...cardsByRarity["UR"], ...cardsByRarity["S"]]
    const base=randomCard(pool)
 
-   const size = Math.min(10, Math.max(3, 5))
-
    pack=[]
-   for(let i=0;i<size;i++){
-    if(Math.random()<0.25){ // 🔥 moins monotone
+   for(let i=0;i<5;i++){
+    if(Math.random()<0.25){
      pack.push(randomCard(pool))
     } else {
      pack.push(base)
@@ -219,13 +218,13 @@ function generateEventPack(user,event){
    const roll = Math.random()
 
    if(roll < 0.6){
-    // 🔥 jackpot mode
+    meta.jackpot = true
     pack = generateCustomPack(
      [...cardsByRarity["HR"], ...cardsByRarity["UR"], ...cardsByRarity["S"], ...cardsByRarity["SSR"]],
      5
     )
    } else {
-    // 🔥 boost
+    meta.luck = true
     pack = pack.map(c=>{
      if(Math.random()<0.7){
       return upgradeRarity(upgradeRarity(c))
@@ -244,10 +243,11 @@ function generateEventPack(user,event){
     7
    )
 
-   // 🔥 downgrade violent
    pack = pack.map(c=>{
-    if(Math.random()<0.5){
-     return downgradeRarity(c)
+    if(Math.random()<0.6){
+     const downgraded = downgradeRarity(c)
+     meta.downgrades.push(`${c.name} → ${downgraded.name}`)
+     return downgraded
     }
     return c
    })
@@ -280,30 +280,14 @@ function generateEventPack(user,event){
 
   /* ===== ROUBLARD ===== */
   case "roublard":{
+   pack = pack.slice(0,5) // 🔥 FIX
    pack.push(...Array(3).fill(0).map(()=>randomCard(cards)))
    break
   }
 
   /* ===== STEAMER ===== */
   case "steamer":{
-   pack=[]
-
-   for(let i=0;i<5;i++){
-    const r = Math.random()
-
-    let rarity
-    if(r<0.05) rarity="SSR"
-    else if(r<0.15) rarity="S"
-    else if(r<0.3) rarity="UR"
-    else if(r<0.5) rarity="HR"
-    else if(r<0.7) rarity="SR"
-    else if(r<0.85) rarity="R"
-    else if(r<0.95) rarity="U"
-    else rarity="C"
-
-    pack.push(randomCard(cardsByRarity[rarity]))
-   }
-
+   pack = generateGlobalPack(5)
    meta.chaos = pack.map(c=>c.rarity)
    break
   }
