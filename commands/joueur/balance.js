@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require("discord.js")
-const { getUser } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
@@ -13,6 +13,18 @@ module.exports = {
 
   if(!user.stats) user.stats={}
   user.stats.balanceCheck=(user.stats.balanceCheck||0)+1
+
+  /*
+   * FIX: save() manquant après modification de stats.
+   *
+   * AVANT : user.stats.balanceCheck incrémenté mais jamais sauvegardé.
+   *         L'autosave 30s ne rattrape que si le user est déjà _dirty.
+   *         Si le bot crash entre-temps, la stat et le potentiel
+   *         achievement sont perdus.
+   *
+   * APRÈS : save(userId) ciblé pour persister la modification.
+   */
+  save(interaction.user.id)
 
   const unlocked = achievementCheck(user,"economy")
 

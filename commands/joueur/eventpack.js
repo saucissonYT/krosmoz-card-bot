@@ -1,5 +1,12 @@
 const { EmbedBuilder } = require("discord.js")
 
+/*
+ * FIX: rarityColor et rarityEmoji étaient hardcodés localement.
+ * Remplacés par RARITY_EMOJI et RARITY_COLOR depuis constants.js
+ * pour garantir la cohérence avec le reste du projet.
+ */
+const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
+
 const {
  getEvent,
  isEventActive,
@@ -17,16 +24,6 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
-}
-
-const rarityColor={
- C:"#95a5a6",U:"#2ecc71",R:"#3498db",SR:"#9b59b6",
- HR:"#e74c3c",UR:"#f1c40f",S:"#ecf0f1",SSR:"#ffcc00"
-}
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
 module.exports = {
@@ -48,7 +45,7 @@ module.exports = {
      if(!user.stats) user.stats = {}
      user.stats.eventpackNoEvent = true
      const unlocked = achievementCheck(user, "secret")
-     save()
+     save(interaction.user.id)
      if(unlocked.length) await notifyAchievements(interaction, unlocked)
     } catch(e){}
 
@@ -229,7 +226,7 @@ module.exports = {
     })
 
     const unlocked = achievementCheck(user, "event")
-    save()
+    save(interaction.user.id)
 
     /* NOTIFICATION NOUVELLES CARTES (même pour Sram) */
     if(discovered.length){
@@ -261,7 +258,7 @@ module.exports = {
 
     user.cards[card.id]=(user.cards[card.id]||0)+1
 
-    let line = `${rarityEmoji[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+    let line = `${RARITY_EMOJI[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
 
     if(event.key === "pandawa" && meta.duplicates){
      const isCopy = meta.duplicates.some(d => d.copy === card.name)
@@ -300,7 +297,7 @@ module.exports = {
         "✨ Une énergie étrange se forme...\n\n" +
         revealed.join("\n")
        )
-       .setColor(rarityColor[card.rarity] || "#9b59b6")
+       .setColor(RARITY_COLOR[card.rarity] || "#9b59b6")
      ]
     })
 
@@ -410,7 +407,7 @@ module.exports = {
 
    const unlocked = achievementCheck(user, "event")
 
-   save()
+   save(interaction.user.id)
 
    if(unlocked.length)
     await notifyAchievements(interaction, unlocked)

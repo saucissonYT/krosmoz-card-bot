@@ -1,6 +1,12 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
+/*
+ * FIX: rarityEmoji et sellValues étaient hardcodés localement.
+ * Remplacés par RARITY_EMOJI et SELL_PRICE depuis constants.js
+ * pour garantir la cohérence avec le reste du projet.
+ */
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
+
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
@@ -12,16 +18,15 @@ module.exports={
 
  async execute(interaction){
 
+  // Fix : appel au moment de l'exécution, pas au chargement du module
   const cardsById = getCardsById()
+
   const user = getUser(interaction.user.id)
 
   if(!user.cards || Object.keys(user.cards).length===0)
    return interaction.reply("Inventaire vide.")
 
   if(!user.stats) user.stats={}
-
-  /* ---- ACTIVITY STREAK ---- */
-  updateActivityStreak(user)
 
   let totalCards=0
   let totalKamas=0
@@ -34,9 +39,11 @@ module.exports={
    const card = cardsById[id]
    if(!card) continue
 
-   if(card.rarity==="UR" || card.rarity==="SSR") continue
+   if(card.rarity==="UR" || card.rarity==="SSR")
+    continue
 
    const count=user.cards[id]
+
    if(count<=1) continue
 
    const duplicates=count-1
@@ -45,11 +52,16 @@ module.exports={
    totalCards += duplicates
    totalKamas += duplicates * price
 
-   toSell.push({ id, duplicates, price })
+   toSell.push({
+    id,
+    duplicates,
+    price
+   })
 
    previewLines.push(
-    `${RARITY_EMOJI[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
+`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
    )
+
   }
 
   if(totalCards===0)
@@ -105,34 +117,37 @@ ${previewLines.slice(0,15).join("\n")}
      components:[]
     })
 
-   const cardsByIdFresh = getCardsById()
-   const soldLines=[]
+   /* VENTE */
+
+   let soldCards=0
+   let soldKamas=0
 
    for(const item of toSell){
 
-    const card=cardsByIdFresh[item.id]
-    if(!card) continue
-
-    user.cards[item.id]-=item.duplicates
+    user.cards[item.id] -= item.duplicates
 
     if(user.cards[item.id]<=0)
      delete user.cards[item.id]
 
-    user.kamas+=item.duplicates*item.price
-    user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
+    const gain = item.duplicates * item.price
 
-    soldLines.push(
-     `${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
-    )
+    user.kamas = (user.kamas||0) + gain
+
+    soldCards += item.duplicates
+    soldKamas += gain
+
    }
 
-   /* ---- ACHIEVEMENT SELL FAST ---- */
-   // Vendre dans les 10s après avoir ouvert un pack
-   if(user.lastPack && (Date.now() - user.lastPack) <= 10000){
-    user.stats.sellFast = (user.stats.sellFast || 0) + 1
+   user.stats.cardsSold = (user.stats.cardsSold||0) + soldCards
+
+   /* FIX: sellFast tracking */
+   if(user.lastPack && Date.now() - user.lastPack < 60000){
+    user.stats.sellFast = (user.stats.sellFast||0) + 1
    }
 
-   save()
+   updateActivityStreak(user)
+
+   save(interaction.user.id)
 
    const unlocked = [
     ...achievementCheck(user,"economy"),
@@ -140,17 +155,15 @@ ${previewLines.slice(0,15).join("\n")}
     ...achievementCheck(user,"pack")
    ]
 
-   const resultEmbed=new EmbedBuilder()
-    .setTitle("💰 Doublons vendus")
-    .setDescription(
-`${soldLines.slice(0,20).join("\n")}
-
-Cartes vendues : **${totalCards}**
-Gain total : **${totalKamas} kamas**`
-    )
-
    await interaction.editReply({
-    embeds:[resultEmbed],
+    content:
+`💰 **Doublons vendus !**
+
+🎴 Cartes vendues : **${soldCards}**
+💰 Kamas gagnés : **${soldKamas}**
+
+💰 Solde : **${user.kamas} kamas**`,
+    embeds:[],
     components:[]
    })
 

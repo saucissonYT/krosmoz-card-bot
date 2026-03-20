@@ -13,8 +13,18 @@ const { getProgression } = require("../../systems/progressionSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
+/*
+ * FIX: Référence statique aux cartes supprimée.
+ *
+ * AVANT: const cards = data.cards || []
+ *   → Snapshot statique au require(). Si data.cards est remplacé
+ *     (via addcard, importcards, resetdata), profil.js garde
+ *     l'ancienne référence et le compte totalCards est faux.
+ *
+ * APRÈS: on utilise getCards() depuis cardRegistry à chaque appel.
+ *   → Lecture dynamique, toujours synchronisée.
+ */
+const { getCards } = require("../../systems/cardRegistry")
 
 function rand(min,max){
  return Math.floor(Math.random()*(max-min+1))+min
@@ -76,6 +86,9 @@ module.exports = {
   ),
 
  async execute(interaction){
+
+  /* Lecture dynamique des cartes */
+  const cards = getCards()
 
   const target = interaction.options?.getUser("joueur") || interaction.user
   const isSelf = target.id === interaction.user.id

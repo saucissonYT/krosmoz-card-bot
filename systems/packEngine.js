@@ -203,7 +203,18 @@ function openPack(user,setId){
 
  if(ssrCount>=3) giveAchievement(user,"hotHand")
 
- if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
+ /*
+  * FIX PITYBREAKER:
+  *
+  * AVANT: if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
+  *   → Le pity est DÉJÀ reset à 0 par coreGeneratePack() quand une SSR est tirée.
+  *   → Donc user.pity[setId].SSR vaut 0 ici, la condition n'est JAMAIS vraie.
+  *
+  * APRÈS: on utilise pitySSRBefore qui est capturé AVANT l'ouverture.
+  *   → Si le joueur était à 48+ packs sans SSR et obtient une SSR dans ce pack,
+  *     l'achievement se déclenche correctement.
+  */
+ if(pitySSRBefore>=48 && ssrCount>0)
   giveAchievement(user,"pityBreaker")
 
  const hour=new Date().getHours()

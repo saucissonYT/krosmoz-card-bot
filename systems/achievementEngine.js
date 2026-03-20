@@ -1,11 +1,24 @@
 const achievements = require("./achievementRegistry")
 const { data } = require("./dataManager")
 
-const cards = Object.values(data.cards || {})
+/*
+ * FIX: Les cartes étaient mises en cache au require() :
+ *   const cards = Object.values(data.cards || {})
+ *
+ * Problème : si des cartes sont ajoutées via /addcard ou /importcards,
+ * l'engine d'achievements utilisait toujours l'ancien snapshot.
+ * Les achievements de complétion de set ne se déclenchaient pas
+ * pour les nouvelles cartes.
+ *
+ * APRÈS : on lit data.cards dynamiquement à chaque appel.
+ */
 
 /* ---------------- SET COMPLETION ---------------- */
 
 function checkSetCompletion(user,setId,percent){
+
+ /* Lecture dynamique des cartes depuis le dataManager */
+ const cards = data.cards || []
 
  let total = 0
  let owned = 0
