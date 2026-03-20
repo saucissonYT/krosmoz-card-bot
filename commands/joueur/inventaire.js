@@ -12,7 +12,7 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const rarityOrder = Object.fromEntries(
- RARITY_ORDER.map((r, i) => [r, i + 1])
+ RARITY_ORDER.map((r,i) => [r, i+1])
 )
 
 module.exports={

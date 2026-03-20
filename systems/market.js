@@ -1,9 +1,5 @@
 const { data, save } = require("./dataManager")
-const { getUser } = require("./userSystem") // ✅ FIX
-
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
+const { getUser } = require("./userSystem")
 
 /* ---------------- INIT MARKET ---------------- */
 
@@ -54,7 +50,6 @@ function addListing(sellerId,cardId,price){
 
  const market = data.market
 
- // ✅ FIX ICI
  const seller = getUser(sellerId)
 
  if(!sellerId || !cardId || !price)
@@ -123,7 +118,6 @@ function buyCard(buyerId,listingId){
  if(listing.seller === buyerId)
   return {error:"Tu ne peux pas acheter ta propre carte"}
 
- // ✅ FIX ICI
  const seller = getUser(listing.seller)
  const buyer = getUser(buyerId)
 
@@ -176,7 +170,6 @@ function removeListing(userId,listingId){
  if(listing.seller !== userId)
   return {error:"Cette annonce ne t'appartient pas"}
 
- // ✅ FIX ICI
  const user = getUser(userId)
 
  if(!user.cards) user.cards={}

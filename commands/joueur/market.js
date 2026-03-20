@@ -272,6 +272,8 @@ module.exports={
 
  async modal(interaction){
 
+  /* ---------- BUY ---------- */
+
   if(interaction.customId==="marketBuyModal"){
 
    const listingId=parseInt(
@@ -288,6 +290,8 @@ module.exports={
     flags:64
    })
   }
+
+  /* ---------- SELL ---------- */
 
   if(interaction.customId==="marketSellModal"){
 
@@ -314,6 +318,8 @@ module.exports={
     content:"🛒 Carte mise en vente."
    })
   }
+
+  /* ---------- REMOVE ---------- */
 
   if(interaction.customId==="marketRemoveModal"){
 
