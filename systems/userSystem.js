@@ -47,6 +47,18 @@ function ensureStats(user, now){
  if(s.packsOpened === undefined) s.packsOpened = 0
  if(s.packsBought === undefined) s.packsBought = 0
 
+ /* ---- NOUVELLES STATS EVENTS ---- */
+
+ if(s.eventPacksOpened === undefined) s.eventPacksOpened = 0
+ if(s.ssrFromEvent === undefined) s.ssrFromEvent = 0
+ if(s.ticketsFullyUsed === undefined) s.ticketsFullyUsed = 0
+ if(s.jackpotEnutrof === undefined) s.jackpotEnutrof = 0
+ if(s.jackpotFeca === undefined) s.jackpotFeca = 0
+
+ if(!s.eventsParticipated) s.eventsParticipated = []
+ if(!s.ssrByClass) s.ssrByClass = {}
+ if(!s.eventPacksByClass) s.eventPacksByClass = {}
+
  return s
 }
 
@@ -143,7 +155,6 @@ function migrateAll(){
 
   ensurePity(user.pity)
 
-  // Fix : on marque dirty uniquement si on a vraiment modifié quelque chose
   if(changed)
    user._dirty = true
 
@@ -170,7 +181,6 @@ function getUser(id){
 
  if(!user){
 
-  // Nouveau user : on le crée et on le marque dirty
   user = {
    cards:{},
    kamas:0,
@@ -198,7 +208,16 @@ function getUser(id){
     tripleFusionToday:0,
     lastTripleReset:now,
     packsOpened:0,
-    packsBought:0
+    packsBought:0,
+    /* EVENTS */
+    eventPacksOpened:0,
+    ssrFromEvent:0,
+    ticketsFullyUsed:0,
+    jackpotEnutrof:0,
+    jackpotFeca:0,
+    eventsParticipated:[],
+    ssrByClass:{},
+    eventPacksByClass:{}
    },
    krosmoshop:{},
    krosmoshopStats:{
@@ -211,14 +230,11 @@ function getUser(id){
    }
   }
 
-  // Fix : dirty uniquement à la création
   user._dirty = true
   users[id] = user
   save()
 
  }
-
- /* RUNTIME SELF-HEAL sans marquer dirty */
 
  ensureEconomy(user)
  ensureAchievements(user)
@@ -231,9 +247,6 @@ function getUser(id){
   user.pity = {}
 
  ensurePity(user.pity)
-
- // Fix : suppression du user._dirty = true systématique
- // Les commandes qui modifient un user appellent save() explicitement
 
  return user
 

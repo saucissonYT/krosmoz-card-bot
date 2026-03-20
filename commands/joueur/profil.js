@@ -137,6 +137,7 @@ module.exports = {
       name:"📊 Statistiques",
       value:
 `📦 Packs ouverts : ${rand(1000,50000)}
+📦 eventPack ouverts : ${rand(10,500)}
 🌈 SSR obtenues : ${rand(100,5000)}
 🔧 Fusions : ${rand(200,10000)}
 📅 Daily claims : ${rand(200,5000)}`
@@ -224,6 +225,7 @@ module.exports = {
      name:"📊 Statistiques",
      value:
 `📦 Packs ouverts : ${stats.packsOpened || 0}
+📦 eventPack ouverts : ${stats.eventPacksOpened || 0}
 🌈 SSR obtenues : ${stats.ssrPulled || 0}
 🔧 Fusions : ${stats.fusions || 0}
 📅 Daily claims : ${stats.dailyClaims || 0}`

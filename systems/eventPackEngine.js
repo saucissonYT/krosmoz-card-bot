@@ -9,10 +9,14 @@ const { getEvent } = require("./eventSystem")
 
 function limitSSR(pack){
 
+ if(!Array.isArray(pack)) return pack
+
  // Passe 1 : garder 1 SSR max, les autres → S
  let ssrCount = 0
 
  const pass1 = pack.map(c => {
+
+  if(!c) return c
 
   if(c.rarity === "SSR"){
 
@@ -29,6 +33,8 @@ function limitSSR(pack){
  let sKept = 0
 
  return pass1.map(c => {
+
+  if(!c) return c
 
   if(c.rarity === "S"){
 
@@ -70,15 +76,41 @@ function generateEventPack(user, event){
  const handler = handlers[event.key]
 
  if(!handler){
-  return { pack: basePack, meta:{} }
+  // Pas de handler → on applique quand même limitSSR sur le basePack
+  const safePack = event.allowMultiSSR ? basePack : limitSSR(basePack)
+  return { pack: safePack, meta:{} }
  }
 
- const handlerResult = handler.generate(user, basePack, event)
+ let handlerResult = {}
+
+ try {
+  handlerResult = handler.generate(user, basePack, event)
+ } catch(e) {
+  console.error(`❌ Handler error [${event.key}]:`, e)
+  handlerResult = { pack: basePack, meta:{} }
+ }
 
  let pack = handlerResult.pack || basePack
  let meta = handlerResult.meta || {}
 
+ // Sécurité : s'assurer que le pack est bien un tableau propre
+ if(!Array.isArray(pack) || pack.length === 0){
+  console.error(`❌ Handler [${event.key}] a retourné un pack invalide, fallback basePack`)
+  pack = basePack
+ }
+
+ // Filtre les cartes nulles/invalides
+ pack = pack.filter(c => c && c.id !== undefined)
+
+ // Application de limitSSR — TOUJOURS sauf allowMultiSSR explicite
  if(!event.allowMultiSSR){
+  pack = limitSSR(pack)
+ }
+
+ // Sécurité finale : vérification du résultat
+ const ssrCount = pack.filter(c => c?.rarity === "SSR").length
+ if(ssrCount > 1 && !event.allowMultiSSR){
+  console.warn(`⚠️ [${event.key}] ${ssrCount} SSR après limitSSR — correction forcée`)
   pack = limitSSR(pack)
  }
 
@@ -86,5 +118,6 @@ function generateEventPack(user, event){
 }
 
 module.exports = {
- generateEventPack
+ generateEventPack,
+ limitSSR
 }

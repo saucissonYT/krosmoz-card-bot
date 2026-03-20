@@ -14,7 +14,7 @@ function pickRandomEvent(){
  return keys[Math.floor(Math.random()*keys.length)]
 }
 
-/* ---------------- END EVENT (FACTORISÉ) ---------------- */
+/* ---------------- END EVENT ---------------- */
 
 function endEvent(channel){
 
@@ -22,13 +22,15 @@ function endEvent(channel){
 
  if(channel){
   channel.send(
-`📊 **${currentEvent.name} terminé**
+`# ⚡ **${currentEvent.name.toUpperCase()} — TERMINÉ**
 
 ${currentEvent.end}
 
-📦 Packs ouverts : **${currentEvent.stats.packs}**
-🌈 SSR obtenues : **${currentEvent.stats.ssr}**
-🎴 Cartes obtenues : **${currentEvent.stats.totalCards}**`
+━━━━━━━━━━━━━━━━━━━━━━━
+📦 **Packs ouverts :** **${currentEvent.stats.packs}**
+🌈 **SSR obtenues :** **${currentEvent.stats.ssr}**
+🎴 **Cartes obtenues :** **${currentEvent.stats.totalCards}**
+━━━━━━━━━━━━━━━━━━━━━━━`
   )
  }
 
@@ -83,6 +85,7 @@ function startEvent(channel, forced=null){
   tickets,
   data,
   voiceLines: event.voiceLines,
+  firstPackTaken: false,
   stats:{
    packs:0,
    ssr:0,
@@ -95,14 +98,16 @@ function startEvent(channel, forced=null){
 
  if(channel){
   channel.send(
-`🎰 **${event.name}**
+`# 🎰 **${event.name.toUpperCase()}**
 
 ${event.start}
 
-${event.needsTarget && data.targetName ? `🎯 Cible : **${data.targetName}**\n` : ""}
-
+${event.needsTarget && data.targetName ?
+`> 🎯 **Cible : ${data.targetName}**\n` : ""}
+━━━━━━━━━━━━━━━━━━━━━━━
 🎟️ Chaque joueur reçoit **${tickets} tickets**
-👉 Utilisez \`/eventpack\``
+👉 Utilisez \`/eventpack\`
+━━━━━━━━━━━━━━━━━━━━━━━`
   )
  }
 
@@ -111,11 +116,11 @@ ${event.needsTarget && data.targetName ? `🎯 Cible : **${data.targetName}**\n`
  midTimeout = setTimeout(()=>{
   if(channel && currentEvent){
    channel.send(
-`⏳ **${currentEvent.name} en cours**
+`## ⏳ **${currentEvent.name} — TOUJOURS EN COURS**
 
 ${currentEvent.mid}
 
-🎟️ Il vous reste des tickets !`
+> 🎟️ **Il vous reste des tickets !**`
    )
   }
  }, (15 * 60000)/2)
@@ -161,7 +166,8 @@ function initUserEvent(user){
    id: event.key,
    uid: event.uid,
    tickets: event.tickets,
-   used: 0
+   used: 0,
+   startTime: Date.now()
   }
  }
 }
@@ -197,6 +203,15 @@ function registerEventPack(pack){
 
 }
 
+/* ---------------- FIRST PACK FLAG ---------------- */
+
+function claimFirstPack(){
+ if(!currentEvent) return false
+ if(currentEvent.firstPackTaken) return false
+ currentEvent.firstPackTaken = true
+ return true
+}
+
 /* ---------------- EXPORT ---------------- */
 
 module.exports = {
@@ -206,5 +221,6 @@ module.exports = {
  isEventActive,
  initUserEvent,
  canUseEventPack,
- registerEventPack
+ registerEventPack,
+ claimFirstPack
 }
