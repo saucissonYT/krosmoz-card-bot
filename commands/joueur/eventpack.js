@@ -1,5 +1,7 @@
 const { EmbedBuilder } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
+
 const {
  getEvent,
  isEventActive,
@@ -14,16 +16,6 @@ const { applyEventRewards } = require("../../systems/rewardSystem")
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
-}
-
-const rarityColor={
- C:"#95a5a6",U:"#2ecc71",R:"#3498db",SR:"#9b59b6",
- HR:"#e74c3c",UR:"#f1c40f",S:"#ecf0f1",SSR:"#ffcc00"
-}
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
 }
 
 module.exports = {
@@ -65,8 +57,6 @@ module.exports = {
     ]
    })
 
-   /* ================= PACK ================= */
-
    let pack=[], meta={}
 
    try {
@@ -83,8 +73,6 @@ module.exports = {
    if(!Array.isArray(pack) || pack.length === 0){
     return interaction.editReply("❌ Pack invalide.")
    }
-
-   /* ================= REWARDS ================= */
 
    let kamas=0, xp=0, jackpotMessage=null
 
@@ -151,7 +139,7 @@ module.exports = {
 
     user.cards[card.id]=(user.cards[card.id]||0)+1
 
-    let line = `${rarityEmoji[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+    let line = `${RARITY_EMOJI[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
 
     if(event.key === "pandawa" && meta.duplicates){
      const isCopy = meta.duplicates.some(d => d.copy === card.name)
@@ -190,7 +178,7 @@ module.exports = {
         "✨ Une énergie étrange se forme...\n\n" +
         revealed.join("\n")
        )
-       .setColor(rarityColor[card.rarity] || "#9b59b6")
+       .setColor(RARITY_COLOR[card.rarity] || "#9b59b6")
      ]
     })
 
@@ -233,13 +221,9 @@ module.exports = {
     rp += `\n💰 JACKPOT !`
    }
 
-   /* ===== UX EVENT ===== */
-
    if(meta.ux?.length){
     rp += "\n\n✨ Effet de l'événement :\n" + meta.ux.join("\n")
    }
-
-   /* ================= FINAL ================= */
 
    const description = (
     "✨ Une énergie étrange se dissipe...\n\n" +
@@ -261,27 +245,25 @@ module.exports = {
     ]
    })
 
-/* ================= VOICE LINE ================= */
+   const hasSSR = pack.some(c => c.rarity === "SSR")
+   const hasS = pack.some(c => c.rarity === "S")
 
-const hasSSR = pack.some(c => c.rarity === "SSR")
-const hasS = pack.some(c => c.rarity === "S")
+   let rarity = null
 
-let rarity = null
+   if(hasSSR) rarity = "SSR"
+   else if(hasS) rarity = "S"
 
-if(hasSSR) rarity = "SSR"
-else if(hasS) rarity = "S"
+   if(rarity){
 
-if(rarity){
+    const voicePool = event.voiceLines?.[rarity]
 
- const voicePool = event.voiceLines?.[rarity]
+    if(Array.isArray(voicePool) && voicePool.length){
 
- if(Array.isArray(voicePool) && voicePool.length){
+     const line = voicePool[Math.floor(Math.random() * voicePool.length)]
 
-  const line = voicePool[Math.floor(Math.random() * voicePool.length)]
-
-  await channel.send(`💬 ${event.name} : ${line}`)
- }
-}
+     await channel.send(`💬 ${event.name} : ${line}`)
+    }
+   }
 
    save()
 

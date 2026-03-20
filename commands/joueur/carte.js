@@ -11,20 +11,11 @@ const {
  TextInputStyle
 } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_PRICE } = require("../../systems/constants")
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { getCardsById } = require("../../systems/cardRegistry")
-
 const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-const rarityPrice={
- C:5,U:10,R:20,SR:40,HR:80,UR:150,S:300,SSR:1000
-}
 
 module.exports={
 
@@ -74,7 +65,7 @@ module.exports={
   const count=user.cards?.[card.id]||0
 
   const embed=new EmbedBuilder()
-   .setTitle(`${rarityEmoji[card.rarity]} ${card.name}`)
+   .setTitle(`${RARITY_EMOJI[card.rarity]} ${card.name}`)
    .setDescription(
 `🆔 ID : ${card.id}
 ⭐ Rareté : ${card.rarity}
@@ -131,7 +122,7 @@ module.exports={
      return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
 
     const card=cardsById[cid]
-    const price=rarityPrice[card.rarity]||10
+    const price=RARITY_PRICE[card.rarity]||10
 
     user.cards[cid]--
 

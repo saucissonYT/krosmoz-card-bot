@@ -7,23 +7,13 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser } = require("../../systems/userSystem")
 
-const rarityOrder = {
- SSR:8,S:7,UR:6,HR:5,SR:4,R:3,U:2,C:1
-}
-
-const rarityEmoji = {
- C:"⚪",
- U:"🟢",
- R:"🔵",
- SR:"🟣",
- HR:"🔴",
- UR:"🟡",
- S:"✨",
- SSR:"🌈"
-}
+const rarityOrder = Object.fromEntries(
+ RARITY_ORDER.map((r, i) => [r, RARITY_ORDER.length - i])
+)
 
 const PAGE_SIZE = 15
 
@@ -45,8 +35,6 @@ module.exports = {
     content:"❌ Aucune carte disponible.",
     flags:64
    })
-
-  /* ---------- SETS ---------- */
 
   const sets = [...new Set(cards.map(c=>c.set))]
 
@@ -143,7 +131,7 @@ module.exports = {
 
    const lines = slice.map(c=>{
 
-    const emoji = rarityEmoji[c.rarity] || ""
+    const emoji = RARITY_EMOJI[c.rarity] || ""
 
     const owned = inventory[c.id] ? "✅" : "❌"
 

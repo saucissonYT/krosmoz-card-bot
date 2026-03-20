@@ -9,6 +9,52 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+[0.21.0] - 2026-03-20
+
+### Added
+
+- Implémentation complète du système **double daily** (10% de chance)
+- Le double daily multiplie par 2 les kamas ou les packs obtenus
+- Le double daily ne s'applique pas au streak SSR (streak 7)
+- Si streak 6/7 avec double → SSR donnée normalement puis retour à 0/7
+
+### Changed
+
+- `krosmoz.js` → assignation de `user.lastSet` au moment du choix du set
+- `eventPackEngine.js` → récupération du setId depuis `user.lastSet` ou `user.pity` en fallback
+- `addcard.js` → ajout de l'option `set`, image sauvegardée dans le bon dossier par set, champ `set` ajouté à la carte
+- `auditSystem.js` → lecture des cartes depuis `dataManager`, users depuis fichiers individuels dans `USERS_DIR`
+- `rewards.js` → transformé en re-export de `economy.js` (source unique pour `rewardKamas`)
+
+### Improved
+
+- `userSystem.js` → suppression du `_dirty: true` systématique à chaque `getUser()`, autosave uniquement si modification réelle
+- `leaderboardCache.js` → classement SSR désormais calculé via le registre de cartes au lieu d'une comparaison d'ID toujours fausse
+- `chatSystem.js` → notifications achievements via `message.reply()` au lieu de `interaction.followUp()` incompatible
+- `sellcard.js` / `sellduplicate.js` → `getCardsById()` appelé à l'exécution et non au chargement du module
+- `packEngine.js` / `simpack.js` → import `rewardKamas` depuis `economy.js` directement
+- `devgive.js` → logique `giveCard` inlinée directement, suppression de l'import inexistant
+- `removecard.js` → chemin image corrigé + feedback sur les IDs introuvables + `resetRegistry()` après suppression
+- `addcard.js` → `resetRegistry()` appelé après ajout pour mise à jour immédiate du registre
+
+### Fixed
+
+- Correction du classement SSR dans `/leaderboard` qui retournait 0 pour tous les joueurs
+- Correction des achievements sociaux jamais déclenchés dans `chatSystem.js` (mauvaise signature `achievementCheck`)
+- Correction de `/krosmodev` qui crashait au démarrage (option `joueur` non déclarée)
+- Correction de `/removecard` qui crashait au démarrage (option `ids` non déclarée)
+- Correction de `eventZobal.js` qui avait `key: "sacrieur"` au lieu de `"zobal"`
+- Correction de `eventZobal` et `eventSacrieur` qui avaient la même logique (Zobal = upgrade garanti tous rangs, Sacrieur = 60% mutation ignore S/SSR)
+- Correction de `eventPackEngine.js` qui appelait `generatePack(user)` sans `setId` → packs event toujours vides
+- Correction de `auditSystem.js` qui lisait `cards/cards.json` (toujours vide) au lieu de `data/cards.json`
+- Correction de `auditSystem.js` qui lisait `users.json` inexistant au lieu des fichiers individuels
+- Correction de `inventoryImage.js` path require incorrect (`../systems/dataManager` → `./dataManager`)
+- Correction de `devgive.js` qui appelait `giveCard()` non exportée depuis `pack.js` → crash immédiat
+- Correction de `eventCra.js` comparaison d'ID non robuste → cartes ciblées jamais substituées
+- Correction du double daily annoncé depuis la 0.17.0 mais hardcodé à `false`
+
+---
+
 [0.20.0] - 2026-03-19
 
 ### added

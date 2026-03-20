@@ -5,6 +5,8 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
+
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
@@ -17,8 +19,6 @@ const cooldownDev = require("../dev/cooldown")
 
 const cards = getCards()
 
-/* ---------- CACHE SETS ---------- */
-
 const setCache = {}
 
 for(const card of cards){
@@ -28,24 +28,9 @@ for(const card of cards){
  setCache[card.set].push(card)
 }
 
-/* ---------- EMOJIS ---------- */
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-const rarityColor={
- C:"#95a5a6",U:"#2ecc71",R:"#3498db",
- SR:"#9b59b6",HR:"#e74c3c",
- UR:"#f1c40f",S:"#ecf0f1",SSR:"#ffcc00"
-}
-
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
-
-/* ---------- COOLDOWN ---------- */
 
 function getCooldownText(user){
 
@@ -63,8 +48,6 @@ function getCooldownText(user){
 
  return `⏳ Pack gratuit : **${minutes} min**`
 }
-
-/* ---------- SET COMPLETION ---------- */
 
 function getSetCompletion(user,setId){
 
@@ -158,7 +141,6 @@ ${getCooldownText(user)}`,
 
   const pity = user.pity[setId]
 
-  /* ✅ FIX SAFE INIT */
   if(pity.S === undefined) pity.S = 0
   if(pity.UR === undefined) pity.UR = 0
   if(pity.SSR === undefined) pity.SSR = 0
@@ -190,7 +172,6 @@ ${getCooldownText(user)}`,
 
   user.stats.packsOpened=(user.stats.packsOpened||0)+1
 
-  // Fix : on assigne user.lastSet pour que packEngine et eventPackEngine puissent le trouver
   user.lastSet = setId
 
   const result=openPack(user,setId)
@@ -226,14 +207,14 @@ ${getCooldownText(user)}`,
 
   for(const card of pack){
 
-   const line=`${rarityEmoji[card.rarity]} **${card.name}${card.shiny?" ✨":""}** \`${card.rarity}\``
+   const line=`${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny?" ✨":""}** \`${card.rarity}\``
 
    revealed.push(line)
 
    const revealEmbed=new EmbedBuilder()
     .setTitle("🎴 Ouverture du pack")
     .setDescription(revealed.join("\n"))
-    .setColor(rarityColor[card.rarity])
+    .setColor(RARITY_COLOR[card.rarity])
 
    await message.edit({embeds:[revealEmbed]})
    await sleep(800)
@@ -257,7 +238,7 @@ ${getCooldownText(user)}`,
     {name:"✨ S Pity",value:`${pity.S}/30`,inline:true},
     {name:"🟡 UR Pity",value:`${pity.UR}/10`,inline:true}
    )
-   .setColor(rarityColor[best.rarity])
+   .setColor(RARITY_COLOR[best.rarity])
 
   if(luckyPack){
    finalEmbed.addFields({

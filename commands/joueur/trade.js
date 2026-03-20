@@ -7,6 +7,7 @@ const {
  ButtonStyle
 } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_PRICE } = require("../../systems/constants")
 const { data } = require("../../systems/dataManager")
 const cards = data.cards || []
 
@@ -30,18 +31,7 @@ function deleteTrade(id){
  delete trades[id]
 }
 
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-const cardValues={
- C:5,U:10,R:20,SR:40,HR:80,UR:150,S:300,SSR:1000
-}
-
 const TRADE_COOLDOWN = 30000
-
-/* ================= KROSMO BOT MESSAGES ================= */
 
 const scamMessages=[
 "🤖 Merci pour la carte.\n\nTraitement en cours...\n\nCarte conservée.",
@@ -133,7 +123,7 @@ async execute(interaction){
    if(!card) continue
 
    options.push({
-    label:`${card.name} • ${card.rarity} ${rarityEmoji[card.rarity]} • x${qty}`,
+    label:`${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
     value:String(card.id)
    })
 
@@ -149,7 +139,6 @@ async execute(interaction){
  }
 
  const menu = new StringSelectMenuBuilder()
-
   .setCustomId(`trade_menu_give_${tradeId}`)
   .setPlaceholder("Carte à donner")
   .addOptions(options.slice(0,25))
@@ -205,7 +194,7 @@ async menu(interaction){
     if(!card) continue
 
     options.push({
-     label:`${card.name} • ${card.rarity} ${rarityEmoji[card.rarity]} • x${qty}`,
+     label:`${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
      value:String(card.id)
     })
 
@@ -214,7 +203,6 @@ async menu(interaction){
   }
 
   const menu = new StringSelectMenuBuilder()
-
    .setCustomId(`trade_menu_want_${tradeId}`)
    .setPlaceholder("Carte demandée")
    .addOptions(options.slice(0,25))
@@ -242,16 +230,16 @@ async menu(interaction){
   .addFields(
    {
     name:"Tu donnes",
-    value:`${rarityEmoji[giveCard.rarity]} **${giveCard.name}**
+    value:`${RARITY_EMOJI[giveCard.rarity]} **${giveCard.name}**
 Rareté : ${giveCard.rarity}
-Valeur : ${cardValues[giveCard.rarity]}`,
+Valeur : ${RARITY_PRICE[giveCard.rarity]}`,
     inline:true
    },
    {
     name:"Tu reçois",
-    value:`${rarityEmoji[wantCard.rarity]} **${wantCard.name}**
+    value:`${RARITY_EMOJI[wantCard.rarity]} **${wantCard.name}**
 Rareté : ${wantCard.rarity}
-Valeur : ${cardValues[wantCard.rarity]}`,
+Valeur : ${RARITY_PRICE[wantCard.rarity]}`,
     inline:true
    }
   )
@@ -299,8 +287,6 @@ async button(interaction){
  const from = getUser(trade.from)
  const to = getUser(trade.to)
 
- /* ================= KROSMO BOT EVENT ================= */
-
  if(action==="accept" && trade.to === interaction.client.user.id){
 
   const stolenCard = cards.find(c=>c.id==trade.giveCard)
@@ -314,8 +300,6 @@ async button(interaction){
   from.stats.scammedByBot = true
 
   let description = scamMessages[Math.floor(Math.random()*scamMessages.length)]
-
-  /* 1% SSR */
 
   if(Math.random() < 0.01){
 
@@ -364,8 +348,6 @@ Krosmo-bot revient.
 
   return
  }
-
- /* ================= NORMAL TRADE ================= */
 
  if(action==="accept" && interaction.user.id !== trade.to){
   return interaction.reply({

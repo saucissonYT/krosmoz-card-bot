@@ -8,6 +8,8 @@ const {
  TextInputStyle
 } = require("discord.js")
 
+const { RARITY_EMOJI } = require("../../systems/constants")
+
 const {
  getMarket,
  buyCard,
@@ -21,11 +23,6 @@ const { getCards } = require("../../systems/cardRegistry")
 const cards = getCards()
 
 const marketState={}
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
 
 const PAGE_SIZE=10
 
@@ -85,8 +82,6 @@ module.exports={
 
   const state=marketState[userId]
 
-/* ---------- ACHETER ---------- */
-
   if(interaction.customId==="market_buy"){
    state.page=0
    return this.renderMarket(interaction)
@@ -121,8 +116,6 @@ module.exports={
    return interaction.showModal(modal)
   }
 
-/* ---------- VENDRE ---------- */
-
   if(interaction.customId==="market_sell"){
 
    const modal=new ModalBuilder()
@@ -149,8 +142,6 @@ module.exports={
    return interaction.showModal(modal)
   }
 
-/* ---------- MES VENTES ---------- */
-
   if(interaction.customId==="market_my"){
 
    const listings=getUserListings(userId)
@@ -164,7 +155,7 @@ module.exports={
 
    const lines=listings.map(l=>{
     const card=cards.find(c=>c.id==l.card)
-    return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas`
+    return `ID:${l.id} • ${RARITY_EMOJI[card.rarity]} ${card.name} • ${l.price} kamas`
    })
 
    const embed=new EmbedBuilder()
@@ -234,7 +225,7 @@ module.exports={
    const card=cards.find(c=>c.id==l.card)
    const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}`:""
 
-   return `ID:${l.id} • ${rarityEmoji[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
+   return `ID:${l.id} • ${RARITY_EMOJI[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
 
   })
 
@@ -281,8 +272,6 @@ module.exports={
 
  async modal(interaction){
 
-/* ---------- BUY ---------- */
-
   if(interaction.customId==="marketBuyModal"){
 
    const listingId=parseInt(
@@ -299,8 +288,6 @@ module.exports={
     flags:64
    })
   }
-
-/* ---------- SELL (FIX ICI) ---------- */
 
   if(interaction.customId==="marketSellModal"){
 
@@ -327,8 +314,6 @@ module.exports={
     content:"🛒 Carte mise en vente."
    })
   }
-
-/* ---------- REMOVE ---------- */
 
   if(interaction.customId==="marketRemoveModal"){
 

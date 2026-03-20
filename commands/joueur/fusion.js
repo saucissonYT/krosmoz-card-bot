@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
+const { RARITY_ORDER, RARITY_EMOJI, FUSION_COST } = require("../../systems/constants")
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
@@ -10,31 +11,6 @@ const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const cards = getCards()
-
-const rarityOrder=[
-"C","U","R","SR","HR","UR","S","SSR"
-]
-
-const rarityEmoji={
-C:"⚪",
-U:"🟢",
-R:"🔵",
-SR:"🟣",
-HR:"🔴",
-UR:"🟡",
-S:"✨",
-SSR:"🌈"
-}
-
-const fusionCost={
-C:5,
-U:6,
-R:8,
-SR:10,
-HR:12,
-UR:15,
-S:20
-}
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
@@ -80,7 +56,7 @@ const user=getUser(interaction.user.id)
 const setName=interaction.options.getString("set")
 const rarity=interaction.options.getString("rarete")
 
-const index=rarityOrder.indexOf(rarity)
+const index=RARITY_ORDER.indexOf(rarity)
 
 if(index===-1)
 return interaction.reply({content:"Rareté invalide.",flags:64})
@@ -88,7 +64,7 @@ return interaction.reply({content:"Rareté invalide.",flags:64})
 if(rarity==="SSR")
 return interaction.reply({content:"Impossible de fusionner des SSR.",flags:64})
 
-const cost=fusionCost[rarity]
+const cost=FUSION_COST[rarity]
 
 const pool=cards.filter(c=>
 c.set===setName &&
@@ -111,7 +87,7 @@ available+=(count-1)
 
 if(available<cost)
 return interaction.reply({
-content:`❌ Il faut **${cost} doublons ${rarityEmoji[rarity]}**
+content:`❌ Il faut **${cost} doublons ${RARITY_EMOJI[rarity]}**
 
 Tu en as **${available}**.`,
 flags:64
@@ -209,12 +185,12 @@ if(rarity==="UR") user.stats.fusionURS=true
 
 let targetIndex=index+rarityGain
 
-const maxIndex=rarityOrder.indexOf("SSR")
+const maxIndex=RARITY_ORDER.indexOf("SSR")
 
 if(targetIndex>maxIndex)
 targetIndex=maxIndex
 
-const targetRarity=rarityOrder[targetIndex]
+const targetRarity=RARITY_ORDER[targetIndex]
 
 const rewardPool=cards.filter(c=>
 c.set===setName &&
@@ -228,7 +204,7 @@ return interaction.reply({content:"Erreur de pool.",flags:64})
 
 const embed=new EmbedBuilder()
 .setTitle("⚗️ Fusion en cours...")
-.setDescription(`Fusion de **${cost} doublons ${rarityEmoji[rarity]}**
+.setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**
 
 Doublons disponibles : **${available}**`)
 
@@ -238,9 +214,9 @@ const msg=await interaction.fetchReply()
 await sleep(900)
 
 embed.setDescription(`
-${cost} ${rarityEmoji[rarity]}
+${cost} ${RARITY_EMOJI[rarity]}
 ⬇
-${rarityEmoji[targetRarity]}
+${RARITY_EMOJI[targetRarity]}
 `)
 
 await msg.edit({embeds:[embed]})
@@ -275,14 +251,14 @@ const usedLines=Object.entries(usedCards).map(([id,q])=>{
 
 const card=cards.find(c=>c.id==id)
 
-return `${rarityEmoji[card.rarity]} ${card.name} ×${q}`
+return `${RARITY_EMOJI[card.rarity]} ${card.name} ×${q}`
 
 })
 
 /* DISPLAY REWARD */
 
 const rewardLines=rewards.map(c=>
-`${rarityEmoji[c.rarity]} ${c.name}`
+`${RARITY_EMOJI[c.rarity]} ${c.name}`
 )
 
 /* FUSION STATS */
@@ -309,7 +285,7 @@ ${message}
 
 ${usedLines.join("\n")}
 
-${cost} ${rarityEmoji[rarity]} → ${rarityEmoji[targetRarity]}
+${cost} ${RARITY_EMOJI[rarity]} → ${RARITY_EMOJI[targetRarity]}
 
 Doublons restants : **${remainingDup}**
 

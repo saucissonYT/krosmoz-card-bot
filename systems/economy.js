@@ -1,21 +1,10 @@
-const rewards = {
- C:5,
- U:10,
- R:20,
- SR:40,
- HR:80,
- UR:150,
- S:300,
- SSR:1000
-}
+const { RARITY_PRICE } = require("./constants")
 
 function rewardKamas(user, rarity){
 
- const gain = rewards[rarity] || 0
+ const gain = RARITY_PRICE[rarity] || 0
 
  user.kamas = (user.kamas || 0) + gain
-
- /* stats economy */
 
  if(!user.stats) user.stats={}
 

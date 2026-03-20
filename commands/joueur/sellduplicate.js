@@ -1,27 +1,10 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
+const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-/* 50% valeur economy */
-
-const sellValues={
- C:2,
- U:5,
- R:10,
- SR:20,
- HR:40,
- UR:75,
- S:150,
- SSR:500
-}
 
 module.exports={
 
@@ -29,7 +12,6 @@ module.exports={
 
  async execute(interaction){
 
-  // Fix : appel au moment de l'exécution, pas au chargement du module
   const cardsById = getCardsById()
 
   const user = getUser(interaction.user.id)
@@ -58,7 +40,7 @@ module.exports={
    if(count<=1) continue
 
    const duplicates=count-1
-   const price = sellValues[card.rarity] || 10
+   const price = SELL_PRICE[card.rarity] || 10
 
    totalCards += duplicates
    totalKamas += duplicates * price
@@ -70,7 +52,7 @@ module.exports={
    })
 
    previewLines.push(
-`${rarityEmoji[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
+`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
    )
 
   }
@@ -128,7 +110,6 @@ ${previewLines.slice(0,15).join("\n")}
      components:[]
     })
 
-   // Fix : appel au moment de la confirmation aussi
    const cardsByIdFresh = getCardsById()
 
    const soldLines=[]
@@ -148,7 +129,7 @@ ${previewLines.slice(0,15).join("\n")}
     user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
 
     soldLines.push(
-`${rarityEmoji[card.rarity]} **${card.name}** ×${item.duplicates}`
+`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
     )
 
    }

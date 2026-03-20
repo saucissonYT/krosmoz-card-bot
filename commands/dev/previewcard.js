@@ -1,16 +1,6 @@
 const { EmbedBuilder } = require("discord.js")
+const { RARITY_EMOJI } = require("../../systems/constants")
 const { isDev } = require("../../systems/devSystem")
-
-const rarityEmoji = {
- C:"⚪",
- U:"🟢",
- R:"🔵",
- SR:"🟣",
- HR:"🔴",
- UR:"🟡",
- S:"✨",
- SSR:"🌈"
-}
 
 module.exports = {
 
@@ -38,7 +28,7 @@ module.exports = {
   const attachment = interaction.options.getAttachment("image")
 
   const embed = new EmbedBuilder()
-   .setTitle(`${rarityEmoji[rarity]} ${name}`)
+   .setTitle(`${RARITY_EMOJI[rarity]} ${name}`)
    .setDescription(
 `Rareté : ${rarity}
 Set : ${set || "Aucun"}`

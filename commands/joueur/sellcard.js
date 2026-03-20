@@ -3,28 +3,11 @@ const {
  StringSelectMenuBuilder
 } = require("discord.js")
 
+const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-/* 50% valeur economy */
-
-const rarityPrice={
- C:2,
- U:5,
- R:10,
- SR:20,
- HR:40,
- UR:75,
- S:150,
- SSR:500
-}
 
 module.exports={
 
@@ -33,7 +16,6 @@ module.exports={
 
  async execute(interaction){
 
-  // Fix : appel au moment de l'exécution, pas au chargement du module
   const cardsById = getCardsById()
 
   const user=getUser(interaction.user.id)
@@ -51,11 +33,11 @@ module.exports={
    const card=cardsById[id]
    if(!card) continue
 
-   const price = rarityPrice[card.rarity] || 1
+   const price = SELL_PRICE[card.rarity] || 1
    const owned = user.cards[id]
 
    options.push({
-    label:`${rarityEmoji[card.rarity]} ${card.name}`,
+    label:`${RARITY_EMOJI[card.rarity]} ${card.name}`,
     value:id,
     description:`Possédé: x${owned} • Vente: ${price} • Total: ${owned*price}`
    })
@@ -87,7 +69,6 @@ module.exports={
 
   if(interaction.customId!=="sellcard_select") return
 
-  // Fix : appel au moment de l'exécution
   const cardsById = getCardsById()
 
   const user=getUser(interaction.user.id)
@@ -108,7 +89,7 @@ module.exports={
     components:[]
    })
 
-  const price=rarityPrice[card.rarity]||1
+  const price=SELL_PRICE[card.rarity]||1
 
   user.cards[id]--
 
@@ -125,7 +106,7 @@ module.exports={
   const unlocked = achievementCheck(user,"economy")
 
   await interaction.update({
-   content:`💰 **Carte vendue**\n\n${rarityEmoji[card.rarity]} **${card.name}**\n+${price} kamas\n\n💰 Solde : **${user.kamas} kamas**`,
+   content:`💰 **Carte vendue**\n\n${RARITY_EMOJI[card.rarity]} **${card.name}**\n+${price} kamas\n\n💰 Solde : **${user.kamas} kamas**`,
    components:[]
   })
 

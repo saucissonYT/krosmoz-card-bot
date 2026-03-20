@@ -2,14 +2,10 @@ const { isDev } = require("../../systems/devSystem")
 const { data } = require("../../systems/dataManager")
 const { getUser, save } = require("../../systems/userSystem")
 const { resetRegistry } = require("../../systems/cardRegistry")
+const { RARITY_EMOJI } = require("../../systems/constants")
 
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
 
 module.exports={
 
@@ -81,7 +77,6 @@ module.exports={
 
   const card = pool[Math.floor(Math.random()*pool.length)]
 
-  // Fix : logique giveCard inlinée directement, pas besoin d'import externe
   if(!user.cards) user.cards={}
   user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
@@ -92,7 +87,7 @@ module.exports={
 
 Joueur : **${target.username}**
 Carte : **${card.name}**
-Rareté : ${rarityEmoji[rarity]} ${rarity}
+Rareté : ${RARITY_EMOJI[rarity]} ${rarity}
 Set : ${setId}`
   )
 

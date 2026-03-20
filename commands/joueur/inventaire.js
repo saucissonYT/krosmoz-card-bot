@@ -5,19 +5,15 @@ const {
  ButtonStyle
 } = require("discord.js")
 
+const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
-
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
+const rarityOrder = Object.fromEntries(
+ RARITY_ORDER.map((r, i) => [r, i + 1])
+)
 
 module.exports={
 
@@ -143,7 +139,7 @@ module.exports={
 
    const lines=slice.map(e=>{
 
-    const emoji=rarityEmoji[e.card.rarity]||""
+    const emoji=RARITY_EMOJI[e.card.rarity]||""
 
     return `#${e.card.id} • ${emoji} ${e.card.name} • x${e.count}`
 

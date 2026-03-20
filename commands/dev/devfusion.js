@@ -1,36 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
+const { RARITY_ORDER, RARITY_EMOJI, FUSION_COST } = require("../../systems/constants")
 const { getCards } = require("../../systems/cardRegistry")
 
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const cards = getCards()
-
-const rarityOrder = [
-"C","U","R","SR","HR","UR","S","SSR"
-]
-
-const rarityEmoji={
-C:"⚪",
-U:"🟢",
-R:"🔵",
-SR:"🟣",
-HR:"🔴",
-UR:"🟡",
-S:"✨",
-SSR:"🌈"
-}
-
-const fusionCost={
-C:5,
-U:6,
-R:8,
-SR:10,
-HR:12,
-UR:15,
-S:20
-}
 
 function random(arr){
  return arr[Math.floor(Math.random()*arr.length)]
@@ -87,12 +63,12 @@ const setName = interaction.options.getString("set")
 const rarity = interaction.options.getString("rarete")
 const type = interaction.options.getString("type")
 
-const index = rarityOrder.indexOf(rarity)
+const index = RARITY_ORDER.indexOf(rarity)
 
 if(index === -1)
 return interaction.reply({content:"Rareté invalide.",flags:64})
 
-const cost = fusionCost[rarity]
+const cost = FUSION_COST[rarity]
 
 let rarityGain = 1
 let quantity = 1
@@ -121,12 +97,12 @@ if(type==="triple"){
 
 let targetIndex=index+rarityGain
 
-const maxIndex=rarityOrder.indexOf("SSR")
+const maxIndex=RARITY_ORDER.indexOf("SSR")
 
 if(targetIndex>maxIndex)
  targetIndex=maxIndex
 
-const targetRarity=rarityOrder[targetIndex]
+const targetRarity=RARITY_ORDER[targetIndex]
 
 const rewardPool = cards.filter(c =>
 c.set===setName &&
@@ -150,7 +126,7 @@ for(let i=0;i<quantity;i++){
 }
 
 const rewardLines=rewards.map(c=>
-`${rarityEmoji[c.rarity]} ${c.name}`
+`${RARITY_EMOJI[c.rarity]} ${c.name}`
 )
 
 const embed=new EmbedBuilder()
@@ -162,9 +138,9 @@ Type : **${type}**
 
 Fusion simulée :
 
-${cost} ${rarityEmoji[rarity]}
+${cost} ${RARITY_EMOJI[rarity]}
 ⬇
-${rarityEmoji[targetRarity]}
+${RARITY_EMOJI[targetRarity]}
 
 ${message}
 
