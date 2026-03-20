@@ -9,6 +9,106 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+---
+
+[0.23.0] - 2026-03-20
+
+### Added
+
+- **Système d'achievements modulaire** : refonte complète de `achievementRegistry.js` en aggregateur pur
+  - `achievements/achievementPacks.js` → packs normaux + RNG
+  - `achievements/achievementRarity.js` → SSR, Shiny, KrosmoShop
+  - `achievements/achievementFusion.js` → fusions
+  - `achievements/achievementCollection.js` → cartes totales, uniques
+  - `achievements/achievementEconomy.js` → kamas, daily, balance, inventaire, help, titres
+  - `achievements/achievementSocial.js` → profil, leaderboard, mentions
+  - `achievements/achievementSecrets.js` → secrets
+  - `achievements/achievementEvents.js` → 148 achievements liés aux events (NOUVEAU)
+  - `achievements/achievementSpecial.js` → 39 achievements comportementaux (NOUVEAU)
+
+- **306 achievements au total** (contre ~100 avant)
+
+- `achievementEvents.js` — achievements events complets :
+  - 6 paliers eventPacks globaux (1→1000)
+  - 6 paliers de participation à des events distincts
+  - 6 paliers tickets entièrement utilisés
+  - 5 paliers SSR obtenues en event
+  - 19 achievements SSR par classe (une SSR pendant l'event Iop, Cra, etc.)
+  - 5 paliers packs par classe × 19 classes = 95 achievements de classe
+  - 3 achievements croisés SSR (5, 10, 19 classes différentes)
+  - 4 paliers jackpot Enutrof + 4 paliers jackpot Feca
+
+- `achievementSpecial.js` — achievements spéciaux :
+  - Pack à minuit (`packMinuit`)
+  - Vendre une carte dans les 10 secondes (`sellFast`, secret)
+  - Avoir 0 kamas (`broke`)
+  - Avoir vendu ET acheté au market (`marketBothWays`)
+  - Débloquer un achievement dans chaque catégorie (`allTriggers`, secret)
+  - Atteindre le hard pity SSR (`hardPitySSR`)
+  - 100 packs sans S ni SSR (`droughtSSR`)
+  - 5 trades avec le même joueur (`tradePartner5`)
+  - Envoyer et recevoir un trade le même jour (`tradeBothWays`)
+  - Posséder 1 carte de chaque rareté (`allRarities`)
+  - 10 / 25 / 50 / 100 exemplaires d'une même carte (`hoarder10–100`)
+  - Inscrit depuis 30 jours (`veteran30`)
+  - 7 jours d'activité consécutifs (`active7days`)
+  - Premier pack d'un event (`firstEventPack`)
+  - `/krosmoz` 42, 111, 222, 333, 444, 555, 666 (secret), 777 fois
+  - Nombre de cartes palindrome (`palindrome`, secret)
+  - Pack avec que des C (`allC`, secret) ou que des U (`allU`, secret)
+  - SSR obtenue un lundi (`ssrLundi`)
+  - Mettre une SSR sur le market (`marketSSR`)
+  - Vider tous ses tickets event en < 2 minutes (`speedTickets`)
+  - Obtenir une SSR comme résultat de fusion (`fusionSSR`)
+  - Utiliser `/eventpack` sans event actif (`eventpackNoEvent`, secret)
+  - Prestige : 10 / 25 / 50 / 100 / 200 achievements débloqués
+  - `achieveAll` : débloquer tous les achievements (`Krosmoz Absolu`, s'auto-ajuste)
+
+- **Nouvelles stats user** trackées dans `userSystem.js` :
+  - `eventPacksOpened`, `ssrFromEvent`, `ticketsFullyUsed`
+  - `jackpotEnutrof`, `jackpotFeca`, `firstEventPacks`
+  - `eventsParticipated[]`, `ssrByClass{}`, `eventPacksByClass{}`
+  - `krosmozOpened`, `packAtMidnight`, `ssrOnMonday`
+  - `allCPack`, `allUPack`, `palindromeReached`
+  - `dryStreak`, `dryStreakMax`, `hardPityReached`
+  - `sellFast`, `marketBought`, `marketSSRListed`
+  - `fusionSSRResult`, `speedTickets`
+  - `tradePartners{}`, `tradeBothWaysToday`
+  - `activityStreak`, `lastActivityDay`, `createdAt`
+
+- **`eventSystem.js`** — ajout de `firstPackTaken` sur l'event courant + `claimFirstPack()` exporté + `user.event.startTime` pour tracking vitesse tickets
+
+- **`profil.js`** — ajout de la stat `📦 eventPack ouverts` dans les statistiques
+
+### Fixed
+
+- **Anti-double SSR event** : `eventPackEngine.js` — double vérification `limitSSR` après le handler, filtre des cartes `null`, `try/catch` sur l'appel handler, sécurité finale si >1 SSR après `limitSSR`
+- **Jackpot Feca** : tracking `jackpotFeca` corrigé — on check `jackpotMessage` (généré dans `rewardSystem`) au lieu de `meta.jackpot` qui n'était jamais set pour Feca
+- **SSR event non comptées dans le profil** : `user.stats.ssrPulled` et `user.stats.ssrFromEvent` désormais incrémentés dans `eventpack.js` après `registerEventPack`
+
+### Changed
+
+- **Voice lines events** : affichage désormais en `## NomDuDieu` + `> ***TEXTE EN MAJUSCULES***` pour l'effet "dieu qui parle"
+- **Messages start/mid/end events** : formatage enrichi avec headers Discord (`#`, `##`), séparateurs `━━━` et valeurs importantes en gras
+- **`eventpack.js`** : achievement secret `eventpackNoEvent` déclenché si `/eventpack` utilisé sans event actif
+- **`krosmoz.js`** : ajout des trackings post-pack (minuit, lundi, allC/U, palindrome, dryStreak, hardPity, activityStreak, krosmozOpened)
+- **`sellcard.js`** : tracking `sellFast` via `user.lastPack`
+- **`sellduplicate.js`** : tracking `sellFast` + `updateActivityStreak` + achievementCheck `collection` et `pack` ajoutés
+- **`fusion.js`** : tracking `fusionSSRResult` quand `targetRarity === "SSR"`
+- **`trade.js`** : tracking `tradePartners`, `tradeSentToday`, `tradeReceivedToday`, `tradeBothWaysToday`
+- **`systems/market.js`** : tracking `marketBought` dans `buyCard` + `marketSSRListed` dans `addListing` via registre cartes
+- **`commands/joueur/market.js`** : `achievementCheck` déclenché après achat ET vente
+- **`daily.js`** : `updateActivityStreak` au claim + affichage `📅 Présence X jours consécutifs` dans l'embed + achievementCheck `pack` ajouté
+
+### Improved
+
+- `userSystem.js` : export de `updateActivityStreak()` et `checkPalindrome()` / `isPalindrome()`
+- `achievementRegistry.js` : réduit à 9 lignes (aggregateur pur), maintenabilité maximale
+- Architecture achievements totalement scalable : ajouter une catégorie = créer un fichier + 1 ligne dans le registry
+
+
+---
+
 [0.22.0] - 2026-03-20
 
 ### Fixed
