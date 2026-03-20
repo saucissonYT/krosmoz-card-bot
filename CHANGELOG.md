@@ -85,6 +85,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Anti-double SSR event** : `eventPackEngine.js` — double vérification `limitSSR` après le handler, filtre des cartes `null`, `try/catch` sur l'appel handler, sécurité finale si >1 SSR après `limitSSR`
 - **Jackpot Feca** : tracking `jackpotFeca` corrigé — on check `jackpotMessage` (généré dans `rewardSystem`) au lieu de `meta.jackpot` qui n'était jamais set pour Feca
 - **SSR event non comptées dans le profil** : `user.stats.ssrPulled` et `user.stats.ssrFromEvent` désormais incrémentés dans `eventpack.js` après `registerEventPack`
+- Correction critique de userSystem.js : les données utilisateurs (kamas, cartes, stats, pity) n'étaient jamais persistées sur disque après modification — save() ne sauvegardait que market/cards/devs, pas les fichiers users individuels
+- Correction de devSystem.js : le fallback path pointait vers ./database/devs.json au lieu de ./data/devs.json, créant deux sources de vérité pour les développeurs
+- Correction de packEngine.js : l'achievement luckyStart était impossible à déclencher car packsOpened était incrémenté avant l'appel à openPack()
+- Correction de leaderboardCache.js : le leaderboard ne listait que les users chargés en RAM (lazy loading), les joueurs inactifs depuis le dernier restart étaient invisibles
+- Correction de setSystemFile.js : data.sets n'était jamais initialisé dans dataManager.loadAll(), causant des sets vides dans certaines commandes
+- Correction de market.js : cardsSold était incrémenté au listing (mise en vente) au lieu de l'achat réel — un joueur pouvait avoir des ventes comptées sans que personne n'achète
+- Correction de achievementSpecial.js : 3 require() avec le mauvais chemin relatif (./ au lieu de ../) causant des dépendances circulaires et des conditions d'achievements toujours false
+- Correction de inventaire.js : withResponse:true sur editReply() retournait un objet incompatible avec createMessageComponentCollector(), cassant toute la navigation par boutons
+- Correction de profil.js : les boutons Inventaire/Sets/Succès crashaient en appelant command.execute() avec une ButtonInteraction au lieu d'une CommandInteraction, causant des double-defer et des erreurs Unknown interaction (10062)
 
 ### Changed
 
@@ -105,6 +114,14 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - `userSystem.js` : export de `updateActivityStreak()` et `checkPalindrome()` / `isPalindrome()`
 - `achievementRegistry.js` : réduit à 9 lignes (aggregateur pur), maintenabilité maximale
 - Architecture achievements totalement scalable : ajouter une catégorie = créer un fichier + 1 ligne dans le registry
+- Ajout de markDirty(id) exporté dans userSystem.js pour un marquage explicite des users modifiés
+- Ajout du tracking cardsListed dans market.js pour distinguer les mises en vente des ventes réelles
+- Ajout d'exports manquants dans market.js : getMarket, getUserListings, removeListing
+- Amélioration du leaderboard : scan complet de tous les fichiers users sur disque au lieu du cache mémoire partiel
+- Amélioration de setSystemFile.js : support des deux formats de sets.json (tableau direct ou { sets: [...] }) avec cache automatique
+- Amélioration de packEngine.js : tracking automatique de dry streak, pack minuit, SSR lundi, all C/all U packs, reset du dry streak à l'obtention d'une SSR
+- Amélioration de profil.js : gestion d'erreur robuste sur les boutons avec try/catch et fallback followUp
+- Amélioration de giveAchievement() dans packEngine.js : ajout automatique du titre dans user.titles lors du déblocage d'un achievement
 
 
 ---
