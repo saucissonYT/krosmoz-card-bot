@@ -12,7 +12,7 @@ const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
-const { getUser, save } = require("../../systems/userSystem")
+const { getUser, save, updateActivityStreak, checkPalindrome } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const cooldownDev = require("../dev/cooldown")
@@ -22,11 +22,8 @@ const cards = getCards()
 /* ---------- CACHE SETS ---------- */
 
 const setCache = {}
-
 for(const card of cards){
- if(!setCache[card.set])
-  setCache[card.set] = []
-
+ if(!setCache[card.set]) setCache[card.set] = []
  setCache[card.set].push(card)
 }
 
@@ -34,40 +31,32 @@ function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
 
+/* ---------- PALINDROME ---------- */
+
+function isPalindrome(n){
+ const s = String(n)
+ return s === s.split("").reverse().join("")
+}
+
 /* ---------- COOLDOWN ---------- */
 
 function getCooldownText(user){
-
  const now = Date.now()
-
- if(!user.lastPack)
-  return "🎁 Pack gratuit : **disponible**"
-
+ if(!user.lastPack) return "🎁 Pack gratuit : **disponible**"
  const remain = 3600000 - (now - user.lastPack)
-
- if(remain <= 0)
-  return "🎁 Pack gratuit : **disponible**"
-
+ if(remain <= 0) return "🎁 Pack gratuit : **disponible**"
  const minutes = Math.ceil(remain / 60000)
-
  return `⏳ Pack gratuit : **${minutes} min**`
 }
 
 /* ---------- SET COMPLETION ---------- */
 
 function getSetCompletion(user, setId){
-
  const setCards = setCache[setId] || []
-
  let owned = 0
-
  for(const card of setCards)
   if(user.cards?.[card.id]) owned++
-
- return {
-  owned,
-  total: setCards.length
- }
+ return { owned, total: setCards.length }
 }
 
 module.exports = {
@@ -82,23 +71,18 @@ module.exports = {
 
   const user = getUser(interaction.user.id)
 
-  if(!sets || sets.length === 0){
-   return interaction.reply({
-    content:"❌ Aucun set disponible.",
-    flags:64
-   })
-  }
+  if(!sets || sets.length === 0)
+   return interaction.reply({ content:"❌ Aucun set disponible.", flags:64 })
 
   if(!user.pity) user.pity = {}
   if(!user.stats) user.stats = {}
 
-  const options = sets.slice(0, 25).map(set => {
+  const options = sets.slice(0,25).map(set=>{
 
    if(!user.pity[set.id])
     user.pity[set.id] = { SSR:0, S:0, UR:0 }
 
    const pity = user.pity[set.id]
-
    const ssr = pity.SSR ?? 0
    const s   = pity.S   ?? 0
    const ur  = pity.UR  ?? 0
@@ -108,8 +92,7 @@ module.exports = {
    return {
     label: set.name,
     value: set.id,
-    description:
-`SSR ${ssr}/50 • S ${s}/30 • UR ${ur}/10 • 📚 ${completion.owned}/${completion.total}`
+    description: `SSR ${ssr}/50 • S ${s}/30 • UR ${ur}/10 • 📚 ${completion.owned}/${completion.total}`
    }
   })
 
@@ -164,21 +147,32 @@ ${getCooldownText(user)}`,
   }
 
   if(!freePack && (!user.packs || user.packs <= 0)){
-
    const remain = Math.ceil((3600000 - (now - user.lastPack)) / 60000)
-
    return interaction.editReply(
 `❌ Aucun pack disponible.
 ⏳ Prochain pack gratuit : **${remain} min**`
    )
   }
 
+  /* ---- CAPTURE PITY AVANT LE PACK (pour hardPity) ---- */
+  const pitySSRBefore = pity.SSR
+
   if(freePack) user.lastPack = now
   else user.packs--
 
   user.stats.packsOpened = (user.stats.packsOpened || 0) + 1
+  user.stats.krosmozOpened = (user.stats.krosmozOpened || 0) + 1
 
   user.lastSet = setId
+
+  /* ---- ACTIVITY STREAK ---- */
+  updateActivityStreak(user)
+
+  /* ---- PACK MINUIT ---- */
+  const hour = new Date().getHours()
+  if(hour === 0){
+   user.stats.packAtMidnight = (user.stats.packAtMidnight || 0) + 1
+  }
 
   const result = openPack(user, setId)
 
@@ -191,6 +185,50 @@ ${getCooldownText(user)}`,
    best,
    dailyBonus
   } = result
+
+  /* ---- TRACKINGS POST-PACK ---- */
+
+  const ssrInPack  = pack.filter(c=>c?.rarity==="SSR").length
+  const hasS       = pack.some(c=>c?.rarity==="S")
+  const hasSSR     = ssrInPack > 0
+  const allRarities = [...new Set(pack.map(c=>c?.rarity).filter(Boolean))]
+
+  // Hard pity : SSR obtenue alors que pity était >= 49 avant le pack
+  if(hasSSR && pitySSRBefore >= 49){
+   user.stats.hardPityReached = (user.stats.hardPityReached || 0) + 1
+  }
+
+  // Dry streak : packs sans S ni SSR
+  if(!hasS && !hasSSR){
+   user.stats.dryStreak = (user.stats.dryStreak || 0) + 1
+   user.stats.dryStreakMax = Math.max(user.stats.dryStreakMax || 0, user.stats.dryStreak)
+  } else {
+   user.stats.dryStreak = 0
+  }
+
+  // All C pack
+  if(allRarities.length === 1 && allRarities[0] === "C"){
+   user.stats.allCPack = (user.stats.allCPack || 0) + 1
+  }
+
+  // All U pack
+  if(allRarities.length === 1 && allRarities[0] === "U"){
+   user.stats.allUPack = (user.stats.allUPack || 0) + 1
+  }
+
+  // SSR un lundi
+  if(hasSSR){
+   const day = new Date().getDay() // 1 = lundi
+   if(day === 1){
+    user.stats.ssrOnMonday = (user.stats.ssrOnMonday || 0) + 1
+   }
+  }
+
+  // Palindrome (total de toutes les cartes)
+  const totalCards = Object.values(user.cards||{}).reduce((a,b)=>a+b,0)
+  if(totalCards > 0 && isPalindrome(totalCards)){
+   user.stats.palindromeReached = (user.stats.palindromeReached || 0) + 1
+  }
 
   let revealed = []
 
@@ -233,6 +271,7 @@ ${getCooldownText(user)}`,
   unlocked.push(...achievementCheck(user, "pack"))
   unlocked.push(...achievementCheck(user, "collection"))
   unlocked.push(...achievementCheck(user, "economy"))
+  unlocked.push(...achievementCheck(user, "rng"))
 
   const finalEmbed = new EmbedBuilder()
    .setTitle("🎴 Pack ouvert !")
@@ -247,31 +286,18 @@ ${getCooldownText(user)}`,
    .setColor(RARITY_COLOR[best.rarity])
 
   if(luckyPack){
-   finalEmbed.addFields({
-    name:"🎁 Lucky Pack",
-    value:"Une carte bonus apparaît !",
-    inline:false
-   })
+   finalEmbed.addFields({ name:"🎁 Lucky Pack", value:"Une carte bonus apparaît !", inline:false })
   }
 
   if(dailyBonus){
-   finalEmbed.addFields({
-    name:"✨ Bonus quotidien",
-    value:"XP doublée sur ce pack",
-    inline:false
-   })
+   finalEmbed.addFields({ name:"✨ Bonus quotidien", value:"XP doublée sur ce pack", inline:false })
   }
 
   await message.edit({ embeds:[finalEmbed] })
 
   if(discovered.length){
-
-   const lines = discovered.map(c => `🔎 **${c.name}**`)
-
-   await interaction.followUp({
-    content:`Nouvelle découverte !\n${lines.join("\n")}`,
-    flags:64
-   })
+   const lines = discovered.map(c=>`🔎 **${c.name}**`)
+   await interaction.followUp({ content:`Nouvelle découverte !\n${lines.join("\n")}`, flags:64 })
   }
 
   if(unlocked.length)

@@ -18,268 +18,199 @@ function sleep(ms){
 
 module.exports={
 
-data:new SlashCommandBuilder()
-.setName("fusion")
-.setDescription("Fusionner des doublons pour obtenir une rareté supérieure")
+ data:new SlashCommandBuilder()
+  .setName("fusion")
+  .setDescription("Fusionner des doublons pour obtenir une rareté supérieure")
+
+  .addStringOption(option=>
+   option.setName("set")
+   .setDescription("Set des cartes")
+   .setRequired(true)
+   .addChoices(...sets.map(s=>({name:s.name,value:s.id})))
+  )
+
+  .addStringOption(option=>
+   option.setName("rarete")
+   .setDescription("Rareté à fusionner")
+   .setRequired(true)
+   .addChoices(
+    {name:"C",value:"C"},{name:"U",value:"U"},
+    {name:"R",value:"R"},{name:"SR",value:"SR"},
+    {name:"HR",value:"HR"},{name:"UR",value:"UR"},
+    {name:"S",value:"S"}
+   )
+  ),
+
+ async execute(interaction){
+
+  const user = getUser(interaction.user.id)
+  const setName = interaction.options.getString("set")
+  const rarity = interaction.options.getString("rarete")
+
+  const index = RARITY_ORDER.indexOf(rarity)
+
+  if(index===-1)
+   return interaction.reply({content:"Rareté invalide.",flags:64})
+
+  if(rarity==="SSR")
+   return interaction.reply({content:"Impossible de fusionner des SSR.",flags:64})
+
+  const cost = FUSION_COST[rarity]
+
+  const pool = cards.filter(c=>c.set===setName && c.rarity===rarity)
+
+  if(pool.length===0)
+   return interaction.reply({content:"Aucune carte trouvée.",flags:64})
+
+  let available=0
+
+  for(const card of pool){
+   const count = user.cards?.[card.id]||0
+   if(count>1) available+=(count-1)
+  }
+
+  if(available<cost)
+   return interaction.reply({
+    content:`❌ Il faut **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nTu en as **${available}**.`,
+    flags:64
+   })
 
-.addStringOption(option=>
- option.setName("set")
- .setDescription("Set des cartes")
- .setRequired(true)
- .addChoices(
-  ...sets.map(s=>({
-   name:s.name,
-   value:s.id
-  }))
- )
-)
+  /* CARTES UTILISÉES */
 
-.addStringOption(option=>
- option.setName("rarete")
- .setDescription("Rareté à fusionner")
- .setRequired(true)
- .addChoices(
- {name:"C",value:"C"},
- {name:"U",value:"U"},
- {name:"R",value:"R"},
- {name:"SR",value:"SR"},
- {name:"HR",value:"HR"},
- {name:"UR",value:"UR"},
- {name:"S",value:"S"}
- )
-),
+  let remaining=cost
+  const usedCards={}
 
-async execute(interaction){
+  for(const card of pool){
+   const count = user.cards?.[card.id]||0
+   const usable = Math.max(0,count-1)
+   if(usable<=0) continue
+   const take = Math.min(usable,remaining)
+   user.cards[card.id]-=take
+   remaining-=take
+   usedCards[card.id]=(usedCards[card.id]||0)+take
+   if(user.cards[card.id]<=0) delete user.cards[card.id]
+   if(remaining<=0) break
+  }
 
-const user=getUser(interaction.user.id)
+  /* STATS */
 
-const setName=interaction.options.getString("set")
-const rarity=interaction.options.getString("rarete")
+  if(!user.stats) user.stats={}
 
-const index=RARITY_ORDER.indexOf(rarity)
+  user.stats.fusions=(user.stats.fusions||0)+1
 
-if(index===-1)
-return interaction.reply({content:"Rareté invalide.",flags:64})
+  const now=Date.now()
 
-if(rarity==="SSR")
-return interaction.reply({content:"Impossible de fusionner des SSR.",flags:64})
+  if(!user.stats.lastTripleReset || now-user.stats.lastTripleReset>86400000){
+   user.stats.tripleFusionToday=0
+   user.stats.lastTripleReset=now
+  }
 
-const cost=FUSION_COST[rarity]
+  /* RNG */
 
-const pool=cards.filter(c=>
-c.set===setName &&
-c.rarity===rarity
-)
+  const roll=Math.random()
 
-if(pool.length===0)
-return interaction.reply({content:"Aucune carte trouvée.",flags:64})
+  let rarityGain=1
+  let quantity=1
+  let message=""
+  let xpGain=15
 
-let available=0
+  if(roll<0.005 && user.stats.tripleFusionToday<1){
+   rarityGain=3
+   message="🌈 TRIPLE FUSION !!!"
+   xpGain=50
+   user.stats.tripleFusionToday++
+   user.stats.tripleFusion=(user.stats.tripleFusion||0)+1
+  }
+  else if(roll<0.10){
+   rarityGain=2
+   message="🔥 Fusion critique !"
+   xpGain=25
+   user.stats.fusionCrit=(user.stats.fusionCrit||0)+1
+  }
+  else if(roll<0.20 && ["C","U","R","SR"].includes(rarity)){
+   quantity=2
+   message="✨ Fusion double !"
+   xpGain=25
+   user.stats.fusionDouble=(user.stats.fusionDouble||0)+1
+  }
 
-for(const card of pool){
+  if(rarity==="C") user.stats.fusionCU=true
+  if(rarity==="U") user.stats.fusionUR=true
+  if(rarity==="R") user.stats.fusionRSR=true
+  if(rarity==="SR") user.stats.fusionSRHR=true
+  if(rarity==="HR") user.stats.fusionHRUR=true
+  if(rarity==="UR") user.stats.fusionURS=true
 
-const count=user.cards?.[card.id]||0
+  let targetIndex = index + rarityGain
+  const maxIndex = RARITY_ORDER.indexOf("SSR")
+  if(targetIndex>maxIndex) targetIndex=maxIndex
 
-if(count>1)
-available+=(count-1)
+  const targetRarity = RARITY_ORDER[targetIndex]
 
-}
+  const rewardPool = cards.filter(c=>c.set===setName && c.rarity===targetRarity)
 
-if(available<cost)
-return interaction.reply({
-content:`❌ Il faut **${cost} doublons ${RARITY_EMOJI[rarity]}**
+  if(rewardPool.length===0)
+   return interaction.reply({content:"Erreur de pool.",flags:64})
 
-Tu en as **${available}**.`,
-flags:64
-})
+  /* EMBED START */
 
-/* CARTES UTILISÉES */
+  const embed=new EmbedBuilder()
+   .setTitle("⚗️ Fusion en cours...")
+   .setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nDoublons disponibles : **${available}**`)
 
-let remaining=cost
-const usedCards={}
+  await interaction.reply({embeds:[embed]})
+  const msg=await interaction.fetchReply()
 
-for(const card of pool){
+  await sleep(900)
 
-const count=user.cards?.[card.id]||0
-const usable=Math.max(0,count-1)
+  embed.setDescription(`\n${cost} ${RARITY_EMOJI[rarity]}\n⬇\n${RARITY_EMOJI[targetRarity]}\n`)
 
-if(usable<=0) continue
+  await msg.edit({embeds:[embed]})
 
-const take=Math.min(usable,remaining)
+  await sleep(900)
 
-user.cards[card.id]-=take
-remaining-=take
+  /* REWARDS */
 
-usedCards[card.id]=(usedCards[card.id]||0)+take
+  const rewards=[]
 
-if(user.cards[card.id]<=0)
-delete user.cards[card.id]
+  for(let i=0;i<quantity;i++){
+   const card=rewardPool[Math.floor(Math.random()*rewardPool.length)]
+   rewards.push(card)
+   user.cards[card.id]=(user.cards[card.id]||0)+1
+  }
 
-if(remaining<=0) break
+  /* ---- ACHIEVEMENT FUSION SSR ---- */
+  // Obtenir une SSR comme résultat de fusion
+  if(targetRarity === "SSR"){
+   user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + 1
+  }
 
-}
+  addXP(user,xpGain)
+  save()
 
-/* STATS */
+  let unlocked=[]
 
-if(!user.stats) user.stats={}
+  unlocked.push(...achievementCheck(user,"fusion"))
+  unlocked.push(...achievementCheck(user,"collection"))
+  unlocked.push(...achievementCheck(user,"pack"))
 
-user.stats.fusions=(user.stats.fusions||0)+1
+  /* DISPLAY */
 
-const now=Date.now()
+  const usedLines=Object.entries(usedCards).map(([id,q])=>{
+   const card=cards.find(c=>c.id==id)
+   return `${RARITY_EMOJI[card.rarity]} ${card.name} ×${q}`
+  })
 
-if(!user.stats.lastTripleReset || now-user.stats.lastTripleReset>86400000){
+  const rewardLines=rewards.map(c=>`${RARITY_EMOJI[c.rarity]} ${c.name}`)
 
-user.stats.tripleFusionToday=0
-user.stats.lastTripleReset=now
+  const fusionStats=`📊 **Stats fusion**\n\nFusions : **${user.stats.fusions||0}**\n🔥 Critiques : **${user.stats.fusionCrit||0}**\n✨ Doubles : **${user.stats.fusionDouble||0}**\n🌈 Triples : **${user.stats.tripleFusion||0}**`
 
-}
+  const remainingDup=available-cost
 
-/* RNG */
-
-const roll=Math.random()
-
-let rarityGain=1
-let quantity=1
-let message=""
-let xpGain=15
-
-if(roll<0.005 && user.stats.tripleFusionToday<1){
-
-rarityGain=3
-message="🌈 TRIPLE FUSION !!!"
-xpGain=50
-
-user.stats.tripleFusionToday++
-user.stats.tripleFusion=(user.stats.tripleFusion||0)+1
-
-}
-
-else if(roll<0.10){
-
-rarityGain=2
-message="🔥 Fusion critique !"
-xpGain=25
-
-user.stats.fusionCrit=(user.stats.fusionCrit||0)+1
-
-}
-
-else if(roll<0.20 && ["C","U","R","SR"].includes(rarity)){
-
-quantity=2
-message="✨ Fusion double !"
-xpGain=25
-
-user.stats.fusionDouble=(user.stats.fusionDouble||0)+1
-
-}
-
-/* TYPE FUSION */
-
-if(rarity==="C") user.stats.fusionCU=true
-if(rarity==="U") user.stats.fusionUR=true
-if(rarity==="R") user.stats.fusionRSR=true
-if(rarity==="SR") user.stats.fusionSRHR=true
-if(rarity==="HR") user.stats.fusionHRUR=true
-if(rarity==="UR") user.stats.fusionURS=true
-
-let targetIndex=index+rarityGain
-
-const maxIndex=RARITY_ORDER.indexOf("SSR")
-
-if(targetIndex>maxIndex)
-targetIndex=maxIndex
-
-const targetRarity=RARITY_ORDER[targetIndex]
-
-const rewardPool=cards.filter(c=>
-c.set===setName &&
-c.rarity===targetRarity
-)
-
-if(rewardPool.length===0)
-return interaction.reply({content:"Erreur de pool.",flags:64})
-
-/* EMBED START */
-
-const embed=new EmbedBuilder()
-.setTitle("⚗️ Fusion en cours...")
-.setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**
-
-Doublons disponibles : **${available}**`)
-
-await interaction.reply({embeds:[embed]})
-const msg=await interaction.fetchReply()
-
-await sleep(900)
-
-embed.setDescription(`
-${cost} ${RARITY_EMOJI[rarity]}
-⬇
-${RARITY_EMOJI[targetRarity]}
-`)
-
-await msg.edit({embeds:[embed]})
-
-await sleep(900)
-
-/* REWARDS */
-
-const rewards=[]
-
-for(let i=0;i<quantity;i++){
-
-const card=rewardPool[Math.floor(Math.random()*rewardPool.length)]
-
-rewards.push(card)
-
-user.cards[card.id]=(user.cards[card.id]||0)+1
-
-}
-
-addXP(user,xpGain)
-save()
-
-let unlocked=[]
-
-unlocked.push(...achievementCheck(user,"fusion"))
-unlocked.push(...achievementCheck(user,"collection"))
-
-/* DISPLAY USED */
-
-const usedLines=Object.entries(usedCards).map(([id,q])=>{
-
-const card=cards.find(c=>c.id==id)
-
-return `${RARITY_EMOJI[card.rarity]} ${card.name} ×${q}`
-
-})
-
-/* DISPLAY REWARD */
-
-const rewardLines=rewards.map(c=>
-`${RARITY_EMOJI[c.rarity]} ${c.name}`
-)
-
-/* FUSION STATS */
-
-const fusionStats=`
-📊 **Stats fusion**
-
-Fusions : **${user.stats.fusions||0}**
-🔥 Critiques : **${user.stats.fusionCrit||0}**
-✨ Doubles : **${user.stats.fusionDouble||0}**
-🌈 Triples : **${user.stats.tripleFusion||0}**
-`
-
-const remainingDup=available-cost
-
-/* RESULT */
-
-const resultEmbed=new EmbedBuilder()
-.setTitle("⚗️ Fusion terminée")
-.setDescription(`
-${message}
+  const resultEmbed=new EmbedBuilder()
+   .setTitle("⚗️ Fusion terminée")
+   .setDescription(
+`${message}
 
 **Cartes utilisées**
 
@@ -301,14 +232,14 @@ ${rewardLines.join("\n")}
 🌈 Triple : **0.5%**
 ✨ Double : **10%**
 
-${fusionStats}
-`)
+${fusionStats}`
+   )
 
-await msg.edit({embeds:[resultEmbed]})
+  await msg.edit({embeds:[resultEmbed]})
 
-if(unlocked.length)
- await notifyAchievements(interaction,unlocked)
+  if(unlocked.length)
+   await notifyAchievements(interaction,unlocked)
 
-}
+ }
 
 }

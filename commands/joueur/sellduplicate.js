@@ -2,7 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("
 
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { getCardsById } = require("../../systems/cardRegistry")
-const { getUser, save } = require("../../systems/userSystem")
+const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
@@ -13,13 +13,15 @@ module.exports={
  async execute(interaction){
 
   const cardsById = getCardsById()
-
   const user = getUser(interaction.user.id)
 
   if(!user.cards || Object.keys(user.cards).length===0)
    return interaction.reply("Inventaire vide.")
 
   if(!user.stats) user.stats={}
+
+  /* ---- ACTIVITY STREAK ---- */
+  updateActivityStreak(user)
 
   let totalCards=0
   let totalKamas=0
@@ -32,11 +34,9 @@ module.exports={
    const card = cardsById[id]
    if(!card) continue
 
-   if(card.rarity==="UR" || card.rarity==="SSR")
-    continue
+   if(card.rarity==="UR" || card.rarity==="SSR") continue
 
    const count=user.cards[id]
-
    if(count<=1) continue
 
    const duplicates=count-1
@@ -45,16 +45,11 @@ module.exports={
    totalCards += duplicates
    totalKamas += duplicates * price
 
-   toSell.push({
-    id,
-    duplicates,
-    price
-   })
+   toSell.push({ id, duplicates, price })
 
    previewLines.push(
-`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
+    `${RARITY_EMOJI[card.rarity]} **${card.name}** ×${duplicates} → ${duplicates*price} kamas`
    )
-
   }
 
   if(totalCards===0)
@@ -111,7 +106,6 @@ ${previewLines.slice(0,15).join("\n")}
     })
 
    const cardsByIdFresh = getCardsById()
-
    const soldLines=[]
 
    for(const item of toSell){
@@ -125,18 +119,26 @@ ${previewLines.slice(0,15).join("\n")}
      delete user.cards[item.id]
 
     user.kamas+=item.duplicates*item.price
-
     user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
 
     soldLines.push(
-`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
+     `${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
     )
+   }
 
+   /* ---- ACHIEVEMENT SELL FAST ---- */
+   // Vendre dans les 10s après avoir ouvert un pack
+   if(user.lastPack && (Date.now() - user.lastPack) <= 10000){
+    user.stats.sellFast = (user.stats.sellFast || 0) + 1
    }
 
    save()
 
-   const unlocked = achievementCheck(user,"economy")
+   const unlocked = [
+    ...achievementCheck(user,"economy"),
+    ...achievementCheck(user,"collection"),
+    ...achievementCheck(user,"pack")
+   ]
 
    const resultEmbed=new EmbedBuilder()
     .setTitle("💰 Doublons vendus")

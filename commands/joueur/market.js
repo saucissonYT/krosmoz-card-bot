@@ -8,8 +8,6 @@ const {
  TextInputStyle
 } = require("discord.js")
 
-const { RARITY_EMOJI } = require("../../systems/constants")
-
 const {
  getMarket,
  buyCard,
@@ -20,10 +18,18 @@ const {
 } = require("../../systems/market")
 
 const { getCards } = require("../../systems/cardRegistry")
+const { getUser, save } = require("../../systems/userSystem")
+const { achievementCheck } = require("../../systems/achievementCheck")
+const { notifyAchievements } = require("../../systems/achievementNotifier")
+
 const cards = getCards()
 
-const marketState={}
+const rarityEmoji={
+ C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
+ HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
+}
 
+const marketState={}
 const PAGE_SIZE=10
 
 module.exports={
@@ -109,9 +115,7 @@ module.exports={
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
 
-   modal.addComponents(
-    new ActionRowBuilder().addComponents(input)
-   )
+   modal.addComponents(new ActionRowBuilder().addComponents(input))
 
    return interaction.showModal(modal)
   }
@@ -155,7 +159,7 @@ module.exports={
 
    const lines=listings.map(l=>{
     const card=cards.find(c=>c.id==l.card)
-    return `ID:${l.id} • ${RARITY_EMOJI[card.rarity]} ${card.name} • ${l.price} kamas`
+    return `ID:${l.id} • ${rarityEmoji[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas`
    })
 
    const embed=new EmbedBuilder()
@@ -194,9 +198,7 @@ module.exports={
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
 
-   modal.addComponents(
-    new ActionRowBuilder().addComponents(input)
-   )
+   modal.addComponents(new ActionRowBuilder().addComponents(input))
 
    return interaction.showModal(modal)
   }
@@ -221,12 +223,9 @@ module.exports={
   const slice=market.slice(start,start+PAGE_SIZE)
 
   const lines=slice.map(l=>{
-
    const card=cards.find(c=>c.id==l.card)
-   const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}`:""
-
-   return `ID:${l.id} • ${RARITY_EMOJI[card.rarity]} ${card.name} • ${l.price} kamas${avg}`
-
+   const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}` : ""
+   return `ID:${l.id} • ${rarityEmoji[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas${avg}`
   })
 
   const embed=new EmbedBuilder()
@@ -276,66 +275,70 @@ module.exports={
 
   if(interaction.customId==="marketBuyModal"){
 
-   const listingId=parseInt(
-    interaction.fields.getTextInputValue("listingId")
-   )
+   const listingId=parseInt(interaction.fields.getTextInputValue("listingId"))
 
    const result=buyCard(interaction.user.id,listingId)
 
    if(result?.error)
     return interaction.reply({content:`❌ ${result.error}`,flags:64})
 
-   return interaction.reply({
-    content:"✅ Carte achetée.",
-    flags:64
-   })
+   /* ---- ACHIEVEMENTS APRÈS ACHAT ---- */
+   const user = getUser(interaction.user.id)
+   const unlocked = [
+    ...achievementCheck(user,"economy"),
+    ...achievementCheck(user,"collection"),
+    ...achievementCheck(user,"pack")
+   ]
+
+   await interaction.reply({content:"✅ Carte achetée.",flags:64})
+
+   if(unlocked.length)
+    await notifyAchievements(interaction,unlocked)
+
+   return
   }
 
   /* ---------- SELL ---------- */
 
   if(interaction.customId==="marketSellModal"){
 
-   await interaction.deferReply({ flags:64 })
+   await interaction.deferReply({flags:64})
 
-   const cardId=parseInt(
-    interaction.fields.getTextInputValue("cardId")
-   )
+   const cardId=parseInt(interaction.fields.getTextInputValue("cardId"))
+   const price=parseInt(interaction.fields.getTextInputValue("price"))
 
-   const price=parseInt(
-    interaction.fields.getTextInputValue("price")
-   )
-
-   if(isNaN(cardId) || isNaN(price)){
+   if(isNaN(cardId) || isNaN(price))
     return interaction.editReply("❌ ID ou prix invalide.")
-   }
 
    const result=addListing(interaction.user.id,cardId,price)
 
    if(result?.error)
     return interaction.editReply(`❌ ${result.error}`)
 
-   return interaction.editReply({
-    content:"🛒 Carte mise en vente."
-   })
+   /* ---- ACHIEVEMENTS APRÈS VENTE ---- */
+   const user = getUser(interaction.user.id)
+   const unlocked = achievementCheck(user,"economy")
+
+   await interaction.editReply({content:"🛒 Carte mise en vente."})
+
+   if(unlocked.length)
+    await notifyAchievements(interaction,unlocked)
+
+   return
   }
 
   /* ---------- REMOVE ---------- */
 
   if(interaction.customId==="marketRemoveModal"){
 
-   const listingId=parseInt(
-    interaction.fields.getTextInputValue("listingId")
-   )
+   const listingId=parseInt(interaction.fields.getTextInputValue("listingId"))
 
    const result=removeListing(interaction.user.id,listingId)
 
    if(result?.error)
     return interaction.reply({content:`❌ ${result.error}`,flags:64})
 
-   return interaction.reply({
-    content:"📦 Vente retirée.",
-    flags:64
-   })
+   return interaction.reply({content:"📦 Vente retirée.",flags:64})
   }
 
  }

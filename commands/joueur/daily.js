@@ -3,7 +3,7 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const { getUser } = require("../../systems/userSystem")
+const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { claimDaily, canClaim } = require("../../systems/dailySystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
@@ -50,16 +50,15 @@ module.exports={
      value:`Dans **${hours}h ${minutes}m**\n(à **${nextTime}**)`
     })
 
-   return interaction.reply({
-    embeds:[embed],
-    flags:64
-   })
-
+   return interaction.reply({ embeds:[embed], flags:64 })
   }
 
   /* ---------------- CLAIM ---------------- */
 
   const result = await claimDaily(interaction,user)
+
+  /* ---- ACTIVITY STREAK ---- */
+  updateActivityStreak(user)
 
   /* ---------------- STREAK BAR ---------------- */
 
@@ -86,13 +85,11 @@ module.exports={
   /* ---------------- FLAVOR TEXT ---------------- */
 
   const flavorTexts=[
-
    "📦 Un paquet arrive directement d'Amakna.",
    "💰 Les marchands d'Astrub te récompensent.",
    "🎁 Une récompense du Conseil des Douze.",
    "🗺️ Une trouvaille mystérieuse du Krosmoz.",
    "📜 Une récompense pour ton aventure quotidienne."
-
   ]
 
   const flavor=flavorTexts[Math.floor(Math.random()*flavorTexts.length)]
@@ -105,28 +102,19 @@ module.exports={
    .setDescription(flavor)
 
   if(result.reward.type==="pack"){
-   embed.addFields({
-    name:"📦 Récompense",
-    value:`**${result.reward.value} pack(s)**`
-   })
+   embed.addFields({ name:"📦 Récompense", value:`**${result.reward.value} pack(s)**` })
   }
 
   if(result.reward.type==="kamas"){
-   embed.addFields({
-    name:"💰 Récompense",
-    value:`**${result.reward.value} kamas**`
-   })
+   embed.addFields({ name:"💰 Récompense", value:`**${result.reward.value} kamas**` })
   }
 
   if(result.reward.type==="ssr"){
-
    const card=result.reward.value
-
    embed.addFields({
     name:"🌈 Streak 7 atteinte !",
     value:`Carte SSR obtenue\n\n🌈 **${card.name}**`
    })
-
   }
 
   embed.addFields(
@@ -147,28 +135,24 @@ module.exports={
     name:"⭐ XP gagnée",
     value:`+${xp} XP`,
     inline:true
+   },
+
+   {
+    name:"📅 Présence",
+    value:`${user.stats.activityStreak || 1} jours consécutifs`,
+    inline:true
    }
 
   )
 
-  /* ---------------- DOUBLE DAILY ---------------- */
-
   if(result.doubleReward){
-
    embed.addFields({
     name:"🎉 DOUBLE DAILY !",
     value:"Tes récompenses ont été **doublées** 🍀",
     inline:false
    })
-
   } else {
-
-   embed.addFields({
-    name:"🍀 Chance de double",
-    value:"10%",
-    inline:false
-   })
-
+   embed.addFields({ name:"🍀 Chance de double", value:"10%", inline:false })
   }
 
   /* ---------------- ACHIEVEMENTS ---------------- */
@@ -176,12 +160,15 @@ module.exports={
   let unlocked=[]
 
   unlocked.push(...achievementCheck(user,"daily"))
+  unlocked.push(...achievementCheck(user,"pack"))
 
   if(result.reward.type==="kamas")
    unlocked.push(...achievementCheck(user,"economy"))
 
   if(result.reward.type==="ssr")
    unlocked.push(...achievementCheck(user,"collection"))
+
+  save()
 
   /* ---------------- PUBLIC MESSAGE ---------------- */
 
