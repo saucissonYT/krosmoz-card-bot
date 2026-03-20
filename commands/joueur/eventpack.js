@@ -261,28 +261,27 @@ module.exports = {
     ]
    })
 
-   /* ================= VOICE LINE ================= */
+/* ================= VOICE LINE ================= */
 
-   let bestRarity = null
+const hasSSR = pack.some(c => c.rarity === "SSR")
+const hasS = pack.some(c => c.rarity === "S")
 
-   for(const c of pack){
-    if(c.rarity === "SSR"){
-     bestRarity = "SSR"
-     break
-    }
-    if(c.rarity === "S"){
-     bestRarity = "S"
-    }
-   }
+let rarity = null
 
-   if(bestRarity && event.voiceLines?.[bestRarity]){
-    const pool = event.voiceLines[bestRarity]
+if(hasSSR) rarity = "SSR"
+else if(hasS) rarity = "S"
 
-    if(pool.length){
-     const line = pool[Math.floor(Math.random()*pool.length)]
-     await channel.send(`💬 ${event.name} : ${line}`)
-    }
-   }
+if(rarity){
+
+ const voicePool = event.voiceLines?.[rarity]
+
+ if(Array.isArray(voicePool) && voicePool.length){
+
+  const line = voicePool[Math.floor(Math.random() * voicePool.length)]
+
+  await channel.send(`💬 ${event.name} : ${line}`)
+ }
+}
 
    save()
 

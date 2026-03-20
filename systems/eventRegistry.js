@@ -24,6 +24,20 @@ La fureur disparaît lentement...
 Les packs retrouvent leur équilibre.`,
 
  rp:{ bonus:"💥 Une puissance écrasante envahit le pack..." },
+
+ voiceLines:{
+ S:[
+  "🔥 Ça chauffe… mais ce n’est que le début !",
+  "💥 Plus fort ! Toujours plus fort !",
+  "⚔️ Tu commences à me plaire..."
+ ],
+ SSR:[
+  "🔥💀 OUI !!! C’EST ÇA LA PUISSANCE !!",
+  "💥 TU ÉCRASES TOUT !! CONTINUE !!",
+  "⚔️ UN VRAI GUERRIER !! ENCORE !!"
+ ]
+}
+
 },
 
 cra:{
@@ -50,6 +64,20 @@ Le silence revient...
 La précision s’efface.`,
 
  rp:{ target:"🎯 Une cible précise a été touchée !" },
+
+ voiceLines:{
+ S:[
+  "🎯 Une belle trajectoire...",
+  "🏹 Belle balise !",
+  "🎯 Précis… très précis."
+ ],
+ SSR:[
+  "🎯💥 Tir parfait.",
+  "🏹 Aucune échappatoire.",
+  "🎯 Une exécution impeccable."
+ ]
+}
+
 },
 
 xelor:{
@@ -78,6 +106,20 @@ Tout redevient normal.`,
   removed:"⏳ Le temps efface certaines cartes...",
   added:"⏳ De nouvelles cartes surgissent..."
  },
+
+ voiceLines:{
+ S:[
+  "⏳ Le futur devient intéressant...",
+  "⌛ Une variation temporelle mineure.",
+  "⏳ Le flux change légèrement..."
+ ],
+ SSR:[
+  "⏳💥 Le temps plie à ta volonté.",
+  "⌛ Une anomalie majeure détectée.",
+  "⏳ Le futur vient d’être réécrit."
+ ]
+}
+
 },
 
 sram:{
@@ -102,6 +144,20 @@ Les ombres se dissipent...
 La vérité réapparaît.`,
 
  rp:{ hidden:"🕶️ Le pack est dissimulé..." },
+
+ voiceLines:{
+ S:[
+  "🕶️ Tu aurais pu sauver Chad...",
+  "🔪 Tu progresses dans l’ombre.",
+  "🕶️ Je vois ce que tu fais..."
+ ],
+ SSR:[
+  "🕶️💀 Une ombre parfaite.",
+  "🔪 Invisible… mortel ! ",
+  "🕶️ Personne ne t’a vu venir."
+ ]
+}
+
 },
 
 sacrieur:{
@@ -126,6 +182,19 @@ La douleur disparaît...
 Les cartes cessent d’évoluer.`,
 
  rp:{ mutation:"💀 Mutation violente..." },
+
+ voiceLines:{
+ S:[
+  "💀 La douleur forge ta force.",
+  "🩸 Continue… souffre encore.",
+  "💀 Presque une armure sanguine !"
+ ],
+ SSR:[
+  "💀💥 Une transformation parfaite.",
+  "🩸 TU EMBRASSES LA DOULEUR, PUNITION !!",
+  "💀 AUSSI PUISSANT QUE KALI !!"
+ ]
+}
 },
 
 zobal:{
@@ -150,6 +219,20 @@ Les masques tombent...
 Les cartes se figent.`,
 
  rp:{ upgrade:"🎭 Évolution..." },
+
+ voiceLines:{
+ S:[
+  "🎭 Un masque intéressant.",
+  "🎭 Tu changes… comme moi.",
+  "🎭 Petite danse macabre..."
+ ],
+ SSR:[
+  "🎭💥 Ton double a eu la même chose !",
+  "🎭 Tu maîtrises les masques parfaitement !",
+  "🎭 Au bal masqué ohé ohé !"
+ ]
+}
+
 },
 
 huppermage:{
@@ -174,6 +257,20 @@ L’énergie se dissipe...
 Les packs redeviennent normaux.`,
 
  rp:{ added:"🧠 Création..." },
+
+ voiceLines:{
+ S:[
+  "🧠 L'équilibre se forme.",
+  "✨ Une harmonie naît.",
+  "🧠 Les éléments répondent."
+ ],
+ SSR:[
+  "🧠💥 Tu ferais un bon professeur dans notre école...",
+  "✨ Convergence absolue des éléments !!",
+  "🧠 La balance krosmique t'a béni !!"
+ ]
+}
+
 },
 
 pandawa:{
@@ -198,6 +295,20 @@ Les copies cessent...
 Le calme revient.`,
 
  rp:{ duplicate:"🍺 Duplication..." },
+
+ voiceLines:{
+ S:[
+  "🍺 Petit coup de bambou...",
+  "🍻 Ça devient intéressant !",
+  "🍺 Je préfère le Tekilait..."
+ ],
+ SSR:[
+  "🍺💥 TOURNÉE GÉNÉRALE, HAPPY HOUR !!",
+  "🍻 Là on parle sérieusement !",
+  "🍺 Aussi puissant que lucha l'ambrée !"
+ ]
+}
+
 },
 
 osamodas:{
@@ -222,6 +333,20 @@ La structure se brise...
 La diversité revient.`,
 
  rp:{ structure:"🐉 Uniformité..." },
+
+ voiceLines:{
+ S:[
+  "🐉 Une créature intéressante.",
+  "🐉 Le lien se forme.",
+  "🐉 Elles répondent à ton appel."
+ ],
+ SSR:[
+  "🐉💥 Une invocation parfaite.",
+  "🐉 Une armée t’obéit.",
+  "🐉 Forme dragon !! "
+ ]
+}
+
 },
 
 ecaflip:{
@@ -246,6 +371,20 @@ La chance disparaît...
 Le hasard se stabilise.`,
 
  rp:{ luck:"🎲 Chance..." },
+
+ voiceLines:{
+ S:[
+  "🎲 La chance sourit même au pounicheur...",
+  "😏 T'aurais pas croisé Ush toi ?",
+  "🎲 Le chaloeil serait fier de toi"
+ ],
+ SSR:[
+  "🎲💥 JACKPOT !!",
+  "😼 Aussi fort que les afk d'Ecaflipus ! ",
+  "🎲 Chance maximale, tu serais pas kerubim ??"
+ ]
+}
+
 },
 
 ouginak:{
@@ -270,6 +409,20 @@ La tension retombe...
 L’équilibre revient.`,
 
  rp:{ bad:"🐺 Faiblesse..." },
+
+ voiceLines:{
+ S:[
+  "🐺 Tu survies...",
+  "⚔️ Faible... mais acceptable.",
+  "🐺 Aussi appétissant qu'un tofu..."
+ ],
+ SSR:[
+  "🐺 ...Impressionnant de malchance.",
+  "⚔️ Tu tiens bon, c'est bien.",
+  "🐺 Tu résistes comme un milkar."
+ ]
+}
+
 },
 
 feca:{
@@ -294,6 +447,20 @@ Le filtre se brise...
 Le chaos revient.`,
 
  rp:{ protection:"🛡️ Protection..." },
+
+ voiceLines:{
+ S:[
+  "🛡️ Immunité parfaite.",
+  "✨ Trêve !",
+  "🛡️ Plus utile que le gars aux slips..."
+ ],
+ SSR:[
+  "🛡️💥 Coup de bâton et coup de cac !",
+  "✨ Aussi puissant que 3 glyphes !",
+  "🛡️ Qui veut la paix prépare la guerre !"
+ ]
+}
+
 },
 
 enutrof:{
@@ -318,6 +485,20 @@ Les gains ralentissent...
 La fortune s’éteint.`,
 
  rp:{ kamas:"💰 Gain..." },
+
+ voiceLines:{
+ S:[
+  "💰 Pas mal...c'est au moins 1000 kamas",
+  "💰 presque 1/100 d'un porte-clef doré...",
+  "💰 aussi riche que le Malléfisk !"
+ ],
+ SSR:[
+  "💰💥 JACKPOT (ou pas) !!",
+  "💰 Une fortune digne d'énutrosor !",
+  "💰 aussi riche que Jamall'auneth !"
+ ]
+}
+
 },
 
 roublard:{
@@ -342,6 +523,20 @@ Les explosions cessent...
 Le flux se calme.`,
 
  rp:{ added:"💣 Boom..." },
+
+ voiceLines:{
+ S:[
+  "💣 Pétard mouillé...",
+  "💣 Intéressant comme explosif...",
+  "💣 Petit roublabot..."
+ ],
+ SSR:[
+  "💣💥 EXPLOSION !!",
+  "💣 CE COMBO EST MORTEL !!",
+  "💣 PULSAR !!"
+ ]
+}
+
 },
 
 steamer:{
@@ -366,6 +561,20 @@ Les anomalies disparaissent...
 Le contrôle revient.`,
 
  rp:{ chaos:"⚙️ Chaos..." },
+
+ voiceLines:{
+ S:[
+  "⚙️ Instabilité détectée dans le stasis.",
+  "⚙️ Surtension en cours...",
+  "⚙️ ça irait mieux en steamerator... "
+ ],
+ SSR:[
+  "⚙️💥 CHALEUR EXTREME, ALERTE !!",
+  "⚙️ Disfonctionnement de la tourelle !!",
+  "⚙️ Instabilité critique des microbots !!"
+ ]
+}
+
 },
 
 eliotrope:{
@@ -390,6 +599,20 @@ La réalité se stabilise...
 Les failles disparaissent.`,
 
  rp:{ special:"🌀 Distorsion..." },
+
+ voiceLines:{
+ S:[
+  "🌀 Un petit portail...",
+  "🌀 ça ira dans la dimension blanche...",
+  "🌀 Wakméha !!"
+ ],
+ SSR:[
+  "🌀💥 Réminiscence !",
+  "🌀 Résilience !",
+  "🌀 Ton réseau de portails est parfait !"
+ ]
+}
+
 },
 
 eniripsa:{
@@ -414,6 +637,20 @@ La purification cesse...
 Le mélange revient.`,
 
  rp:{ filter:"✨ Purifié..." },
+
+ voiceLines:{
+ S:[
+  "✨ Comme un petit lapino...",
+  "✨ Prenez mes PA !",
+  "✨ Mot Vampirique !"
+ ],
+ SSR:[
+  "✨💥 Reconstitution !",
+  "✨ A moi la marque itsade !",
+  "✨ Lumière totale, soin pour tous !"
+ ]
+}
+
 },
 
 sadida:{
@@ -438,6 +675,20 @@ La croissance s’arrête...
 L’équilibre revient.`,
 
  rp:{ duplicate:"🌿 Duplication..." },
+
+ voiceLines:{
+ S:[
+  "🌿 Ça pousse...",
+  "🌱 C'est intéressant...",
+  "🌿 Croissance en cours..."
+ ],
+ SSR:[
+  "🌿💥 Parfait pour combattre Nox !",
+  "🌱 Aussi puissant que la ronce multiple !",
+  "🌿 Je vais en parler au roi Sadida."
+ ]
+}
+
 },
 
 forgelance:{
@@ -462,6 +713,20 @@ Les flammes disparaissent...
 Les cartes se stabilisent.`,
 
  rp:{ upgrade:"⚔️ Upgrade..." },
+
+ voiceLines:{
+ S:[
+  "⚔️ Tu es prêt au combat !",
+  "🔥 pas mal, ça vient d'Albuera ?",
+  "⚔️ Solide comme ma lance."
+ ],
+ SSR:[
+  "⚔️💥 Parfaitement forgé.",
+  "🔥 Lance-Dur serait fier de toi.",
+  "⚔️ Celle-ci sera pour Agard !"
+ ]
+}
+
 }
 
 }
