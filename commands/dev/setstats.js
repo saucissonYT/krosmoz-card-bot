@@ -1,10 +1,11 @@
 const { EmbedBuilder } = require("discord.js")
 
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
-
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+/*
+ * FIX: const cards = data.cards || [] et const sets = require(...) au top-level
+ * créaient des snapshots statiques. Remplacés par des lectures dynamiques.
+ */
+const { getCards } = require("../../systems/cardRegistry")
+const { loadSets } = require("../../systems/setSystemFile")
 
 const { isDev } = require("../../systems/devSystem")
 
@@ -31,11 +32,10 @@ module.exports = {
    name:"set",
    description:"Nom du set",
    type:3,
-   required:true,
-   choices: sets.map(s=>({
-    name:s.name,
-    value:s.id
-   }))
+   required:true
+   /* Note: choices statiques supprimées car elles ne se mettent pas à jour.
+    * L'utilisateur tape le nom du set manuellement.
+    * Alternative: recréer la commande avec SlashCommandBuilder pour des choices dynamiques. */
   }
  ],
 
@@ -46,6 +46,11 @@ module.exports = {
     content:"Commande dev.",
     ephemeral:true
    })
+
+  /* Lecture dynamique */
+  const cards = getCards()
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
   const setId = interaction.options.getString("set")
 

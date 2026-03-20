@@ -8,8 +8,12 @@ const {
 } = require("discord.js")
 
 const { RARITY_EMOJI, RARITY_PRICE } = require("../../systems/constants")
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
+
+/*
+ * FIX: const cards = data.cards || [] au top-level créait un snapshot statique.
+ * Remplacé par getCards() depuis cardRegistry, appelé dynamiquement dans chaque fonction.
+ */
+const { getCards } = require("../../systems/cardRegistry")
 
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
@@ -53,6 +57,8 @@ data:new SlashCommandBuilder()
  ),
 
 async execute(interaction){
+
+ const cards = getCards()
 
  const now = Date.now()
  const userId = interaction.user.id
@@ -153,6 +159,8 @@ async execute(interaction){
 },
 
 async menu(interaction){
+
+ const cards = getCards()
 
  const parts = interaction.customId.split("_")
 
@@ -273,6 +281,8 @@ Valeur : ${RARITY_PRICE[wantCard.rarity]}`,
 },
 
 async button(interaction){
+
+ const cards = getCards()
 
  const parts = interaction.customId.split("_")
 

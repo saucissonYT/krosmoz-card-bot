@@ -1,5 +1,8 @@
-const { data } = require("./dataManager")
-const cards = data.cards || []
+/*
+ * FIX: const cards = data.cards || [] au top-level créait un snapshot statique.
+ * Remplacé par getCards() depuis cardRegistry, appelé dynamiquement dans giveSSR().
+ */
+const { getCards } = require("./cardRegistry")
 
 const { save } = require("./userSystem")
 
@@ -12,6 +15,9 @@ function getRandom(arr){
 function giveSSR(user){
 
  if(!user.cards) user.cards={}
+
+ /* Lecture dynamique */
+ const cards = getCards()
 
  const ssrCards = cards.filter(c => c.rarity === "SSR")
 

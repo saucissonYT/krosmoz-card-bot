@@ -10,14 +10,15 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
+/*
+ * FIX: rarityEmoji et rarityOrder étaient hardcodés localement.
+ * Remplacés par RARITY_EMOJI et RARITY_ORDER depuis constants.js
+ */
+const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 
-const rarityOrder={
- C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
-}
+const rarityOrderMap = Object.fromEntries(
+ RARITY_ORDER.map((r, i) => [r, i + 1])
+)
 
 module.exports={
 
@@ -126,7 +127,7 @@ module.exports={
     list.sort((a,b)=>a.card.name.localeCompare(b.card.name))
 
    if(sort==="rarity")
-    list.sort((a,b)=>rarityOrder[b.card.rarity]-rarityOrder[a.card.rarity])
+    list.sort((a,b)=>rarityOrderMap[b.card.rarity]-rarityOrderMap[a.card.rarity])
 
    if(sort==="count")
     list.sort((a,b)=>b.count-a.count)
@@ -149,13 +150,8 @@ module.exports={
 
    const lines=slice.map(e=>{
 
-    const emoji=rarityEmoji[e.card.rarity]||""
+    const emoji=RARITY_EMOJI[e.card.rarity]||""
 
-    /*
-     * FIX SHINY: Si la carte a une version shiny dans la collection,
-     * on affiche ✨ avec le nombre de shiny entre parenthèses.
-     * Exemple : #42 • 🌈 Ogrest • x3 ✨(1)
-     */
     const shinyCount = shinyCards[e.card.id] || 0
     const shinyTag = shinyCount > 0 ? ` ✨(${shinyCount})` : ""
 
@@ -253,10 +249,6 @@ module.exports={
 
   const built=build()
 
-  /*
-   * FIX: Suppression de withResponse:true
-   * On utilise fetchReply() pour obtenir le vrai Message.
-   */
   await interaction.editReply({
    embeds:[built.embed],
    components:built.components

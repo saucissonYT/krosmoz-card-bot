@@ -1,10 +1,16 @@
 const { createCanvas, loadImage } = require("canvas")
-const { data } = require("./dataManager")
 const fs = require("fs")
 
-const cards = data.cards || []
+/*
+ * FIX: const cards = data.cards || [] au top-level créait un snapshot statique.
+ * Remplacé par getCards() depuis cardRegistry, appelé dynamiquement dans generateInventory().
+ */
+const { getCards } = require("./cardRegistry")
 
 async function generateInventory(cardsOwned){
+
+ /* Lecture dynamique */
+ const cards = getCards()
 
  const cardSize = 200
  const cols = 5
