@@ -94,16 +94,23 @@ function ensureAchievements(user){
  return user
 }
 
+/* ================================================
+   KROSMOSHOP — PATCHÉ avec nouvelles stats
+================================================ */
+
 function ensureKrosmoShop(user){
 
  if(!user.krosmoshop) user.krosmoshop = {}
 
  if(!user.krosmoshopStats){
-  user.krosmoshopStats = { cardsBought:0, ssrBought:0 }
+  user.krosmoshopStats = { cardsBought:0, ssrBought:0, sBought:0, kamasSpent:0, daysVisited:0 }
  }
 
  if(user.krosmoshopStats.cardsBought === undefined) user.krosmoshopStats.cardsBought = 0
  if(user.krosmoshopStats.ssrBought === undefined) user.krosmoshopStats.ssrBought = 0
+ if(user.krosmoshopStats.sBought === undefined) user.krosmoshopStats.sBought = 0
+ if(user.krosmoshopStats.kamasSpent === undefined) user.krosmoshopStats.kamasSpent = 0
+ if(user.krosmoshopStats.daysVisited === undefined) user.krosmoshopStats.daysVisited = 0
 
  return user
 }
@@ -294,7 +301,7 @@ function getUser(id){
     createdAt:now
    },
    krosmoshop:{},
-   krosmoshopStats:{ cardsBought:0, ssrBought:0 },
+   krosmoshopStats:{ cardsBought:0, ssrBought:0, sBought:0, kamasSpent:0, daysVisited:0 },
    daily:{ streak:0, lastDaily:0 }
   }
 

@@ -2,7 +2,7 @@ const fs = require("fs")
 const path = require("path")
 
 const { getCardsById } = require("./cardRegistry")
-const { getUser, save } = require("./userSystem") // ✅ FIX
+const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
 
 const cardsById = getCardsById()
@@ -144,7 +144,7 @@ function buyFromShop(userId,cardId){
 
  const shop=getShop()
 
- const user = getUser(userId) // ✅ FIX
+ const user = getUser(userId)
 
  if(!user){
   console.log("[KROSMOSHOP] user introuvable",userId)
@@ -170,11 +170,16 @@ function buyFromShop(userId,cardId){
  if(user.kamas<entry.price)
   return {error:"Kamas insuffisants"}
 
+ /* -------- DISCOVERED CHECK (avant d'ajouter) -------- */
+
+ if(!user.cards) user.cards={}
+
+ const isNew = !user.cards[entry.card] || user.cards[entry.card] === 0
+
  /* -------- TRANSACTION -------- */
 
  user.kamas-=entry.price
 
- if(!user.cards) user.cards={}
  user.cards[entry.card]=(user.cards[entry.card]||0)+1
 
  user.krosmoshop[today][cardId]=true
@@ -184,13 +189,31 @@ function buyFromShop(userId,cardId){
  if(!user.krosmoshopStats)
   user.krosmoshopStats={
    cardsBought:0,
-   ssrBought:0
+   ssrBought:0,
+   sBought:0,
+   kamasSpent:0,
+   daysVisited:0
   }
 
  user.krosmoshopStats.cardsBought++
 
  if(entry.rarity==="SSR")
   user.krosmoshopStats.ssrBought++
+
+ if(entry.rarity==="S")
+  user.krosmoshopStats.sBought = (user.krosmoshopStats.sBought||0)+1
+
+ user.krosmoshopStats.kamasSpent = (user.krosmoshopStats.kamasSpent||0)+entry.price
+
+ /* Compteur de jours distincts de visite au shop */
+ if(!user.krosmoshopStats._lastDay || user.krosmoshopStats._lastDay !== today){
+  user.krosmoshopStats.daysVisited = (user.krosmoshopStats.daysVisited||0)+1
+  user.krosmoshopStats._lastDay = today
+ }
+
+ /* -------- CARD INFO -------- */
+
+ const cardInfo = cardsById[String(entry.card)] || null
 
  /* -------- ACHIEVEMENTS -------- */
 
@@ -201,6 +224,9 @@ function buyFromShop(userId,cardId){
  return {
   success:true,
   rarity:entry.rarity,
+  price:entry.price,
+  isNew,
+  cardInfo,
   unlocked
  }
 }

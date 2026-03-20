@@ -6,7 +6,7 @@ const {
 
 const { getShop, buyFromShop } = require("../../systems/krosmoshop")
 const { getCards } = require("../../systems/cardRegistry")
-const { getUser } = require("../../systems/userSystem") // 🔥 NEW
+const { getUser } = require("../../systems/userSystem")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 const cards = getCards()
@@ -23,7 +23,7 @@ module.exports={
 
  async execute(interaction){
 
-  const user = getUser(interaction.user.id) // 🔥 NEW
+  const user = getUser(interaction.user.id)
 
   const shopData = getShop()
   const shop = shopData.cards
@@ -34,7 +34,7 @@ module.exports={
 
    if(!card) return `❌ Carte inconnue (ID:${c.card})`
 
-   /* 🔥 CHECK OWNERSHIP */
+   /* CHECK OWNERSHIP */
    const count = user.cards?.[c.card] || 0
    const icon = count > 0 ? "✅" : "❌"
 
@@ -45,6 +45,7 @@ module.exports={
   const embed = new EmbedBuilder()
    .setTitle("🛒 KrosmoShop du jour")
    .setDescription(lines.join("\n") || "Aucune carte.")
+   .setFooter({ text:`💰 Tes kamas : ${user.kamas || 0}` })
 
   const select = new StringSelectMenuBuilder()
    .setCustomId("krosmoshop_buy")
@@ -55,12 +56,12 @@ module.exports={
    const card = cards.find(card=>card.id==c.card)
    if(!card) return
 
-   /* 🔥 CHECK OWNERSHIP */
+   /* CHECK OWNERSHIP */
    const count = user.cards?.[c.card] || 0
    const icon = count > 0 ? "✅" : "❌"
 
    select.addOptions({
-    label: `${icon} ${card.name}`, // 🔥 ICON IN LABEL
+    label: `${icon} ${card.name}`,
     description: `${c.price} kamas`,
     value: String(c.card)
    })
@@ -80,7 +81,7 @@ module.exports={
 
   if(interaction.customId !== "krosmoshop_buy") return
 
-  // 🔥 FIX INTERACTION FAILED
+  // FIX INTERACTION FAILED
   await interaction.deferReply({ flags:64 })
 
   const cardId = parseInt(interaction.values[0])
@@ -90,7 +91,20 @@ module.exports={
   if(result?.error)
    return interaction.editReply(`❌ ${result.error}`)
 
-  await interaction.editReply("🛒 Achat effectué.")
+  /* -------- BUILD REPLY -------- */
+
+  const emoji = rarityEmoji[result.rarity] || "🎴"
+  const cardName = result.cardInfo?.name || `Carte #${cardId}`
+
+  let text = `🛒 Achat effectué ! ${emoji} **${cardName}** \`${result.rarity}\` • -${result.price} kamas`
+
+  /* -------- NOUVELLE CARTE -------- */
+
+  if(result.isNew){
+   text += `\n\n🔎 **Nouvelle découverte !** Tu ne possédais pas cette carte !`
+  }
+
+  await interaction.editReply(text)
 
   /* -------- ACHIEVEMENTS -------- */
 

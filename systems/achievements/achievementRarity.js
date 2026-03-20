@@ -90,7 +90,7 @@ shiny10:{
  condition:u=>u.stats?.shinySSR>=10
 },
 
-/* ================= KROSMOSHOP ================= */
+/* ================= KROSMOSHOP — ACHATS ================= */
 
 shopBuy1:{
  name:"Premier Achat",
@@ -110,6 +110,15 @@ shopBuy10:{
  condition:u=>u.krosmoshopStats?.cardsBought>=10
 },
 
+shopBuy50:{
+ name:"Accro au Shopping",
+ badge:"🛍️",
+ description:"Acheter 50 cartes au KrosmoShop.",
+ title:"Accro du Shop",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=50
+},
+
 shopBuy100:{
  name:"Marchand du Krosmoz",
  badge:"📦",
@@ -117,6 +126,15 @@ shopBuy100:{
  title:"Marchand du Krosmoz",
  trigger:"krosmoshop",
  condition:u=>u.krosmoshopStats?.cardsBought>=100
+},
+
+shopBuy500:{
+ name:"Fortune Dépensée",
+ badge:"💸",
+ description:"Acheter 500 cartes au KrosmoShop.",
+ title:"Millionnaire en Cartes",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.cardsBought>=500
 },
 
 shopBuy1000:{
@@ -128,6 +146,8 @@ shopBuy1000:{
  condition:u=>u.krosmoshopStats?.cardsBought>=1000
 },
 
+/* ================= KROSMOSHOP — SSR ================= */
+
 shopSSR:{
  name:"Client Premium",
  badge:"🌈",
@@ -137,6 +157,15 @@ shopSSR:{
  condition:u=>u.krosmoshopStats?.ssrBought>=1
 },
 
+shop5SSR:{
+ name:"Chasseur de SSR",
+ badge:"🎯",
+ description:"Acheter 5 SSR au KrosmoShop.",
+ title:"Chasseur Premium",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.ssrBought>=5
+},
+
 shop10SSR:{
  name:"Collectionneur Divin",
  badge:"✨",
@@ -144,6 +173,102 @@ shop10SSR:{
  title:"Collectionneur Divin",
  trigger:"krosmoshop",
  condition:u=>u.krosmoshopStats?.ssrBought>=10
+},
+
+shop25SSR:{
+ name:"Obsédé des SSR",
+ badge:"💎",
+ description:"Acheter 25 SSR au KrosmoShop.",
+ title:"Obsédé Premium",
+ trigger:"krosmoshop",
+ condition:u=>u.krosmoshopStats?.ssrBought>=25
+},
+
+/* ================= KROSMOSHOP — S ================= */
+
+shopS1:{
+ name:"Premier S au Shop",
+ badge:"✨",
+ description:"Acheter une carte S au KrosmoShop.",
+ title:"Amateur de S",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.sBought||0)>=1
+},
+
+shopS10:{
+ name:"Collectionneur S",
+ badge:"⭐",
+ description:"Acheter 10 cartes S au KrosmoShop.",
+ title:"Connaisseur de S",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.sBought||0)>=10
+},
+
+/* ================= KROSMOSHOP — KAMAS DÉPENSÉS ================= */
+
+shopSpend5000:{
+ name:"Petit Investisseur",
+ badge:"🪙",
+ description:"Dépenser 5 000 kamas au KrosmoShop.",
+ title:"Investisseur Prudent",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.kamasSpent||0)>=5000
+},
+
+shopSpend25000:{
+ name:"Gros Dépensier",
+ badge:"💰",
+ description:"Dépenser 25 000 kamas au KrosmoShop.",
+ title:"Dépensier du Krosmoz",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.kamasSpent||0)>=25000
+},
+
+shopSpend100000:{
+ name:"Ruiné au Shop",
+ badge:"💸",
+ description:"Dépenser 100 000 kamas au KrosmoShop.",
+ title:"Ruiné avec Style",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.kamasSpent||0)>=100000
+},
+
+shopSpend500000:{
+ name:"Fortune Engloutie",
+ badge:"🏦",
+ description:"Dépenser 500 000 kamas au KrosmoShop.",
+ title:"Banquier du Krosmoz",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.kamasSpent||0)>=500000
+},
+
+/* ================= KROSMOSHOP — JOURS DISTINCTS ================= */
+
+shopDays7:{
+ name:"Client Régulier",
+ badge:"📅",
+ description:"Acheter au KrosmoShop 7 jours différents.",
+ title:"Habitué du Shop",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.daysVisited||0)>=7
+},
+
+shopDays30:{
+ name:"Client Mensuel",
+ badge:"🗓️",
+ description:"Acheter au KrosmoShop 30 jours différents.",
+ title:"Abonné du Shop",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.daysVisited||0)>=30
+},
+
+shopDays100:{
+ name:"Centenaire du Shop",
+ badge:"🏪",
+ description:"Acheter au KrosmoShop 100 jours différents.",
+ title:"Légende du KrosmoShop",
+ trigger:"krosmoshop",
+ condition:u=>(u.krosmoshopStats?.daysVisited||0)>=100
 },
 
 }

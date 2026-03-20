@@ -177,13 +177,27 @@ module.exports = {
     user.stats.jackpotFeca = (user.stats.jackpotFeca || 0) + 1
    }
 
+   /* ================= INIT CARDS ================= */
+
+   if(!user.cards) user.cards = {}
+
+   /* ================= DISCOVERED TRACKING ================= */
+
+   const discovered = []
+
    /* ================= SRAM ================= */
 
    if(event.key === "sram"){
 
     for(const card of pack){
-     if(card?.id)
-      user.cards[card.id] = (user.cards[card.id] || 0) + 1
+     if(!card?.id) continue
+
+     /* CHECK NEW avant d'ajouter */
+     if(!user.cards[card.id] || user.cards[card.id] === 0){
+      discovered.push(card)
+     }
+
+     user.cards[card.id] = (user.cards[card.id] || 0) + 1
     }
 
     let revealed=[]
@@ -217,6 +231,15 @@ module.exports = {
     const unlocked = achievementCheck(user, "event")
     save()
 
+    /* NOTIFICATION NOUVELLES CARTES (même pour Sram) */
+    if(discovered.length){
+     const lines = discovered.map(c => `🔎 **${c.name}**`)
+     await interaction.followUp({
+      content:`Nouvelle découverte !\n${lines.join("\n")}`,
+      flags:64
+     })
+    }
+
     if(unlocked.length)
      await notifyAchievements(interaction, unlocked)
 
@@ -230,6 +253,11 @@ module.exports = {
    for(const card of pack){
 
     if(!card || !card.id) continue
+
+    /* CHECK NEW avant d'ajouter */
+    if(!user.cards[card.id] || user.cards[card.id] === 0){
+     discovered.push(card)
+    }
 
     user.cards[card.id]=(user.cards[card.id]||0)+1
 
@@ -315,6 +343,8 @@ module.exports = {
     rp += `\n💰 JACKPOT !`
    }
 
+   /* ===== UX EVENT ===== */
+
    if(meta.ux?.length){
     rp += "\n\n✨ Effet de l'événement :\n" + meta.ux.join("\n")
    }
@@ -364,6 +394,16 @@ module.exports = {
       `## ${event.name}\n> ***${line.trim().toUpperCase()}***`
      )
     }
+   }
+
+   /* ================= NOUVELLES DÉCOUVERTES ================= */
+
+   if(discovered.length){
+    const lines = discovered.map(c => `🔎 **${c.name}**`)
+    await interaction.followUp({
+     content:`Nouvelle découverte !\n${lines.join("\n")}`,
+     flags:64
+    })
    }
 
    /* ================= ACHIEVEMENTS ================= */
