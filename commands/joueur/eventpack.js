@@ -57,10 +57,12 @@ module.exports = {
     ]
    })
 
+   /* ================= PACK ================= */
+
    let pack=[], meta={}
 
    try {
-    const result = generateEventPack(user,event)
+    const result = generateEventPack(user, event)
 
     pack = result?.pack || []
     meta = result?.meta || {}
@@ -73,6 +75,8 @@ module.exports = {
    if(!Array.isArray(pack) || pack.length === 0){
     return interaction.editReply("❌ Pack invalide.")
    }
+
+   /* ================= REWARDS ================= */
 
    let kamas=0, xp=0, jackpotMessage=null
 
@@ -97,9 +101,15 @@ module.exports = {
 
    if(event.key === "sram"){
 
-    let revealed=[]
+    // Fix : donner les cartes au joueur avant l'animation
+    for(const card of pack){
+     if(card?.id)
+      user.cards[card.id] = (user.cards[card.id] || 0) + 1
+    }
 
-    for(let i=0;i<pack.length;i++){
+    let revealed = []
+
+    for(let i=0; i<pack.length; i++){
 
      revealed.push("❓ ???")
 
@@ -122,6 +132,12 @@ module.exports = {
       new EmbedBuilder()
        .setTitle(`🕶️ ${event.name}`)
        .setDescription("❓ Les cartes restent inconnues...")
+       .addFields(
+        {name:"💰 Kamas",value:`+${kamas}`,inline:true},
+        {name:"⭐ XP",value:`+${xp}`,inline:true},
+        {name:"🎟️ Tickets",value:`${user.event.tickets-user.event.used}/${user.event.tickets}`,inline:true}
+       )
+       .setColor("#2c3e50")
      ]
     })
 
@@ -137,7 +153,7 @@ module.exports = {
 
     if(!card || !card.id) continue
 
-    user.cards[card.id]=(user.cards[card.id]||0)+1
+    user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
     let line = `${RARITY_EMOJI[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
 
@@ -225,6 +241,8 @@ module.exports = {
     rp += "\n\n✨ Effet de l'événement :\n" + meta.ux.join("\n")
    }
 
+   /* ================= FINAL ================= */
+
    const description = (
     "✨ Une énergie étrange se dissipe...\n\n" +
     revealed.join("\n") +
@@ -244,6 +262,8 @@ module.exports = {
       .setColor("#f1c40f")
     ]
    })
+
+   /* ================= VOICE LINE ================= */
 
    const hasSSR = pack.some(c => c.rarity === "SSR")
    const hasS = pack.some(c => c.rarity === "S")

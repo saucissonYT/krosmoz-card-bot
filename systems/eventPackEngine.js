@@ -2,23 +2,50 @@ const { generatePack } = require("./pack")
 const handlers = require("./eventHandlerRegistry")
 const { getEvent } = require("./eventSystem")
 
+/* ---------------- LIMIT SSR ---------------- */
+// 1 SSR max par pack (sauf allowMultiSSR)
+// SSR en excès → dégradées en S
+// S en excès (> 2 au total) → dégradées en UR
+
 function limitSSR(pack){
- let found=false
- return pack.map(c=>{
-  if(c.rarity==="SSR"){
-   if(found){
-    return c
-   }
-   found=true
+
+ // Passe 1 : garder 1 SSR max, les autres → S
+ let ssrCount = 0
+
+ const pass1 = pack.map(c => {
+
+  if(c.rarity === "SSR"){
+
+   if(ssrCount >= 1)
+    return { ...c, rarity: "S" }
+
+   ssrCount++
   }
+
+  return c
+ })
+
+ // Passe 2 : garder 2 S max (natives + dégradées), les autres → UR
+ let sKept = 0
+
+ return pass1.map(c => {
+
+  if(c.rarity === "S"){
+
+   if(sKept >= 2)
+    return { ...c, rarity: "UR" }
+
+   sKept++
+  }
+
   return c
  })
 }
 
+/* ---------------- GENERATE EVENT PACK ---------------- */
+
 function generateEventPack(user, event){
 
- // Fix : récupération du setId depuis le pity du user
- // on prend le premier set disponible dans son pity
  let setId = user.lastSet
 
  if(!setId && user.pity){

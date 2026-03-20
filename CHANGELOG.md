@@ -9,6 +9,23 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+[0.22.0] - 2026-03-20
+
+### Fixed
+
+- Correction du crash critique à l'ouverture de pack (`TypeError: Cannot read properties of undefined (reading 'C')`) — `RARITY_COLOR` importé dans `krosmoz.js` mais absent de `constants.js`
+
+### Improved
+
+- `systems/constants.js` → ajout de `RARITY_COLOR` et export
+- `systems/market.js` → suppression du `rarityOrder` local inutilisé
+- `commands/joueur/sellduplicate.js` → `rarityEmoji` + `sellValues` hardcodés remplacés par `RARITY_EMOJI` + `SELL_PRICE` depuis `constants.js`
+- `commands/joueur/inventaire.js` → `rarityEmoji` + `rarityOrder` hardcodés remplacés par `RARITY_EMOJI` + `RARITY_ORDER` depuis `constants.js`
+- `commands/joueur/market.js` → `rarityEmoji` hardcodé remplacé par `RARITY_EMOJI` depuis `constants.js`
+- Centralisation des constantes de rareté terminée sur l'ensemble du projet
+
+---
+
 [0.21.0] - 2026-03-20
 
 ### Added
