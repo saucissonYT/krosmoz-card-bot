@@ -17,17 +17,19 @@ const {
  getAveragePrices
 } = require("../../systems/market")
 
+/*
+ * FIX: getCards() appelé dynamiquement dans chaque fonction
+ * au lieu d'un snapshot statique au top-level.
+ */
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const cards = getCards()
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
+/*
+ * FIX: rarityEmoji hardcodé remplacé par RARITY_EMOJI depuis constants.js
+ */
+const { RARITY_EMOJI } = require("../../systems/constants")
 
 const marketState={}
 const PAGE_SIZE=10
@@ -148,6 +150,9 @@ module.exports={
 
   if(interaction.customId==="market_my"){
 
+   /* Lecture dynamique des cartes */
+   const cards = getCards()
+
    const listings=getUserListings(userId)
 
    if(listings.length===0)
@@ -159,7 +164,7 @@ module.exports={
 
    const lines=listings.map(l=>{
     const card=cards.find(c=>c.id==l.card)
-    return `ID:${l.id} • ${rarityEmoji[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas`
+    return `ID:${l.id} • ${RARITY_EMOJI[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas`
    })
 
    const embed=new EmbedBuilder()
@@ -214,6 +219,9 @@ module.exports={
   const userId=interaction.user.id
   const state=marketState[userId]
 
+  /* Lecture dynamique des cartes */
+  const cards = getCards()
+
   let market=getMarket()
   const averages=getAveragePrices()
 
@@ -225,7 +233,7 @@ module.exports={
   const lines=slice.map(l=>{
    const card=cards.find(c=>c.id==l.card)
    const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}` : ""
-   return `ID:${l.id} • ${rarityEmoji[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas${avg}`
+   return `ID:${l.id} • ${RARITY_EMOJI[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas${avg}`
   })
 
   const embed=new EmbedBuilder()

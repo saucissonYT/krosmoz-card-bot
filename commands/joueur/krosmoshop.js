@@ -9,12 +9,10 @@ const { getCards } = require("../../systems/cardRegistry")
 const { getUser } = require("../../systems/userSystem")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const cards = getCards()
-
-const rarityEmoji={
- C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
- HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
-}
+/*
+ * FIX: rarityEmoji hardcodé remplacé par RARITY_EMOJI depuis constants.js
+ */
+const { RARITY_EMOJI } = require("../../systems/constants")
 
 module.exports={
 
@@ -22,6 +20,9 @@ module.exports={
  description:"Shop quotidien",
 
  async execute(interaction){
+
+  /* Lecture dynamique des cartes */
+  const cards = getCards()
 
   const user = getUser(interaction.user.id)
 
@@ -38,7 +39,7 @@ module.exports={
    const count = user.cards?.[c.card] || 0
    const icon = count > 0 ? "✅" : "❌"
 
-   return `${icon} ${rarityEmoji[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
+   return `${icon} ${RARITY_EMOJI[c.rarity]} ${card.name} • ${c.price} kamas • ID:${c.card}`
 
   })
 
@@ -93,7 +94,7 @@ module.exports={
 
   /* -------- BUILD REPLY -------- */
 
-  const emoji = rarityEmoji[result.rarity] || "🎴"
+  const emoji = RARITY_EMOJI[result.rarity] || "🎴"
   const cardName = result.cardInfo?.name || `Carte #${cardId}`
 
   let text = `🛒 Achat effectué ! ${emoji} **${cardName}** \`${result.rarity}\` • -${result.price} kamas`

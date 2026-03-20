@@ -1,350 +1,202 @@
-const {
- EmbedBuilder,
- ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle,
- ModalBuilder,
- TextInputBuilder,
- TextInputStyle
-} = require("discord.js")
+const { data, save } = require("./dataManager")
+const { getUser } = require("./userSystem")
+const { getCardsById } = require("./cardRegistry")
 
-const {
- getMarket,
- buyCard,
- addListing,
- getUserListings,
- removeListing,
- getAveragePrices
-} = require("../../systems/market")
+/* ---------------- INIT MARKET ---------------- */
 
-const { getCards } = require("../../systems/cardRegistry")
-const { getUser, save } = require("../../systems/userSystem")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
+if(!data.market) data.market=[]
+if(!data.marketHistory) data.marketHistory=[]
 
-/*
- * FIX: rarityEmoji hardcodé remplacé par RARITY_EMOJI depuis constants.js
- */
-const { RARITY_EMOJI } = require("../../systems/constants")
+/* ---------------- ID ---------------- */
 
-const marketState={}
-const PAGE_SIZE=10
+function generateId(){
+ return Date.now() + Math.floor(Math.random()*1000)
+}
 
-module.exports={
+/* ---------------- AVERAGES ---------------- */
 
- name:"market",
+function getAveragePrices(){
 
- async execute(interaction){
+ const prices={}
 
-  const userId=interaction.user.id
-
-  marketState[userId]={ page:0 }
-
-  const embed=new EmbedBuilder()
-   .setTitle("🛒 Marché")
-   .setDescription(`Que veux-tu faire ?
-
-🛍️ Acheter une carte  
-📦 Voir mes ventes  
-💰 Vendre une carte`)
-
-  const row=new ActionRowBuilder().addComponents(
-
-   new ButtonBuilder()
-    .setCustomId("market_buy")
-    .setLabel("Acheter")
-    .setStyle(ButtonStyle.Success),
-
-   new ButtonBuilder()
-    .setCustomId("market_my")
-    .setLabel("Mes ventes")
-    .setStyle(ButtonStyle.Primary),
-
-   new ButtonBuilder()
-    .setCustomId("market_sell")
-    .setLabel("Vendre")
-    .setStyle(ButtonStyle.Danger)
-
-  )
-
-  await interaction.reply({
-   embeds:[embed],
-   components:[row]
-  })
-
- },
-
- async button(interaction){
-
-  const userId=interaction.user.id
-
-  if(!marketState[userId])
-   return interaction.reply({
-    content:"❌ Menu expiré.",
-    flags:64
-   })
-
-  const state=marketState[userId]
-
-  if(interaction.customId==="market_buy"){
-   state.page=0
-   return this.renderMarket(interaction)
-  }
-
-  if(interaction.customId==="market_next"){
-   state.page++
-   return this.renderMarket(interaction)
-  }
-
-  if(interaction.customId==="market_prev"){
-   if(state.page>0) state.page--
-   return this.renderMarket(interaction)
-  }
-
-  if(interaction.customId==="market_buy_modal"){
-
-   const modal=new ModalBuilder()
-    .setCustomId("marketBuyModal")
-    .setTitle("Acheter une carte")
-
-   const input=new TextInputBuilder()
-    .setCustomId("listingId")
-    .setLabel("ID du listing")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   modal.addComponents(new ActionRowBuilder().addComponents(input))
-
-   return interaction.showModal(modal)
-  }
-
-  if(interaction.customId==="market_sell"){
-
-   const modal=new ModalBuilder()
-    .setCustomId("marketSellModal")
-    .setTitle("Vendre une carte")
-
-   const cardInput=new TextInputBuilder()
-    .setCustomId("cardId")
-    .setLabel("ID de la carte (visible dans /inventaire)")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   const priceInput=new TextInputBuilder()
-    .setCustomId("price")
-    .setLabel("Prix en kamas")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   modal.addComponents(
-    new ActionRowBuilder().addComponents(cardInput),
-    new ActionRowBuilder().addComponents(priceInput)
-   )
-
-   return interaction.showModal(modal)
-  }
-
-  if(interaction.customId==="market_my"){
-
-   /* Lecture dynamique des cartes */
-   const cards = getCards()
-
-   const listings=getUserListings(userId)
-
-   if(listings.length===0)
-    return interaction.update({
-     content:"Tu n'as aucune vente active.",
-     embeds:[],
-     components:[]
-    })
-
-   const lines=listings.map(l=>{
-    const card=cards.find(c=>c.id==l.card)
-    return `ID:${l.id} • ${RARITY_EMOJI[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas`
-   })
-
-   const embed=new EmbedBuilder()
-    .setTitle("📦 Mes ventes")
-    .setDescription(lines.join("\n"))
-
-   const row=new ActionRowBuilder().addComponents(
-
-    new ButtonBuilder()
-     .setCustomId("market_remove_modal")
-     .setLabel("Retirer une vente")
-     .setStyle(ButtonStyle.Danger),
-
-    new ButtonBuilder()
-     .setCustomId("market_back")
-     .setLabel("Retour")
-     .setStyle(ButtonStyle.Secondary)
-
-   )
-
-   return interaction.update({
-    embeds:[embed],
-    components:[row]
-   })
-  }
-
-  if(interaction.customId==="market_remove_modal"){
-
-   const modal=new ModalBuilder()
-    .setCustomId("marketRemoveModal")
-    .setTitle("Retirer une vente")
-
-   const input=new TextInputBuilder()
-    .setCustomId("listingId")
-    .setLabel("ID du listing")
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-
-   modal.addComponents(new ActionRowBuilder().addComponents(input))
-
-   return interaction.showModal(modal)
-  }
-
-  if(interaction.customId==="market_back"){
-   return this.execute(interaction)
-  }
-
- },
-
- async renderMarket(interaction){
-
-  const userId=interaction.user.id
-  const state=marketState[userId]
-
-  /* Lecture dynamique des cartes */
-  const cards = getCards()
-
-  let market=getMarket()
-  const averages=getAveragePrices()
-
-  market.sort((a,b)=>a.price-b.price)
-
-  const start=state.page*PAGE_SIZE
-  const slice=market.slice(start,start+PAGE_SIZE)
-
-  const lines=slice.map(l=>{
-   const card=cards.find(c=>c.id==l.card)
-   const avg=averages[l.card] ? ` • 📊 ${averages[l.card]}` : ""
-   return `ID:${l.id} • ${RARITY_EMOJI[card?.rarity||"C"]} ${card?.name||"?"} • ${l.price} kamas${avg}`
-  })
-
-  const embed=new EmbedBuilder()
-   .setTitle(`🛒 Marché`)
-   .setDescription(lines.join("\n")||"Aucun résultat.")
-
-  const row1=new ActionRowBuilder().addComponents(
-
-   new ButtonBuilder()
-    .setCustomId("market_prev")
-    .setEmoji("⬅")
-    .setStyle(ButtonStyle.Secondary),
-
-   new ButtonBuilder()
-    .setCustomId("market_next")
-    .setEmoji("➡")
-    .setStyle(ButtonStyle.Secondary)
-
-  )
-
-  const row2=new ActionRowBuilder().addComponents(
-
-   new ButtonBuilder()
-    .setCustomId("market_buy_modal")
-    .setLabel("Acheter ID")
-    .setStyle(ButtonStyle.Success),
-
-   new ButtonBuilder()
-    .setCustomId("market_back")
-    .setLabel("Retour")
-    .setStyle(ButtonStyle.Secondary)
-
-  )
-
-  const payload={embeds:[embed],components:[row1,row2]}
-
-  if(interaction.isButton())
-   return interaction.update(payload)
-
-  return interaction.editReply(payload)
-
- },
-
- async modal(interaction){
-
-  /* ---------- BUY ---------- */
-
-  if(interaction.customId==="marketBuyModal"){
-
-   const listingId=parseInt(interaction.fields.getTextInputValue("listingId"))
-
-   const result=buyCard(interaction.user.id,listingId)
-
-   if(result?.error)
-    return interaction.reply({content:`❌ ${result.error}`,flags:64})
-
-   /* ---- ACHIEVEMENTS APRÈS ACHAT ---- */
-   const user = getUser(interaction.user.id)
-   const unlocked = [
-    ...achievementCheck(user,"economy"),
-    ...achievementCheck(user,"collection"),
-    ...achievementCheck(user,"pack")
-   ]
-
-   await interaction.reply({content:"✅ Carte achetée.",flags:64})
-
-   if(unlocked.length)
-    await notifyAchievements(interaction,unlocked)
-
-   return
-  }
-
-  /* ---------- SELL ---------- */
-
-  if(interaction.customId==="marketSellModal"){
-
-   await interaction.deferReply({flags:64})
-
-   const cardId=parseInt(interaction.fields.getTextInputValue("cardId"))
-   const price=parseInt(interaction.fields.getTextInputValue("price"))
-
-   if(isNaN(cardId) || isNaN(price))
-    return interaction.editReply("❌ ID ou prix invalide.")
-
-   const result=addListing(interaction.user.id,cardId,price)
-
-   if(result?.error)
-    return interaction.editReply(`❌ ${result.error}`)
-
-   /* ---- ACHIEVEMENTS APRÈS VENTE ---- */
-   const user = getUser(interaction.user.id)
-   const unlocked = achievementCheck(user,"economy")
-
-   await interaction.editReply({content:"🛒 Carte mise en vente."})
-
-   if(unlocked.length)
-    await notifyAchievements(interaction,unlocked)
-
-   return
-  }
-
-  /* ---------- REMOVE ---------- */
-
-  if(interaction.customId==="marketRemoveModal"){
-
-   const listingId=parseInt(interaction.fields.getTextInputValue("listingId"))
-
-   const result=removeListing(interaction.user.id,listingId)
-
-   if(result?.error)
-    return interaction.reply({content:`❌ ${result.error}`,flags:64})
-
-   return interaction.reply({content:"📦 Vente retirée.",flags:64})
-  }
-
+ for(const sale of data.marketHistory){
+  if(!prices[sale.card]) prices[sale.card]=[]
+  prices[sale.card].push(sale.price)
  }
 
+ const averages={}
+
+ for(const card in prices){
+  const list=prices[card]
+  const sum=list.reduce((a,b)=>a+b,0)
+  averages[card]=Math.floor(sum/list.length)
+ }
+
+ return averages
+}
+
+/* ---------------- ADD LISTING ---------------- */
+
+function addListing(sellerId, cardId, price){
+
+ const market = data.market
+ const seller = getUser(sellerId)
+
+ if(!sellerId || !cardId || !price)
+  return {error:"Paramètres invalides"}
+
+ if(!seller)
+  return {error:"Utilisateur introuvable"}
+
+ if(!seller.cards || !seller.cards[cardId] || seller.cards[cardId] <= 0)
+  return {error:"Tu ne possèdes pas cette carte"}
+
+ if(price <= 0)
+  return {error:"Prix invalide"}
+
+ const averages = getAveragePrices()
+
+ if(averages[cardId]){
+  const avg = averages[cardId]
+  const minPrice = Math.floor(avg*0.25)
+  const maxPrice = Math.floor(avg*4)
+
+  if(price < minPrice)
+   return {error:`Prix trop bas (min ${minPrice})`}
+
+  if(price > maxPrice)
+   return {error:`Prix trop élevé (max ${maxPrice})`}
+ }
+
+ const id = generateId()
+
+ const listing = {
+  id,
+  seller: sellerId,
+  card: cardId,
+  price,
+  timestamp: Date.now()
+ }
+
+ seller.cards[cardId]--
+
+ if(seller.cards[cardId] <= 0)
+  delete seller.cards[cardId]
+
+ if(!seller.stats) seller.stats = {}
+ seller.stats.cardsSold = (seller.stats.cardsSold || 0) + 1
+
+ /* ---- TRACKING ACHIEVEMENT MARKET SSR ---- */
+
+ const cardsById = getCardsById()
+ const card = cardsById[String(cardId)]
+
+ if(card?.rarity === "SSR"){
+  seller.stats.marketSSRListed = (seller.stats.marketSSRListed || 0) + 1
+ }
+
+ market.push(listing)
+ save()
+
+ return listing
+}
+
+/* ---------------- BUY ---------------- */
+
+function buyCard(buyerId, listingId){
+
+ const market = data.market
+
+ const listing = market.find(l=>l.id===listingId)
+ if(!listing)
+  return {error:"Annonce introuvable"}
+
+ if(listing.seller === buyerId)
+  return {error:"Tu ne peux pas acheter ta propre carte"}
+
+ const seller = getUser(listing.seller)
+ const buyer = getUser(buyerId)
+
+ if(!seller || !buyer)
+  return {error:"Utilisateur introuvable"}
+
+ if(buyer.kamas < listing.price)
+  return {error:"Kamas insuffisants"}
+
+ const tax = Math.floor(listing.price * 0.05)
+
+ buyer.kamas -= listing.price
+ seller.kamas += listing.price - tax
+
+ if(!buyer.cards) buyer.cards = {}
+ if(!buyer.stats) buyer.stats = {}
+ if(!seller.stats) seller.stats = {}
+
+ buyer.cards[listing.card] = (buyer.cards[listing.card] || 0) + 1
+
+ /* ---- TRACKING ACHIEVEMENT MARKET BOUGHT ---- */
+ buyer.stats.cardsBought = (buyer.stats.cardsBought || 0) + 1
+ buyer.stats.marketBought = (buyer.stats.marketBought || 0) + 1
+
+ data.market = market.filter(l=>l.id!==listingId)
+
+ data.marketHistory.push({
+  card: listing.card,
+  price: listing.price,
+  seller: listing.seller,
+  buyer: buyerId,
+  timestamp: Date.now()
+ })
+
+ if(data.marketHistory.length > 5000)
+  data.marketHistory.shift()
+
+ save()
+
+ return {success:true}
+}
+
+/* ---------------- REMOVE ---------------- */
+
+function removeListing(userId, listingId){
+
+ const market = data.market
+
+ const listing = market.find(l=>l.id===listingId)
+ if(!listing)
+  return {error:"Annonce introuvable"}
+
+ if(listing.seller !== userId)
+  return {error:"Cette annonce ne t'appartient pas"}
+
+ const user = getUser(userId)
+
+ if(!user.cards) user.cards = {}
+
+ user.cards[listing.card] = (user.cards[listing.card] || 0) + 1
+
+ data.market = market.filter(l=>l.id!==listingId)
+
+ save()
+
+ return {success:true}
+}
+
+/* ---------------- GET ---------------- */
+
+function getMarket(){
+ return data.market || []
+}
+
+function getUserListings(userId){
+ return (data.market||[]).filter(l=>l.seller === userId)
+}
+
+module.exports = {
+ addListing,
+ buyCard,
+ getMarket,
+ removeListing,
+ getUserListings,
+ getAveragePrices
 }
