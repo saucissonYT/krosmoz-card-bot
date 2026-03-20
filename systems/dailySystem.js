@@ -39,7 +39,7 @@ function canClaim(user){
 
 /* ---------------- CLAIM DAILY ---------------- */
 
-async function claimDaily(interaction,user){
+async function claimDaily(interaction, user){
 
  const now = Date.now()
 
@@ -64,11 +64,17 @@ async function claimDaily(interaction,user){
 
  user.stats.dailyClaims++
 
- let reward=null
+ /* ---------------- DOUBLE DAILY 10% ---------------- */
+
+ // SSR streak non doublée — donner 2 SSR n'a pas de sens
+ const isStreakSSR = user.daily.streak >= 7
+ const doubleReward = !isStreakSSR && Math.random() < 0.10
+
+ let reward = null
 
  /* ---------------- SSR STREAK ---------------- */
 
- if(user.daily.streak >= 7){
+ if(isStreakSSR){
 
   const card = giveSSR(user)
 
@@ -87,7 +93,9 @@ async function claimDaily(interaction,user){
 
   if(Math.random() < 0.5){
 
-   const packs = 1
+   let packs = 1
+
+   if(doubleReward) packs *= 2
 
    user.packs = (user.packs || 0) + packs
 
@@ -96,11 +104,11 @@ async function claimDaily(interaction,user){
     value:packs
    }
 
-  }
+  }else{
 
-  else{
+   let kamas = 200
 
-   const kamas = 200
+   if(doubleReward) kamas *= 2
 
    user.kamas = (user.kamas || 0) + kamas
 
@@ -115,7 +123,7 @@ async function claimDaily(interaction,user){
 
  /* ---------------- STREAK BAR ---------------- */
 
- const streak = Math.max(0,Math.min(user.daily.streak,7))
+ const streak = Math.max(0, Math.min(user.daily.streak, 7))
 
  const filled = "🟩".repeat(streak)
  const empty = "⬛".repeat(7-streak)
@@ -126,9 +134,9 @@ async function claimDaily(interaction,user){
 
  return{
   reward,
-  streak:user.daily.streak,
+  streak: user.daily.streak,
   streakBar,
-  doubleReward:false
+  doubleReward
  }
 
 }

@@ -1,11 +1,22 @@
 const fs = require("fs")
 
-const { data, save } = require("../../systems/dataManager")
+const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
+const { resetRegistry } = require("../../systems/cardRegistry")
 
 module.exports={
 
  name:"removecard",
+ description:"Supprimer une ou plusieurs cartes",
+
+ options:[
+  {
+   name:"ids",
+   description:"ID(s) des cartes à supprimer (séparés par des virgules)",
+   type:3,
+   required:true
+  }
+ ],
 
  async execute(interaction){
 
@@ -28,21 +39,28 @@ module.exports={
    return interaction.reply("Aucun ID valide.")
 
   let removed=[]
+  let notFound=[]
 
   for(const id of ids){
 
    const index=cards.findIndex(c=>Number(c.id)===id)
 
-   if(index===-1) continue
+   if(index===-1){
+    notFound.push(id)
+    continue
+   }
 
    const card=cards[index]
 
-   const imagePath=`./cards/images/${card.set}/${card.image}`
+   // Fix : chemin image correct avec le dossier set
+   const imagePath=`${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
 
    try{
     if(fs.existsSync(imagePath))
      fs.unlinkSync(imagePath)
-   }catch{}
+   }catch(err){
+    console.error(`Erreur suppression image ${imagePath}:`, err)
+   }
 
    cards.splice(index,1)
 
@@ -52,11 +70,20 @@ module.exports={
 
   data.cards = cards
   save()
+  resetRegistry()
 
-  if(removed.length===0)
-   return interaction.reply("Aucune carte supprimée.")
+  let reply = ""
 
-  interaction.reply(`Cartes supprimées : ${removed.join(", ")}`)
+  if(removed.length)
+   reply += `✅ Cartes supprimées : ${removed.join(", ")}`
+
+  if(notFound.length)
+   reply += `\n❌ IDs introuvables : ${notFound.join(", ")}`
+
+  if(!reply)
+   reply = "Aucune carte supprimée."
+
+  interaction.reply(reply.trim())
 
  }
 

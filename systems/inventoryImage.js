@@ -1,7 +1,8 @@
 const { createCanvas, loadImage } = require("canvas")
-const { data } = require("../systems/dataManager")
-const cards = data.cards || []
+const { data } = require("./dataManager")
 const fs = require("fs")
+
+const cards = data.cards || []
 
 async function generateInventory(cardsOwned){
 

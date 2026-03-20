@@ -1,14 +1,9 @@
 const fs = require("fs")
 const path = require("path")
 
-const cardsPath = path.join(__dirname, "../cards/cards.json")
+const { data, USERS_DIR, CARDS_IMAGES_DIR } = require("./dataManager")
+
 const setsPath = path.join(__dirname, "../cards/sets.json")
-
-const usersPath = process.env.RAILWAY
- ? "/data/users.json"
- : path.join(__dirname, "../database/users.json")
-
-const imagesDir = path.join(__dirname, "../cards/images")
 
 function progressBar(percent){
 
@@ -27,6 +22,8 @@ function progressBar(percent){
 function scanImages(dir){
 
  const results = []
+
+ if(!fs.existsSync(dir)) return results
 
  const items = fs.readdirSync(dir)
 
@@ -57,7 +54,7 @@ function scanImages(dir){
 
 /* ---------------- FULL AUDIT ---------------- */
 
-async function runFullAudit(client,updateProgress){
+async function runFullAudit(client, updateProgress){
 
  const result={
   commands:[],
@@ -110,8 +107,8 @@ async function runFullAudit(client,updateProgress){
 
  try{
 
-  const raw = JSON.parse(fs.readFileSync(cardsPath))
-  const cards = raw.cards || raw
+  // Fix : on lit les cartes depuis le dataManager, pas depuis cards/cards.json
+  const cards = data.cards || []
 
   const ids = new Set()
 
@@ -134,11 +131,12 @@ async function runFullAudit(client,updateProgress){
   }
 
   if(result.cards.length===0)
-   result.cards.push("✅ cartes valides")
+   result.cards.push(`✅ ${cards.length} cartes valides`)
 
- }catch{
+ }catch(err){
 
-  result.cards.push("❌ erreur lecture cards.json")
+  result.cards.push("❌ erreur lecture cards")
+  console.error(err)
 
  }
 
@@ -148,27 +146,25 @@ async function runFullAudit(client,updateProgress){
 
  try{
 
+  const cards = data.cards || []
   const sets = JSON.parse(fs.readFileSync(setsPath))
-  const cards = JSON.parse(fs.readFileSync(cardsPath)).cards
-
-  const setNames = sets.map(s=>s.id || s.name)
+  const setIds = sets.map(s => s.id || s.name)
 
   for(const card of cards){
 
-   if(!setNames.includes(card.set)){
-
-    result.sets.push(`❌ carte ${card.id} set invalide`)
-
+   if(!setIds.includes(card.set)){
+    result.sets.push(`❌ carte ${card.id} set invalide : ${card.set}`)
    }
 
   }
 
   if(result.sets.length===0)
-   result.sets.push("✅ sets valides")
+   result.sets.push(`✅ sets valides`)
 
- }catch{
+ }catch(err){
 
   result.sets.push("❌ erreur lecture sets.json")
+  console.error(err)
 
  }
 
@@ -178,10 +174,8 @@ async function runFullAudit(client,updateProgress){
 
  try{
 
-  const cards = JSON.parse(fs.readFileSync(cardsPath)).cards
-
-  const allImages = scanImages(imagesDir)
-
+  const cards = data.cards || []
+  const allImages = scanImages(CARDS_IMAGES_DIR)
   const imageNames = new Set(allImages.map(i=>i.name))
 
   let missing=[]
@@ -191,11 +185,14 @@ async function runFullAudit(client,updateProgress){
 
    const img = card.image
 
-   if(!imageNames.has(img)){
+   if(!img){
+    missing.push(`carte ${card.id} sans image`)
+    continue
+   }
 
+   if(!imageNames.has(img)){
     missing.push(img)
     continue
-
    }
 
    const found = allImages.find(i=>i.name===img)
@@ -204,10 +201,8 @@ async function runFullAudit(client,updateProgress){
 
     const folder = path.basename(path.dirname(found.path))
 
-    if(card.set && folder!==card.set){
-
+    if(card.set && folder !== card.set){
      wrongFolder.push(`${img} dans ${folder} mais set ${card.set}`)
-
     }
 
    }
@@ -240,9 +235,10 @@ async function runFullAudit(client,updateProgress){
 
   }
 
- }catch{
+ }catch(err){
 
   result.images.push("❌ erreur images")
+  console.error(err)
 
  }
 
@@ -252,28 +248,48 @@ async function runFullAudit(client,updateProgress){
 
  try{
 
-  const users = JSON.parse(fs.readFileSync(usersPath))
+  // Fix : les users sont maintenant dans des fichiers individuels dans USERS_DIR
+  if(!fs.existsSync(USERS_DIR)){
 
-  let problems=0
+   result.users.push("❌ dossier users introuvable")
 
-  for(const id in users){
+  }else{
 
-   const u = users[id]
+   const files = fs.readdirSync(USERS_DIR).filter(f => f.endsWith(".json"))
 
-   if(!u.cards) problems++
-   if(u.kamas===undefined) problems++
-   if(!u.pity) problems++
+   let problems = 0
+   let total = files.length
+
+   for(const file of files){
+
+    try{
+
+     const raw = fs.readFileSync(path.join(USERS_DIR, file), "utf8")
+     const u = JSON.parse(raw)
+
+     if(!u.cards) problems++
+     if(u.kamas === undefined) problems++
+     if(!u.pity) problems++
+
+    }catch{
+
+     problems++
+
+    }
+
+   }
+
+   if(problems===0)
+    result.users.push(`✅ ${total} users valides`)
+   else
+    result.users.push(`❌ ${problems} problèmes sur ${total} users`)
 
   }
 
-  if(problems===0)
-   result.users.push("✅ users.json valide")
-  else
-   result.users.push(`❌ ${problems} problèmes users`)
+ }catch(err){
 
- }catch{
-
-  result.users.push("❌ erreur users.json")
+  result.users.push("❌ erreur lecture users")
+  console.error(err)
 
  }
 

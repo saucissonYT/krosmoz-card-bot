@@ -1,12 +1,13 @@
-const { generatePack } = require("./packEngine")
+const { generatePack } = require("./pack")
 const handlers = require("./eventHandlerRegistry")
+const { getEvent } = require("./eventSystem")
 
 function limitSSR(pack){
  let found=false
  return pack.map(c=>{
   if(c.rarity==="SSR"){
    if(found){
-    return c // ou downgrade
+    return c
    }
    found=true
   }
@@ -14,9 +15,30 @@ function limitSSR(pack){
  })
 }
 
-function generateEventPack(user,event){
+function generateEventPack(user, event){
 
- const basePack = generatePack(user)
+ // Fix : récupération du setId depuis le pity du user
+ // on prend le premier set disponible dans son pity
+ let setId = user.lastSet
+
+ if(!setId && user.pity){
+  const keys = Object.keys(user.pity)
+  if(keys.length) setId = keys[0]
+ }
+
+ if(!setId){
+  console.error("❌ generateEventPack : aucun setId trouvable pour cet user")
+  return { pack:[], meta:{} }
+ }
+
+ const result = generatePack(user, setId)
+
+ const basePack = result?.pack || []
+
+ if(!basePack.length){
+  console.error("❌ generateEventPack : basePack vide pour setId", setId)
+  return { pack:[], meta:{} }
+ }
 
  const handler = handlers[event.key]
 
@@ -24,10 +46,10 @@ function generateEventPack(user,event){
   return { pack: basePack, meta:{} }
  }
 
- const result = handler.generate(user, basePack, event)
+ const handlerResult = handler.generate(user, basePack, event)
 
- let pack = result.pack || basePack
- let meta = result.meta || {}
+ let pack = handlerResult.pack || basePack
+ let meta = handlerResult.meta || {}
 
  if(!event.allowMultiSSR){
   pack = limitSSR(pack)

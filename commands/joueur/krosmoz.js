@@ -190,6 +190,9 @@ ${getCooldownText(user)}`,
 
   user.stats.packsOpened=(user.stats.packsOpened||0)+1
 
+  // Fix : on assigne user.lastSet pour que packEngine et eventPackEngine puissent le trouver
+  user.lastSet = setId
+
   const result=openPack(user,setId)
 
   const {
