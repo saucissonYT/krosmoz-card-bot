@@ -1,16 +1,9 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
-
+const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-const cardsById={}
-for(const c of cards){
- cardsById[c.id]=c
-}
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -35,6 +28,9 @@ module.exports={
  name:"sellduplicates",
 
  async execute(interaction){
+
+  // Fix : appel au moment de l'exécution, pas au chargement du module
+  const cardsById = getCardsById()
 
   const user = getUser(interaction.user.id)
 
@@ -132,11 +128,15 @@ ${previewLines.slice(0,15).join("\n")}
      components:[]
     })
 
+   // Fix : appel au moment de la confirmation aussi
+   const cardsByIdFresh = getCardsById()
+
    const soldLines=[]
 
    for(const item of toSell){
 
-    const card=cardsById[item.id]
+    const card=cardsByIdFresh[item.id]
+    if(!card) continue
 
     user.cards[item.id]-=item.duplicates
 

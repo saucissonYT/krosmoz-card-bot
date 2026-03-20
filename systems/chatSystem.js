@@ -1,11 +1,38 @@
 const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
+const achievements = require("./achievementRegistry")
 
 /* ---------------- COOLDOWN ANTI SPAM ---------------- */
 
 const cooldown = new Map()
 
 const COOLDOWN_TIME = 3000 // 3 secondes
+
+/* ---------------- NOTIFICATION VIA MESSAGE ---------------- */
+
+async function notifyAchievementsMessage(message, list){
+
+ for(const id of list){
+
+  const a = achievements[id]
+
+  if(!a) continue
+
+  let text = `🏆 **Succès débloqué !**\n${a.badge} **${a.name}**`
+
+  if(a.description){
+   text += `\n📝 ${a.description}`
+  }
+
+  if(a.title){
+   text += `\n🎖️ Titre obtenu : **${a.title}**`
+  }
+
+  await message.reply(text)
+
+ }
+
+}
 
 /* ---------------- ASTUCES BOT ---------------- */
 
@@ -57,7 +84,7 @@ shiny:"Les **SSR shiny ✨** sont incroyablement rares."
 
 /* ---------------- BOT CHAT HANDLER ---------------- */
 
-async function handleMessage(message,client){
+async function handleMessage(message, client){
 
  if(message.author.bot) return
  if(!message.mentions.has(client.user)) return
@@ -69,29 +96,29 @@ async function handleMessage(message,client){
 
  if(last && now-last < COOLDOWN_TIME) return
 
- cooldown.set(message.author.id,now)
+ cooldown.set(message.author.id, now)
 
  /* -------- USER -------- */
 
- const user=getUser(message.author.id)
+ const user = getUser(message.author.id)
 
  if(!user.stats) user.stats={}
 
- if(user.stats.botMentions===undefined)
-  user.stats.botMentions=0
+ if(user.stats.botMentions === undefined)
+  user.stats.botMentions = 0
 
  user.stats.botMentions++
 
- const content=message.content.toLowerCase()
+ const content = message.content.toLowerCase()
 
- let replyText=null
+ let replyText = null
 
  /* ---------------- TRIGGERS ---------------- */
 
  for(const word in triggers){
 
   if(content.includes(word)){
-   replyText=triggers[word]
+   replyText = triggers[word]
    break
   }
 
@@ -100,47 +127,49 @@ async function handleMessage(message,client){
  /* ---------------- ASTUCE RANDOM ---------------- */
 
  if(!replyText)
-  replyText=tips[Math.floor(Math.random()*tips.length)]
+  replyText = tips[Math.floor(Math.random() * tips.length)]
 
- await message.reply(`💡 **Astuce**
-
-${replyText}`)
+ await message.reply(`💡 **Astuce**\n\n${replyText}`)
 
  /* ---------------- STATS EVENTS ---------------- */
 
- const mentions=user.stats.botMentions
+ const mentions = user.stats.botMentions
 
- if(mentions===1) user.stats.mention1=true
- if(mentions===10) user.stats.mention10=true
- if(mentions===100) user.stats.mention100=true
- if(mentions===500) user.stats.mention500=true
- if(mentions===1000) user.stats.mention1000=true
+ if(mentions === 1) user.stats.mention1 = true
+ if(mentions === 10) user.stats.mention10 = true
+ if(mentions === 100) user.stats.mention100 = true
+ if(mentions === 500) user.stats.mention500 = true
+ if(mentions === 1000) user.stats.mention1000 = true
 
- const mentionsInMessage=(message.content.match(/<@/g)||[]).length
+ const mentionsInMessage = (message.content.match(/<@/g) || []).length
 
- if(mentionsInMessage>=3)
-  user.stats.mentionSpam=true
+ if(mentionsInMessage >= 3)
+  user.stats.mentionSpam = true
 
- const hour=new Date().getHours()
+ const hour = new Date().getHours()
 
- if(hour>=2 && hour<=5)
-  user.stats.nightPing=true
+ if(hour >= 2 && hour <= 5)
+  user.stats.nightPing = true
 
- const totalCards=Object.values(user.cards||{}).reduce((a,b)=>a+b,0)
+ const totalCards = Object.values(user.cards || {}).reduce((a,b) => a+b, 0)
 
- if(totalCards===666)
-  user.stats.devilPing=true
+ if(totalCards === 666)
+  user.stats.devilPing = true
 
  if(user.stats.lastSSR){
-  user.stats.auraFarm=true
-  user.stats.lastSSR=false
+  user.stats.auraFarm = true
+  user.stats.lastSSR = false
  }
 
  save()
 
  /* -------- ACHIEVEMENTS SOCIAL -------- */
 
- await achievementCheck(message,user,"social")
+ // Fix : signature correcte achievementCheck(user, trigger)
+ const unlocked = achievementCheck(user, "social")
+
+ if(unlocked.length)
+  await notifyAchievementsMessage(message, unlocked)
 
 }
 

@@ -1,14 +1,23 @@
-const {isOwner, toggleDev} = require("../../systems/devSystem")
+const { SlashCommandBuilder } = require("discord.js")
+const { isOwner, toggleDev } = require("../../systems/devSystem")
 
 module.exports = {
 
- name:"krosmodev",
+ data: new SlashCommandBuilder()
+  .setName("krosmodev")
+  .setDescription("Donner ou retirer le rang développeur")
+  .addUserOption(option =>
+   option
+    .setName("joueur")
+    .setDescription("Joueur à modifier")
+    .setRequired(true)
+  ),
 
  async execute(interaction){
 
   if(!isOwner(interaction.user.id))
    return interaction.reply({
-    content:"Commande réservée au propriétaire.",
+    content:"⛔ Commande réservée au propriétaire.",
     ephemeral:true
    })
 
@@ -18,11 +27,17 @@ module.exports = {
 
   if(result){
 
-   interaction.reply(`${target.username} est maintenant développeur.`)
+   interaction.reply({
+    content:`✅ **${target.username}** est maintenant **développeur**.`,
+    ephemeral:true
+   })
 
   }else{
 
-   interaction.reply(`${target.username} n'est plus développeur.`)
+   interaction.reply({
+    content:`❌ **${target.username}** n'est plus **développeur**.`,
+    ephemeral:true
+   })
 
   }
 

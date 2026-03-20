@@ -3,17 +3,10 @@ const {
  StringSelectMenuBuilder
 } = require("discord.js")
 
-const { data } = require("../../systems/dataManager")
-const cards = data.cards || []
-
+const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-const cardsById={}
-for(const c of cards){
- cardsById[c.id]=c
-}
 
 const rarityEmoji={
  C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
@@ -39,6 +32,9 @@ module.exports={
  description:"Vendre une carte",
 
  async execute(interaction){
+
+  // Fix : appel au moment de l'exécution, pas au chargement du module
+  const cardsById = getCardsById()
 
   const user=getUser(interaction.user.id)
 
@@ -91,6 +87,9 @@ module.exports={
 
   if(interaction.customId!=="sellcard_select") return
 
+  // Fix : appel au moment de l'exécution
+  const cardsById = getCardsById()
+
   const user=getUser(interaction.user.id)
 
   const id=interaction.values[0]
@@ -126,12 +125,7 @@ module.exports={
   const unlocked = achievementCheck(user,"economy")
 
   await interaction.update({
-   content:`💰 **Carte vendue**
-
-${rarityEmoji[card.rarity]} **${card.name}**
-+${price} kamas
-
-💰 Solde : **${user.kamas} kamas**`,
+   content:`💰 **Carte vendue**\n\n${rarityEmoji[card.rarity]} **${card.name}**\n+${price} kamas\n\n💰 Solde : **${user.kamas} kamas**`,
    components:[]
   })
 

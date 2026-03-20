@@ -113,7 +113,7 @@ function ensureDaily(user){
  return user
 }
 
-/* ---------------- MIGRATION GLOBAL ---------------- */
+/* ---------------- MIGRATION GLOBALE ---------------- */
 
 function migrateAll(){
 
@@ -143,7 +143,9 @@ function migrateAll(){
 
   ensurePity(user.pity)
 
-  user._dirty = true
+  // Fix : on marque dirty uniquement si on a vraiment modifié quelque chose
+  if(changed)
+   user._dirty = true
 
  }
 
@@ -168,6 +170,7 @@ function getUser(id){
 
  if(!user){
 
+  // Nouveau user : on le crée et on le marque dirty
   user = {
    cards:{},
    kamas:0,
@@ -208,12 +211,14 @@ function getUser(id){
    }
   }
 
+  // Fix : dirty uniquement à la création
   user._dirty = true
   users[id] = user
   save()
+
  }
 
- /* 🔥 RUNTIME SELF-HEAL */
+ /* RUNTIME SELF-HEAL sans marquer dirty */
 
  ensureEconomy(user)
  ensureAchievements(user)
@@ -227,7 +232,8 @@ function getUser(id){
 
  ensurePity(user.pity)
 
- user._dirty = true
+ // Fix : suppression du user._dirty = true systématique
+ // Les commandes qui modifient un user appellent save() explicitement
 
  return user
 

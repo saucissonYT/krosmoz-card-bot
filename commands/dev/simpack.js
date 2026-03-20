@@ -9,7 +9,7 @@ const { generatePack } = require("../../systems/pack")
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
-const { rewardKamas } = require("../../systems/rewards")
+const { rewardKamas } = require("../../systems/economy")
 
 module.exports = {
 
@@ -94,8 +94,10 @@ module.exports = {
     if(rarityCount[card.rarity] !== undefined)
      rarityCount[card.rarity]++
 
+    // Fix : rewardKamas attend (user, rarity)
+    // on passe un faux user sans kamas pour ne pas polluer les stats
     totalKamas += rewardKamas(
-     {kamas:0},
+     {kamas:0, stats:{}},
      card.rarity
     )
 
@@ -157,10 +159,8 @@ Prix pack conseillé : ${Math.ceil(avg10)}
   )
 
   await interaction.reply({
-
    content:`\`\`\`\n${dropResult}\n\`\`\``,
    components:[row]
-
   })
 
   const filter = i => i.user.id === interaction.user.id

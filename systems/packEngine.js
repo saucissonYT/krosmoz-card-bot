@@ -1,6 +1,6 @@
 const { generatePack: coreGeneratePack } = require("./pack")
 const { getCards } = require("./cardRegistry")
-const { rewardKamas } = require("./rewards")
+const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
 const achievements = require("./achievementRegistry")
 
