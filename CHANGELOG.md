@@ -8,6 +8,59 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+[0.25.0] - 2026-03-20
+
+### Added
+
+- Nouvelle commande **/mystats** — statistiques détaillées du joueur avec 6 pages navigables :
+  - 📊 Général (niveau, kamas, cartes, achievements, activité)
+  - 📚 Collection (breakdown par rareté et par set, shiny, plus gros stock)
+  - 🎲 Packs & RNG (packs ouverts, taux SSR réel, dry streak, records)
+  - 💰 Économie (kamas, ventes, daily, krosmoshop, fusions)
+  - 🎪 Events (eventpacks, classes participées, SSR par classe, jackpots)
+  - 💬 Social (profil views, mentions, trades, titres)
+
+- Nouveau système de **quêtes journalières et hebdomadaires** (`systems/questSystem.js`)
+  - **3 quêtes journalières** tirées depuis un pool de 18, reset chaque jour à 1h (heure FR)
+  - **5 quêtes hebdomadaires** tirées depuis un pool de 23, reset chaque lundi à 1h (heure FR)
+  - Mêmes quêtes pour tous les joueurs (sélection déterministe par date)
+  - Progrès calculé par diff de stats — aucune modification nécessaire dans les commandes existantes
+  - Récompenses : kamas, XP, packs
+  - **Bonus journalier** si 3/3 terminées : +500 kamas +100 XP
+  - **Bonus hebdomadaire** si 5/5 terminées : +5000 kamas +500 XP +3 packs
+
+- Nouvelle commande **/quests** — interface quêtes avec :
+  - 2 onglets (☀️ Journalières / 📅 Hebdomadaires)
+  - Barres de progression par quête
+  - Bouton "Récupérer tout" pour claim en un clic
+  - Timer de reset affiché
+  - Embed doré quand toutes les quêtes sont récupérées
+
+- Renommage de **/kroshelp** → **/krosmohelp** avec refonte complète :
+  - 7 catégories au lieu de 4 (ajout Events, Gameplay, RNG & Pity)
+  - Contenu mis à jour avec toutes les features actuelles
+  - 2 rangées de boutons pour la navigation
+
+### Fixed
+
+- **Bug critique `systems/market.js`** : le fichier système avait été écrasé par le contenu de la commande (`commands/joueur/market.js`) — toutes les fonctions market (`getMarket`, `buyCard`, `addListing`, `removeListing`, `getUserListings`, `getAveragePrices`) étaient absentes, causant un crash de toute opération market
+- **Bug `sellduplicate.js`** (collector) : `rarityEmoji[card.rarity]` utilisé dans la section confirmation alors que la variable locale n'existait plus après centralisation → crash au moment de confirmer la vente des doublons. Remplacé par `RARITY_EMOJI[card.rarity]`
+- **Bug `pity.js`** : les taux SSR affichés ne correspondaient pas aux taux réels de `pack.js` — les paliers `< 40 → 0.5%`, `< 46 → 2%`, `< 49 → 5%` manquaient. Les joueurs voyaient des taux sous-estimés dans `/pity`
+- **Bug `inventaire.js`** : `withResponse:true` sur `editReply()` retournait un objet incompatible avec `createMessageComponentCollector()`, cassant la navigation par boutons
+
+### Changed
+
+- **`commands/joueur/market.js`** → `rarityEmoji` hardcodé remplacé par `RARITY_EMOJI` depuis `constants.js` + `getCards()` appelé dynamiquement dans chaque fonction au lieu d'un snapshot statique au top-level
+- **`commands/joueur/krosmoshop.js`** → `rarityEmoji` hardcodé remplacé par `RARITY_EMOJI` depuis `constants.js` + `getCards()` appelé dynamiquement dans `execute()` au lieu du top-level
+- **`commands/joueur/inventaire.js`** → `rarityEmoji` + `rarityOrder` remplacés par `RARITY_EMOJI` + `RARITY_ORDER` depuis `constants.js`, affichage shiny ✨ ajouté, footer avec compteur shiny
+- **`commands/joueur/pity.js`** → `getSSRRate()` aligné sur les taux de `pack.js` (soft pity progressive complète)
+
+### Improved
+
+- **README.md** — refonte complète : 306 achievements, section events (19 Dieux), KrosmoShop, SSR Shiny, soft pity progressive, architecture modulaire achievements/events, commandes à jour, gameplay loop enrichi
+- **`/krosmohelp`** — aide complète et à jour couvrant tous les systèmes du bot
+
+---
 
 [0.24.0] - 2026-03-20
 
