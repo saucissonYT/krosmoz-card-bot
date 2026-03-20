@@ -44,8 +44,6 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
----
-
 [0.23.0] - 2026-03-20
 
 ### Added

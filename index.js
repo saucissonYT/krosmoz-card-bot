@@ -212,7 +212,7 @@ client.on("interactionCreate",async interaction=>{
   if(interaction.isButton()){
 
    if(interaction.customId.startsWith("help_")){
-    const command = require("./commands/joueur/kroshelp")
+    const command = require("./commands/joueur/krosmohelp")
     return command.button(interaction)
    }
 
