@@ -9,6 +9,57 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+[0.20.0] - 2026-03-19
+
+### added
+
+- Nouveau système eventHandlers modulaires (1 fichier par event)
+- Séparation complète des logiques d’events (Iop, Cra, Xelor, etc.)
+- Ajout de 19 handlers d’events indépendants
+- Ajout du champ meta.ux pour enrichir le rendu visuel des packs
+- Ajout des voiceLines dynamiques par event (S / SSR)
+- Affichage des voiceLines directement en channel après ouverture
+- Ajout d’un système UX unifié pour tous les events
+- Ajout de titres dynamiques d’embed selon l’event
+- Ajout d’un système de fallback sécurisé si handler absent
+- Ajout de logs de debug pour les erreurs d’event handlers
+
+### Changed
+
+- Refonte complète de eventPackEngine → désormais basé sur des handlers
+- Suppression du système monolithique switch/case des events
+- Simplification du pipeline RNG pour les events
+- Amélioration du découplage entre :
+logique gameplay
+affichage UX
+données d’event
+- Amélioration du système de détection des raretés (S / SSR)
+- Refonte du système de voiceLines (plus robuste + priorisation SSR)
+- Mise à jour de eventpack.js avec support UX avancé
+
+### Improved
+
+- Amélioration majeure de la scalabilité des events
+- Amélioration de la lisibilité du code
+- Amélioration de la maintenabilité du système d’events
+- Amélioration de la robustesse du RNG event
+- Amélioration de l’immersion utilisateur (RP + feedback visuel)
+- Amélioration du système de reveal des packs
+- Amélioration du système de gestion des erreurs (try/catch handlers)
+- Amélioration globale de l’architecture orientée modularité
+
+### Fixed
+
+- Correction du non-déclenchement des voiceLines S / SSR
+- Correction de la détection de rareté dans les packs event
+- Correction d’un problème où voiceLines pouvait être undefined
+- Correction du downgrade SSR incohérent (remplacé par vraie carte S)
+- Correction de packs invalides retournés par certains handlers
+- Correction de crash potentiel si handler absent
+- Correction de bugs liés à la mutation des packs (Xelor, Sacrieur)
+- Correction de plusieurs incohérences UX dans les events
+
+---
 [0.19.0] - 2026-03-19
 
 ### Added

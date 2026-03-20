@@ -13,6 +13,8 @@ module.exports = {
 
  generate(user, basePack){
 
+  const mutations = []
+
   let pack = basePack.map(c => {
 
    if(c.rarity === "S" || c.rarity === "SSR"){
@@ -30,7 +32,13 @@ module.exports = {
     const next = order[i + 1]
     const pool = cards.filter(x => x.rarity === next)
 
-    return random(pool)
+    if(pool.length === 0) return c
+
+    const mutated = random(pool)
+
+    mutations.push(`${c.name} → ${mutated.name}`)
+
+    return mutated
    }
 
    return c
@@ -39,6 +47,7 @@ module.exports = {
   return {
    pack,
    meta: {
+    mutations,
     ux: ["💀 Mutation", "🩸 Sacrifice"]
    }
   }

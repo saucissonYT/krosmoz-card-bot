@@ -2,20 +2,22 @@ const { getCards } = require("../cardRegistry")
 
 const cards = getCards()
 
-const order = ["C","U","R","SR","HR","UR"]
+const order = ["C","U","R","SR","HR","UR","S","SSR"]
 
 function random(pool){
  return pool[Math.floor(Math.random() * pool.length)]
 }
 
 module.exports = {
- key: "sacrieur",
+ key: "zobal",
 
  generate(user, basePack){
 
+  const upgrades = []
+
   let pack = basePack.map(c => {
 
-   if(c.rarity === "S" || c.rarity === "SSR"){
+   if(c.rarity === "SSR"){
     return c
    }
 
@@ -25,21 +27,26 @@ module.exports = {
     return c
    }
 
-   if(Math.random() < 0.6){
+   // Zobal : upgrade garanti mais d'un seul rang, sur toutes les cartes
+   // contrairement à Sacrieur qui a 60% de chance mais saute S/SSR
 
-    const next = order[i + 1]
-    const pool = cards.filter(x => x.rarity === next)
+   const next = order[i + 1]
+   const pool = cards.filter(x => x.rarity === next)
 
-    return random(pool)
-   }
+   if(pool.length === 0) return c
 
-   return c
+   const upgraded = random(pool)
+
+   upgrades.push(`${c.name} → ${upgraded.name}`)
+
+   return upgraded
   })
 
   return {
    pack,
    meta: {
-    ux: ["💀 Mutation", "🩸 Sacrifice"]
+    upgrades,
+    ux: ["🎭 Évolution", "🎭 Masque"]
    }
   }
  }

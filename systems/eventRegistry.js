@@ -1,7 +1,7 @@
 const EVENTS = {
 
 iop:{
- name:"🔥 Iop",
+ name:"🔥 Dieu Iop",
  effect:"Boost HR & UR",
  type:"rarity_boost",
  allowMultiSSR:true,
@@ -27,21 +27,21 @@ Les packs retrouvent leur équilibre.`,
 
  voiceLines:{
  S:[
-  "🔥 Ça chauffe… mais ce n’est que le début !",
-  "💥 Plus fort ! Toujours plus fort !",
-  "⚔️ Tu commences à me plaire..."
+  " Ça chauffe… mais ce n’est que le début !",
+  " Plus fort ! Toujours plus fort !",
+  " Tu commences à me plaire..."
  ],
  SSR:[
-  "🔥💀 OUI !!! C’EST ÇA LA PUISSANCE !!",
-  "💥 TU ÉCRASES TOUT !! CONTINUE !!",
-  "⚔️ UN VRAI GUERRIER !! ENCORE !!"
+  " OUI !!! C’EST ÇA LA PUISSANCE !!",
+  " TU ÉCRASES TOUT !! CONTINUE !!",
+  " UN VRAI GUERRIER !! ENCORE !!"
  ]
 }
 
 },
 
 cra:{
- name:"🎯 Cra",
+ name:"🎯 Déesse Cra",
  effect:"Carte S ciblée (20%)",
  type:"target",
  needsTarget:true,
@@ -67,21 +67,21 @@ La précision s’efface.`,
 
  voiceLines:{
  S:[
-  "🎯 Une belle trajectoire...",
-  "🏹 Belle balise !",
-  "🎯 Précis… très précis."
+  " Une belle trajectoire...",
+  " Belle balise !",
+  " Précis… très précis."
  ],
  SSR:[
-  "🎯💥 Tir parfait.",
-  "🏹 Aucune échappatoire.",
-  "🎯 Une exécution impeccable."
+  " Tir parfait.",
+  " Aucune échappatoire.",
+  " Une exécution impeccable."
  ]
 }
 
 },
 
 xelor:{
- name:"⏳ Xelor",
+ name:"⏳ Dieu Xelor",
  effect:"Altération du pack",
  type:"manipulation",
 
@@ -114,16 +114,16 @@ Tout redevient normal.`,
   "⏳ Le flux change légèrement..."
  ],
  SSR:[
-  "⏳💥 Le temps plie à ta volonté.",
-  "⌛ Une anomalie majeure détectée.",
-  "⏳ Le futur vient d’être réécrit."
+  " Le temps plie à ta volonté.",
+  " Une anomalie majeure détectée.",
+  " Le futur vient d’être réécrit."
  ]
 }
 
 },
 
 sram:{
- name:"🕶️ Sram",
+ name:"🕶️ Dieu Sram",
  type:"hidden",
 
  start:`🕶️ **Le Voile de l’Ombre tombe...**
@@ -147,21 +147,21 @@ La vérité réapparaît.`,
 
  voiceLines:{
  S:[
-  "🕶️ Tu aurais pu sauver Chad...",
-  "🔪 Tu progresses dans l’ombre.",
-  "🕶️ Je vois ce que tu fais..."
+  " Tu aurais pu sauver Chad...",
+  " Tu progresses dans l’ombre.",
+  " Je vois ce que tu fais..."
  ],
  SSR:[
-  "🕶️💀 Une ombre parfaite.",
-  "🔪 Invisible… mortel ! ",
-  "🕶️ Personne ne t’a vu venir."
+  " Une ombre parfaite.",
+  " Invisible… mortel ! ",
+  " Personne ne t’a vu venir."
  ]
 }
 
 },
 
 sacrieur:{
- name:"💀 Sacrieur",
+ name:"💀 Déesse Sacrieur",
  type:"mutation",
 
  start:`💀 **Le sang appelle le chaos...**
@@ -185,20 +185,20 @@ Les cartes cessent d’évoluer.`,
 
  voiceLines:{
  S:[
-  "💀 La douleur forge ta force.",
-  "🩸 Continue… souffre encore.",
-  "💀 Presque une armure sanguine !"
+  " La douleur forge ta force.",
+  " Continue… souffre encore.",
+  " Presque une armure sanguine !"
  ],
  SSR:[
-  "💀💥 Une transformation parfaite.",
-  "🩸 TU EMBRASSES LA DOULEUR, PUNITION !!",
-  "💀 AUSSI PUISSANT QUE KALI !!"
+  " Une transformation parfaite.",
+  " TU EMBRASSES LA DOULEUR, PUNITION !!",
+  " AUSSI PUISSANT QUE KALI !!"
  ]
 }
 },
 
 zobal:{
- name:"🎭 Zobal",
+ name:"🎭 Dieu Zobal",
  type:"upgrade",
 
  start:`🎭 **Zobal change de masque...**
@@ -222,21 +222,21 @@ Les cartes se figent.`,
 
  voiceLines:{
  S:[
-  "🎭 Un masque intéressant.",
-  "🎭 Tu changes… comme moi.",
-  "🎭 Petite danse macabre..."
+  " Un masque intéressant.",
+  " Tu changes… comme moi.",
+  " Petite danse macabre..."
  ],
  SSR:[
-  "🎭💥 Ton double a eu la même chose !",
-  "🎭 Tu maîtrises les masques parfaitement !",
-  "🎭 Au bal masqué ohé ohé !"
+  " Ton double a eu la même chose !",
+  " Tu maîtrises les masques parfaitement !",
+  " Au bal masqué ohé ohé !"
  ]
 }
 
 },
 
 huppermage:{
- name:"🧠 Huppermage",
+ name:"🧠 Dieu Huppermage",
  type:"volume",
 
  start:`🧠 **Les éléments s’alignent...**
@@ -260,21 +260,21 @@ Les packs redeviennent normaux.`,
 
  voiceLines:{
  S:[
-  "🧠 L'équilibre se forme.",
-  "✨ Une harmonie naît.",
-  "🧠 Les éléments répondent."
+  " L'équilibre se forme.",
+  " Une harmonie naît.",
+  " Les éléments répondent."
  ],
  SSR:[
-  "🧠💥 Tu ferais un bon professeur dans notre école...",
-  "✨ Convergence absolue des éléments !!",
-  "🧠 La balance krosmique t'a béni !!"
+  " Tu ferais un bon professeur dans notre école...",
+  " Convergence absolue des éléments !!",
+  " La balance krosmique t'a béni !!"
  ]
 }
 
 },
 
 pandawa:{
- name:"🍺 Pandawa",
+ name:"🍺 Déesse Pandawa",
  type:"duplication",
 
  start:`🍺 **Pandawa partage...**
@@ -298,21 +298,21 @@ Le calme revient.`,
 
  voiceLines:{
  S:[
-  "🍺 Petit coup de bambou...",
-  "🍻 Ça devient intéressant !",
-  "🍺 Je préfère le Tekilait..."
+  " Petit coup de bambou...",
+  " Ça devient intéressant !",
+  " Je préfère le Tekilait..."
  ],
  SSR:[
-  "🍺💥 TOURNÉE GÉNÉRALE, HAPPY HOUR !!",
-  "🍻 Là on parle sérieusement !",
-  "🍺 Aussi puissant que lucha l'ambrée !"
+  " TOURNÉE GÉNÉRALE, HAPPY HOUR !!",
+  " Là on parle sérieusement !",
+  " Aussi puissant que lucha l'ambrée !"
  ]
 }
 
 },
 
 osamodas:{
- name:"🐉 Osamodas",
+ name:"🐉 Dieu Osamodas",
  type:"structure",
 
  start:`🐉 **Osamodas invoque ses créatures...**
@@ -336,21 +336,21 @@ La diversité revient.`,
 
  voiceLines:{
  S:[
-  "🐉 Une créature intéressante.",
-  "🐉 Le lien se forme.",
-  "🐉 Elles répondent à ton appel."
+  " Une créature intéressante.",
+  " Le lien se forme.",
+  " Elles répondent à ton appel."
  ],
  SSR:[
-  "🐉💥 Une invocation parfaite.",
-  "🐉 Une armée t’obéit.",
-  "🐉 Forme dragon !! "
+  " Une invocation parfaite.",
+  " Une armée t’obéit.",
+  " Forme dragon !! "
  ]
 }
 
 },
 
 ecaflip:{
- name:"🎲 Ecaflip",
+ name:"🎲 Dieu Ecaflip",
  type:"rng",
 
  start:`🎲 **Ecaflip joue avec le destin...**
@@ -374,21 +374,21 @@ Le hasard se stabilise.`,
 
  voiceLines:{
  S:[
-  "🎲 La chance sourit même au pounicheur...",
-  "😏 T'aurais pas croisé Ush toi ?",
-  "🎲 Le chaloeil serait fier de toi"
+  " La chance sourit même au pounicheur...",
+  " T'aurais pas croisé Ush toi ?",
+  " Le chaloeil serait fier de toi"
  ],
  SSR:[
-  "🎲💥 JACKPOT !!",
-  "😼 Aussi fort que les afk d'Ecaflipus ! ",
-  "🎲 Chance maximale, tu serais pas kerubim ??"
+  " JACKPOT !!",
+  " Aussi fort que les afk d'Ecaflipus ! ",
+  " Chance maximale, tu serais pas kerubim ??"
  ]
 }
 
 },
 
 ouginak:{
- name:"🐺 Ouginak",
+ name:"🐺 Dieu Ouginak",
  type:"rng_negative",
 
  start:`🐺 **Ouginak impose sa loi...**
@@ -412,21 +412,21 @@ L’équilibre revient.`,
 
  voiceLines:{
  S:[
-  "🐺 Tu survies...",
-  "⚔️ Faible... mais acceptable.",
-  "🐺 Aussi appétissant qu'un tofu..."
+  " Tu survies...",
+  " Faible... mais acceptable.",
+  " Aussi appétissant qu'un tofu..."
  ],
  SSR:[
-  "🐺 ...Impressionnant de malchance.",
-  "⚔️ Tu tiens bon, c'est bien.",
-  "🐺 Tu résistes comme un milkar."
+  " ...Impressionnant de malchance.",
+  " Tu tiens bon, c'est bien.",
+  " Tu résistes comme un milkar."
  ]
 }
 
 },
 
 feca:{
- name:"🛡️ Feca",
+ name:"🛡️ Déesse Feca",
  type:"reward",
 
  start:`🛡️ **Feca protège les packs...**
@@ -450,21 +450,21 @@ Le chaos revient.`,
 
  voiceLines:{
  S:[
-  "🛡️ Immunité parfaite.",
-  "✨ Trêve !",
-  "🛡️ Plus utile que le gars aux slips..."
+  " Immunité parfaite.",
+  " Trêve !",
+  " Plus utile que le gars aux slips..."
  ],
  SSR:[
-  "🛡️💥 Coup de bâton et coup de cac !",
-  "✨ Aussi puissant que 3 glyphes !",
-  "🛡️ Qui veut la paix prépare la guerre !"
+  " Coup de bâton et coup de cac !",
+  " Aussi puissant que 3 glyphes !",
+  " Qui veut la paix prépare la guerre !"
  ]
 }
 
 },
 
 enutrof:{
- name:"💰 Enutrof",
+ name:"💰 Dieu Enutrof",
  type:"reward",
 
  start:`💰 **Enutrof fouille les richesses...**
@@ -488,21 +488,21 @@ La fortune s’éteint.`,
 
  voiceLines:{
  S:[
-  "💰 Pas mal...c'est au moins 1000 kamas",
-  "💰 presque 1/100 d'un porte-clef doré...",
-  "💰 aussi riche que le Malléfisk !"
+  " Pas mal...c'est au moins 1000 kamas",
+  " presque 1/100 d'un porte-clef doré...",
+  " aussi riche que le Malléfisk !"
  ],
  SSR:[
-  "💰💥 JACKPOT (ou pas) !!",
-  "💰 Une fortune digne d'énutrosor !",
-  "💰 aussi riche que Jamall'auneth !"
+  " JACKPOT (ou pas) !!",
+  " Une fortune digne d'énutrosor !",
+  " aussi riche que Jamall'auneth !"
  ]
 }
 
 },
 
 roublard:{
- name:"💣 Roublard",
+ name:"💣 Dieu Roublard",
  type:"volume",
 
  start:`💣 **Roublard prépare une explosion...**
@@ -526,21 +526,21 @@ Le flux se calme.`,
 
  voiceLines:{
  S:[
-  "💣 Pétard mouillé...",
-  "💣 Intéressant comme explosif...",
-  "💣 Petit roublabot..."
+  " Pétard mouillé...",
+  " Intéressant comme explosif...",
+  " Petit roublabot..."
  ],
  SSR:[
-  "💣💥 EXPLOSION !!",
-  "💣 CE COMBO EST MORTEL !!",
-  "💣 PULSAR !!"
+  " EXPLOSION !!",
+  " CE COMBO EST MORTEL !!",
+  " PULSAR !!"
  ]
 }
 
 },
 
 steamer:{
- name:"⚙️ Steamer",
+ name:"⚙️ Dieu Steamer",
  type:"chaos",
 
  start:`⚙️ **Steamer libère le chaos mécanique...**
@@ -564,21 +564,21 @@ Le contrôle revient.`,
 
  voiceLines:{
  S:[
-  "⚙️ Instabilité détectée dans le stasis.",
-  "⚙️ Surtension en cours...",
-  "⚙️ ça irait mieux en steamerator... "
+  " Instabilité détectée dans le stasis.",
+  " Surtension en cours...",
+  " ça irait mieux en steamerator... "
  ],
  SSR:[
-  "⚙️💥 CHALEUR EXTREME, ALERTE !!",
-  "⚙️ Disfonctionnement de la tourelle !!",
-  "⚙️ Instabilité critique des microbots !!"
+  " CHALEUR EXTREME, ALERTE !!",
+  " Disfonctionnement de la tourelle !!",
+  " Instabilité critique des microbots !!"
  ]
 }
 
 },
 
 eliotrope:{
- name:"🌀 Eliotrope",
+ name:"🌀 Dieu Eliotrope",
  type:"special",
 
  start:`🌀 **Eliotrope ouvre un portail...**
@@ -602,21 +602,21 @@ Les failles disparaissent.`,
 
  voiceLines:{
  S:[
-  "🌀 Un petit portail...",
-  "🌀 ça ira dans la dimension blanche...",
-  "🌀 Wakméha !!"
+  " Un petit portail...",
+  " ça ira dans la dimension blanche...",
+  " Wakméha !!"
  ],
  SSR:[
-  "🌀💥 Réminiscence !",
-  "🌀 Résilience !",
-  "🌀 Ton réseau de portails est parfait !"
+  " Réminiscence !",
+  " Résilience !",
+  " Ton réseau de portails est parfait !"
  ]
 }
 
 },
 
 eniripsa:{
- name:"✨ Eniripsa",
+ name:"✨ Déesse Eniripsa",
  type:"filter",
 
  start:`✨ **Eniripsa purifie les packs...**
@@ -640,21 +640,21 @@ Le mélange revient.`,
 
  voiceLines:{
  S:[
-  "✨ Comme un petit lapino...",
-  "✨ Prenez mes PA !",
-  "✨ Mot Vampirique !"
+  " Comme un petit lapino...",
+  " Prenez mes PA !",
+  " Mot Vampirique !"
  ],
  SSR:[
-  "✨💥 Reconstitution !",
-  "✨ A moi la marque itsade !",
-  "✨ Lumière totale, soin pour tous !"
+  " Reconstitution !",
+  " A moi la marque itsade !",
+  " Lumière totale, soin pour tous !"
  ]
 }
 
 },
 
 sadida:{
- name:"🌿 Sadida",
+ name:"🌿 Déesse Sadida",
  type:"duplication",
 
  start:`🌿 **Sadida fait pousser les cartes...**
@@ -678,21 +678,21 @@ L’équilibre revient.`,
 
  voiceLines:{
  S:[
-  "🌿 Ça pousse...",
-  "🌱 C'est intéressant...",
-  "🌿 Croissance en cours..."
+  " Ça pousse...",
+  " C'est intéressant...",
+  " Croissance en cours..."
  ],
  SSR:[
-  "🌿💥 Parfait pour combattre Nox !",
-  "🌱 Aussi puissant que la ronce multiple !",
-  "🌿 Je vais en parler au roi Sadida."
+  " Parfait pour combattre Nox !",
+  " Aussi puissant que la ronce multiple !",
+  " Je vais en parler au roi Sadida."
  ]
 }
 
 },
 
 forgelance:{
- name:"⚔️ Forgelance",
+ name:"⚔️ Dieu Forgelance",
  type:"upgrade_global",
 
  start:`⚔️ **Forgelance forge les cartes...**
@@ -716,14 +716,14 @@ Les cartes se stabilisent.`,
 
  voiceLines:{
  S:[
-  "⚔️ Tu es prêt au combat !",
-  "🔥 pas mal, ça vient d'Albuera ?",
-  "⚔️ Solide comme ma lance."
+  " Tu es prêt au combat !",
+  " pas mal, ça vient d'Albuera ?",
+  " Solide comme ma lance."
  ],
  SSR:[
-  "⚔️💥 Parfaitement forgé.",
-  "🔥 Lance-Dur serait fier de toi.",
-  "⚔️ Celle-ci sera pour Agard !"
+  " Parfaitement forgé.",
+  " Lance-Dur serait fier de toi.",
+  " Celle-ci sera pour Agard !"
  ]
 }
 
