@@ -10,6 +10,7 @@ Les joueurs peuvent :
 - Vendre et acheter sur le marché entre joueurs
 - Participer aux événements des 19 Dieux du Krosmoz
 - Acheter des cartes au KrosmoShop quotidien
+- Compléter des quêtes journalières et hebdomadaires
 - Débloquer 306 succès et des titres exclusifs
 - Progresser en niveau et en rang
 - Interagir avec le bot via mentions
@@ -86,6 +87,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | eventRegistry | Définition des 19 events |
 | eventHandlers/ | Logique RNG spécifique par Dieu |
 | fusion | Fusion de doublons (critique, double, triple) |
+| questSystem | Quêtes journalières et hebdomadaires |
 
 ### 🪙 Économie
 
@@ -224,6 +226,61 @@ Chaque Dieu possède des **voice lines** RP lors de l'obtention d'une S ou SSR, 
 
 ---
 
+## 📋 Système de Quêtes
+
+Le bot propose un système de quêtes journalières et hebdomadaires qui récompensent l'activité régulière des joueurs.
+
+### ☀️ Quêtes Journalières
+
+- **3 quêtes par jour**, tirées aléatoirement depuis un pool de 18 quêtes possibles
+- Mêmes quêtes pour tous les joueurs (sélection déterministe par date)
+- Reset chaque jour à **1h du matin** (heure française)
+- Le progrès est calculé automatiquement par différence de stats — aucune action spéciale requise
+- **Bonus journalier** si 3/3 terminées : **+500 kamas** et **+100 XP**
+
+**Exemples de quêtes journalières :**
+
+| Quête | Objectif | Récompense |
+|-------|----------|------------|
+| 📦 Ouverture Rapide | Ouvrir 3 packs | 300 kamas + 50 XP |
+| 🌈 Touché ! | Obtenir 1 SSR | 1000 kamas + 100 XP |
+| ⚗️ Petit Alchimiste | Faire 1 fusion | 200 kamas + 40 XP |
+| 💰 Petit Marchand | Vendre 3 cartes | 200 kamas + 30 XP |
+| 🎁 Présent ! | Réclamer ton daily | 150 kamas + 30 XP |
+| 🛒 Client du Jour | Acheter 1 carte au KrosmoShop | 200 kamas + 40 XP |
+| 🏆 Curieux | Consulter le leaderboard | 100 kamas + 20 XP |
+
+### 📅 Quêtes Hebdomadaires
+
+- **5 quêtes par semaine**, tirées aléatoirement depuis un pool de 23 quêtes possibles
+- Mêmes quêtes pour tous les joueurs (sélection déterministe par semaine)
+- Reset chaque **lundi à 1h** (heure française)
+- Récompenses plus importantes que les quêtes journalières
+- **Bonus hebdomadaire** si 5/5 terminées : **+5000 kamas**, **+500 XP** et **+3 packs**
+
+**Exemples de quêtes hebdomadaires :**
+
+| Quête | Objectif | Récompense |
+|-------|----------|------------|
+| 📦 Collectionneur | Ouvrir 15 packs | 1500 kamas + 200 XP |
+| 📦 Dévoreur de Packs | Ouvrir 30 packs | 2000 kamas + 300 XP + 1 pack |
+| 🌈 Série Dorée | Obtenir 3 SSR | 3000 kamas + 400 XP + 2 packs |
+| ✨ Éclat Divin | Obtenir 1 SSR Shiny | 5000 kamas + 500 XP + 3 packs |
+| ⚗️ Maître Alchimiste | Faire 10 fusions | 2500 kamas + 300 XP + 1 pack |
+| 🎁 Semaine Parfaite | Réclamer 7 daily | 1500 kamas + 250 XP + 2 packs |
+| 🎪 Fanatique | Ouvrir 5 packs d'event | 2000 kamas + 300 XP + 1 pack |
+
+### Interface /quests
+
+La commande **/quests** affiche une interface interactive avec :
+- Deux onglets : ☀️ Journalières et 📅 Hebdomadaires
+- Barres de progression pour chaque quête
+- Bouton **"Récupérer tout"** pour claim en un clic
+- Timer de reset affiché en temps réel
+- Embed doré quand toutes les quêtes sont récupérées
+
+---
+
 ## 🎮 Commandes Joueur
 
 ### Packs
@@ -256,11 +313,13 @@ Chaque Dieu possède des **voice lines** RP lors de l'obtention d'une S ou SSR, 
 | /daily | Récompense quotidienne (streak 7 = SSR) |
 | /fusion | Fusionner des doublons |
 | /trade | Échanger avec un joueur |
+| /quests | Quêtes journalières et hebdomadaires |
 
 ### Progression
 | Commande | Description |
 |----------|-------------|
 | /profil | Profil complet |
+| /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (6 catégories) |
 | /titre | Choisir ton titre |
 | /achievements | Voir les 306 succès |
@@ -292,13 +351,14 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 
 1. Ouvrir des packs (/krosmoz, /eventpack)
 2. Collectionner des cartes
-3. Vendre les doublons (/sellduplicates, /market)
-4. Fusionner pour monter en rareté (/fusion)
-5. Compléter les sets
-6. Acheter au KrosmoShop quotidien
-7. Participer aux events des Dieux
-8. Débloquer des achievements et des titres
-9. Monter en niveau et en rang
+3. Compléter les quêtes journalières et hebdomadaires (/quests)
+4. Vendre les doublons (/sellduplicates, /market)
+5. Fusionner pour monter en rareté (/fusion)
+6. Compléter les sets
+7. Acheter au KrosmoShop quotidien
+8. Participer aux events des Dieux
+9. Débloquer des achievements et des titres
+10. Monter en niveau et en rang
 
 ---
 
@@ -341,7 +401,7 @@ Fichiers JSON individuels par joueur (dirty save system).
    cards.json
 ```
 
-Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop.
+Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes.
 
 Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée par userId.
 
