@@ -15,17 +15,44 @@ const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
 /* ---------- SSR SOFT PITY ---------- */
 
+/*
+ * FIX: Progression de la soft pity SSR améliorée.
+ *
+ * AVANT :
+ *   < 20 → 0.05%
+ *   < 30 → 0.10%
+ *   < 40 → 0.30%
+ *   < 49 → 1.00%  ← 10 packs au même taux = plateau inutile
+ *   50   → hard pity
+ *
+ * APRÈS :
+ *   < 20 → 0.05%   (base)
+ *   < 30 → 0.10%   (début soft pity)
+ *   < 35 → 0.30%   (montée douce)
+ *   < 40 → 0.50%   (montée moyenne)
+ *   < 43 → 1.00%   (montée forte)
+ *   < 46 → 2.00%   (pression)
+ *   < 49 → 5.00%   (quasi garanti)
+ *   50   → hard pity
+ *
+ * Le joueur ressent maintenant une vraie montée de tension
+ * dans les derniers packs avant le hard pity.
+ */
+
 function getSSRRate(pity){
 
  if(pity < 20) return 0.0005
  if(pity < 30) return 0.001
- if(pity < 40) return 0.003
- if(pity < 49) return 0.01
+ if(pity < 35) return 0.003
+ if(pity < 40) return 0.005
+ if(pity < 43) return 0.01
+ if(pity < 46) return 0.02
+ if(pity < 49) return 0.05
 
- return 0.01
+ return 0.05
 }
 
-/* ---------- S SOFT PITY (NEW) ---------- */
+/* ---------- S SOFT PITY ---------- */
 
 function getSRate(pity){
 

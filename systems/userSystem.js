@@ -94,6 +94,20 @@ function ensureAchievements(user){
  return user
 }
 
+function ensureProgression(user){
+ if(!user.progression){
+  user.progression = { level:1, xp:0, totalXp:0 }
+ }
+ return user
+}
+
+function ensureDaily(user){
+ if(!user.daily){
+  user.daily = { streak:0, lastDaily:0 }
+ }
+ return user
+}
+
 /* ================================================
    KROSMOSHOP — PATCHÉ avec nouvelles stats
 ================================================ */
@@ -115,17 +129,15 @@ function ensureKrosmoShop(user){
  return user
 }
 
-function ensureProgression(user){
- if(!user.progression){
-  user.progression = { level:1, xp:0, totalXp:0 }
- }
- return user
-}
+/* ================================================
+   SHINY CARDS — NOUVEAU
+   Stocke les SSR Shiny obtenues : { cardId: count }
+   Permet de tracker quelles cartes sont shiny
+   et de compter les shiny uniques.
+================================================ */
 
-function ensureDaily(user){
- if(!user.daily){
-  user.daily = { streak:0, lastDaily:0 }
- }
+function ensureShinyCards(user){
+ if(!user.shinyCards) user.shinyCards = {}
  return user
 }
 
@@ -194,6 +206,7 @@ function migrateAll(){
   ensureProgression(user)
   ensureDaily(user)
   ensureKrosmoShop(user)
+  ensureShinyCards(user)
   ensureStats(user, now)
 
   if(!user.pity){ user.pity = {}; changed = true }
@@ -269,6 +282,7 @@ function getUser(id){
 
   user = {
    cards:{},
+   shinyCards:{},
    kamas:0,
    packs:0,
    lastPack:0,
@@ -316,6 +330,7 @@ function getUser(id){
  ensureProgression(user)
  ensureDaily(user)
  ensureKrosmoShop(user)
+ ensureShinyCards(user)
  ensureStats(user, now)
 
  if(!user.pity) user.pity = {}

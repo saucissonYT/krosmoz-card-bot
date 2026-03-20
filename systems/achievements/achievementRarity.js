@@ -52,7 +52,7 @@ ssr50:{
  condition:u=>u.stats?.ssrPulled>=50
 },
 
-/* ================= SHINY ================= */
+/* ================= SHINY — TOTAL ================= */
 
 shiny1:{
  name:"Première SSR Shiny",
@@ -88,6 +88,50 @@ shiny10:{
  title:"Avatar de Lumière",
  trigger:"pack",
  condition:u=>u.stats?.shinySSR>=10
+},
+
+/* ================= SHINY — UNIQUES (DIFFÉRENTES) ================= */
+
+/*
+ * NOUVEAU: Achievements basés sur le nombre de SSR Shiny DIFFÉRENTES.
+ * On compte Object.keys(user.shinyCards).length pour savoir
+ * combien de cartes uniques ont été obtenues en version shiny.
+ */
+
+uniqueShiny1:{
+ name:"Éclat Unique",
+ badge:"✨",
+ description:"Posséder 1 SSR Shiny unique dans ta collection.",
+ title:"Premier Éclat",
+ trigger:"pack",
+ condition:u=>Object.keys(u.shinyCards||{}).length>=1
+},
+
+uniqueShiny2:{
+ name:"Double Lumière",
+ badge:"🌟",
+ description:"Posséder 2 SSR Shiny différentes dans ta collection.",
+ title:"Double Éclat",
+ trigger:"pack",
+ condition:u=>Object.keys(u.shinyCards||{}).length>=2
+},
+
+uniqueShiny5:{
+ name:"Galerie Brillante",
+ badge:"💎",
+ description:"Posséder 5 SSR Shiny différentes dans ta collection.",
+ title:"Galerie de Lumière",
+ trigger:"pack",
+ condition:u=>Object.keys(u.shinyCards||{}).length>=5
+},
+
+uniqueShiny10:{
+ name:"Maître des Éclats",
+ badge:"👑",
+ description:"Posséder 10 SSR Shiny différentes dans ta collection.",
+ title:"Maître des Shiny",
+ trigger:"pack",
+ condition:u=>Object.keys(u.shinyCards||{}).length>=10
 },
 
 /* ================= KROSMOSHOP — ACHATS ================= */

@@ -64,14 +64,35 @@ module.exports={
 
   const count=user.cards?.[card.id]||0
 
-  const embed=new EmbedBuilder()
-   .setTitle(`${RARITY_EMOJI[card.rarity]} ${card.name}`)
-   .setDescription(
+  /*
+   * FIX SHINY: Affichage de l'info shiny dans le détail de la carte.
+   * Si le joueur possède une version shiny de cette carte,
+   * on change l'embed (couleur dorée, icône ✨) et on affiche le nombre.
+   */
+  const shinyCount = user.shinyCards?.[card.id] || 0
+  const isShiny = shinyCount > 0
+
+  const titleEmoji = isShiny ? "✨" : RARITY_EMOJI[card.rarity]
+  const titleSuffix = isShiny ? " ✨ SHINY" : ""
+
+  let description =
 `🆔 ID : ${card.id}
 ⭐ Rareté : ${card.rarity}
 📚 Set : ${card.set}
 📦 Possédé : x${count}`
-   )
+
+  if(isShiny){
+   description += `\n\n✨ **Version Shiny** : x${shinyCount}`
+  }
+
+  const embed=new EmbedBuilder()
+   .setTitle(`${titleEmoji} ${card.name}${titleSuffix}`)
+   .setDescription(description)
+
+  /* Couleur spéciale pour les shiny */
+  if(isShiny){
+   embed.setColor("#FFD700")
+  }
 
   const filePath=`${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
 

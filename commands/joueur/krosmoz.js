@@ -12,7 +12,7 @@ const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
 const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
-const { getUser, save, updateActivityStreak, checkPalindrome } = require("../../systems/userSystem")
+const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const cooldownDev = require("../dev/cooldown")
@@ -29,13 +29,6 @@ for(const card of cards){
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
-}
-
-/* ---------- PALINDROME ---------- */
-
-function isPalindrome(n){
- const s = String(n)
- return s === s.split("").reverse().join("")
 }
 
 /* ---------- COOLDOWN ---------- */
@@ -129,6 +122,7 @@ ${getCooldownText(user)}`,
 
   const pity = user.pity[setId]
 
+  /* ✅ FIX SAFE INIT */
   if(pity.S   === undefined) pity.S   = 0
   if(pity.UR  === undefined) pity.UR  = 0
   if(pity.SSR === undefined) pity.SSR = 0
@@ -154,9 +148,6 @@ ${getCooldownText(user)}`,
    )
   }
 
-  /* ---- CAPTURE PITY AVANT LE PACK (pour hardPity) ---- */
-  const pitySSRBefore = pity.SSR
-
   if(freePack) user.lastPack = now
   else user.packs--
 
@@ -165,14 +156,22 @@ ${getCooldownText(user)}`,
 
   user.lastSet = setId
 
-  /* ---- ACTIVITY STREAK ---- */
+  /* ---- ACTIVITY STREAK (unique à krosmoz.js) ---- */
   updateActivityStreak(user)
 
-  /* ---- PACK MINUIT ---- */
-  const hour = new Date().getHours()
-  if(hour === 0){
-   user.stats.packAtMidnight = (user.stats.packAtMidnight || 0) + 1
-  }
+  /*
+   * FIX: Suppression du double tracking de stats.
+   * Les stats suivantes sont maintenant gérées UNIQUEMENT par packEngine.js :
+   *   - packAtMidnight
+   *   - allCPack / allUPack
+   *   - dryStreak / dryStreakMax
+   *   - ssrOnMonday
+   *   - palindromeReached
+   *   - hardPityReached
+   *
+   * Avant ce fix, krosmoz.js ET packEngine.js incrémentaient ces compteurs,
+   * ce qui doublait les stats à chaque pack ouvert via /krosmoz.
+   */
 
   const result = openPack(user, setId)
 
@@ -185,50 +184,6 @@ ${getCooldownText(user)}`,
    best,
    dailyBonus
   } = result
-
-  /* ---- TRACKINGS POST-PACK ---- */
-
-  const ssrInPack  = pack.filter(c=>c?.rarity==="SSR").length
-  const hasS       = pack.some(c=>c?.rarity==="S")
-  const hasSSR     = ssrInPack > 0
-  const allRarities = [...new Set(pack.map(c=>c?.rarity).filter(Boolean))]
-
-  // Hard pity : SSR obtenue alors que pity était >= 49 avant le pack
-  if(hasSSR && pitySSRBefore >= 49){
-   user.stats.hardPityReached = (user.stats.hardPityReached || 0) + 1
-  }
-
-  // Dry streak : packs sans S ni SSR
-  if(!hasS && !hasSSR){
-   user.stats.dryStreak = (user.stats.dryStreak || 0) + 1
-   user.stats.dryStreakMax = Math.max(user.stats.dryStreakMax || 0, user.stats.dryStreak)
-  } else {
-   user.stats.dryStreak = 0
-  }
-
-  // All C pack
-  if(allRarities.length === 1 && allRarities[0] === "C"){
-   user.stats.allCPack = (user.stats.allCPack || 0) + 1
-  }
-
-  // All U pack
-  if(allRarities.length === 1 && allRarities[0] === "U"){
-   user.stats.allUPack = (user.stats.allUPack || 0) + 1
-  }
-
-  // SSR un lundi
-  if(hasSSR){
-   const day = new Date().getDay() // 1 = lundi
-   if(day === 1){
-    user.stats.ssrOnMonday = (user.stats.ssrOnMonday || 0) + 1
-   }
-  }
-
-  // Palindrome (total de toutes les cartes)
-  const totalCards = Object.values(user.cards||{}).reduce((a,b)=>a+b,0)
-  if(totalCards > 0 && isPalindrome(totalCards)){
-   user.stats.palindromeReached = (user.stats.palindromeReached || 0) + 1
-  }
 
   let revealed = []
 
@@ -283,7 +238,7 @@ ${getCooldownText(user)}`,
     { name:"✨ S Pity",       value:`${pity.S}/30`,   inline:true },
     { name:"🟡 UR Pity",      value:`${pity.UR}/10`,  inline:true }
    )
-   .setColor(RARITY_COLOR[best.rarity])
+   .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
 
   if(luckyPack){
    finalEmbed.addFields({ name:"🎁 Lucky Pack", value:"Une carte bonus apparaît !", inline:false })

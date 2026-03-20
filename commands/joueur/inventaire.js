@@ -5,15 +5,19 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-const rarityOrder = Object.fromEntries(
- RARITY_ORDER.map((r,i) => [r, i+1])
-)
+const rarityEmoji={
+ C:"⚪",U:"🟢",R:"🔵",SR:"🟣",
+ HR:"🔴",UR:"🟡",S:"✨",SSR:"🌈"
+}
+
+const rarityOrder={
+ C:1,U:2,R:3,SR:4,HR:5,UR:6,S:7,SSR:8
+}
 
 module.exports={
 
@@ -105,6 +109,12 @@ module.exports={
   const perPage=20
   let page=1
 
+  /*
+   * FIX SHINY: On récupère les shinyCards du user pour
+   * afficher ✨ à côté des cartes qui ont une version shiny.
+   */
+  const shinyCards = user.shinyCards || {}
+
   function applyFilters(){
 
    let list=[...inventory]
@@ -139,17 +149,33 @@ module.exports={
 
    const lines=slice.map(e=>{
 
-    const emoji=RARITY_EMOJI[e.card.rarity]||""
+    const emoji=rarityEmoji[e.card.rarity]||""
 
-    return `#${e.card.id} • ${emoji} ${e.card.name} • x${e.count}`
+    /*
+     * FIX SHINY: Si la carte a une version shiny dans la collection,
+     * on affiche ✨ avec le nombre de shiny entre parenthèses.
+     * Exemple : #42 • 🌈 Ogrest • x3 ✨(1)
+     */
+    const shinyCount = shinyCards[e.card.id] || 0
+    const shinyTag = shinyCount > 0 ? ` ✨(${shinyCount})` : ""
+
+    return `#${e.card.id} • ${emoji} ${e.card.name} • x${e.count}${shinyTag}`
 
    })
+
+   /* Compteur total de shiny uniques */
+   const totalShinyUnique = Object.keys(shinyCards).length
+   const totalShinyAll = Object.values(shinyCards).reduce((a,b)=>a+b,0)
+
+   const footerText = totalShinyAll > 0
+    ? `${data.length} cartes • Page ${page}/${totalPages} • ✨ ${totalShinyAll} shiny (${totalShinyUnique} uniques)`
+    : `${data.length} cartes • Page ${page}/${totalPages}`
 
    const embed=new EmbedBuilder()
     .setTitle(`🎴 Inventaire de ${interaction.user.username}`)
     .setDescription(lines.join("\n") || "Aucune carte.")
     .setFooter({
-     text:`${data.length} cartes • Page ${page}/${totalPages}`
+     text:footerText
     })
 
    const nav=new ActionRowBuilder().addComponents(
@@ -228,19 +254,15 @@ module.exports={
   const built=build()
 
   /*
-   * FIX: suppression de withResponse:true
-   *
-   * Avec withResponse:true, editReply() retourne { resource: Message }
-   * au lieu de retourner le Message directement.
-   * Résultat : msg.createMessageComponentCollector() crashait car
-   * msg n'était pas un vrai objet Message Discord.
-   *
-   * Sans withResponse, editReply() retourne le Message normalement.
+   * FIX: Suppression de withResponse:true
+   * On utilise fetchReply() pour obtenir le vrai Message.
    */
-  const msg=await interaction.editReply({
+  await interaction.editReply({
    embeds:[built.embed],
    components:built.components
   })
+
+  const msg = await interaction.fetchReply()
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)

@@ -77,9 +77,19 @@ function giveAchievement(user,id){
  return true
 }
 
+/* ================= PALINDROME ================= */
+
+function isPalindrome(n){
+ const s = String(n)
+ return s === s.split("").reverse().join("")
+}
+
 /* ================= OPEN PACK ================= */
 
 function openPack(user,setId){
+
+ /* Capture pity AVANT le pack pour détecter le hard pity */
+ const pitySSRBefore = user.pity?.[setId]?.SSR ?? 0
 
  const result = coreGeneratePack(user,setId)
 
@@ -111,6 +121,15 @@ function openPack(user,setId){
  if(user.stats.lastSSR===undefined) user.stats.lastSSR=false
  if(user.stats.ssrStreak===undefined) user.stats.ssrStreak=0
 
+ /*
+  * FIX SHINY: Init du stockage persistant des SSR Shiny.
+  * user.shinyCards = { cardId: count }
+  * Permet de savoir quelles cartes sont shiny et combien.
+  */
+ if(!user.shinyCards) user.shinyCards={}
+
+ let ssrCount=0
+
  for(const card of pack){
 
   if(!card || card.id===undefined) continue
@@ -124,13 +143,13 @@ function openPack(user,setId){
   if(card.rarity==="SSR"){
    user.stats.ssrPulled++
    user.stats.ssrStreak++
+   ssrCount++
 
    if(user.stats.ssrStreak>=2)
     giveAchievement(user,"ssrStreak")
 
    user.stats.lastSSR=true
 
-   /* FIX: reset dry streak quand on obtient une SSR */
    user.stats.dryStreak=0
 
   } else {
@@ -138,6 +157,20 @@ function openPack(user,setId){
   }
 
   if(card.rarity==="SSR" && card.shiny){
+
+   /*
+    * FIX SHINY: Sauvegarde persistante des SSR Shiny.
+    *
+    * AVANT: seul user.stats.shinySSR était incrémenté (compteur global).
+    *        L'info "quelle carte est shiny" était perdue après le reveal.
+    *
+    * APRÈS: on stocke dans user.shinyCards = { cardId: count }
+    *        Ça permet de :
+    *        - Savoir exactement quelles cartes sont shiny
+    *        - Compter les shiny uniques via Object.keys(user.shinyCards).length
+    *        - Afficher ✨ dans l'inventaire et /carte
+    */
+   user.shinyCards[card.id] = (user.shinyCards[card.id] || 0) + 1
    user.stats.shinySSR++
    giveAchievement(user,"shinySSR")
   }
@@ -164,15 +197,8 @@ function openPack(user,setId){
 
  if(duplicates>=2) giveAchievement(user,"pileOuFace")
 
- const ssrCount=pack.filter(c=>c?.rarity==="SSR").length
-
  if(luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
 
- /*
-  * FIX: luckyStart — packsOpened est incrémenté AVANT openPack()
-  * dans krosmoz.js, donc au moment de ce check il vaut déjà 1.
-  * On check <= 1 au lieu de === 0.
-  */
  if(user.stats.packsOpened<=1 && ssrCount>0) giveAchievement(user,"luckyStart")
 
  if(ssrCount>=3) giveAchievement(user,"hotHand")
@@ -181,7 +207,9 @@ function openPack(user,setId){
   giveAchievement(user,"pityBreaker")
 
  const hour=new Date().getHours()
- if(hour>=3 && hour<5) giveAchievement(user,"nightPlayer")
+
+ /* FIX: nightPlayer entre 2h et 5h */
+ if(hour>=2 && hour<5) giveAchievement(user,"nightPlayer")
 
  /* ---- DETECTION ALL C / ALL U ---- */
 
@@ -203,10 +231,8 @@ function openPack(user,setId){
   user.stats.dryStreak = 0
  }
 
- /* ---- PACK A MINUIT ---- */
-
- const minutes = new Date().getMinutes()
- if(hour===0 && minutes===0)
+ /* FIX: packAtMidnight — toute l'heure de minuit */
+ if(hour===0)
   user.stats.packAtMidnight = (user.stats.packAtMidnight||0)+1
 
  /* ---- SSR LUNDI ---- */
@@ -214,6 +240,17 @@ function openPack(user,setId){
  const day = new Date().getDay()
  if(day===1 && ssrCount>0)
   user.stats.ssrOnMonday = (user.stats.ssrOnMonday||0)+1
+
+ /* ---- HARD PITY REACHED ---- */
+ if(ssrCount>0 && pitySSRBefore>=49){
+  user.stats.hardPityReached = (user.stats.hardPityReached||0)+1
+ }
+
+ /* ---- PALINDROME ---- */
+ const totalCards = Object.values(user.cards||{}).reduce((a,b)=>a+b,0)
+ if(totalCards>0 && isPalindrome(totalCards)){
+  user.stats.palindromeReached = (user.stats.palindromeReached||0)+1
+ }
 
  /* ---- BEST CARD ---- */
 
