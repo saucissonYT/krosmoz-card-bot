@@ -9,6 +9,41 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+[0.24.0] - 2026-03-20
+
+### Fixed
+
+- **Bug critique `pityBreaker`** : l'achievement ne se déclenchait **jamais** — le code vérifiait `user.pity[setId].SSR >= 49` après que `coreGeneratePack()` ait déjà reset le pity à 0. Corrigé avec `pitySSRBefore >= 48` capturé avant l'ouverture du pack
+- **Bug `achievementEngine.js`** : les cartes étaient mises en cache au `require()` via `Object.values(data.cards)` — snapshot statique jamais mis à jour. Les achievements de complétion de set ne se déclenchaient pas pour les cartes ajoutées après le démarrage du bot
+- **Bug `balance.js`** : `user.stats.balanceCheck` modifié sans `save()` — la stat pouvait être perdue si le bot crash avant l'autosave 30s
+
+### Changed
+
+- **`systems/packEngine.js`** → `pityBreaker` utilise désormais `pitySSRBefore` (capturé avant le pack) au lieu du pity déjà reset
+- **`systems/achievementEngine.js`** → `checkSetCompletion()` lit `data.cards` dynamiquement à chaque appel au lieu d'un snapshot statique
+- **`commands/joueur/balance.js`** → ajout de `save(interaction.user.id)` ciblé après modification de stats
+
+### Improved
+
+- **Centralisation complète des constantes** — suppression de toutes les constantes hardcodées restantes :
+  - `commands/joueur/inventaire.js` → `rarityEmoji` + `rarityOrder` remplacés par `RARITY_EMOJI` + `RARITY_ORDER` depuis `constants.js`
+  - `commands/joueur/market.js` → `rarityEmoji` remplacé par `RARITY_EMOJI` depuis `constants.js`
+  - `commands/joueur/sellcard.js` → `rarityEmoji` + `rarityPrice` remplacés par `RARITY_EMOJI` + `SELL_PRICE` depuis `constants.js`
+  - `commands/joueur/sellduplicate.js` → `rarityEmoji` + `sellValues` remplacés par `RARITY_EMOJI` + `SELL_PRICE` depuis `constants.js`
+  - `commands/joueur/eventpack.js` → `rarityColor` + `rarityEmoji` remplacés par `RARITY_COLOR` + `RARITY_EMOJI` depuis `constants.js`
+
+- **Élimination de tous les snapshots statiques `data.cards`** — les fichiers suivants lisaient `data.cards || []` au top-level, créant un snapshot figé au démarrage. Remplacé par `getCards()` depuis `cardRegistry` appelé dynamiquement :
+  - `commands/joueur/profil.js` → `getCards()` dans `execute()`
+  - `commands/joueur/trade.js` → `getCards()` dans `execute()`, `menu()`, `button()`
+  - `commands/joueur/market.js` → `getCards()` dans `renderMarket()` et `button()`
+  - `systems/dailySystem.js` → `getCards()` dans `giveSSR()`
+  - `systems/inventoryImage.js` → `getCards()` dans `generateInventory()`
+  - `commands/dev/setstats.js` → `getCards()` + `loadSets()` dans `execute()`
+
+- **`save()` ciblé par userId** — plusieurs commandes appelaient `save()` sans argument (sauvegarde de tous les users en mémoire). Remplacé par `save(interaction.user.id)` dans : `sellcard.js`, `sellduplicate.js`, `eventpack.js`
+
+---
+
 ---
 
 [0.23.0] - 2026-03-20
