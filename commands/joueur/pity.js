@@ -12,12 +12,36 @@ function progressBar(value,max){
 }
 
 /* ---------- SSR RATE ---------- */
+/*
+ * FIX v0.24: les taux affichés étaient FAUX.
+ *
+ * AVANT (pity.js) :
+ *   < 20 → 0.05%
+ *   < 30 → 0.10%
+ *   < 40 → 0.30%
+ *   < 49 → 1.00%
+ *
+ * APRÈS (aligné sur pack.js) :
+ *   < 20 → 0.05%
+ *   < 30 → 0.10%
+ *   < 35 → 0.30%
+ *   < 40 → 0.50%   ← NOUVEAU
+ *   < 43 → 1.00%
+ *   < 46 → 2.00%   ← NOUVEAU
+ *   < 49 → 5.00%   ← NOUVEAU
+ *
+ * Les joueurs voyaient des taux sous-estimés dans /pity,
+ * ce qui ne reflétait pas la vraie soft pity progressive.
+ */
 function getSSRRate(pity){
  if(pity < 20) return 0.0005
  if(pity < 30) return 0.001
- if(pity < 40) return 0.003
- if(pity < 49) return 0.01
- return 0.01
+ if(pity < 35) return 0.003
+ if(pity < 40) return 0.005
+ if(pity < 43) return 0.01
+ if(pity < 46) return 0.02
+ if(pity < 49) return 0.05
+ return 0.05
 }
 
 /* ---------- S RATE ---------- */

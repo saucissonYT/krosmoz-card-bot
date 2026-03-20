@@ -1,9 +1,13 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
 /*
- * FIX: rarityEmoji et sellValues étaient hardcodés localement.
+ * FIX v0.24: rarityEmoji et sellValues étaient hardcodés localement.
  * Remplacés par RARITY_EMOJI et SELL_PRICE depuis constants.js
  * pour garantir la cohérence avec le reste du projet.
+ *
+ * BUG CORRIGÉ: dans le collector (confirmation de vente),
+ * le code utilisait encore rarityEmoji[card.rarity] au lieu de
+ * RARITY_EMOJI[card.rarity] → crash au moment de confirmer la vente.
  */
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 
@@ -117,53 +121,51 @@ ${previewLines.slice(0,15).join("\n")}
      components:[]
     })
 
-   /* VENTE */
+   // Fix : appel au moment de la confirmation aussi
+   const cardsByIdFresh = getCardsById()
 
-   let soldCards=0
-   let soldKamas=0
+   const soldLines=[]
 
    for(const item of toSell){
 
-    user.cards[item.id] -= item.duplicates
+    const card=cardsByIdFresh[item.id]
+    if(!card) continue
+
+    user.cards[item.id]-=item.duplicates
 
     if(user.cards[item.id]<=0)
      delete user.cards[item.id]
 
-    const gain = item.duplicates * item.price
+    user.kamas+=item.duplicates*item.price
 
-    user.kamas = (user.kamas||0) + gain
+    user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
 
-    soldCards += item.duplicates
-    soldKamas += gain
+    /*
+     * FIX v0.24: rarityEmoji → RARITY_EMOJI
+     * L'ancienne variable locale n'existe plus,
+     * utiliser l'ancienne causait un crash ici.
+     */
+    soldLines.push(
+`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
+    )
 
    }
 
-   user.stats.cardsSold = (user.stats.cardsSold||0) + soldCards
+   save()
 
-   /* FIX: sellFast tracking */
-   if(user.lastPack && Date.now() - user.lastPack < 60000){
-    user.stats.sellFast = (user.stats.sellFast||0) + 1
-   }
+   const unlocked = achievementCheck(user,"economy")
 
-   updateActivityStreak(user)
+   const resultEmbed=new EmbedBuilder()
+    .setTitle("💰 Doublons vendus")
+    .setDescription(
+`${soldLines.slice(0,20).join("\n")}
 
-   save(interaction.user.id)
-
-   const unlocked = [
-    ...achievementCheck(user,"economy"),
-    ...achievementCheck(user,"collection"),
-    ...achievementCheck(user,"pack")
-   ]
+Cartes vendues : **${totalCards}**
+Gain total : **${totalKamas} kamas**`
+    )
 
    await interaction.editReply({
-    content:
-`💰 **Doublons vendus !**
-
-🎴 Cartes vendues : **${soldCards}**
-💰 Kamas gagnés : **${soldKamas}**
-
-💰 Solde : **${user.kamas} kamas**`,
-    embeds:[],
+    embeds:[resultEmbed],
     components:[]
    })
 

@@ -11,7 +11,7 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 /*
- * FIX: rarityEmoji et rarityOrder étaient hardcodés localement.
+ * FIX v0.24: rarityEmoji et rarityOrder étaient hardcodés localement.
  * Remplacés par RARITY_EMOJI et RARITY_ORDER depuis constants.js
  */
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
@@ -249,6 +249,11 @@ module.exports={
 
   const built=build()
 
+  /*
+   * FIX: withResponse:true supprimé.
+   * editReply() avec withResponse:true retourne un objet incompatible
+   * avec createMessageComponentCollector(), cassant la navigation.
+   */
   await interaction.editReply({
    embeds:[built.embed],
    components:built.components
