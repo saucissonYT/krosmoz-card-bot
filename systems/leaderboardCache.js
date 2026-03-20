@@ -1,4 +1,8 @@
-const { getUsers } = require("./userSystem")
+const fs = require("fs")
+const path = require("path")
+
+const { USERS_DIR } = require("./dataManager")
+const { getUser } = require("./userSystem")
 const { getCardsById } = require("./cardRegistry")
 
 let cache = null
@@ -8,7 +12,6 @@ const CACHE_TIME = 30000
 
 function buildLeaderboard(){
 
- const users = getUsers()
  const cardsById = getCardsById()
 
  const boards={
@@ -20,16 +23,47 @@ function buildLeaderboard(){
   level:[]
  }
 
- for(const id in users){
+ /*
+  * FIX: On scanne TOUS les fichiers users sur disque,
+  * pas seulement ceux chargés en mémoire.
+  * Avant, les joueurs inactifs (non chargés depuis le restart)
+  * n'apparaissaient pas dans le leaderboard.
+  */
 
-  const u = users[id]
+ let userIds = []
+
+ try{
+
+  if(fs.existsSync(USERS_DIR)){
+   userIds = fs.readdirSync(USERS_DIR)
+    .filter(f => f.endsWith(".json"))
+    .map(f => f.replace(".json",""))
+  }
+
+ }catch(err){
+  console.error("Erreur lecture users dir pour leaderboard:",err)
+ }
+
+ for(const id of userIds){
+
+  let u
+
+  try{
+   u = getUser(id)
+  }catch(err){
+   console.error("Erreur chargement user leaderboard:",id,err)
+   continue
+  }
 
   if(!u) continue
+
+  /* ---- COLLECTION ---- */
 
   const cards = Object.values(u.cards || {})
    .reduce((a,b)=>a+b,0)
 
-  // Fix : on récupère la rareté via le registre, pas via l'ID
+  /* ---- SSR COUNT ---- */
+
   let ssr = 0
 
   for(const [cardId, count] of Object.entries(u.cards || {})){
@@ -38,6 +72,8 @@ function buildLeaderboard(){
     ssr += count
    }
   }
+
+  /* ---- PUSH ---- */
 
   boards.collection.push({
    id,
@@ -70,6 +106,8 @@ function buildLeaderboard(){
   })
 
  }
+
+ /* ---- TRI DESCENDANT ---- */
 
  for(const key in boards){
   boards[key].sort((a,b)=>b.value-a.value)

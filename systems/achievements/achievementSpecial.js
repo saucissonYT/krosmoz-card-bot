@@ -64,7 +64,12 @@ allTriggers:{
  secret:true,
  condition:u=>{
   if(!u.achievements?.length) return false
-  const achievements = require("./achievementRegistry")
+  /*
+   * FIX: require("./achievementRegistry") → require("../achievementRegistry")
+   * Ce fichier est dans systems/achievements/, le registry est dans systems/
+   * L'ancien chemin créait une dépendance circulaire qui crash ou retourne {}
+   */
+  const achievements = require("../achievementRegistry")
   return ALL_TRIGGERS.every(trigger =>
    u.achievements.some(id => achievements[id]?.trigger === trigger)
   )
@@ -128,7 +133,11 @@ allRarities:{
  trigger:"collection",
  condition:u=>{
   if(!u.cards) return false
-  const { getCardsById } = require("./cardRegistry")
+  /*
+   * FIX: require("./cardRegistry") → require("../cardRegistry")
+   * Même raison : ce fichier est dans systems/achievements/
+   */
+  const { getCardsById } = require("../cardRegistry")
   const cardsById = getCardsById()
   const rarities = new Set(
    Object.keys(u.cards)
@@ -434,7 +443,11 @@ achieveAll:{
  trigger:"pack",
  condition:u=>{
   try{
-   const all = require("./achievementRegistry")
+   /*
+    * FIX: require("./achievementRegistry") → require("../achievementRegistry")
+    * Même fix que allTriggers
+    */
+   const all = require("../achievementRegistry")
    const total = Object.keys(all).length
    // -1 pour exclure cet achievement lui-même
    return (u.achievements?.length||0) >= total - 1

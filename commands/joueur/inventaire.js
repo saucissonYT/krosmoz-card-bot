@@ -227,10 +227,19 @@ module.exports={
 
   const built=build()
 
+  /*
+   * FIX: suppression de withResponse:true
+   *
+   * Avec withResponse:true, editReply() retourne { resource: Message }
+   * au lieu de retourner le Message directement.
+   * Résultat : msg.createMessageComponentCollector() crashait car
+   * msg n'était pas un vrai objet Message Discord.
+   *
+   * Sans withResponse, editReply() retourne le Message normalement.
+   */
   const msg=await interaction.editReply({
    embeds:[built.embed],
-   components:built.components,
-   withResponse:true
+   components:built.components
   })
 
   if(unlocked.length)

@@ -1,22 +1,63 @@
+const fs = require("fs")
+const path = require("path")
+
 const { data, save } = require("./dataManager")
+
+/*
+ * FIX: data.sets n'est jamais initialisé dans dataManager.loadAll().
+ * On charge depuis cards/sets.json si data.sets est vide/undefined.
+ */
+
+const SETS_PATH = path.join(__dirname, "../cards/sets.json")
 
 function loadSets(){
 
- const sets = data.sets || []
+ /* Si data.sets est déjà chargé et valide, on l'utilise */
+ if(data.sets && Array.isArray(data.sets) && data.sets.length > 0)
+  return data.sets
 
- if(Array.isArray(sets))
-  return sets
+ /* Sinon, on charge depuis cards/sets.json */
+ try{
 
- if(sets.sets)
-  return sets.sets
+  if(!fs.existsSync(SETS_PATH)){
+   console.error("sets.json introuvable :", SETS_PATH)
+   return []
+  }
 
- return []
+  const raw = fs.readFileSync(SETS_PATH, "utf8")
+  const parsed = JSON.parse(raw)
+
+  /* Support des deux formats : tableau direct ou { sets: [...] } */
+  if(Array.isArray(parsed)){
+   data.sets = parsed
+  } else if(parsed.sets && Array.isArray(parsed.sets)){
+   data.sets = parsed.sets
+  } else {
+   data.sets = []
+  }
+
+  return data.sets
+
+ }catch(err){
+
+  console.error("Erreur lecture sets.json :", err)
+  return []
+
+ }
 
 }
 
 function saveSets(list){
 
  data.sets = list
+
+ /* Sauvegarder aussi dans le fichier sets.json source */
+ try{
+  fs.writeFileSync(SETS_PATH, JSON.stringify(list, null, 2))
+ }catch(err){
+  console.error("Erreur sauvegarde sets.json :", err)
+ }
+
  save()
 
 }
@@ -97,6 +138,7 @@ function editSetReward(id,reward){
 
 module.exports = {
  loadSets,
+ saveSets,
  addSet,
  deleteSet,
  editSetName,

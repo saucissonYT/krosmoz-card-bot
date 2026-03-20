@@ -4,15 +4,22 @@ const path = require("path")
 /* TON ID DISCORD ROOT */
 const ROOT_OWNER = "231419667179241472"
 
-const PATH = process.env.RAILWAY
- ? "/data/devs.json"
- : "./database/devs.json"
+/* -------- PATH ALIGNÉ SUR DATAMANAGER -------- */
+/* Railway = /data, local = ./data               */
 
-const DIR = path.dirname(PATH)
+let BASE = "/data"
 
-if(!fs.existsSync(DIR)){
- fs.mkdirSync(DIR,{recursive:true})
+if(!fs.existsSync(BASE)){
+ BASE = path.join(process.cwd(),"data")
 }
+
+if(!fs.existsSync(BASE)){
+ fs.mkdirSync(BASE,{recursive:true})
+}
+
+const PATH = path.join(BASE, "devs.json")
+
+/* -------- LOAD -------- */
 
 let devs = {}
 
@@ -48,10 +55,18 @@ try{
 
 function save(){
 
- fs.writeFileSync(
-  PATH,
-  JSON.stringify(devs,null,2)
- )
+ try{
+
+  fs.writeFileSync(
+   PATH,
+   JSON.stringify(devs,null,2)
+  )
+
+ }catch(err){
+
+  console.error("Erreur sauvegarde devs.json",err)
+
+ }
 
 }
 

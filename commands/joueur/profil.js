@@ -278,28 +278,59 @@ module.exports = {
    if(i.user.id !== interaction.user.id)
     return i.reply({content:"Ce n'est pas ton profil.",flags:64})
 
+   /*
+    * FIX: Les boutons appelaient command.execute(i) directement.
+    * Problème : la commande cible (inventaire, listcards, achievements)
+    * appelle deferReply() en interne. Mais si on ne defer pas le bouton
+    * d'abord, ou si on le defer 2 fois, Discord crash avec
+    * "Unknown interaction (10062)" ou "Interaction already acknowledged".
+    *
+    * Solution :
+    * 1. On deferReply() le bouton ici (crée une nouvelle réponse)
+    * 2. On patch i.deferReply en no-op pour que la commande cible
+    *    ne re-defer pas (sinon = double defer = crash)
+    * 3. La commande cible peut ensuite faire editReply() normalement
+    *    car l'interaction est déjà deferred
+    */
+
    try{
+
+    await i.deferReply()
+
+    /* Patch : empêcher le double deferReply dans la commande cible */
+    i.deferReply = async () => {}
+
+    /* Patch : fakeOptions pour que getString/getInteger ne crash pas */
+    i.options = fakeOptions()
 
     if(i.customId === "profil_inventory"){
      const command = interaction.client.commands.get("inventaire")
-     i.options = fakeOptions()
-     return command.execute(i)
+     if(command) return await command.execute(i)
     }
 
     if(i.customId === "profil_sets"){
      const command = interaction.client.commands.get("listcards")
-     i.options = fakeOptions()
-     return command.execute(i)
+     if(command) return await command.execute(i)
     }
 
     if(i.customId === "profil_achievements"){
      const command = interaction.client.commands.get("achievements")
-     i.options = fakeOptions()
-     return command.execute(i)
+     if(command) return await command.execute(i)
     }
 
    }catch(err){
-    console.error(err)
+
+    console.error("Erreur bouton profil :", err)
+
+    try{
+     if(!i.replied && !i.deferred)
+      await i.reply({content:"❌ Une erreur est survenue.",flags:64})
+     else
+      await i.followUp({content:"❌ Une erreur est survenue.",flags:64})
+    }catch(e){
+     /* interaction expirée, rien à faire */
+    }
+
    }
 
   })

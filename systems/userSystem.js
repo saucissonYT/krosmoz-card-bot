@@ -1,8 +1,10 @@
-const { data, save, loadUser } = require("./dataManager")
+const { data, save: dataSave, loadUser, saveUser } = require("./dataManager")
 
 const users = data.users
 
-/* ---------------- DEFAULT STRUCTURES ---------------- */
+/* ================================================
+   DEFAULT STRUCTURES
+================================================ */
 
 function ensurePity(pity){
 
@@ -120,7 +122,9 @@ function ensureDaily(user){
  return user
 }
 
-/* ---------------- ACTIVITY STREAK ---------------- */
+/* ================================================
+   ACTIVITY STREAK
+================================================ */
 
 function updateActivityStreak(user){
 
@@ -147,7 +151,9 @@ function updateActivityStreak(user){
  user.stats.lastActivityDay = today
 }
 
-/* ---------------- PALINDROME CHECK ---------------- */
+/* ================================================
+   PALINDROME CHECK
+================================================ */
 
 function isPalindrome(n){
  const s = String(n)
@@ -161,7 +167,9 @@ function checkPalindrome(user){
  }
 }
 
-/* ---------------- MIGRATION GLOBALE ---------------- */
+/* ================================================
+   MIGRATION GLOBALE
+================================================ */
 
 function migrateAll(){
 
@@ -190,16 +198,59 @@ function migrateAll(){
 
  if(changed){
   console.log("Migration globale des users effectuée.")
-  save()
  }
 
 }
 
-/* ---------------- INIT ---------------- */
+/* ================================================
+   INIT
+================================================ */
 
 migrateAll()
 
-/* ---------------- USER MANAGEMENT ---------------- */
+/* ================================================
+   MARK DIRTY — à appeler quand on modifie un user
+================================================ */
+
+function markDirty(id){
+
+ if(users[id]){
+  users[id]._dirty = true
+ }
+
+}
+
+/* ================================================
+   SAVE — FIX CRITIQUE
+   L'ancienne version appelait seulement dataSave()
+   qui ne sauvegarde que market/cards/devs.
+   Maintenant on sauvegarde AUSSI les users modifiés.
+================================================ */
+
+function save(userId){
+
+ /* Si un userId spécifique est fourni, on save juste ce user */
+ if(userId && users[userId]){
+  users[userId]._dirty = true
+  saveUser(userId)
+ } else {
+  /* Sinon on sauvegarde TOUS les users chargés en mémoire */
+  for(const id in users){
+   if(users[id]){
+    users[id]._dirty = true
+    saveUser(id)
+   }
+  }
+ }
+
+ /* Sauvegarde des données statiques (market, cards, devs, etc.) */
+ dataSave()
+
+}
+
+/* ================================================
+   USER MANAGEMENT
+================================================ */
 
 function getUser(id){
 
@@ -249,7 +300,7 @@ function getUser(id){
 
   user._dirty = true
   users[id] = user
-  save()
+  save(id)
 
  }
 
@@ -272,10 +323,15 @@ function getUsers(){
  return users
 }
 
+/* ================================================
+   EXPORTS
+================================================ */
+
 module.exports = {
  getUser,
  getUsers,
  save,
+ markDirty,
  updateActivityStreak,
  checkPalindrome,
  isPalindrome

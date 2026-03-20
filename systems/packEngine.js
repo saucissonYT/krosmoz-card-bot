@@ -65,8 +65,14 @@ function giveAchievement(user,id){
 
  user.achievements.push(id)
 
- if(achievements[id].title)
-  user.title = achievements[id].title
+ if(achievements[id].title){
+
+  if(!user.titles) user.titles=["Nouveau"]
+
+  if(!user.titles.includes(achievements[id].title))
+   user.titles.push(achievements[id].title)
+
+ }
 
  return true
 }
@@ -123,6 +129,10 @@ function openPack(user,setId){
     giveAchievement(user,"ssrStreak")
 
    user.stats.lastSSR=true
+
+   /* FIX: reset dry streak quand on obtient une SSR */
+   user.stats.dryStreak=0
+
   } else {
    user.stats.ssrStreak=0
   }
@@ -132,6 +142,8 @@ function openPack(user,setId){
    giveAchievement(user,"shinySSR")
   }
  }
+
+ /* ---- ACHIEVEMENTS PACK ---- */
 
  const hrCount=pack.filter(c=>c?.rarity==="HR").length
  if(hrCount>=3) giveAchievement(user,"threeStars")
@@ -155,7 +167,14 @@ function openPack(user,setId){
  const ssrCount=pack.filter(c=>c?.rarity==="SSR").length
 
  if(luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
- if(user.stats.packsOpened===0 && ssrCount>0) giveAchievement(user,"luckyStart")
+
+ /*
+  * FIX: luckyStart — packsOpened est incrémenté AVANT openPack()
+  * dans krosmoz.js, donc au moment de ce check il vaut déjà 1.
+  * On check <= 1 au lieu de === 0.
+  */
+ if(user.stats.packsOpened<=1 && ssrCount>0) giveAchievement(user,"luckyStart")
+
  if(ssrCount>=3) giveAchievement(user,"hotHand")
 
  if(user.pity?.[setId]?.SSR>=49 && ssrCount>0)
@@ -164,6 +183,40 @@ function openPack(user,setId){
  const hour=new Date().getHours()
  if(hour>=3 && hour<5) giveAchievement(user,"nightPlayer")
 
+ /* ---- DETECTION ALL C / ALL U ---- */
+
+ const allC = pack.every(c=>c?.rarity==="C")
+ const allU = pack.every(c=>c?.rarity==="U")
+
+ if(allC) user.stats.allCPack = (user.stats.allCPack||0)+1
+ if(allU) user.stats.allUPack = (user.stats.allUPack||0)+1
+
+ /* ---- DRY STREAK (packs sans S ni SSR) ---- */
+
+ const hasSOrSSR = rarities.includes("S") || rarities.includes("SSR")
+
+ if(!hasSOrSSR){
+  user.stats.dryStreak = (user.stats.dryStreak||0)+1
+  if(user.stats.dryStreak > (user.stats.dryStreakMax||0))
+   user.stats.dryStreakMax = user.stats.dryStreak
+ } else {
+  user.stats.dryStreak = 0
+ }
+
+ /* ---- PACK A MINUIT ---- */
+
+ const minutes = new Date().getMinutes()
+ if(hour===0 && minutes===0)
+  user.stats.packAtMidnight = (user.stats.packAtMidnight||0)+1
+
+ /* ---- SSR LUNDI ---- */
+
+ const day = new Date().getDay()
+ if(day===1 && ssrCount>0)
+  user.stats.ssrOnMonday = (user.stats.ssrOnMonday||0)+1
+
+ /* ---- BEST CARD ---- */
+
  let best=null
 
  for(const card of pack){
@@ -171,6 +224,8 @@ function openPack(user,setId){
   if(!best || rarityOrder.indexOf(card.rarity)>rarityOrder.indexOf(best.rarity))
    best=card
  }
+
+ /* ---- XP ---- */
 
  let xpGain=20
 
