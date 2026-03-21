@@ -1,14 +1,15 @@
 /* ===============================================
    CONSTANTES CENTRALISÉES
    
-   v0.29 — Rééquilibrage économie complète
+   v0.30 — Rééquilibrage fusion + économie
    
    Principes :
    - Un pack (800k) doit "rembourser" ~25-35% en vente moyenne
    - L'écart entre raretés est exponentiel, pas linéaire
    - Le sell price = ~40% du market price (marge pour le market)
    - Le KrosmoShop est premium (2x-3x le market price)
-   - Les fusions ont un coût croissant mais jamais ruineux
+   - Les fusions doivent être ACCESSIBLES pour que les joueurs
+     les utilisent : coûts bas = recyclage attractif des doublons
 =============================================== */
 
 const RARITY_EMOJI = {
@@ -20,37 +21,40 @@ const RARITY_ORDER = ["C","U","R","SR","HR","UR","S","SSR"]
 
 /* ---- Prix de base (market entre joueurs, min/max calculés dessus) ---- */
 const RARITY_PRICE = {
- C:8,     /* avant: 5 */
- U:20,    /* avant: 10 */
- R:50,    /* avant: 20 */
- SR:120,  /* avant: 40 */
- HR:300,  /* avant: 80 */
- UR:800,  /* avant: 150 */
- S:2000,  /* avant: 300 */
- SSR:5000 /* avant: 1000 */
+ C:8,
+ U:20,
+ R:50,
+ SR:120,
+ HR:300,
+ UR:800,
+ S:2000,
+ SSR:5000
 }
 
 /* ---- Prix de vente au bot (sellcard, sellduplicates) ~40% du market ---- */
 const SELL_PRICE = {
- C:3,      /* avant: 2 */
- U:8,      /* avant: 5 */
- R:20,     /* avant: 10 */
- SR:50,    /* avant: 20 */
- HR:120,   /* avant: 40 */
- UR:320,   /* avant: 75 */
- S:800,    /* avant: 150 */
- SSR:2000  /* avant: 500 */
+ C:3,
+ U:8,
+ R:20,
+ SR:50,
+ HR:120,
+ UR:320,
+ S:800,
+ SSR:2000
 }
 
-/* ---- Coût de fusion (en kamas) ---- */
+/* ---- Coût de fusion (en DOUBLONS nécessaires, PAS en kamas) ---- */
+/* Principe : le joueur sacrifie X doublons d'une rareté pour obtenir
+   1 carte de la rareté supérieure. Les coûts doivent rester bas
+   pour que la fusion soit un vrai levier de progression.            */
 const FUSION_COST = {
- C:10,   /* avant: 5 */
- U:20,   /* avant: 6 */
- R:40,   /* avant: 8 */
- SR:80,  /* avant: 10 */
- HR:150, /* avant: 12 */
- UR:300, /* avant: 15 */
- S:500   /* avant: 20 */
+ C:3,    /* 3 doublons C  → 1 U   (avant: 10, original: 5) */
+ U:3,    /* 3 doublons U  → 1 R   (avant: 20, original: 6) */
+ R:4,    /* 4 doublons R  → 1 SR  (avant: 40, original: 8) */
+ SR:5,   /* 5 doublons SR → 1 HR  (avant: 80, original: 10) */
+ HR:6,   /* 6 doublons HR → 1 UR  (avant: 150, original: 12) */
+ UR:8,   /* 8 doublons UR → 1 S   (avant: 300, original: 15) */
+ S:10    /* 10 doublons S → 1 SSR (avant: 500, original: 20) */
 }
 
 /* ---- Couleurs par rareté ---- */
@@ -66,7 +70,7 @@ const RARITY_COLOR = {
 }
 
 /* ---- Prix d'un pack ---- */
-const PACK_PRICE = 800  /* avant: 1250 */
+const PACK_PRICE = 800
 
 /* ---- Niveau max joueur ---- */
 const MAX_PLAYER_LEVEL = 100

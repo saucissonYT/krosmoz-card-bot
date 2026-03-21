@@ -176,6 +176,8 @@ module.exports={
    user.stats.fusionDouble=(user.stats.fusionDouble||0)+1
   }
 
+  /* TYPE FUSION (pour achievements) */
+
   if(rarity==="C") user.stats.fusionCU=true
   if(rarity==="U") user.stats.fusionUR=true
   if(rarity==="R") user.stats.fusionRSR=true
@@ -183,13 +185,19 @@ module.exports={
   if(rarity==="HR") user.stats.fusionHRUR=true
   if(rarity==="UR") user.stats.fusionURS=true
 
-  let targetIndex = index + rarityGain
-  const maxIndex = RARITY_ORDER.indexOf("SSR")
-  if(targetIndex>maxIndex) targetIndex=maxIndex
+  let targetIndex=index+rarityGain
 
-  const targetRarity = RARITY_ORDER[targetIndex]
+  const maxIndex=RARITY_ORDER.indexOf("SSR")
 
-  const rewardPool = cards.filter(c=>c.set===setName && c.rarity===targetRarity)
+  if(targetIndex>maxIndex)
+   targetIndex=maxIndex
+
+  const targetRarity=RARITY_ORDER[targetIndex]
+
+  const rewardPool=cards.filter(c=>
+   c.set===setName &&
+   c.rarity===targetRarity
+  )
 
   if(rewardPool.length===0)
    return interaction.reply({content:"Erreur de pool.",flags:64})
