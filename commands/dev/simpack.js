@@ -1,90 +1,112 @@
 const {
+ SlashCommandBuilder,
+ EmbedBuilder,
  ActionRowBuilder,
  ButtonBuilder,
  ButtonStyle
 } = require("discord.js")
 
 const { generatePack } = require("../../systems/pack")
-
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
-
+const { loadSets } = require("../../systems/setSystemFile")
 const { rewardKamas } = require("../../systems/economy")
+const { RARITY_EMOJI } = require("../../systems/constants")
 
 module.exports = {
 
- name: "simpack",
- description: "Simulation des drops",
+ data: (() => {
 
- options: [
-  {
-   name: "packs",
-   description: "Nombre de packs à simuler",
-   type: 4,
-   required: true
-  },
-  {
-   name: "set",
-   description: "Set",
-   type: 3,
-   required: false,
-   choices: sets.map(s => ({
-    name: s.name,
-    value: s.id
-   }))
-  },
-  {
-   name: "pity",
-   description: "Activer le pity",
-   type: 5,
-   required: false
-  }
- ],
+  const sets = loadSets()
+  const safeSets = Array.isArray(sets) ? sets : sets?.sets || []
 
- async execute(interaction) {
+  const builder = new SlashCommandBuilder()
+   .setName("simpack")
+   .setDescription("Simulation des drops")
+   .addIntegerOption(option =>
+    option
+     .setName("packs")
+     .setDescription("Nombre de packs à simuler")
+     .setRequired(true)
+   )
+   .addBooleanOption(option =>
+    option
+     .setName("pity")
+     .setDescription("Activer le pity")
+     .setRequired(false)
+   )
+
+  const setOption = builder.addStringOption(option => {
+
+   option
+    .setName("set")
+    .setDescription("Set")
+    .setRequired(false)
+
+   if(safeSets.length > 0){
+    option.addChoices(
+     ...safeSets.slice(0, 25).map(s => ({
+      name:s.name,
+      value:s.id
+     }))
+    )
+   }
+
+   return option
+
+  })
+
+  return builder
+
+ })(),
+
+ async execute(interaction){
+
+  await interaction.deferReply({ ephemeral:true })
+
+  const sets = loadSets()
+  const safeSets = Array.isArray(sets) ? sets : sets?.sets || []
 
   const packs = interaction.options.getInteger("packs")
 
   const setId =
    interaction.options.getString("set") ||
-   sets[0].id
+   (safeSets[0]?.id || "incarnam")
 
   const pityEnabled =
    interaction.options.getBoolean("pity") ?? true
 
+  const setName = safeSets.find(s => s.id === setId)?.name || setId
+
+  /* Limite raisonnable */
+  if(packs > 100000){
+   return interaction.editReply("❌ Maximum 100 000 packs.")
+  }
+
   /* MULTI JOUEURS FAKE */
 
-  const fakeUsers=[]
+  const fakeUsers = []
 
-  for(let i=0;i<50;i++){
+  for(let i = 0; i < 50; i++){
    fakeUsers.push({
     pity:{
-     [setId]:{UR:0,S:0,SSR:0}
+     [setId]:{ UR:0, S:0, SSR:0 }
     }
    })
   }
 
-  const rarityCount={
-   C:0,
-   U:0,
-   R:0,
-   SR:0,
-   HR:0,
-   UR:0,
-   S:0,
-   SSR:0
+  const rarityCount = {
+   C:0, U:0, R:0, SR:0, HR:0, UR:0, S:0, SSR:0
   }
 
-  let totalKamas=0
-  let totalCards=0
+  let totalKamas = 0
+  let totalCards = 0
 
-  for(let i=0;i<packs;i++){
+  for(let i = 0; i < packs; i++){
 
    const user = pityEnabled
-    ? fakeUsers[Math.floor(Math.random()*fakeUsers.length)]
-    : {pity:{[setId]:{UR:0,S:0,SSR:0}}}
+    ? fakeUsers[Math.floor(Math.random() * fakeUsers.length)]
+    : { pity:{ [setId]:{ UR:0, S:0, SSR:0 } } }
 
-   const result = generatePack(user,setId)
+   const result = generatePack(user, setId)
    const pack = result.pack
 
    totalCards += pack.length
@@ -94,10 +116,8 @@ module.exports = {
     if(rarityCount[card.rarity] !== undefined)
      rarityCount[card.rarity]++
 
-    // Fix : rewardKamas attend (user, rarity)
-    // on passe un faux user sans kamas pour ne pas polluer les stats
     totalKamas += rewardKamas(
-     {kamas:0, stats:{}},
+     { kamas:0, stats:{} },
      card.rarity
     )
 
@@ -105,44 +125,50 @@ module.exports = {
 
   }
 
-  const avgCard = totalKamas / totalCards
+  const avgCard = totalCards > 0 ? totalKamas / totalCards : 0
   const avgPack = avgCard * 5
   const avg10 = avgPack * 10
 
   /* RESULTATS DROPS */
 
-  let dropResult =
-`🎴 Simulation ${packs} packs
-Set : ${setId}
-Pity : ${pityEnabled ? "ON" : "OFF"}
+  const dropLines = Object.entries(rarityCount)
+   .filter(([, count]) => count > 0)
+   .map(([rarity, count]) => {
+    const percent = ((count / totalCards) * 100).toFixed(4)
+    return `${RARITY_EMOJI[rarity]} **${rarity}** : ${count} (${percent}%)`
+   })
 
-Cartes générées : ${totalCards}
+  const dropEmbed = new EmbedBuilder()
+   .setTitle("📊 Simulation — Drops")
+   .setColor("#3498db")
+   .setDescription(
+`🎴 **${packs.toLocaleString()}** packs simulés
+📦 Set : **${setName}**
+🎰 Pity : **${pityEnabled ? "ON" : "OFF"}**
+🃏 Cartes générées : **${totalCards.toLocaleString()}**
 
-`
-
-  for(const rarity in rarityCount){
-
-   const count = rarityCount[rarity]
-   const percent = ((count / totalCards) * 100).toFixed(4)
-
-   dropResult += `${rarity} : ${count} (${percent}%)\n`
-
-  }
+${dropLines.join("\n")}`
+   )
 
   /* RESULTATS ECONOMIE */
 
-  const ecoResult =
-`💰 Économie
+  const ecoEmbed = new EmbedBuilder()
+   .setTitle("💰 Simulation — Économie")
+   .setColor("#2ecc71")
+   .setDescription(
+`🎴 **${packs.toLocaleString()}** packs simulés
+📦 Set : **${setName}**
 
-Total kamas générés : ${Math.floor(totalKamas)}
+💰 Total kamas générés : **${Math.floor(totalKamas).toLocaleString()}**
 
-Gain moyen / carte : ${avgCard.toFixed(2)}
-Gain moyen / pack : ${avgPack.toFixed(2)}
+📈 Gain moyen / carte : **${avgCard.toFixed(2)}**
+📈 Gain moyen / pack : **${avgPack.toFixed(2)}**
+📈 Gain moyen / 10 packs : **${avg10.toFixed(2)}**
 
-Gain moyen / 10 packs : ${avg10.toFixed(2)}
+🏷️ Prix pack conseillé : **${Math.ceil(avg10).toLocaleString()} kamas**`
+   )
 
-Prix pack conseillé : ${Math.ceil(avg10)}
-`
+  /* BOUTONS */
 
   const row = new ActionRowBuilder().addComponents(
 
@@ -158,16 +184,16 @@ Prix pack conseillé : ${Math.ceil(avg10)}
 
   )
 
-  await interaction.reply({
-   content:`\`\`\`\n${dropResult}\n\`\`\``,
+  await interaction.editReply({
+   embeds:[dropEmbed],
    components:[row]
   })
 
-  const filter = i => i.user.id === interaction.user.id
+  const msg = await interaction.fetchReply()
 
-  const collector = interaction.channel.createMessageComponentCollector({
-   filter,
-   time:60000
+  const collector = msg.createMessageComponentCollector({
+   filter: i => i.user.id === interaction.user.id,
+   time:120000
   })
 
   collector.on("collect", async i => {
@@ -175,7 +201,7 @@ Prix pack conseillé : ${Math.ceil(avg10)}
    if(i.customId === "simpack_drops"){
 
     await i.update({
-     content:`\`\`\`\n${dropResult}\n\`\`\``,
+     embeds:[dropEmbed],
      components:[row]
     })
 
@@ -184,7 +210,7 @@ Prix pack conseillé : ${Math.ceil(avg10)}
    if(i.customId === "simpack_economy"){
 
     await i.update({
-     content:`\`\`\`\n${ecoResult}\n\`\`\``,
+     embeds:[ecoEmbed],
      components:[row]
     })
 

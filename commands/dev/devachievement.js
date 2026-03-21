@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
+const { isDev } = require("../../systems/devSystem")
 const { getUser, save } = require("../../systems/userSystem")
 const achievements = require("../../systems/achievementRegistry")
 
@@ -9,23 +10,36 @@ module.exports = {
   .setName("devachievement")
   .setDescription("Ajouter ou supprimer un achievement")
   .addUserOption(option =>
-   option.setName("joueur")
+   option
+    .setName("joueur")
     .setDescription("Joueur cible")
-    .setRequired(true))
+    .setRequired(true)
+  )
   .addStringOption(option =>
-   option.setName("achievement")
+   option
+    .setName("achievement")
     .setDescription("ID ou nom du succès")
-    .setRequired(true))
+    .setRequired(true)
+  )
   .addStringOption(option =>
-   option.setName("action")
+   option
+    .setName("action")
     .setDescription("Ajouter ou supprimer")
     .setRequired(true)
     .addChoices(
-     {name:"add", value:"add"},
-     {name:"remove", value:"remove"}
-    )),
+     { name:"add", value:"add" },
+     { name:"remove", value:"remove" }
+    )
+  ),
 
  async execute(interaction){
+
+  /* Fix : vérification dev manquante */
+  if(!isDev(interaction.user.id))
+   return interaction.reply({
+    content:"⛔ Commande dev.",
+    ephemeral:true
+   })
 
   const target = interaction.options.getUser("joueur")
   const input = interaction.options.getString("achievement").toLowerCase()
@@ -33,7 +47,7 @@ module.exports = {
 
   const user = getUser(target.id)
 
-  /* recherche intelligente */
+  /* Recherche intelligente */
 
   let id = null
 
@@ -66,47 +80,84 @@ module.exports = {
    })
 
   if(!user.achievements)
-   user.achievements=[]
+   user.achievements = []
 
-  let result=""
+  if(!user.titles)
+   user.titles = ["Nouveau"]
+
+  const ach = achievements[id]
+  let result = ""
 
   if(action === "add"){
 
    if(!user.achievements.includes(id)){
+
     user.achievements.push(id)
-    result="Ajouté"
-   }else{
-    result="Déjà possédé"
+    result = "✅ Ajouté"
+
+    /* Donner le titre associé si applicable */
+    if(ach.title && !user.titles.includes(ach.title)){
+     user.titles.push(ach.title)
+     result += ` (+titre: ${ach.title})`
+    }
+
+   } else {
+    result = "⚠️ Déjà possédé"
    }
 
   } else {
 
+   const had = user.achievements.includes(id)
+
    user.achievements =
     user.achievements.filter(a => a !== id)
 
-   result="Supprimé"
+   if(had){
+    result = "🗑 Supprimé"
+
+    /* Retirer le titre si aucun autre achievement ne le donne */
+    if(ach.title){
+
+     const stillHasTitle = user.achievements.some(aId => {
+      const other = achievements[aId]
+      return other && other.title === ach.title
+     })
+
+     if(!stillHasTitle){
+      user.titles = user.titles.filter(t => t !== ach.title)
+
+      if(user.title === ach.title)
+       user.title = user.titles[0] || "Nouveau"
+
+      result += ` (-titre: ${ach.title})`
+     }
+
+    }
+
+   } else {
+    result = "⚠️ Non possédé"
+   }
 
   }
 
-  save()
-
-  const ach=achievements[id]
+  /* Fix : save avec userId */
+  save(target.id)
 
   const embed = new EmbedBuilder()
-
    .setTitle("⚙️ Dev Achievement")
-
+   .setColor("#e67e22")
    .setDescription(
-`${result} : **${ach.name}**
+`${result}
+
+${ach.badge} **${ach.name}**
+${ach.description || ""}
 
 ID : \`${id}\`
-
-Joueur : ${target.username}`
+Joueur : **${target.username}**
+Achievements : **${user.achievements.length}**`
    )
 
-   .setColor("#e67e22")
-
-  interaction.reply({embeds:[embed]})
+  interaction.reply({ embeds:[embed], ephemeral:true })
 
  }
 

@@ -1,28 +1,27 @@
 const fs = require("fs")
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { resetRegistry } = require("../../systems/cardRegistry")
 
-module.exports={
+module.exports = {
 
- name:"removecard",
- description:"Supprimer une ou plusieurs cartes",
-
- options:[
-  {
-   name:"ids",
-   description:"ID(s) des cartes à supprimer (séparés par des virgules)",
-   type:3,
-   required:true
-  }
- ],
+ data: new SlashCommandBuilder()
+  .setName("removecard")
+  .setDescription("Supprimer une ou plusieurs cartes")
+  .addStringOption(option =>
+   option
+    .setName("ids")
+    .setDescription("ID(s) des cartes à supprimer (séparés par des virgules)")
+    .setRequired(true)
+  ),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"Commande dev.",
+    content:"⛔ Commande dev.",
     ephemeral:true
    })
 
@@ -35,25 +34,28 @@ module.exports={
    .map(id => parseInt(id.trim()))
    .filter(id => !isNaN(id))
 
-  if(ids.length===0)
-   return interaction.reply("Aucun ID valide.")
+  if(ids.length === 0)
+   return interaction.reply({
+    content:"❌ Aucun ID valide.",
+    ephemeral:true
+   })
 
-  let removed=[]
-  let notFound=[]
+  let removed = []
+  let notFound = []
 
   for(const id of ids){
 
-   const index=cards.findIndex(c=>Number(c.id)===id)
+   const index = cards.findIndex(c => Number(c.id) === id)
 
-   if(index===-1){
+   if(index === -1){
     notFound.push(id)
     continue
    }
 
-   const card=cards[index]
+   const card = cards[index]
 
-   // Fix : chemin image correct avec le dossier set
-   const imagePath=`${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
+   /* Suppression image */
+   const imagePath = `${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
 
    try{
     if(fs.existsSync(imagePath))
@@ -62,9 +64,9 @@ module.exports={
     console.error(`Erreur suppression image ${imagePath}:`, err)
    }
 
-   cards.splice(index,1)
+   cards.splice(index, 1)
 
-   removed.push(card.name)
+   removed.push(`#${id} ${card.name} (${card.rarity})`)
 
   }
 
@@ -72,18 +74,28 @@ module.exports={
   save()
   resetRegistry()
 
-  let reply = ""
+  /* Embed résultat */
+
+  const embed = new EmbedBuilder()
+   .setTitle("🗑 Suppression de cartes")
+   .setColor(removed.length ? "#e74c3c" : "#95a5a6")
 
   if(removed.length)
-   reply += `✅ Cartes supprimées : ${removed.join(", ")}`
+   embed.addFields({
+    name:`✅ Supprimées (${removed.length})`,
+    value:removed.join("\n")
+   })
 
   if(notFound.length)
-   reply += `\n❌ IDs introuvables : ${notFound.join(", ")}`
+   embed.addFields({
+    name:`❌ Introuvables (${notFound.length})`,
+    value:notFound.join(", ")
+   })
 
-  if(!reply)
-   reply = "Aucune carte supprimée."
+  if(!removed.length && !notFound.length)
+   embed.setDescription("Aucune carte supprimée.")
 
-  interaction.reply(reply.trim())
+  interaction.reply({ embeds:[embed], ephemeral:true })
 
  }
 

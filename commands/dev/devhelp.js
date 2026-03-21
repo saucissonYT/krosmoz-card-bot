@@ -1,4 +1,5 @@
 const {
+ SlashCommandBuilder,
  EmbedBuilder,
  ActionRowBuilder,
  ButtonBuilder,
@@ -54,7 +55,7 @@ Choisis une catégorie :`
 
  )
 
- return {embed,row}
+ return { embed, row }
 
 }
 
@@ -76,14 +77,15 @@ function backButton(){
 
 module.exports = {
 
- name:"devhelp",
- description:"Afficher les commandes développeur",
+ data: new SlashCommandBuilder()
+  .setName("devhelp")
+  .setDescription("Afficher les commandes développeur"),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"Commande développeur.",
+    content:"⛔ Commande développeur.",
     ephemeral:true
    })
 
@@ -122,8 +124,11 @@ module.exports = {
    embed = new EmbedBuilder()
     .setTitle("👑 Commandes Admin")
     .setDescription(
-`/event → Lancer un événement
-/stats → Statistiques du bot`
+`/krosmodev → Donner/retirer le rang développeur
+/removedev → Ajouter ou retirer un dev
+/krosmoreload → Reload systèmes et commandes
+/stats → Statistiques du bot
+/event → Lancer un événement`
     )
     .setColor(0xE74C3C)
 
@@ -138,11 +143,11 @@ module.exports = {
    embed = new EmbedBuilder()
     .setTitle("🃏 Commandes Cartes")
     .setDescription(
-`/addcard → Ajouter une carte
-/editcard → Modifier une carte
-/removecard → Supprimer une carte
+`/addcard → Ajouter une carte (nom, rareté, set, image)
+/editcard → Modifier une carte (nom, rareté, set)
+/removecard → Supprimer une ou plusieurs cartes (IDs)
 /previewcard → Prévisualiser une carte
-/importcards → Importer plusieurs cartes`
+/importcards → Importer des cartes depuis cards/import`
     )
     .setColor(0x3498DB)
 
@@ -157,9 +162,8 @@ module.exports = {
    embed = new EmbedBuilder()
     .setTitle("📦 Commandes Packs")
     .setDescription(
-`/devpack → Générer un pack test
-/simpack → Simulation d'ouverture
-/hardpity → Forcer une pity SSR`
+`/simpack → Simulation d'ouverture (drops + économie)
+/hardpity → Forcer une hard pity UR/S/SSR`
     )
     .setColor(0x9B59B6)
 
@@ -174,13 +178,12 @@ module.exports = {
    embed = new EmbedBuilder()
     .setTitle("📚 Commandes Sets")
     .setDescription(
-`/setcreate → Créer un set
+`/setcreate → Créer un set (nom + reward)
 /setdelete → Supprimer un set
-/setedit → Modifier un set
-/setlist → Voir les sets
-/setbalance → Balance d'un set
-/setreward → Modifier récompenses
-/setstats → Stats du set`
+/setedit → Distribution des raretés par set
+/setlist → Voir tous les sets avec stats
+/setreward → Modifier la récompense d'un set
+/setstats → Stats détaillées d'un set`
     )
     .setColor(0x1ABC9C)
 
@@ -195,17 +198,16 @@ module.exports = {
    embed = new EmbedBuilder()
     .setTitle("⚙️ Commandes Systèmes")
     .setDescription(
-`/collection → Voir la collection d'un joueur
-/devgive → Donner une carte
-/removedev → Retirer un développeur
+`/devgive → Donner une carte à un joueur
+/devdaily → Simuler un daily (normal, double, SSR, streak)
+/devachievement → Ajouter/supprimer un achievement
+/checkachievement → Audit complet des achievements (console)
 
-/cooldown → Voir cooldowns
-/resetcooldown → Reset cooldowns
+/cooldown → Voir les cooldowns d'un joueur
+/resetcooldown → Reset les cooldowns
+/resetpity → Reset la pity d'un joueur
 
-/resetpity → Reset pity joueur
-
-/krosmodev → Mode développeur
-/krosmoreload → Reload systèmes et commandes`
+/collection → Voir la collection d'un joueur`
     )
     .setColor(0x2ECC71)
 
