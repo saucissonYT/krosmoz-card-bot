@@ -89,7 +89,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 |---------|------|
 | pack | Génération RNG des cartes avec soft/hard pity |
 | packEngine | Wrapper avec achievements, XP, stats, bonus guilde/joueur |
-| eventPackEngine | Packs d'events avec handlers modulaires |
+| eventPackEngine | Packs d'events avec taux boostés (SSR 2%, S 5%), zero pity, handlers modulaires |
 | eventSystem | Gestion du cycle de vie des events |
 | eventRegistry | Définition des 19 events |
 | eventHandlers/ | Logique RNG spécifique par Dieu |
@@ -419,29 +419,52 @@ La commande **/guildmanage** permet au meneur/officier de :
 
 ## 🎪 Événements des 19 Dieux
 
-Chaque Dieu du Krosmoz a un événement unique avec son propre mécanisme RNG :
+Les events sont des périodes spéciales (~15 min) où un Dieu du Krosmoz modifie les packs.
 
-| Dieu | Effet |
-|------|-------|
-| ⚔️ Iop | Cartes bonus |
-| 🏹 Cra | Pack précis |
-| 🌪️ Xelor | Mutation temporelle |
-| 💰 Enutrof | Kamas ×5 + jackpot |
-| ✨ Eniripsa | Filtrage purificateur |
-| 🌿 Sadida | Duplication |
-| 🐉 Osamodas | Pack bestial |
-| 🔥 Sacrieur | Mutation sacrificielle |
-| 🛡️ Feca | XP ×5 + jackpot |
-| 🕶️ Sram | Pack invisible |
-| 🎭 Zobal | Upgrade masqué |
-| ⚔️ Forgelance | Upgrade global |
-| 🌀 Eliotrope | Pack dimensionnel |
-| 🎲 Ecaflip | Full RNG |
-| 🌊 Pandawa | Duplication éthylique |
-| 🐺 Ouginak | Pack prédateur |
-| 🔫 Roublard | Pack piégé |
-| ⚙️ Steamer | Chaos mécanique |
-| ✨ Huppermage | Pack élémentaire |
+Chaque joueur reçoit **2-3 tickets** par event pour ouvrir des packs spéciaux via `/eventpack`.
+
+### Taux event (boostés)
+
+Les event packs utilisent des taux **indépendants et boostés** par rapport aux packs normaux, avec **ZERO pity** :
+
+| Rareté | Taux normal | Taux event |
+|--------|------------|------------|
+| SSR | 0.05% | **2%** (×40) |
+| S | 0.15% | **5%** (×33) |
+| UR | 0.8% | **10%** (×12) |
+| HR | 2% | **18%** |
+| SR | 5% | **25%** |
+| R | 12% | **22%** |
+| U | 25% | **13%** |
+| C | 55% | **5%** |
+
+Les event packs **n'affectent pas** les compteurs de pity des packs normaux.
+
+### Les 19 Dieux
+
+Chaque Dieu a son propre mécanisme RNG et ses **voice lines** quand tu obtiens une S ou SSR :
+
+| Dieu | Effet | Mécanique |
+|------|-------|-----------|
+| 🔥 Iop | Rage critique | Chaque carte peut être upgradée par la rage (5% SSR, 15% S, 25% UR/HR) |
+| 🏹 Cra | Tir ciblé | Une carte S spécifique peut apparaître (20% par slot) |
+| ⏳ Xelor | Distorsion temporelle | Des cartes sont retirées et d'autres ajoutées aléatoirement |
+| 🕶️ Sram | Pack invisible | Les cartes sont cachées puis révélées une par une + 1 carte bonus |
+| 💀 Sacrieur | Sacrifice de sang | Mutation +1 rang (C/U/R 70%, SR/HR 50%, UR 30%, S→SSR 10%) |
+| 🎭 Zobal | Masque d'évolution | Upgrade garanti de +1 rang sur toutes les cartes |
+| 🧠 Huppermage | Énergie élémentaire | +1 à 3 cartes bonus (60% S/UR, 40% random) |
+| 🍺 Pandawa | Duplication éthylique | Chaque carte a une chance d'être dupliquée (30% C→HR, 5% SSR) |
+| 🐉 Osamodas | Invocation bestiale | Pack homogène d'une seule rareté (5% SSR, 7% S, 8% UR...) |
+| 🎲 Ecaflip | RNG extrême | 60% jackpot (pack HR/UR/S/SSR) ou 40% double upgrade massif |
+| 🐺 Ouginak | Chasse du prédateur | Risque/récompense : 30% downgrade, 25% +1, 15% +2, 5% +3 (SSR) |
+| 🛡️ Feca | Bouclier divin | Filtre C/U + remplissage protégé (3% SSR, 8% S, 25% UR) |
+| 💰 Enutrof | Richesse divine | Kamas ×5 + jackpot caché (1%) |
+| 💣 Roublard | Explosion | +3 cartes bonus aléatoires |
+| ⚙️ Steamer | Chaos mécanique | Pack totalement aléatoire (toutes raretés possibles) |
+| 🌀 Eliotrope | Portail dimensionnel | Pack haute qualité (8% SSR, 25% S, 35% UR, 32% HR par carte) |
+| ✨ Eniripsa | Miracle de guérison | Purification C/U/R + guérison (UR→S 15%, S→SSR 5%) + 1 carte bonus |
+| 🌿 Sadida | Croissance naturelle | Duplication progressive (35% par carte, max 2 duplications) |
+| ⚔️ Forgelance | Forge divine | Upgrade global de +1 rang sur toutes les cartes |
 
 ---
 

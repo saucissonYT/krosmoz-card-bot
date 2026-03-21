@@ -9,6 +9,88 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+## [0.31.0] - 2026-03-21
+
+### Added
+
+- **Event Pack Engine v2** (`systems/eventPackEngine.js`)
+  - Nouveau `generateEventBasePack()` avec taux boostés spécifiques aux events
+  - Taux event : SSR 2%, S 5%, UR 10%, HR 18%, SR 25%, R 22%, U 13%, C 5%
+  - **ZERO pity** — les event packs n'utilisent plus le système de pity (pas de compteur, pas de hard pity)
+  - Les event packs ne touchent plus les compteurs de pity des packs normaux
+  - Shiny SSR toujours possible (0.5%) dans les event packs
+  - Nouveau `rollEventRarity()` indépendant du `rollRarity()` des packs normaux
+  - Export de `EVENT_RATES` pour référence et debug
+
+### Changed
+
+- **Refonte complète de 6 event handlers** — tous les events peuvent désormais produire des S et SSR
+
+- **eventIop.js** — Rework "La Rage"
+  - Avant : pool HR/UR/S uniquement → SSR **impossible**
+  - Après : basePack boosté conservé + rage critique sur chaque carte
+  - 5% → Rage Totale (SSR), 15% → Colère (S), 25% → Fureur (UR/HR)
+  - Les cartes déjà S/SSR résistent à la rage (cohérence RP : la rage ne touche pas les forts)
+  - Logs de rage détaillés dans les métadonnées (Rage Totale / Colère / Fureur)
+
+- **eventSacrieur.js** — Rework "Le Sacrifice de Sang"
+  - Avant : order de mutation s'arrêtait à UR → S/SSR **impossibles**
+  - Après : order étendu C → U → R → SR → HR → UR → S → SSR
+  - Chance de mutation décroissante par rareté : C/U/R 70%, SR/HR 50%, UR 30%, S→SSR 10%
+  - RP cohérent : plus la carte est faible, plus le sacrifice est efficace
+  - Messages contextuels : "Sacrifice Ultime" (→SSR), "Sang Versé" (→S)
+
+- **eventEliotrope.js** — Rework "Le Portail Dimensionnel"
+  - Avant : pack fixe de 3 cartes (HR+UR+S) → SSR **impossible**
+  - Après : pack de 5 cartes avec brèche dimensionnelle par carte
+  - 8% → SSR (brèche légendaire), 25% → S (distorsion), 35% → UR, 32% → HR
+  - Logs de brèches dimensionnelles trackés
+
+- **eventFeca.js** — Rework "Le Bouclier Divin"
+  - Avant : filtre C/U, remplit avec R → S/SSR quasi **impossibles**
+  - Après : filtre C/U, remplissage avec taux protégés spécifiques
+  - 3% → SSR (Bouclier Divin), 8% → S (Protection Majeure), 25% → UR, 35% → HR, 29% → SR
+  - Logs de protection pour les S/SSR obtenues
+
+- **eventEniripsa.js** — Rework "Le Miracle de Guérison"
+  - Avant : filtre C/U/R, remplit avec SR → S/SSR quasi **impossibles**
+  - Après : purification C/U/R + guérison qui upgrade chaque carte survivante
+  - SR→HR 40%, HR→UR 30%, UR→S 15%, S→SSR 5% (Miracle)
+  - +1 carte bonus "mot de guérison" (SR/HR/UR)
+  - Messages contextuels : "Miracle !" (→SSR), "Guérison Majeure" (→S)
+
+- **eventOuginak.js** — Rework "La Chasse du Prédateur"
+  - Avant : 70% downgrade systématique → S/SSR quasi **impossibles**
+  - Après : mécanique risque/récompense équilibrée
+  - 30% → Proie faible (downgrade -1), 25% → Esquive (neutre)
+  - 25% → Chasse réussie (+1), 15% → Festin (+2, peut atteindre S)
+  - 5% → Proie Légendaire (+3, peut atteindre SSR)
+  - RP cohérent : le prédateur rate souvent mais peut attraper une proie légendaire
+
+- **eventPackEngine.js** — ne fait plus appel à `generatePack()` de `pack.js`
+  - Suppression de la dépendance à `generatePack()` pour les event packs
+  - Les compteurs de pity ne sont plus affectés par les event packs
+  - `limitSSR()` toujours appliqué (1 SSR max, 2 S max) sauf si `allowMultiSSR`
+
+### Fixed
+
+- **Bug critique** : les event packs incrémentaient les compteurs de pity des packs normaux, faussant le système de pity pour les joueurs participant aux events
+- **Bug** : 6 events sur 19 ne pouvaient mécaniquement pas produire de S ou SSR malgré des voicelines et achievements dédiés
+- **Bug** : eventIop construisait un pack custom sans SSR dans le pool mais avait `allowMultiSSR: true` et des voicelines SSR
+- **Bug** : eventSacrieur limitait les mutations à UR maximum, rendant les achievements "SSR bénie du Sacrieur" impossibles
+- **Bug** : eventEliotrope générait seulement 3 cartes au lieu de 5, avec un pack fixe sans chance de SSR
+- **Bug** : eventFeca et eventEniripsa remplissaient les slots vides avec des cartes R ou SR uniquement
+- **Bug** : eventOuginak downgrade 70% systématique rendait les voicelines S/SSR inaccessibles
+
+### Improved
+
+- Tous les 19 events peuvent désormais déclencher les voicelines S et SSR
+- Tous les 148 achievements d'events sont désormais atteignables (SSR par classe, jackpots, etc.)
+- Cohérence RP renforcée : chaque handler a une mécanique fidèle à la personnalité du Dieu
+- Meilleur équilibrage global : les events sont plus généreux que les packs normaux (taux boostés) mais sans filet de sécurité (zero pity)
+
+---
+
 ## [0.30.0] - 2026-03-21
 
 ### Added
