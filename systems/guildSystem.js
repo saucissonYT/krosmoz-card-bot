@@ -4,15 +4,43 @@ const path = require("path")
 const { getUser, save } = require("./userSystem")
 
 /* ================= STORAGE ================= */
+/* Utilise le même path que dataManager/devSystem :
+   Railway = /data (volume persistant)
+   Local   = ./data                              */
 
-const GUILD_PATH = path.join(__dirname, "../data/guilds.json")
+let BASE = "/data"
+
+if(!fs.existsSync(BASE)){
+ BASE = path.join(process.cwd(), "data")
+}
+
+if(!fs.existsSync(BASE)){
+ fs.mkdirSync(BASE, { recursive:true })
+}
+
+const GUILD_PATH = path.join(BASE, "guilds.json")
+
+console.log("[GUILD] Path :", GUILD_PATH)
 
 let guilds = {}
 
 function loadGuilds(){
  try{
   if(fs.existsSync(GUILD_PATH)){
-   guilds = JSON.parse(fs.readFileSync(GUILD_PATH, "utf8"))
+   const raw = fs.readFileSync(GUILD_PATH, "utf8")
+
+   if(!raw || raw.trim() === "" || raw.trim() === "{}"){
+    console.log("[GUILD] guilds.json vide ou {}, initialisation propre")
+    guilds = {}
+   } else {
+    guilds = JSON.parse(raw)
+    console.log(`[GUILD] ${Object.keys(guilds).length} guilde(s) chargée(s)`)
+   }
+
+  } else {
+   console.log("[GUILD] guilds.json introuvable, création...")
+   guilds = {}
+   saveGuilds()
   }
  }catch(err){
   console.error("[GUILD] Erreur chargement guilds.json:", err)
@@ -34,6 +62,67 @@ function saveGuilds(){
 /* ================= INIT ================= */
 
 loadGuilds()
+
+/* ================= ORPHAN CLEANUP ================= */
+/* Nettoie les user.guildId qui pointent vers des guildes inexistantes.
+   Appelé au démarrage depuis index.js après loadGuilds().              */
+
+function cleanOrphanedGuildIds(){
+
+ const { USERS_DIR } = require("./dataManager")
+
+ if(!fs.existsSync(USERS_DIR)) return 0
+
+ let cleaned = 0
+
+ try{
+
+  const files = fs.readdirSync(USERS_DIR).filter(f => f.endsWith(".json"))
+
+  for(const file of files){
+
+   const filePath = path.join(USERS_DIR, file)
+
+   try{
+
+    const raw = fs.readFileSync(filePath, "utf8")
+    const userData = JSON.parse(raw)
+
+    if(userData.guildId && !guilds[userData.guildId]){
+
+     const userId = file.replace(".json", "")
+     console.log(`[GUILD] Nettoyage orphelin : user ${userId} → guildId "${userData.guildId}" (guilde inexistante)`)
+
+     delete userData.guildId
+     delete userData._dirty
+
+     fs.writeFileSync(filePath, JSON.stringify(userData, null, 2))
+     cleaned++
+
+     /* Si le user est déjà chargé en mémoire, nettoyer aussi */
+     const memUser = getUser(userId)
+     if(memUser && memUser.guildId && !guilds[memUser.guildId]){
+      delete memUser.guildId
+      save(userId)
+     }
+
+    }
+
+   }catch(err){
+    /* Fichier corrompu, on skip */
+   }
+
+  }
+
+ }catch(err){
+  console.error("[GUILD] Erreur nettoyage orphelins:", err)
+ }
+
+ if(cleaned > 0)
+  console.log(`[GUILD] ${cleaned} guildId orphelin(s) nettoyé(s)`)
+
+ return cleaned
+}
 
 /* ================= EMOJIS ALEATOIRES ================= */
 
@@ -104,14 +193,35 @@ function generateId(){
  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
+/* ================= HELPER : vérifier & nettoyer guildId orphelin ================= */
+
+function validateUserGuild(userId){
+ const user = getUser(userId)
+ if(user.guildId && !guilds[user.guildId]){
+  console.log(`[GUILD] Auto-nettoyage guildId orphelin pour user ${userId}`)
+  delete user.guildId
+  save(userId)
+  return false
+ }
+ return !!user.guildId
+}
+
 /* ================= CRUD ================= */
 
 function createGuild(userId, name){
 
  const user = getUser(userId)
 
- if(user.guildId)
-  return { error:"Tu es déjà dans une guilde." }
+ /* Vérifier si le user a un guildId qui pointe vers une guilde existante */
+ if(user.guildId){
+  if(guilds[user.guildId]){
+   return { error:"Tu es déjà dans une guilde." }
+  }
+  /* Guilde orpheline : nettoyer automatiquement */
+  console.log(`[GUILD] Nettoyage guildId orphelin pour ${userId} (guilde ${user.guildId} inexistante)`)
+  delete user.guildId
+  save(userId)
+ }
 
  if(user.kamas < CREATE_COST)
   return { error:`Il faut ${CREATE_COST} kamas pour créer une guilde.` }
@@ -191,8 +301,15 @@ function joinGuild(userId, guildId){
 
  if(!guild) return { error:"Guilde introuvable." }
 
- if(user.guildId)
-  return { error:"Tu es déjà dans une guilde." }
+ /* Vérifier guildId avec nettoyage orphelin */
+ if(user.guildId){
+  if(guilds[user.guildId]){
+   return { error:"Tu es déjà dans une guilde." }
+  }
+  /* Orphelin : nettoyer */
+  delete user.guildId
+  save(userId)
+ }
 
  if(guild.memberIds.length >= MAX_MEMBERS)
   return { error:`La guilde est pleine (${MAX_MEMBERS}/${MAX_MEMBERS}).` }
@@ -367,7 +484,18 @@ function getGuild(guildId){
 function getUserGuild(userId){
  const user = getUser(userId)
  if(!user.guildId) return null
- return guilds[user.guildId] || null
+
+ const guild = guilds[user.guildId]
+
+ /* Nettoyage automatique si guilde orpheline */
+ if(!guild){
+  console.log(`[GUILD] getUserGuild: nettoyage orphelin pour ${userId}`)
+  delete user.guildId
+  save(userId)
+  return null
+ }
+
+ return guild
 }
 
 function getAllGuilds(){
@@ -433,6 +561,8 @@ module.exports = {
  devSetLevel,
  devAddXP,
  devForceJoin,
+ cleanOrphanedGuildIds,
+ validateUserGuild,
  MAX_MEMBERS,
  CREATE_COST,
  RENAME_COST,

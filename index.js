@@ -19,8 +19,9 @@ dataManager.loadAll()
 
 /* ---------------- GUILD SYSTEM (init) ---------------- */
 
-const { loadGuilds } = require("./systems/guildSystem")
+const { loadGuilds, cleanOrphanedGuildIds } = require("./systems/guildSystem")
 loadGuilds()
+cleanOrphanedGuildIds()
 
 /* --------------------------------------------- */
 
@@ -187,93 +188,21 @@ client.on("interactionCreate",async interaction=>{
     return command.select(interaction)
    }
 
-   if(interaction.customId==="krosmoz_set"){
-    const command = require("./commands/joueur/krosmoz")
-    return command.select(interaction)
-   }
+   /* Autres select menus : titre, etc. */
+   const commandName = interaction.customId.split("_")[0]
+   const command = client.commands.get(commandName)
 
-   if(interaction.customId.startsWith("hardpity")){
-    const command = require("./commands/dev/hardpity")
+   if(command?.select)
     return command.select(interaction)
-   }
-
-   if(interaction.customId==="choose_title"){
-    const command = require("./commands/joueur/titre")
-    return command.select(interaction)
-   }
-
-   if(interaction.customId.startsWith("trade_menu")){
-    const command = require("./commands/joueur/trade")
-    return command.menu(interaction)
-   }
-
-   if(interaction.customId==="sellcard_select"){
-    const command = require("./commands/joueur/sellcard")
-    return command.select(interaction)
-   }
 
   }
 
+  /* 🔥 BUTTONS */
   if(interaction.isButton()){
 
-   if(interaction.customId.startsWith("help_")){
-    const command = require("./commands/joueur/krosmohelp")
-    return command.button(interaction)
-   }
-
-   if(interaction.customId.startsWith("devhelp_")){
-    const command = require("./commands/dev/devhelp")
-    return command.button(interaction)
-   }
-
-   if(interaction.customId.startsWith("trade_")){
-    const command = require("./commands/joueur/trade")
-    return command.button(interaction)
-   }
-
-   if(interaction.customId.startsWith("title_")){
-    const command = require("./commands/joueur/titre")
-    return command.button(interaction)
-   }
-
-   if(interaction.customId.startsWith("market_")){
-    const command = require("./commands/joueur/market")
-    return command.button(interaction)
-   }
-
    /*
-    * Note : les boutons guild_ (guild_back, guild_members, guild_quests,
-    * guild_bonuses, guild_leave, guild_claim_quests, guild_create,
-    * guild_accept, guild_decline, guild_transfer_confirm, guild_disband_confirm)
-    * sont gérés par les collectors internes de guild.js et guildmanage.js.
-    * Pas besoin de les router ici.
-    */
-
-  }
-
-  /* ---------------- MODALS ---------------- */
-
-  if(interaction.isModalSubmit()){
-
-   console.log("📝 Modal :",interaction.customId)
-
-   if(
-    interaction.customId==="marketSellModal" ||
-    interaction.customId==="marketBuyModal" ||
-    interaction.customId==="marketRemoveModal"
-   ){
-    const command = require("./commands/joueur/market")
-    return command.modal(interaction)
-   }
-
-   if(interaction.customId.startsWith("marketmodal_")){
-    const command = require("./commands/joueur/carte")
-    return command.modal(interaction)
-   }
-
-   /*
-    * Note : le modal guild_create_modal est géré par le collector
-    * interne de guild.js via awaitModalSubmit(). Pas besoin de le
+    * Les boutons guild_, leaderboard_, inventaire_, titre_
+    * sont gérés par leurs collectors internes. Pas besoin de le
     * router ici.
     */
 
