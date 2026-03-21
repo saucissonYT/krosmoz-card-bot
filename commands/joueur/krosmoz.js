@@ -17,14 +17,23 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const cooldownDev = require("../dev/cooldown")
 
-const cards = getCards()
+/*
+ * FIX: const cards = getCards() et setCache étaient au top-level.
+ * Snapshot statique figé au démarrage du bot — les cartes ajoutées
+ * via /importcards ou /addcard n'étaient jamais prises en compte.
+ *
+ * APRÈS: getSetCache() reconstruit le cache dynamiquement à chaque appel.
+ * Le coût est négligeable (quelques ms pour ~1000 cartes).
+ */
 
-/* ---------- CACHE SETS ---------- */
-
-const setCache = {}
-for(const card of cards){
- if(!setCache[card.set]) setCache[card.set] = []
- setCache[card.set].push(card)
+function getSetCache(){
+ const cards = getCards()
+ const cache = {}
+ for(const card of cards){
+  if(!cache[card.set]) cache[card.set] = []
+  cache[card.set].push(card)
+ }
+ return cache
 }
 
 function sleep(ms){
@@ -45,6 +54,7 @@ function getCooldownText(user){
 /* ---------- SET COMPLETION ---------- */
 
 function getSetCompletion(user, setId){
+ const setCache = getSetCache()
  const setCards = setCache[setId] || []
  let owned = 0
  for(const card of setCards)

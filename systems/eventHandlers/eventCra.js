@@ -1,12 +1,12 @@
 const { getCards } = require("../cardRegistry")
 
-const cards = getCards()
-
 module.exports = {
 
  key:"cra",
 
  generate(user, basePack, event){
+
+  const cards = getCards()
 
   let pack = [...basePack]
 

@@ -5,8 +5,6 @@ const { getCardsById } = require("./cardRegistry")
 const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
 
-const cardsById = getCardsById()
-
 const DATA_DIR = path.join(__dirname, "../data")
 const SHOP_PATH = path.join(DATA_DIR, "krosmoshop.json")
 
@@ -72,6 +70,7 @@ function randomFrom(array){
 }
 
 function getCardsByRarity(rarity){
+ const cardsById = getCardsById()
  return Object.values(cardsById).filter(c=>c.rarity===rarity)
 }
 
@@ -141,6 +140,8 @@ function getShop(){
 /* ---------------- BUY ---------------- */
 
 function buyFromShop(userId,cardId){
+
+ const cardsById = getCardsById()
 
  const shop=getShop()
 

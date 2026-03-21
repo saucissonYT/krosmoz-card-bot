@@ -10,8 +10,6 @@ const { addXP } = require("../../systems/progressionSystem")
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
-const cards = getCards()
-
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
@@ -42,6 +40,8 @@ module.exports={
   ),
 
  async execute(interaction){
+
+  const cards = getCards()
 
   const user = getUser(interaction.user.id)
   const setName = interaction.options.getString("set")

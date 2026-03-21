@@ -1,7 +1,5 @@
 const { getCards } = require("../cardRegistry")
 
-const cards = getCards()
-
 function random(pool){
  return pool[Math.floor(Math.random() * pool.length)]
 }
@@ -10,6 +8,8 @@ module.exports = {
  key: "huppermage",
 
  generate(user, basePack){
+
+  const cards = getCards()
 
   let pack = [...basePack]
   let added = []

@@ -1,7 +1,5 @@
 const { getCards } = require("../cardRegistry")
 
-const cards = getCards()
-
 const order = ["C","U","R","SR","HR","UR","S","SSR"]
 
 function random(pool){
@@ -12,6 +10,8 @@ module.exports = {
  key: "xelor",
 
  generate(user, basePack){
+
+  const cards = getCards()
 
   let pack = [...basePack]
 

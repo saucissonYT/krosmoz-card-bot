@@ -1,7 +1,5 @@
 const { getCards } = require("../cardRegistry")
 
-const cards = getCards()
-
 const order = ["C","U","R","SR","HR","UR"]
 
 function random(pool){
@@ -12,6 +10,8 @@ module.exports = {
  key: "sacrieur",
 
  generate(user, basePack){
+
+  const cards = getCards()
 
   const mutations = []
 

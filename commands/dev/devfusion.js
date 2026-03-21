@@ -6,8 +6,6 @@ const { getCards } = require("../../systems/cardRegistry")
 const setsData = require("../../cards/sets.json")
 const sets = Array.isArray(setsData) ? setsData : setsData.sets
 
-const cards = getCards()
-
 function random(arr){
  return arr[Math.floor(Math.random()*arr.length)]
 }
@@ -58,6 +56,8 @@ data:new SlashCommandBuilder()
 ),
 
 async execute(interaction){
+
+const cards = getCards()
 
 const setName = interaction.options.getString("set")
 const rarity = interaction.options.getString("rarete")

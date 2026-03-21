@@ -1,24 +1,24 @@
 const { getCards } = require("../cardRegistry")
 
-const cards = getCards()
-
 const order = ["C","U","R","SR","HR","UR","S","SSR"]
 
 function random(pool){
  return pool[Math.floor(Math.random() * pool.length)]
 }
 
-function upgrade(card){
- const i = order.indexOf(card.rarity)
- const next = order[Math.min(i + 2, order.length - 1)]
- const pool = cards.filter(c => c.rarity === next)
- return random(pool)
-}
-
 module.exports = {
  key: "ecaflip",
 
  generate(user, basePack){
+
+  const cards = getCards()
+
+  function upgrade(card){
+   const i = order.indexOf(card.rarity)
+   const next = order[Math.min(i + 2, order.length - 1)]
+   const pool = cards.filter(c => c.rarity === next)
+   return random(pool)
+  }
 
   let pack
   let meta = {}
