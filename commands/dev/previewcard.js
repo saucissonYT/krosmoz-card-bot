@@ -1,24 +1,48 @@
-const { EmbedBuilder } = require("discord.js")
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 const { RARITY_EMOJI } = require("../../systems/constants")
 const { isDev } = require("../../systems/devSystem")
 
 module.exports = {
 
- name:"previewcard",
- description:"Prévisualiser une carte",
-
- options:[
-  { name:"nom", type:3, required:true },
-  { name:"rarete", type:3, required:true },
-  { name:"set", type:3, required:false },
-  { name:"image", type:11, required:true }
- ],
+ data: new SlashCommandBuilder()
+  .setName("previewcard")
+  .setDescription("Prévisualiser une carte")
+  .addStringOption(o =>
+   o.setName("nom")
+    .setDescription("Nom de la carte")
+    .setRequired(true)
+  )
+  .addStringOption(o =>
+   o.setName("rarete")
+    .setDescription("Rareté")
+    .setRequired(true)
+    .addChoices(
+     { name:"C", value:"C" },
+     { name:"U", value:"U" },
+     { name:"R", value:"R" },
+     { name:"SR", value:"SR" },
+     { name:"HR", value:"HR" },
+     { name:"UR", value:"UR" },
+     { name:"S", value:"S" },
+     { name:"SSR", value:"SSR" }
+    )
+  )
+  .addAttachmentOption(o =>
+   o.setName("image")
+    .setDescription("Image de la carte")
+    .setRequired(true)
+  )
+  .addStringOption(o =>
+   o.setName("set")
+    .setDescription("Set (optionnel)")
+    .setRequired(false)
+  ),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"Commande dev.",
+    content:"⛔ Commande dev.",
     ephemeral:true
    })
 
@@ -35,9 +59,7 @@ Set : ${set || "Aucun"}`
    )
    .setImage(attachment.url)
 
-  interaction.reply({
-   embeds:[embed]
-  })
+  interaction.reply({ embeds:[embed] })
 
  }
 

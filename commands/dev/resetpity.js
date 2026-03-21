@@ -1,42 +1,39 @@
+const { SlashCommandBuilder } = require("discord.js")
+
 const { isDev } = require("../../systems/devSystem")
-const { getUsers, save } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 
 module.exports = {
 
- name:"resetpity",
- description:"Reset pity d'un joueur",
-
- options:[
-  {
-   name:"joueur",
-   description:"Utilisateur",
-   type:6,
-   required:true
-  }
- ],
+ data: new SlashCommandBuilder()
+  .setName("resetpity")
+  .setDescription("Reset pity d'un joueur")
+  .addUserOption(o =>
+   o.setName("joueur")
+    .setDescription("Utilisateur")
+    .setRequired(true)
+  ),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"⛔ Commande dev uniquement.",
+    content:"⛔ Commande dev.",
     ephemeral:true
    })
 
   const target = interaction.options.getUser("joueur")
 
-  const users = getUsers()
+  const user = getUser(target.id)
 
-  if(!users[target.id])
+  if(!user)
    return interaction.reply("Utilisateur introuvable.")
 
-  users[target.id].pity={}
+  user.pity = {}
 
-  save()
+  save(target.id)
 
-  interaction.reply(
-`✅ Toutes les pity reset pour **${target.username}**`
-  )
+  interaction.reply(`✅ Toutes les pity reset pour **${target.username}**`)
 
  }
 

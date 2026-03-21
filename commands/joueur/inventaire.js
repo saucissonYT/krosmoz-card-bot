@@ -1,4 +1,5 @@
 const {
+ SlashCommandBuilder,
  EmbedBuilder,
  ActionRowBuilder,
  ButtonBuilder,
@@ -10,75 +11,69 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
-/*
- * FIX v0.24: rarityEmoji et rarityOrder étaient hardcodés localement.
- * Remplacés par RARITY_EMOJI et RARITY_ORDER depuis constants.js
- */
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 
 const rarityOrderMap = Object.fromEntries(
  RARITY_ORDER.map((r, i) => [r, i + 1])
 )
 
-module.exports={
+module.exports = {
 
- name:"inventaire",
- description:"Voir ton inventaire",
-
- options:[
-  {
-   name:"rarete",
-   type:3,
-   required:false,
-   choices:[
-    {name:"C",value:"C"},
-    {name:"U",value:"U"},
-    {name:"R",value:"R"},
-    {name:"SR",value:"SR"},
-    {name:"HR",value:"HR"},
-    {name:"UR",value:"UR"},
-    {name:"S",value:"S"},
-    {name:"SSR",value:"SSR"}
-   ]
-  }
- ],
+ data: new SlashCommandBuilder()
+  .setName("inventaire")
+  .setDescription("Voir ton inventaire")
+  .addStringOption(o =>
+   o.setName("rarete")
+    .setDescription("Filtrer par rareté")
+    .setRequired(false)
+    .addChoices(
+     { name:"C", value:"C" },
+     { name:"U", value:"U" },
+     { name:"R", value:"R" },
+     { name:"SR", value:"SR" },
+     { name:"HR", value:"HR" },
+     { name:"UR", value:"UR" },
+     { name:"S", value:"S" },
+     { name:"SSR", value:"SSR" }
+    )
+  ),
 
  async execute(interaction){
 
   await interaction.deferReply()
 
-  const cardsById=getCardsById()
-  const user=getUser(interaction.user.id)
+  const cardsById = getCardsById()
+  const user = getUser(interaction.user.id)
 
-  if(!user.cards) user.cards={}
-  if(!user.stats) user.stats={}
+  if(!user.cards) user.cards = {}
+  if(!user.stats) user.stats = {}
 
-  user.stats.inventoryOpen=(user.stats.inventoryOpen||0)+1
+  user.stats.inventoryOpen = (user.stats.inventoryOpen || 0) + 1
 
-  const unlocked=achievementCheck(user,"inventory")
+  const unlocked = achievementCheck(user, "inventory")
 
-  if(Object.keys(user.cards).length===0){
+  if(Object.keys(user.cards).length === 0){
 
    await interaction.editReply("📦 Inventaire vide.")
 
    if(unlocked.length)
-    await notifyAchievements(interaction,unlocked)
+    await notifyAchievements(interaction, unlocked)
 
    return
   }
 
-  const rarityFilter=interaction.options.getString("rarete")
+  const rarityFilter = interaction.options.getString("rarete")
 
-  let inventory=[]
-  let cleaned=false
+  let inventory = []
+  let cleaned = false
 
   for(const id in user.cards){
 
-   const card=cardsById[String(id)]
+   const card = cardsById[String(id)]
 
    if(!card){
     delete user.cards[id]
-    cleaned=true
+    cleaned = true
     continue
    }
 
@@ -92,45 +87,41 @@ module.exports={
   if(cleaned) save()
 
   if(rarityFilter)
-   inventory=inventory.filter(e=>e.card.rarity===rarityFilter)
+   inventory = inventory.filter(e => e.card.rarity === rarityFilter)
 
-  if(inventory.length===0){
+  if(inventory.length === 0){
 
    await interaction.editReply("❌ Aucune carte trouvée.")
 
    if(unlocked.length)
-    await notifyAchievements(interaction,unlocked)
+    await notifyAchievements(interaction, unlocked)
 
    return
   }
 
-  let filter=null
-  let sort="id"
+  let filter = null
+  let sort = "id"
 
-  const perPage=20
-  let page=1
+  const perPage = 20
+  let page = 1
 
-  /*
-   * FIX SHINY: On récupère les shinyCards du user pour
-   * afficher ✨ à côté des cartes qui ont une version shiny.
-   */
   const shinyCards = user.shinyCards || {}
 
   function applyFilters(){
 
-   let list=[...inventory]
+   let list = [...inventory]
 
    if(filter)
-    list=list.filter(e=>e.card.rarity===filter)
+    list = list.filter(e => e.card.rarity === filter)
 
-   if(sort==="name")
-    list.sort((a,b)=>a.card.name.localeCompare(b.card.name))
+   if(sort === "name")
+    list.sort((a, b) => a.card.name.localeCompare(b.card.name))
 
-   if(sort==="rarity")
-    list.sort((a,b)=>rarityOrderMap[b.card.rarity]-rarityOrderMap[a.card.rarity])
+   if(sort === "rarity")
+    list.sort((a, b) => rarityOrderMap[b.card.rarity] - rarityOrderMap[a.card.rarity])
 
-   if(sort==="count")
-    list.sort((a,b)=>b.count-a.count)
+   if(sort === "count")
+    list.sort((a, b) => b.count - a.count)
 
    return list
 
@@ -138,19 +129,19 @@ module.exports={
 
   function build(){
 
-   const data=applyFilters()
+   const data = applyFilters()
 
-   const totalPages=Math.max(1,Math.ceil(data.length/perPage))
+   const totalPages = Math.max(1, Math.ceil(data.length / perPage))
 
-   page=Math.max(1,Math.min(page,totalPages))
+   page = Math.max(1, Math.min(page, totalPages))
 
-   const start=(page-1)*perPage
+   const start = (page - 1) * perPage
 
-   const slice=data.slice(start,start+perPage)
+   const slice = data.slice(start, start + perPage)
 
-   const lines=slice.map(e=>{
+   const lines = slice.map(e => {
 
-    const emoji=RARITY_EMOJI[e.card.rarity]||""
+    const emoji = RARITY_EMOJI[e.card.rarity] || ""
 
     const shinyCount = shinyCards[e.card.id] || 0
     const shinyTag = shinyCount > 0 ? ` ✨(${shinyCount})` : ""
@@ -159,38 +150,35 @@ module.exports={
 
    })
 
-   /* Compteur total de shiny uniques */
    const totalShinyUnique = Object.keys(shinyCards).length
-   const totalShinyAll = Object.values(shinyCards).reduce((a,b)=>a+b,0)
+   const totalShinyAll = Object.values(shinyCards).reduce((a, b) => a + b, 0)
 
    const footerText = totalShinyAll > 0
     ? `${data.length} cartes • Page ${page}/${totalPages} • ✨ ${totalShinyAll} shiny (${totalShinyUnique} uniques)`
     : `${data.length} cartes • Page ${page}/${totalPages}`
 
-   const embed=new EmbedBuilder()
+   const embed = new EmbedBuilder()
     .setTitle(`🎴 Inventaire de ${interaction.user.username}`)
     .setDescription(lines.join("\n") || "Aucune carte.")
-    .setFooter({
-     text:footerText
-    })
+    .setFooter({ text:footerText })
 
-   const nav=new ActionRowBuilder().addComponents(
+   const nav = new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("prev")
      .setEmoji("⬅")
      .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===1),
+     .setDisabled(page === 1),
 
     new ButtonBuilder()
      .setCustomId("next")
      .setEmoji("➡")
      .setStyle(ButtonStyle.Secondary)
-     .setDisabled(page===totalPages)
+     .setDisabled(page === totalPages)
 
    )
 
-   const sortRow=new ActionRowBuilder().addComponents(
+   const sortRow = new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("sort_name")
@@ -209,9 +197,9 @@ module.exports={
 
    )
 
-   const rarityRow1=new ActionRowBuilder()
+   const rarityRow1 = new ActionRowBuilder()
 
-   ;["C","U","R","SR"].forEach(r=>{
+   ;["C","U","R","SR"].forEach(r => {
     rarityRow1.addComponents(
      new ButtonBuilder()
       .setCustomId(`filter_${r}`)
@@ -220,9 +208,9 @@ module.exports={
     )
    })
 
-   const rarityRow2=new ActionRowBuilder()
+   const rarityRow2 = new ActionRowBuilder()
 
-   ;["HR","UR","S","SSR"].forEach(r=>{
+   ;["HR","UR","S","SSR"].forEach(r => {
     rarityRow2.addComponents(
      new ButtonBuilder()
       .setCustomId(`filter_${r}`)
@@ -231,7 +219,7 @@ module.exports={
     )
    })
 
-   const clearRow=new ActionRowBuilder().addComponents(
+   const clearRow = new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("filter_clear")
@@ -242,18 +230,13 @@ module.exports={
 
    return {
     embed,
-    components:[nav,sortRow,rarityRow1,rarityRow2,clearRow]
+    components:[nav, sortRow, rarityRow1, rarityRow2, clearRow]
    }
 
   }
 
-  const built=build()
+  const built = build()
 
-  /*
-   * FIX: withResponse:true supprimé.
-   * editReply() avec withResponse:true retourne un objet incompatible
-   * avec createMessageComponentCollector(), cassant la navigation.
-   */
   await interaction.editReply({
    embeds:[built.embed],
    components:built.components
@@ -262,34 +245,34 @@ module.exports={
   const msg = await interaction.fetchReply()
 
   if(unlocked.length)
-   await notifyAchievements(interaction,unlocked)
+   await notifyAchievements(interaction, unlocked)
 
-  const collector=msg.createMessageComponentCollector({
+  const collector = msg.createMessageComponentCollector({
    time:120000
   })
 
-  collector.on("collect",async i=>{
+  collector.on("collect", async i => {
 
-   if(i.user.id!==interaction.user.id)
+   if(i.user.id !== interaction.user.id)
     return i.reply({
      content:"Pas ton inventaire.",
      flags:64
     })
 
-   if(i.customId==="next") page++
-   if(i.customId==="prev") page--
+   if(i.customId === "next") page++
+   if(i.customId === "prev") page--
 
-   if(i.customId==="sort_name") sort="name"
-   if(i.customId==="sort_rarity") sort="rarity"
-   if(i.customId==="sort_count") sort="count"
+   if(i.customId === "sort_name") sort = "name"
+   if(i.customId === "sort_rarity") sort = "rarity"
+   if(i.customId === "sort_count") sort = "count"
 
    if(i.customId.startsWith("filter_"))
-    filter=i.customId.split("_")[1]
+    filter = i.customId.split("_")[1]
 
-   if(i.customId==="filter_clear")
-    filter=null
+   if(i.customId === "filter_clear")
+    filter = null
 
-   const built=build()
+   const built = build()
 
    await i.update({
     embeds:[built.embed],

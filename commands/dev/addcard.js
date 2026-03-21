@@ -2,44 +2,78 @@ const fs = require("fs")
 const sharp = require("sharp")
 const fetch = require("node-fetch")
 
+const { SlashCommandBuilder } = require("discord.js")
+
 const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 const { resetRegistry } = require("../../systems/cardRegistry")
+const { loadSets } = require("../../systems/setSystemFile")
 
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
-
-const allowedRarities=[
+const allowedRarities = [
  "C","U","R","SR","HR","UR","S","SSR"
 ]
 
-module.exports={
+module.exports = {
 
- name:"addcard",
+ data: (() => {
 
- options:[
-  { name:"nom", type:3, required:true },
-  { name:"rarete", type:3, required:true },
-  {
-   name:"set",
-   type:3,
-   required:true,
-   choices: sets.map(s=>({
-    name:s.name,
-    value:s.id
-   }))
-  },
-  { name:"image", type:11, required:true }
- ],
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
+
+  const builder = new SlashCommandBuilder()
+   .setName("addcard")
+   .setDescription("Ajouter une carte")
+   .addStringOption(o =>
+    o.setName("nom")
+     .setDescription("Nom de la carte")
+     .setRequired(true)
+   )
+   .addStringOption(o =>
+    o.setName("rarete")
+     .setDescription("Rareté")
+     .setRequired(true)
+     .addChoices(
+      ...allowedRarities.map(r => ({ name:r, value:r }))
+     )
+   )
+   .addAttachmentOption(o =>
+    o.setName("image")
+     .setDescription("Image de la carte")
+     .setRequired(true)
+   )
+
+  builder.addStringOption(o => {
+   o.setName("set")
+    .setDescription("Set")
+    .setRequired(true)
+
+   if(sets.length > 0){
+    o.addChoices(
+     ...sets.slice(0, 25).map(s => ({
+      name:s.name,
+      value:s.id
+     }))
+    )
+   }
+
+   return o
+  })
+
+  return builder
+
+ })(),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"Commande dev.",
+    content:"⛔ Commande dev.",
     ephemeral:true
    })
+
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
   const name = interaction.options.getString("nom")
   const rarity = interaction.options.getString("rarete")
@@ -61,7 +95,6 @@ module.exports={
   const safeName = name.replace(/\s/g,"_").toLowerCase()
   const fileName = `${newId}_${safeName}_${rarity}.png`
 
-  // Fix : dossier correct par set
   const setFolder = `${CARDS_IMAGES_DIR}/${setId}`
 
   if(!fs.existsSync(setFolder))
@@ -74,11 +107,11 @@ module.exports={
    .png()
    .toFile(`${setFolder}/${fileName}`)
 
-  const newCard={
+  const newCard = {
    id:newId,
    name,
    rarity,
-   set:setId, // Fix : champ set ajouté
+   set:setId,
    image:fileName
   }
 

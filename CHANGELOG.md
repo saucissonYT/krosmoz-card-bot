@@ -8,6 +8,56 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+
+---
+[0.27.0] - 2026-03-21
+
+### Fixed
+
+- **Bug critique : 14 commandes dev/joueur sans options Discord** — le loader `index.js` créait un `SlashCommandBuilder` vide pour les commandes utilisant le pattern `name`/`options` au lieu de `data: SlashCommandBuilder`. Toutes les options (joueur, set, rareté, IDs, mode...) étaient ignorées → crash systématique à l'utilisation. Commandes corrigées :
+  - `addcard`, `editcard`, `previewcard`
+  - `removecard`, `cooldown`, `resetcooldown`, `resetpity`
+  - `simpack`, `setreward`, `setstats`
+  - `setcreate`, `setdelete`
+  - `devgive`, `inventaire`
+- **`devachievement`** — vérification `isDev()` manquante : n'importe quel joueur pouvait ajouter/supprimer des achievements
+- **`devachievement`** — `save()` sans userId : les modifications n'étaient pas persistées par le dirty save system
+- **`devgive`** — `data.cards` snapshot statique remplacé par `getCards()` dynamique + `save(target.id)` ciblé
+- **`resetcooldown` / `resetpity`** — `getUsers()` remplacé par `getUser()` + `save(target.id)` ciblé
+- **`editcard`** — `resetRegistry()` manquant après modification d'une carte
+- **`eventHandlers/eventRoublard.js`** — `getCards()` appelé au top-level (snapshot statique) : les cartes Sufokia n'apparaissaient jamais dans les packs Roublard
+
+### Changed
+
+- **Refonte de `/pity`** — pagination par boutons (3 sets par page au lieu de tout afficher d'un coup)
+  - Boutons ◀ / ▶ pour naviguer entre les pages
+  - Indicateur de page central
+  - Footer avec le nombre total de sets
+  - Barres de progression et taux soft pity conservés
+
+- **Refonte de `/simpack`** — résultats en embeds au lieu de blocs de code bruts
+  - Emojis de rareté dans les résultats
+  - `deferReply()` pour les grosses simulations
+  - `loadSets()` dynamique au lieu de `require()` statique
+  - Limite 100 000 packs
+
+- **Mise à jour de `/devhelp`** — contenu synchronisé avec les commandes actuelles
+  - Suppression de `/devpack`, `/setbalance`, `/krosmodev` (commandes supprimées)
+  - Ajout de `/devdaily`, `/devachievement`, `/checkachievement`, `/krosmoreload`, `/removedev`
+
+- **`devachievement`** — gestion complète des titres lors de l'ajout/suppression d'achievements (ajout automatique du titre associé, retrait si plus aucun achievement ne le donne)
+
+- **`removecard`** — résultat affiché en embed avec détail des cartes supprimées/introuvables
+- **`setcreate` / `setdelete` / `setreward` / `setstats`** — résultats en embeds
+- **`previewcard`** — choices de rareté ajoutées (au lieu de texte libre)
+
+### Improved
+
+- **Migration complète vers `SlashCommandBuilder`** — plus aucune commande n'utilise le pattern legacy `name`/`options`. Le loader `index.js` n'a plus besoin d'inférer les options
+- **Toutes les commandes dev utilisant des sets** (`addcard`, `editcard`, `devgive`, `setdelete`, `setstats`, `setreward`, `simpack`) chargent désormais les choices de set dynamiquement via `loadSets()` au lieu de `require("../../cards/sets.json")` statique
+- **`save()` ciblé par userId** dans `devgive`, `devachievement`, `resetcooldown`, `resetpity` pour le dirty save system
+
+---
 [0.26.0] - 2026-03-21
 
 ### Added

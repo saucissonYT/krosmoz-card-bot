@@ -1,42 +1,39 @@
+const { SlashCommandBuilder } = require("discord.js")
+
 const { isDev } = require("../../systems/devSystem")
-const { getUsers, save } = require("../../systems/userSystem")
+const { getUser, save } = require("../../systems/userSystem")
 
 module.exports = {
 
- name:"resetcooldown",
- description:"Reset cooldown pack",
-
- options:[
-  {
-   name:"joueur",
-   description:"Utilisateur",
-   type:6,
-   required:true
-  }
- ],
+ data: new SlashCommandBuilder()
+  .setName("resetcooldown")
+  .setDescription("Reset cooldown pack d'un joueur")
+  .addUserOption(o =>
+   o.setName("joueur")
+    .setDescription("Utilisateur")
+    .setRequired(true)
+  ),
 
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
    return interaction.reply({
-    content:"⛔ Commande dev uniquement.",
+    content:"⛔ Commande dev.",
     ephemeral:true
    })
 
   const target = interaction.options.getUser("joueur")
 
-  const users = getUsers()
+  const user = getUser(target.id)
 
-  if(!users[target.id])
+  if(!user)
    return interaction.reply("Utilisateur introuvable.")
 
-  users[target.id].lastPack = 0
+  user.lastPack = 0
 
-  save()
+  save(target.id)
 
-  interaction.reply(
-`✅ Cooldown reset pour **${target.username}**`
-  )
+  interaction.reply(`✅ Cooldown reset pour **${target.username}**`)
 
  }
 
