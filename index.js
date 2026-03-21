@@ -182,13 +182,36 @@ client.on("interactionCreate",async interaction=>{
   /* 🔥 SELECT MENUS */
   if(interaction.isStringSelectMenu()){
 
-   // ✅ FIX KROSMOSHOP
-   if(interaction.customId==="krosmoshop_buy"){
-    const command = require("./commands/joueur/krosmoshop")
-    return command.select(interaction)
+   /* ─────────── ROUTES EXPLICITES ─────────── */
+
+   // ✅ KROSMOSHOP — customId = "krosmoshop_buy"
+   if(interaction.customId === "krosmoshop_buy"){
+    const command = client.commands.get("krosmoshop")
+    if(command?.select) return command.select(interaction)
    }
 
-   /* Autres select menus : titre, etc. */
+   // ✅ TITRE — customId = "choose_title"
+   if(interaction.customId === "choose_title"){
+    const command = client.commands.get("titre")
+    if(command?.select) return command.select(interaction)
+   }
+
+   // ✅ TRADE — customId = "trade_menu_give_*" ou "trade_menu_want_*"
+   if(interaction.customId.startsWith("trade_menu_")){
+    const command = client.commands.get("trade")
+    if(command?.menu) return command.menu(interaction)
+   }
+
+   // ✅ HARDPITY — customId = "hardpityset:*" ou "hardpity:*:*"
+   if(interaction.customId.startsWith("hardpityset:") || interaction.customId.startsWith("hardpity:")){
+    const command = client.commands.get("hardpity")
+    if(command?.select) return command.select(interaction)
+   }
+
+   /* ─────────── FALLBACK GÉNÉRIQUE ─────────── */
+   /* Pour les select menus dont le customId commence
+      par le nom exact de la commande avant le premier "_" */
+
    const commandName = interaction.customId.split("_")[0]
    const command = client.commands.get(commandName)
 
@@ -201,9 +224,10 @@ client.on("interactionCreate",async interaction=>{
   if(interaction.isButton()){
 
    /*
-    * Les boutons guild_, leaderboard_, inventaire_, titre_
-    * sont gérés par leurs collectors internes. Pas besoin de le
-    * router ici.
+    * Les boutons guild_, leaderboard_, inventaire_, titre_,
+    * trade_, market_, krosmohelp_, devhelp_, mystats_
+    * sont gérés par leurs collectors internes. Pas besoin de
+    * les router ici.
     */
 
   }
