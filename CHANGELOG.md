@@ -9,6 +9,172 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+# Changelog
+
+Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées dans ce fichier.
+
+- Added → nouvelles fonctionnalités
+- Changed → modifications importantes
+- Fixed → corrections de bugs
+- Improved → améliorations internes
+
+---
+
+## [0.28.0] - 2026-03-21
+
+### Added
+
+- **Système de Guildes complet** (`systems/guildSystem.js`, `systems/guildBonuses.js`, `systems/guildQuestSystem.js`)
+  - Création de guilde (5000 kamas), emoji aléatoire assigné automatiquement parmi 50 emojis
+  - Nom choisi par le joueur (3-24 caractères, unique)
+  - Hiérarchie : Meneur (👑), Officiers (⚔️, max 3), Membres (👤)
+  - Maximum 20 membres par guilde
+  - Système de niveau 1 → 100 avec XP progressif (`100 + level × 50` XP par niveau)
+  - **9 bonus de guilde** débloqués progressivement par niveau :
+    - 💰 Kamas bonus (+1% / 5 niv. → +20% max)
+    - 🔥 Fusion critique (+0.5% / 10 niv. → +5% max)
+    - ✨ Fusion double (+0.5% / 15 niv. → +3% max)
+    - 🌈 Fusion triple (+0.25% / 25 niv. → +1% max)
+    - 🍀 Lucky pack (+1% / 10 niv. → +10% max)
+    - ⭐ XP bonus (+5% / 20 niv. → +25% max)
+    - 🏪 Réduction KrosmoShop (+2% / 25 niv. → +8% max)
+    - 📦 Packs daily bonus (+1 / 50 niv. → +2 max)
+    - 🎁 Double daily (+1% / 20 niv. → +5% max)
+  - Stockage persistant dans `data/guilds.json`
+
+- **Quêtes de guilde hebdomadaires** (`systems/guildQuestSystem.js`)
+  - 3 quêtes par semaine tirées d'un pool de 17 quêtes (sélection déterministe)
+  - Progrès calculé par diff de stats combinées de tous les membres
+  - Récompenses en XP de guilde (400 → 2000 XP selon difficulté)
+  - Bonus +500 XP pour semaine parfaite (3/3 quêtes)
+  - Claim réservé au meneur et aux officiers
+  - Reset chaque lundi à 1h (heure française)
+  - Types de quêtes : packs ouverts, fusions, SSR obtenues, daily claims, ventes, achats market, dons, KrosmoShop, events
+
+- **Commande `/guild`** — interface principale de guilde avec navigation par boutons
+  - Vue principale : niveau, XP, barre de progression, membres, rôle, bonus actifs
+  - Onglet Membres : liste avec icônes de rôle (👑 ⚔️)
+  - Onglet Quêtes : 3 quêtes hebdo avec barres de progression, timer reset, bouton claim
+  - Onglet Bonus : bonus actifs + prochains déblocages
+  - Bouton Quitter
+  - Création via modal si pas de guilde (nom libre)
+  - Affichage des top 10 guildes si pas de guilde
+
+- **Commande `/guildmanage`** — gestion complète pour meneur/officier
+  - 7 actions : invite, kick, promote, demote, transfer, rename, disband
+  - Système d'invitation avec Accept/Decline (le joueur invité clique)
+  - Confirmation pour les actions irréversibles (transfer, disband)
+  - Renommage : 2000 kamas, nouvel emoji aléatoire
+  - Transfert de leadership avec rétrogradation automatique de l'ancien meneur en officier
+  - Dissolution avec retrait automatique du guildId de tous les membres
+
+- **Commande `/devguild`** — outils dev pour les guildes
+  - 8 actions : list, info, setlevel, addxp, forcejoin, disband, create, bonuses
+  - Override du coût en kamas pour la création
+  - Mise à jour automatique des stats guildMaxLevel pour tous les membres
+
+- **Système de dons `/gift`** (`commands/joueur/gift.js`)
+  - Don de carte à un autre joueur avec confirmation par bouton
+  - Limite : 3 dons par jour (reset quotidien, heure FR)
+  - Tracking complet : dons donnés, reçus, par rareté (SSR, UR, Shiny), par destinataire
+  - Streak de dons (jours consécutifs)
+  - Détection du "both ways" (donner et recevoir le même jour)
+  - Dons intra-guilde trackés séparément (stat `guildGifts`)
+  - Re-vérification de possession de la carte au moment du confirm (anti-exploit)
+
+- **15 achievements de dons** (`systems/achievements/achievementGift.js`)
+  - Dons donnés : 1, 5, 10, 25, 50, 100 cartes
+  - Dons spéciaux : SSR donnée, Shiny donnée (secret), UR donnée
+  - Dons reçus : 1, 10, 50
+  - Secrets : Donnant-Donnant (both ways même jour), 7 jours de suite, 10 destinataires différents
+  - 8 titres associés : Donateur, Bienfaiteur, Cœur d'Or, Philanthrope, Mécène, Saint du Krosmoz, Généreux Absolu, Porteur d'Étoile
+
+- **29 achievements de guilde** (`systems/achievements/achievementGuild.js`)
+  - Adhésion : rejoindre, créer, devenir officier
+  - Niveaux de guilde : 5, 10, 25, 50, 75, 100
+  - Quêtes de guilde : 1, 10, 25, 50, 100 quêtes + semaines parfaites (1, 10)
+  - Social guilde : guilde complète 20/20, vétéran 30/90/180 jours, donateur guilde 25/100
+  - XP contribuée : 1k, 10k, 50k
+  - Secrets : première pierre, tous les bonus (niv 100), renommer, transférer leadership
+  - 18 titres associés
+
+- **Total d'achievements : ~350** (306 + 15 gift + 29 guild)
+
+### Changed
+
+- **`systems/achievementRegistry.js`** — ajout des modules `achievementGift` et `achievementGuild` à l'agrégateur
+- **`systems/leaderboardCache.js`** — nouveau board `guilds` chargé dynamiquement via `guildSystem.getAllGuilds()`, trié par niveau décroissant
+- **`commands/joueur/leaderboard.js`** — 7ème mode **🏰 Guildes** ajouté
+  - Affichage spécial : emoji + nom + niveau + nombre de membres
+  - Champ "Ta guilde" au lieu de "Ta position" en mode guildes
+  - Boutons réorganisés : row 1 (collection, wealth, ssr, packs), row 2 (achievements, level, guildes)
+- **`index.js`** — chargement de `loadGuilds()` au démarrage du bot après `dataManager.loadAll()`
+  - Commentaires de routing pour les boutons/modals de guilde (gérés par collectors internes)
+- **`/inventaire`** — tri par SET ajouté (bouton "Set" dans la rangée de tri)
+  - Filtre par SET (rangée de boutons dynamique avec les 4 sets)
+  - Toggle Doublons (n'affiche que les cartes x2+)
+  - Indicateurs visuels (boutons actifs en vert)
+  - Set affiché dans chaque ligne : `[Amakna]`
+  - Toggle rareté (re-cliquer désactive)
+  - Footer enrichi : résultats + page + uniques/total + shiny + doublons
+  - Compteur de page central
+
+### Improved
+
+- **Architecture modulaire renforcée** — 3 nouveaux systèmes indépendants (guildSystem, guildBonuses, guildQuestSystem) suivant le même pattern que les systèmes existants
+- **Nouveau trigger d'achievement `gift`** et `guild` — ajout de 2 nouveaux triggers dans le pipeline achievementCheck
+- **Nouvelles stats user trackées** : giftsGiven, giftsReceived, giftsSSRGiven, giftsURGiven, giftsShinyGiven, giftRecipients, giftStreak, giftBothWays, guildCreated, guildPromoted, guildMaxLevel, guildQuestsClaimed, guildPerfectWeeks, guildXpContributed, guildGifts, guildFirstClaim, guildDays, guildWasFull, guildRenamed, guildTransferred
+- **Stockage données** — nouveau fichier `data/guilds.json` pour la persistance des guildes
+
+---
+
+## [0.27.0] - 2026-03-21
+
+### Fixed
+
+- **Bug critique : 14 commandes dev/joueur sans options Discord** — le loader `index.js` créait un `SlashCommandBuilder` vide pour les commandes utilisant le pattern `name`/`options` au lieu de `data: SlashCommandBuilder`. Toutes les options (joueur, set, rareté, IDs, mode...) étaient ignorées → crash systématique à l'utilisation. Commandes corrigées :
+  - `addcard`, `editcard`, `previewcard`
+  - `removecard`, `cooldown`, `resetcooldown`, `resetpity`
+  - `simpack`, `setreward`, `setstats`
+  - `setcreate`, `setdelete`
+  - `devgive`, `inventaire`
+- **`devachievement`** — vérification `isDev()` manquante : n'importe quel joueur pouvait ajouter/supprimer des achievements
+- **`devachievement`** — `save()` sans userId : les modifications n'étaient pas persistées par le dirty save system
+- **`devgive`** — `data.cards` snapshot statique remplacé par `getCards()` dynamique + `save(target.id)` ciblé
+- **`resetcooldown` / `resetpity`** — `getUsers()` remplacé par `getUser()` + `save(target.id)` ciblé
+- **`editcard`** — `resetRegistry()` manquant après modification d'une carte
+- **`eventHandlers/eventRoublard.js`** — `getCards()` appelé au top-level (snapshot statique) : les cartes Sufokia n'apparaissaient jamais dans les packs Roublard
+
+### Changed
+
+- **Refonte de `/pity`** — pagination par boutons (3 sets par page au lieu de tout afficher d'un coup)
+  - Boutons ◀ / ▶ pour naviguer entre les pages
+  - Indicateur de page central
+  - Footer avec le nombre total de sets
+  - Barres de progression et taux soft pity conservés
+
+- **Refonte de `/simpack`** — résultats en embeds au lieu de blocs de code bruts
+  - Emojis de rareté dans les résultats
+  - `deferReply()` pour les grosses simulations
+  - `loadSets()` dynamique au lieu de `require()` statique
+  - Limite 100 000 packs
+
+- **Mise à jour de `/devhelp`** — contenu synchronisé avec les commandes actuelles
+  - Suppression de `/devpack`, `/setbalance`, `/krosmodev` (commandes supprimées)
+  - Ajout de `/devdaily`, `/devachievement`, `/checkachievement`, `/krosmoreload`, `/removedev`
+
+- **`devachievement`** — gestion complète des titres lors de l'ajout/suppression d'achievements (ajout automatique du titre associé, retrait si plus aucun achievement ne le donne)
+
+- **`removecard`** — résultat affiché en embed avec détail des cartes supprimées/introuvables
+- **`setcreate` / `setdelete` / `setreward` / `setstats`** — résultats en embeds
+- **`previewcard`** — choices de rareté ajoutées (au lieu de texte libre)
+
+### Improved
+
+- **Migration complète vers `SlashCommandBuilder`** — plus aucune commande n'utilise le pattern legacy `name`/`options`. Le loader `index.js` n'a plus besoin d'inférer les options
+- **Toutes les commandes dev utilisant des sets** (`addcard`, `editcard`, `devgive`, `setdelete`, `setstats`, `setreward`, `simpack`) chargent désormais les choices de set dynamiquement via `loadSets()` au lieu de `require("../../cards/sets.json")` statique
+- **`save()` ciblé par userId** dans `devgive`, `devachievement`, `resetcooldown`, `resetpity` pour le dirty save system
+
 ---
 [0.27.0] - 2026-03-21
 

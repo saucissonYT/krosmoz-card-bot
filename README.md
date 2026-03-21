@@ -11,7 +11,9 @@ Les joueurs peuvent :
 - Participer aux événements des 19 Dieux du Krosmoz
 - Acheter des cartes au KrosmoShop quotidien
 - Compléter des quêtes journalières et hebdomadaires
-- Débloquer 306 succès et des titres exclusifs
+- Créer ou rejoindre une guilde et profiter de bonus collectifs
+- Donner des cartes à d'autres joueurs
+- Débloquer ~350 succès et des titres exclusifs
 - Progresser en niveau et en rang
 - Interagir avec le bot via mentions
 
@@ -21,7 +23,7 @@ Les joueurs peuvent :
 
 - Node.js
 - discord.js v14
-- JSON Database (fichiers individuels par joueur)
+- JSON Database (fichiers individuels par joueur + guilds.json)
 - Canvas (images inventaire)
 - Sharp (traitement d'images cartes)
 - Architecture modulaire (systems/)
@@ -34,13 +36,16 @@ Les joueurs peuvent :
 krosmoz-card-bot
 │
 ├── commands/
-│   ├── joueur/         # commandes joueur (krosmoz, inventaire, market...)
+│   ├── joueur/         # commandes joueur (krosmoz, inventaire, market, guild, gift...)
 │   ├── admin/          # commandes admin (krosmoevent, stats)
-│   └── dev/            # commandes dev (addcard, simpack, hardpity...)
+│   └── dev/            # commandes dev (addcard, simpack, devguild...)
 │
 ├── systems/
-│   ├── achievements/   # 9 fichiers d'achievements modulaires
+│   ├── achievements/   # 11 fichiers d'achievements modulaires
 │   ├── eventHandlers/  # 19 handlers d'events (1 par Dieu)
+│   ├── guildSystem.js  # CRUD guildes, XP, niveaux
+│   ├── guildBonuses.js # Calcul des 9 bonus par niveau
+│   ├── guildQuestSystem.js # Quêtes hebdo de guilde
 │   └── ...             # systèmes principaux
 │
 ├── cards/
@@ -50,6 +55,7 @@ krosmoz-card-bot
 │
 ├── data/               # données persistantes
 │   ├── users/          # fichiers joueurs individuels
+│   ├── guilds.json     # données des guildes
 │   ├── market.json
 │   ├── marketHistory.json
 │   ├── devs.json
@@ -89,6 +95,14 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | fusion | Fusion de doublons (critique, double, triple) |
 | questSystem | Quêtes journalières et hebdomadaires |
 
+### 🏰 Guildes
+
+| Système | Rôle |
+|---------|------|
+| guildSystem | CRUD guildes, XP, niveaux 1→100, hiérarchie (meneur/officier/membre) |
+| guildBonuses | Calcul des 9 bonus progressifs par niveau de guilde |
+| guildQuestSystem | 3 quêtes hebdo de guilde, progression par stats combinées des membres |
+
 ### 🪙 Économie
 
 | Système | Rôle |
@@ -104,12 +118,12 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 |---------|------|
 | progressionSystem | XP et level-up |
 | rankSystem | Rangs basés sur les achievements |
-| achievementRegistry | Agrégateur des 9 modules d'achievements |
+| achievementRegistry | Agrégateur des 11 modules d'achievements |
 | achievementEngine | Détection avec lecture dynamique des cartes |
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succès débloqués |
 
-### 🏆 306 Achievements (9 modules)
+### 🏆 ~350 Achievements (11 modules)
 
 | Module | Contenu |
 |--------|---------|
@@ -122,6 +136,8 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | achievementSecrets | Secrets (Krosmo-bot, etc.) |
 | achievementEvents | 148 achievements events (classes, jackpots) |
 | achievementSpecial | 39 achievements comportementaux |
+| achievementGift | 15 achievements de dons (donnés, reçus, spéciaux) |
+| achievementGuild | 29 achievements de guilde (niveaux, quêtes, social, secrets) |
 
 ---
 
@@ -172,117 +188,142 @@ Les SSR ont 0.5% de chance d'être **Shiny** — variante cosmétique rare avec 
 
 Chaque set possède son propre compteur de pity indépendant.
 
-### Hard Pity (garanti)
-
-| Rareté | Garantie |
-|--------|----------|
-| UR | 10 packs |
-| S | 30 packs |
-| SSR | 50 packs |
-
-### Soft Pity SSR (progressive)
-
-| Packs sans SSR | Chance SSR |
-|----------------|-----------|
-| < 20 | 0.05% |
-| < 30 | 0.10% |
-| < 35 | 0.30% |
-| < 40 | 0.50% |
-| < 43 | 1.00% |
-| < 46 | 2.00% |
-| < 49 | 5.00% |
-| 50 | garanti |
-
-### Soft Pity S
-
-| Packs sans S | Chance S |
-|-------------|---------|
-| < 15 | 0.15% |
-| < 20 | 0.30% |
-| < 25 | 0.60% |
-| < 28 | 1.20% |
-| < 29 | 3.00% |
-| 30 | garanti |
-
-### 🎁 Lucky Pack
-
-10% de chance → +1 carte bonus dans le pack.
+| Rareté | Pity | Mécanisme |
+|--------|------|-----------|
+| UR | 10 packs | Garantie à 10 packs sans UR |
+| S | 30 packs | Soft pity progressive dès 20 packs |
+| SSR | 50 packs | Soft pity progressive dès 30 packs |
 
 ---
 
-## 🎪 Système d'Events
+## 🏰 Système de Guildes
 
-19 événements basés sur les Dieux du Krosmoz. Chaque event dure ~15 minutes et modifie le RNG des packs.
+### Création
+- Coûte **5000 kamas**
+- Nom choisi par le joueur (3-24 caractères, unique)
+- Emoji aléatoire attribué automatiquement parmi 50 emojis thématiques
+- Le créateur devient **Meneur** (👑)
 
-| Dieu | Type | Effet |
-|------|------|-------|
-| 🔥 Iop | Boost | HR & UR dominants |
-| 🎯 Cra | Ciblé | Carte S spécifique (20%) |
-| ⏳ Xelor | Manipulation | Cartes retirées/ajoutées |
-| 🕶️ Sram | Caché | Pack totalement invisible |
-| 💀 Sacrieur | Mutation | Upgrade 60% (ignore S/SSR) |
-| 🎭 Zobal | Upgrade | Upgrade garanti +1 rang |
-| 🧠 Huppermage | Volume | 1-3 cartes bonus (S/UR boost) |
-| 🍺 Pandawa | Duplication | Cartes dupliquées |
-| 🐉 Osamodas | Structure | Pack homogène (1 rareté) |
-| 🎲 Ecaflip | RNG | Jackpot ou amélioration massive |
-| 🐺 Ouginak | Négatif | Dégradation + cartes faibles |
-| 🛡️ Feca | Filtre | Suppression C/U + XP ×5 |
-| 💰 Enutrof | Reward | Kamas ×5 + jackpot caché |
-| 💣 Roublard | Volume | +3 cartes |
-| ⚙️ Steamer | Chaos | RNG totalement aléatoire |
-| 🌀 Eliotrope | Spécial | Pack fixe HR/UR/S |
-| ✨ Eniripsa | Filtre | Suppression C/U/R |
-| 🌿 Sadida | Duplication | Duplication progressive |
-| ⚔️ Forgelance | Upgrade | Upgrade global +1 rang |
+### Hiérarchie
+- 👑 **Meneur** (1) — tous les droits
+- ⚔️ **Officiers** (max 3) — invite, kick membres, claim quêtes
+- 👤 **Membres** (max 20 au total) — profitent des bonus
 
-Chaque Dieu possède des **voice lines** RP lors de l'obtention d'une S ou SSR, et un système de tickets (2-3 par joueur par event).
+### Niveaux & XP
+- La guilde monte du **niveau 1 au niveau 100**
+- XP requis par niveau : `100 + niveau × 50` (progressif mais pas trop long)
+- L'XP est gagnée via les **quêtes de guilde**
+
+### 9 Bonus progressifs
+
+| Bonus | Progression | Max (niv.100) |
+|-------|------------|---------------|
+| 💰 Kamas bonus sur les packs | +1% / 5 niv. | +20% |
+| 🔥 Chance de fusion critique | +0.5% / 10 niv. | +5% |
+| ✨ Chance de fusion double | +0.5% / 15 niv. | +3% |
+| 🌈 Chance de fusion triple | +0.25% / 25 niv. | +1% |
+| 🍀 Chance de lucky pack | +1% / 10 niv. | +10% |
+| ⭐ XP bonus | +5% / 20 niv. | +25% |
+| 🏪 Réduction KrosmoShop | +2% / 25 niv. | +8% |
+| 📦 Packs daily bonus | +1 / 50 niv. | +2 |
+| 🎁 Chance de double daily | +1% / 20 niv. | +5% |
+
+### Quêtes de guilde
+- **3 quêtes par semaine**, tirées d'un pool de 17 quêtes possibles
+- Mêmes quêtes pour toutes les guildes (sélection déterministe par semaine)
+- Progrès calculé par **diff de stats combinées** de tous les membres
+- Récompenses : **400 à 2000 XP de guilde** selon la difficulté
+- **Bonus semaine parfaite** si 3/3 terminées : **+500 XP**
+- Reset chaque **lundi à 1h** (heure française)
+
+**Exemples de quêtes de guilde :**
+
+| Quête | Objectif | Récompense |
+|-------|----------|------------|
+| 📦 Ouverture massive | Ouvrir 50 packs | ⭐ 500 XP |
+| 📦 Pluie de cartes | Ouvrir 200 packs | ⭐ 2000 XP |
+| 🌈 Chasseurs de SSR | Obtenir 5 SSR | ⭐ 800 XP |
+| ⚗️ Alchimie de groupe | Faire 20 fusions | ⭐ 600 XP |
+| 🎁 Généreux ensemble | Faire 10 dons | ⭐ 500 XP |
+| 💰 Grand déstockage | Vendre 100 cartes | ⭐ 1000 XP |
+| 🎁 Fidélité collective | Réclamer 20 daily | ⭐ 400 XP |
+
+### Interface /guild
+
+La commande **/guild** affiche une interface interactive avec :
+- Vue principale : emoji, nom, niveau, XP, barre de progression, membres, rôle
+- Onglet **Membres** : liste avec icônes de rôle
+- Onglet **Quêtes** : 3 quêtes hebdo avec barres de progression et timer
+- Onglet **Bonus** : bonus actifs + prochains déblocages
+- Bouton **Quitter**
+- Création via **modal** si le joueur n'est pas dans une guilde
+
+### Interface /guildmanage
+
+La commande **/guildmanage** permet au meneur/officier de :
+- **Inviter** un joueur (Accept/Decline interactif)
+- **Exclure** un membre
+- **Promouvoir** / **Rétrograder** un officier
+- **Transférer** le leadership
+- **Renommer** la guilde (2000 kamas, nouvel emoji)
+- **Dissoudre** la guilde (confirmation requise)
 
 ---
 
-## 📋 Système de Quêtes
+## 🎁 Système de Dons
 
-Le bot propose un système de quêtes journalières et hebdomadaires qui récompensent l'activité régulière des joueurs.
+- Commande **/gift** pour donner une carte à un joueur
+- Limite : **3 dons par jour** (reset quotidien, heure FR)
+- Confirmation par bouton avant le don
+- Re-vérification de possession au moment du confirm
+- Tracking complet : dons donnés, reçus, par rareté, par destinataire
+- Dons intra-guilde trackés séparément (stat `guildGifts`)
+- **15 achievements dédiés** avec 8 titres exclusifs
+
+---
+
+## 🎪 Événements des 19 Dieux
+
+Chaque Dieu du Krosmoz a un événement unique avec son propre mécanisme RNG :
+
+| Dieu | Effet |
+|------|-------|
+| ⚔️ Iop | Cartes bonus |
+| 🏹 Cra | Pack précis |
+| 🌪️ Xelor | Mutation temporelle |
+| 💰 Enutrof | Kamas ×5 + jackpot |
+| ✨ Eniripsa | Filtrage purificateur |
+| 🌿 Sadida | Duplication |
+| 🐉 Osamodas | Pack bestial |
+| 🔥 Sacrieur | Mutation sacrificielle |
+| 🛡️ Feca | XP ×5 + jackpot |
+| 🕶️ Sram | Pack invisible |
+| 🎭 Zobal | Upgrade masqué |
+| ⚔️ Forgelance | Upgrade global |
+| 🌀 Eliotrope | Pack dimensionnel |
+| 🎲 Ecaflip | Full RNG |
+| 🌊 Pandawa | Duplication éthylique |
+| 🐺 Ouginak | Pack prédateur |
+| 🔫 Roublard | Pack piégé |
+| ⚙️ Steamer | Chaos mécanique |
+| ✨ Huppermage | Pack élémentaire |
+
+---
+
+## 📅 Quêtes
 
 ### ☀️ Quêtes Journalières
 
-- **3 quêtes par jour**, tirées aléatoirement depuis un pool de 18 quêtes possibles
+- **3 quêtes par jour**, tirées depuis un pool de 18 quêtes possibles
 - Mêmes quêtes pour tous les joueurs (sélection déterministe par date)
-- Reset chaque jour à **1h du matin** (heure française)
-- Le progrès est calculé automatiquement par différence de stats — aucune action spéciale requise
-- **Bonus journalier** si 3/3 terminées : **+500 kamas** et **+100 XP**
-
-**Exemples de quêtes journalières :**
-
-| Quête | Objectif | Récompense |
-|-------|----------|------------|
-| 📦 Ouverture Rapide | Ouvrir 3 packs | 300 kamas + 50 XP |
-| 🌈 Touché ! | Obtenir 1 SSR | 1000 kamas + 100 XP |
-| ⚗️ Petit Alchimiste | Faire 1 fusion | 200 kamas + 40 XP |
-| 💰 Petit Marchand | Vendre 3 cartes | 200 kamas + 30 XP |
-| 🎁 Présent ! | Réclamer ton daily | 150 kamas + 30 XP |
-| 🛒 Client du Jour | Acheter 1 carte au KrosmoShop | 200 kamas + 40 XP |
-| 🏆 Curieux | Consulter le leaderboard | 100 kamas + 20 XP |
+- Reset chaque jour à **1h** (heure française)
+- **Bonus journalier** si 3/3 terminées : **+500 kamas**, **+100 XP**
 
 ### 📅 Quêtes Hebdomadaires
 
-- **5 quêtes par semaine**, tirées aléatoirement depuis un pool de 23 quêtes possibles
-- Mêmes quêtes pour tous les joueurs (sélection déterministe par semaine)
+- **5 quêtes par semaine**, tirées depuis un pool de 23 quêtes possibles
 - Reset chaque **lundi à 1h** (heure française)
-- Récompenses plus importantes que les quêtes journalières
-- **Bonus hebdomadaire** si 5/5 terminées : **+5000 kamas**, **+500 XP** et **+3 packs**
-
-**Exemples de quêtes hebdomadaires :**
-
-| Quête | Objectif | Récompense |
-|-------|----------|------------|
-| 📦 Collectionneur | Ouvrir 15 packs | 1500 kamas + 200 XP |
-| 📦 Dévoreur de Packs | Ouvrir 30 packs | 2000 kamas + 300 XP + 1 pack |
-| 🌈 Série Dorée | Obtenir 3 SSR | 3000 kamas + 400 XP + 2 packs |
-| ✨ Éclat Divin | Obtenir 1 SSR Shiny | 5000 kamas + 500 XP + 3 packs |
-| ⚗️ Maître Alchimiste | Faire 10 fusions | 2500 kamas + 300 XP + 1 pack |
-| 🎁 Semaine Parfaite | Réclamer 7 daily | 1500 kamas + 250 XP + 2 packs |
-| 🎪 Fanatique | Ouvrir 5 packs d'event | 2000 kamas + 300 XP + 1 pack |
+- **Bonus hebdomadaire** si 5/5 terminées : **+5000 kamas**, **+500 XP**, **+3 packs**
 
 ### Interface /quests
 
@@ -308,7 +349,7 @@ La commande **/quests** affiche une interface interactive avec :
 ### Collection
 | Commande | Description |
 |----------|-------------|
-| /inventaire | Voir ton inventaire (tri, filtres, shiny) |
+| /inventaire | Voir ton inventaire (tri par nom, rareté, quantité, set + filtres) |
 | /carte | Afficher une carte par nom ou ID |
 | /listcards | Explorer les cartes par set |
 
@@ -327,23 +368,30 @@ La commande **/quests** affiche une interface interactive avec :
 | /daily | Récompense quotidienne (streak 7 = SSR) |
 | /fusion | Fusionner des doublons |
 | /trade | Échanger avec un joueur |
+| /gift | Donner une carte à un joueur (3/jour) |
 | /quests | Quêtes journalières et hebdomadaires |
+
+### Guildes
+| Commande | Description |
+|----------|-------------|
+| /guild | Voir ta guilde, créer, quêtes, bonus, membres |
+| /guildmanage | Gérer ta guilde (invite, kick, promote, rename, disband...) |
 
 ### Progression
 | Commande | Description |
 |----------|-------------|
-| /profil | Profil complet |
+| /profil | Profil complet (avec guilde affichée) |
 | /mystats | Statistiques détaillées (6 pages) |
-| /leaderboard | Classements (6 catégories) |
+| /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 306 succès |
+| /achievements | Voir les ~350 succès |
 | /krosmohelp | Aide du bot |
 
 ---
 
 ## 🏆 Achievements
 
-306 succès automatiques répartis en 9 catégories :
+~350 succès automatiques répartis en 11 catégories :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -354,6 +402,8 @@ La commande **/quests** affiche une interface interactive avec :
 - **Secrets** — Krosmo-bot, achievements cachés
 - **Events** — 148 achievements (participation, SSR par classe, jackpots)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
+- **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
+- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
 
 Les succès débloquent des **badges** et des **titres**.
 
@@ -371,8 +421,12 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 6. Compléter les sets
 7. Acheter au KrosmoShop quotidien
 8. Participer aux events des Dieux
-9. Débloquer des achievements et des titres
-10. Monter en niveau et en rang
+9. Donner des cartes à ses amis (/gift)
+10. Créer ou rejoindre une guilde (/guild)
+11. Compléter les quêtes de guilde pour faire monter la guilde en niveau
+12. Profiter des bonus de guilde (kamas, fusion, lucky pack, XP...)
+13. Débloquer des achievements et des titres
+14. Monter en niveau et en rang
 
 ---
 
@@ -389,13 +443,64 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
     packEngine   eventPackEngine    market
         │              │              │
         └──────► userSystem ◄────────┘
-                       │
-                       ▼
+                    │     │
+              guildSystem  │
+                    │      │
+                    ▼      ▼
                   dataManager
                        │
-                       ▼
-                     /data
+                  ┌────┴────┐
+                  ▼         ▼
+              /data     guilds.json
 ```
+
+---
+
+## 🎮 Commandes Dev
+
+### Admin
+| Commande | Description |
+|----------|-------------|
+| /krosmodev | Donner/retirer le rang développeur |
+| /removedev | Ajouter ou retirer un dev |
+| /krosmoreload | Reload systèmes et commandes |
+| /stats | Statistiques du bot |
+| /event | Lancer un événement |
+
+### Cartes
+| Commande | Description |
+|----------|-------------|
+| /addcard | Ajouter une carte |
+| /editcard | Modifier une carte |
+| /removecard | Supprimer des cartes |
+| /previewcard | Prévisualiser une carte |
+| /importcards | Import batch depuis cards/import |
+
+### Packs & Sets
+| Commande | Description |
+|----------|-------------|
+| /simpack | Simulation d'ouverture |
+| /hardpity | Forcer une hard pity |
+| /setcreate | Créer un set |
+| /setdelete | Supprimer un set |
+| /setedit | Distribution des raretés |
+| /setlist | Lister les sets |
+| /setreward | Modifier la récompense |
+| /setstats | Stats d'un set |
+
+### Systèmes
+| Commande | Description |
+|----------|-------------|
+| /devgive | Donner une carte à un joueur |
+| /devdaily | Simuler un daily |
+| /devachievement | Ajouter/supprimer un achievement |
+| /checkachievement | Audit complet des achievements |
+| /devfusion | Tester les fusions |
+| /cooldown | Activer/désactiver le cooldown |
+| /resetcooldown | Reset les cooldowns |
+| /resetpity | Reset la pity |
+| /collection | Voir la collection d'un joueur |
+| /devguild | Gérer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
 
 ---
 
@@ -408,6 +513,7 @@ Fichiers JSON individuels par joueur (dirty save system).
    users/
       123456789.json
       987654321.json
+   guilds.json
    market.json
    marketHistory.json
    krosmoshop.json
@@ -415,9 +521,12 @@ Fichiers JSON individuels par joueur (dirty save system).
    cards.json
 ```
 
-Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes.
+Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes, guildId.
+
+Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, quêtes hebdo, stats.
 
 Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée par userId.
+
 
 ---
 
