@@ -158,7 +158,7 @@ guildQuestPerfect10:{
 guildFull:{
  name:"Guilde Complète",
  badge:"👥",
- description:"Avoir une guilde avec 20/20 membres.",
+ description:"Avoir une guilde avec 10/10 membres.",
  title:"Recruteur Légendaire",
  trigger:"guild",
  condition:u=>(u.stats?.guildWasFull||0)>=1

@@ -45,7 +45,7 @@ krosmoz-card-bot
 │   ├── eventHandlers/  # 19 handlers d'events (1 par Dieu)
 │   ├── guildSystem.js  # CRUD guildes, XP, niveaux
 │   ├── guildBonuses.js # Calcul des 9 bonus par niveau de guilde
-│   ├── guildQuestSystem.js # Quêtes hebdo de guilde
+│   ├── guildQuestSystem.js # Quêtes hebdo de guilde (scaling dynamique)
 │   ├── playerBonuses.js # Calcul des 9 bonus par niveau du joueur
 │   └── ...             # systèmes principaux
 │
@@ -100,9 +100,9 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 | Système | Rôle |
 |---------|------|
-| guildSystem | CRUD guildes, XP, niveaux 1→100, hiérarchie (meneur/officier/membre) |
+| guildSystem | CRUD guildes, XP, niveaux 1→100, hiérarchie (meneur/officier/membre), max 10 membres |
 | guildBonuses | Calcul des 9 bonus progressifs par niveau de guilde |
-| guildQuestSystem | 3 quêtes hebdo de guilde, progression par stats combinées des membres |
+| guildQuestSystem | 3 quêtes hebdo de guilde, scaling dynamique par nombre de membres, pool de 25 quêtes |
 
 ### 🪙 Économie
 
@@ -181,6 +181,45 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | HR → UR | 150 doublons |
 | UR → S | 300 doublons |
 | S → SSR | 500 doublons |
+
+### ☁️ Distribution Incarnam
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 40 | 33.33% |
+| U | 32 | 26.67% |
+| R | 22 | 18.33% |
+| SR | 11 | 9.17% |
+| HR | 7 | 5.83% |
+| UR | 4 | 3.33% |
+| S | 2 | 1.67% |
+| SSR | 2 | 1.67% |
+
+### 🌾 Distribution Astrub
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 85 | 32.95% |
+| U | 69 | 26.74% |
+| R | 49 | 18.99% |
+| SR | 23 | 8.91% |
+| HR | 15 | 5.81% |
+| UR | 8 | 3.10% |
+| S | 5 | 1.94% |
+| SSR | 4 | 1.55% |
+
+### 🌽 Distribution Amakna
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 98 | 32.89% |
+| U | 79 | 26.51% |
+| R | 56 | 18.79% |
+| SR | 27 | 9.06% |
+| HR | 18 | 6.04% |
+| UR | 10 | 3.36% |
+| S | 5 | 1.68% |
+| SSR | 5 | 1.68% |
 
 ### 🌊 Distribution Sufokia
 
@@ -268,12 +307,21 @@ Les bonus se **cumulent** avec les bonus de guilde.
 ### Hiérarchie
 - 👑 **Meneur** (1) — tous les droits
 - ⚔️ **Officiers** (max 3) — invite, kick membres, claim quêtes
-- 👤 **Membres** (max 20 au total) — profitent des bonus
+- 👤 **Membres** (max 10 au total) — profitent des bonus
 
 ### Niveaux & XP
 - La guilde monte du **niveau 1 au niveau 100**
 - XP requis par niveau : `100 + niveau × 50` (progressif mais pas trop long)
 - L'XP est gagnée via les **quêtes de guilde**
+
+| Niveau | XP requis | XP total cumulé |
+|--------|-----------|-----------------|
+| 5 | 350 | ~1 250 |
+| 10 | 600 | ~3 750 |
+| 25 | 1 350 | ~18 750 |
+| 50 | 2 600 | ~68 750 |
+| 75 | 3 850 | ~150 000 |
+| 100 | 5 100 | ~262 500 |
 
 ### 9 Bonus progressifs de guilde
 
@@ -290,24 +338,50 @@ Les bonus se **cumulent** avec les bonus de guilde.
 | 🎁 Chance de double daily | +1% / 20 niv. | +5% |
 
 ### Quêtes de guilde
-- **3 quêtes par semaine**, tirées d'un pool de 17 quêtes possibles
+- **3 quêtes par semaine**, tirées d'un pool de **25 quêtes** possibles
 - Mêmes quêtes pour toutes les guildes (sélection déterministe par semaine)
 - Progrès calculé par **diff de stats combinées** de tous les membres
-- Récompenses : **400 à 2000 XP de guilde** selon la difficulté
+- Récompenses : **350 à 2000 XP de guilde** selon la difficulté
 - **Bonus semaine parfaite** si 3/3 terminées : **+500 XP**
 - Reset chaque **lundi à 1h** (heure française)
 
-**Exemples de quêtes de guilde :**
+### Scaling dynamique des quêtes
+
+Les objectifs des quêtes s'adaptent automatiquement au nombre de membres de la guilde :
+
+| Membres | Effectif cible | Ratio |
+|---------|---------------|-------|
+| 1 | 1 | ×0.125 |
+| 2 | 2 | ×0.25 |
+| 3 | 2 | ×0.25 |
+| 4 | 3 | ×0.375 |
+| 5 | 4 | ×0.5 |
+| 6 | 4 | ×0.5 |
+| 7 | 5 | ×0.625 |
+| 8 | 6 | ×0.75 |
+| 9 | 7 | ×0.875 |
+| 10 | 8 | ×1.0 (base) |
+
+Les goals de base sont calibrés pour **8 joueurs actifs**. Une guilde de 10 fait donc facilement les quêtes (car calibrée sur 8). Un joueur seul a des objectifs réduits à 1/8e de la base.
+
+**La récompense XP reste fixe** quel que soit le nombre de membres, pour ne pas pénaliser les petites guildes.
+
+**Exemples de quêtes de guilde (goals pour 10 membres / 8 effectifs) :**
 
 | Quête | Objectif | Récompense |
 |-------|----------|------------|
-| 📦 Ouverture massive | Ouvrir 50 packs | ⭐ 500 XP |
+| 📦 Chasseurs de packs | Ouvrir 30 packs | ⭐ 400 XP |
 | 📦 Pluie de cartes | Ouvrir 200 packs | ⭐ 2000 XP |
-| 🌈 Chasseurs de SSR | Obtenir 5 SSR | ⭐ 800 XP |
-| ⚗️ Alchimie de groupe | Faire 20 fusions | ⭐ 600 XP |
-| 🎁 Généreux ensemble | Faire 10 dons | ⭐ 500 XP |
-| 💰 Grand déstockage | Vendre 100 cartes | ⭐ 1000 XP |
-| 🎁 Fidélité collective | Réclamer 20 daily | ⭐ 400 XP |
+| 🌈 Éclat arc-en-ciel | Obtenir 3 SSR | ⭐ 600 XP |
+| 🌈 Chasseurs de SSR | Obtenir 6 SSR | ⭐ 1000 XP |
+| ⚗️ Premiers essais | Faire 8 fusions | ⭐ 400 XP |
+| ⚗️ Laboratoire actif | Faire 50 fusions | ⭐ 1400 XP |
+| 🎁 Partage amical | Faire 4 dons | ⭐ 400 XP |
+| 🎁 Philanthropes | Faire 25 dons | ⭐ 1200 XP |
+| 💰 Grand déstockage | Vendre 50 cartes | ⭐ 800 XP |
+| 🎁 Fidélité collective | Réclamer 20 daily | ⭐ 600 XP |
+| 💎 Trésor de guilde | Gagner 80 000 kamas | ⭐ 1200 XP |
+| 🛒 Clients du KrosmoShop | Acheter 4 cartes au shop | ⭐ 400 XP |
 
 ### Interface /guild
 
@@ -450,6 +524,54 @@ La commande **/quests** affiche une interface interactive avec :
 
 ---
 
+## 🎮 Commandes Dev
+
+### Admin
+| Commande | Description |
+|----------|-------------|
+| /krosmodev | Donner/retirer le rang développeur |
+| /removedev | Ajouter ou retirer un dev |
+| /krosmoreload | Reload systèmes et commandes |
+| /stats | Statistiques du bot |
+| /event | Lancer un événement |
+
+### Cartes
+| Commande | Description |
+|----------|-------------|
+| /addcard | Ajouter une carte |
+| /editcard | Modifier une carte |
+| /removecard | Supprimer des cartes |
+| /previewcard | Prévisualiser une carte |
+| /importcards | Import batch depuis cards/import |
+
+### Packs & Sets
+| Commande | Description |
+|----------|-------------|
+| /simpack | Simulation d'ouverture |
+| /hardpity | Forcer une hard pity |
+| /setcreate | Créer un set |
+| /setdelete | Supprimer un set |
+| /setedit | Distribution des raretés |
+| /setlist | Lister les sets |
+| /setreward | Modifier la récompense |
+| /setstats | Stats d'un set |
+
+### Systèmes
+| Commande | Description |
+|----------|-------------|
+| /devgive | Donner une carte à un joueur |
+| /devdaily | Simuler un daily |
+| /devachievement | Ajouter/supprimer un achievement |
+| /checkachievement | Audit complet des achievements |
+| /devfusion | Tester les fusions |
+| /cooldown | Activer/désactiver le cooldown |
+| /resetcooldown | Reset les cooldowns |
+| /resetpity | Reset la pity |
+| /collection | Voir la collection d'un joueur |
+| /devguild | Gérer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
+
+---
+
 ## 🏆 Achievements
 
 ~370 succès automatiques répartis en 12 catégories :
@@ -521,54 +643,6 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
                 ▼         ▼
             /data     guilds.json
 ```
-
----
-
-## 🎮 Commandes Dev
-
-### Admin
-| Commande | Description |
-|----------|-------------|
-| /krosmodev | Donner/retirer le rang développeur |
-| /removedev | Ajouter ou retirer un dev |
-| /krosmoreload | Reload systèmes et commandes |
-| /stats | Statistiques du bot |
-| /event | Lancer un événement |
-
-### Cartes
-| Commande | Description |
-|----------|-------------|
-| /addcard | Ajouter une carte |
-| /editcard | Modifier une carte |
-| /removecard | Supprimer des cartes |
-| /previewcard | Prévisualiser une carte |
-| /importcards | Import batch depuis cards/import |
-
-### Packs & Sets
-| Commande | Description |
-|----------|-------------|
-| /simpack | Simulation d'ouverture |
-| /hardpity | Forcer une hard pity |
-| /setcreate | Créer un set |
-| /setdelete | Supprimer un set |
-| /setedit | Distribution des raretés |
-| /setlist | Lister les sets |
-| /setreward | Modifier la récompense |
-| /setstats | Stats d'un set |
-
-### Systèmes
-| Commande | Description |
-|----------|-------------|
-| /devgive | Donner une carte à un joueur |
-| /devdaily | Simuler un daily |
-| /devachievement | Ajouter/supprimer un achievement |
-| /checkachievement | Audit complet des achievements |
-| /devfusion | Tester les fusions |
-| /cooldown | Activer/désactiver le cooldown |
-| /resetcooldown | Reset les cooldowns |
-| /resetpity | Reset la pity |
-| /collection | Voir la collection d'un joueur |
-| /devguild | Gérer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
 
 ---
 

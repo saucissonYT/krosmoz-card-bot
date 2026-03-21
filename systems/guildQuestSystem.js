@@ -4,34 +4,105 @@
    3 quêtes par semaine, mêmes pour toutes les guildes.
    Progrès calculé par diff de stats combinées des membres.
    Récompense en XP de guilde.
+   
+   v0.30 — Scaling dynamique par nombre de membres :
+   - Goals de base calibrés pour 8 joueurs actifs
+   - Effectif cible = min(8, max(1, floor(membres × 0.8)))
+   - Une guilde de 10 est calibrée sur 8 (confortable)
+   - Une guilde de 5 est calibrée sur 4
+   - Une guilde de 2 est calibrée sur 2
+   - Un joueur seul est calibré sur 1
+   - XP de récompense fixe (pas de scaling sur l'XP)
 =============================================== */
 
 const { getUser } = require("./userSystem")
 const { getGuild, addGuildXP, saveGuilds } = require("./guildSystem")
 
-/* ================= POOL DE QUÊTES ================= */
+/* ================= CONSTANTES DE SCALING ================= */
+
+const BASE_CALIBRATION = 8  /* Les goals de base sont calibrés pour 8 joueurs */
+const MIN_EFFECTIVE = 1     /* Minimum : 1 joueur */
+const MAX_EFFECTIVE = 8     /* Maximum : 8 joueurs (une guilde de 10 fait facilement) */
+
+/* ================= POOL DE QUÊTES (25 quêtes) ================= */
+/* Les goals sont calibrés pour BASE_CALIBRATION (8) joueurs    */
 
 const QUEST_POOL = [
 
- { id:"gq_packs50",     emoji:"📦", name:"Ouverture massive",      desc:"Ouvrir 50 packs",              stat:"packsOpened",       goal:50,   xp:500 },
- { id:"gq_packs100",    emoji:"📦", name:"Avalanche de packs",     desc:"Ouvrir 100 packs",             stat:"packsOpened",       goal:100,  xp:1000 },
- { id:"gq_packs200",    emoji:"📦", name:"Pluie de cartes",        desc:"Ouvrir 200 packs",             stat:"packsOpened",       goal:200,  xp:2000 },
- { id:"gq_fusions20",   emoji:"⚗️", name:"Alchimie de groupe",    desc:"Faire 20 fusions",             stat:"fusions",           goal:20,   xp:600 },
- { id:"gq_fusions50",   emoji:"⚗️", name:"Laboratoire actif",     desc:"Faire 50 fusions",             stat:"fusions",           goal:50,   xp:1200 },
- { id:"gq_ssr5",        emoji:"🌈", name:"Chasseurs de SSR",       desc:"Obtenir 5 SSR",                stat:"ssrPulled",         goal:5,    xp:800 },
- { id:"gq_ssr10",       emoji:"🌈", name:"Moisson arc-en-ciel",    desc:"Obtenir 10 SSR",               stat:"ssrPulled",         goal:10,   xp:1500 },
- { id:"gq_daily20",     emoji:"🎁", name:"Fidélité collective",    desc:"Réclamer 20 daily",            stat:"dailyClaims",       goal:20,   xp:400 },
- { id:"gq_daily50",     emoji:"🎁", name:"Assiduité exemplaire",   desc:"Réclamer 50 daily",            stat:"dailyClaims",       goal:50,   xp:900 },
- { id:"gq_sell30",      emoji:"💰", name:"Liquidation",            desc:"Vendre 30 cartes",             stat:"cardsSold",         goal:30,   xp:500 },
- { id:"gq_sell100",     emoji:"💰", name:"Grand déstockage",       desc:"Vendre 100 cartes",            stat:"cardsSold",         goal:100,  xp:1000 },
- { id:"gq_market10",    emoji:"🏪", name:"Clients du market",      desc:"Acheter 10 cartes au market",  stat:"marketBought",      goal:10,   xp:700 },
- { id:"gq_event10",     emoji:"🎪", name:"Festivaliers",           desc:"Ouvrir 10 packs d'event",      stat:"eventPacksOpened",  goal:10,   xp:600 },
- { id:"gq_gift10",      emoji:"🎁", name:"Généreux ensemble",      desc:"Faire 10 dons",                stat:"giftsGiven",        goal:10,   xp:500 },
- { id:"gq_gift25",      emoji:"🎁", name:"Philanthropes",          desc:"Faire 25 dons",                stat:"giftsGiven",        goal:25,   xp:1000 },
- { id:"gq_kamas50k",    emoji:"💎", name:"Économie florissante",   desc:"Gagner 50 000 kamas",          stat:"totalKamasEarned",  goal:50000,xp:800 },
- { id:"gq_shop5",       emoji:"🛒", name:"Clients du KrosmoShop",  desc:"Acheter 5 cartes au shop",     stat:"shopBought",        goal:5,    xp:400 },
+ /* --- PACKS --- */
+ { id:"gq_packs30",     emoji:"📦", name:"Chasseurs de packs",     desc:"Ouvrir {goal} packs",              stat:"packsOpened",       baseGoal:30,   xp:400 },
+ { id:"gq_packs60",     emoji:"📦", name:"Ouverture massive",      desc:"Ouvrir {goal} packs",              stat:"packsOpened",       baseGoal:60,   xp:700 },
+ { id:"gq_packs120",    emoji:"📦", name:"Avalanche de packs",     desc:"Ouvrir {goal} packs",              stat:"packsOpened",       baseGoal:120,  xp:1200 },
+ { id:"gq_packs200",    emoji:"📦", name:"Pluie de cartes",        desc:"Ouvrir {goal} packs",              stat:"packsOpened",       baseGoal:200,  xp:2000 },
+
+ /* --- FUSIONS --- */
+ { id:"gq_fusions8",    emoji:"⚗️", name:"Premiers essais",       desc:"Faire {goal} fusions",             stat:"fusions",           baseGoal:8,    xp:400 },
+ { id:"gq_fusions20",   emoji:"⚗️", name:"Alchimie de groupe",    desc:"Faire {goal} fusions",             stat:"fusions",           baseGoal:20,   xp:700 },
+ { id:"gq_fusions50",   emoji:"⚗️", name:"Laboratoire actif",     desc:"Faire {goal} fusions",             stat:"fusions",           baseGoal:50,   xp:1400 },
+
+ /* --- SSR --- */
+ { id:"gq_ssr3",        emoji:"🌈", name:"Éclat arc-en-ciel",      desc:"Obtenir {goal} SSR",               stat:"ssrPulled",         baseGoal:3,    xp:600 },
+ { id:"gq_ssr6",        emoji:"🌈", name:"Chasseurs de SSR",       desc:"Obtenir {goal} SSR",               stat:"ssrPulled",         baseGoal:6,    xp:1000 },
+ { id:"gq_ssr12",       emoji:"🌈", name:"Moisson arc-en-ciel",    desc:"Obtenir {goal} SSR",               stat:"ssrPulled",         baseGoal:12,   xp:1800 },
+
+ /* --- DAILY --- */
+ { id:"gq_daily8",      emoji:"🎁", name:"Habitude matinale",      desc:"Réclamer {goal} daily",            stat:"dailyClaims",       baseGoal:8,    xp:350 },
+ { id:"gq_daily20",     emoji:"🎁", name:"Fidélité collective",    desc:"Réclamer {goal} daily",            stat:"dailyClaims",       baseGoal:20,   xp:600 },
+ { id:"gq_daily40",     emoji:"🎁", name:"Assiduité exemplaire",   desc:"Réclamer {goal} daily",            stat:"dailyClaims",       baseGoal:40,   xp:1000 },
+
+ /* --- VENTES --- */
+ { id:"gq_sell16",      emoji:"💰", name:"Liquidation",            desc:"Vendre {goal} cartes",             stat:"cardsSold",         baseGoal:16,   xp:400 },
+ { id:"gq_sell50",      emoji:"💰", name:"Grand déstockage",       desc:"Vendre {goal} cartes",             stat:"cardsSold",         baseGoal:50,   xp:800 },
+ { id:"gq_sell100",     emoji:"💰", name:"Soldes totales",         desc:"Vendre {goal} cartes",             stat:"cardsSold",         baseGoal:100,  xp:1300 },
+
+ /* --- MARKET --- */
+ { id:"gq_market4",     emoji:"🏪", name:"Premiers achats",        desc:"Acheter {goal} cartes au market",  stat:"marketBought",      baseGoal:4,    xp:500 },
+ { id:"gq_market10",    emoji:"🏪", name:"Clients du market",      desc:"Acheter {goal} cartes au market",  stat:"marketBought",      baseGoal:10,   xp:900 },
+
+ /* --- EVENTS --- */
+ { id:"gq_event4",      emoji:"🎪", name:"Aventuriers divins",     desc:"Ouvrir {goal} packs d'event",      stat:"eventPacksOpened",  baseGoal:4,    xp:500 },
+ { id:"gq_event10",     emoji:"🎪", name:"Festivaliers",           desc:"Ouvrir {goal} packs d'event",      stat:"eventPacksOpened",  baseGoal:10,   xp:900 },
+
+ /* --- DONS --- */
+ { id:"gq_gift4",       emoji:"🎁", name:"Partage amical",         desc:"Faire {goal} dons",                stat:"giftsGiven",        baseGoal:4,    xp:400 },
+ { id:"gq_gift12",      emoji:"🎁", name:"Généreux ensemble",      desc:"Faire {goal} dons",                stat:"giftsGiven",        baseGoal:12,   xp:800 },
+ { id:"gq_gift25",      emoji:"🎁", name:"Philanthropes",          desc:"Faire {goal} dons",                stat:"giftsGiven",        baseGoal:25,   xp:1200 },
+
+ /* --- KAMAS --- */
+ { id:"gq_kamas25k",    emoji:"💎", name:"Économie florissante",   desc:"Gagner {goal} kamas",              stat:"totalKamasEarned",  baseGoal:25000,xp:600 },
+ { id:"gq_kamas80k",    emoji:"💎", name:"Trésor de guilde",       desc:"Gagner {goal} kamas",              stat:"totalKamasEarned",  baseGoal:80000,xp:1200 },
+
+ /* --- KROSMOSHOP --- */
+ { id:"gq_shop4",       emoji:"🛒", name:"Clients du KrosmoShop",  desc:"Acheter {goal} cartes au shop",    stat:"shopBought",        baseGoal:4,    xp:400 },
 
 ]
+
+/* ================= SCALING DYNAMIQUE ================= */
+
+/**
+ * Calcule l'effectif cible pour le scaling des quêtes.
+ * - 10 membres → 8 (confortable, les quêtes sont faciles)
+ * - 8 membres → 6
+ * - 5 membres → 4
+ * - 3 membres → 2
+ * - 2 membres → 2
+ * - 1 membre → 1
+ */
+function getEffectiveMembers(memberCount){
+ if(memberCount <= 2) return Math.max(MIN_EFFECTIVE, memberCount)
+ return Math.max(MIN_EFFECTIVE, Math.min(MAX_EFFECTIVE, Math.floor(memberCount * 0.8)))
+}
+
+/**
+ * Calcule le goal adapté au nombre de membres.
+ * Le goal de base est calibré pour BASE_CALIBRATION (8) joueurs.
+ * On scale linéairement selon l'effectif cible.
+ */
+function getScaledGoal(baseGoal, memberCount){
+ const effective = getEffectiveMembers(memberCount)
+ const scaled = Math.max(1, Math.ceil(baseGoal * effective / BASE_CALIBRATION))
+ return scaled
+}
 
 /* ================= SEMAINE COURANTE ================= */
 
@@ -56,7 +127,18 @@ function getWeeklyQuests(){
   .sort((a, b) => a.sort - b.sort)
   .map(x => x.q)
 
- return shuffled.slice(0, 3)
+ /* Éviter 2 quêtes sur la même stat */
+ const selected = []
+ const usedStats = new Set()
+
+ for(const q of shuffled){
+  if(selected.length >= 3) break
+  if(usedStats.has(q.stat)) continue
+  selected.push(q)
+  usedStats.add(q.stat)
+ }
+
+ return selected
 }
 
 /* ================= STATS COMBINÉES ================= */
@@ -78,6 +160,11 @@ function getCombinedStats(memberIds){
 
   /* Ajouter les kamas actuels comme source pour totalKamasEarned */
   combined.totalKamasEarned = (combined.totalKamasEarned || 0) + (user.kamas || 0)
+
+  /* Ajouter shopBought depuis krosmoshopStats */
+  if(user.krosmoshopStats?.cardsBought){
+   combined.shopBought = (combined.shopBought || 0) + user.krosmoshopStats.cardsBought
+  }
  }
 
  return combined
@@ -111,17 +198,24 @@ function getGuildQuestProgress(guildId){
  const quests = getWeeklyQuests()
  const current = getCombinedStats(guild.memberIds)
  const snapshot = guild.questSnapshot || {}
+ const memberCount = guild.memberIds.length
 
  return quests.map(q => {
 
+  const scaledGoal = getScaledGoal(q.baseGoal, memberCount)
   const before = snapshot[q.stat] || 0
   const now = current[q.stat] || 0
   const progress = Math.max(0, now - before)
 
+  /* Remplacer {goal} dans la description */
+  const desc = q.desc.replace("{goal}", scaledGoal)
+
   return {
    ...q,
-   current: Math.min(progress, q.goal),
-   done: progress >= q.goal,
+   goal: scaledGoal,
+   desc,
+   current: Math.min(progress, scaledGoal),
+   done: progress >= scaledGoal,
    claimed: guild.questsClaimed?.includes(q.id) || false
   }
  })
@@ -211,5 +305,8 @@ module.exports = {
  getGuildQuestProgress,
  claimGuildQuests,
  getNextGuildQuestReset,
- QUEST_POOL
+ getEffectiveMembers,
+ getScaledGoal,
+ QUEST_POOL,
+ BASE_CALIBRATION
 }

@@ -9,6 +9,77 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+## [0.30.0] - 2026-03-21
+
+### Added
+
+- **Scaling dynamique des quêtes de guilde** (`systems/guildQuestSystem.js`)
+  - Les objectifs des quêtes s'adaptent automatiquement au nombre de membres
+  - Goals de base calibrés pour **8 joueurs actifs** (constante `BASE_CALIBRATION`)
+  - Formule d'effectif cible : `min(8, max(1, floor(membres × 0.8)))` pour >2 membres, sinon = membres
+  - Une guilde de 10 est calibrée sur 8 (quêtes confortables)
+  - Une guilde de 5 est calibrée sur 4 (quêtes équilibrées)
+  - Un joueur seul a des objectifs réduits à 1/8e de la base
+  - La récompense XP reste fixe quel que soit le nombre de membres
+  - Nouvelles fonctions exportées : `getEffectiveMembers()`, `getScaledGoal()`
+
+- **8 nouvelles quêtes de guilde** — pool élargi de 17 → **25 quêtes**
+  - 📦 Chasseurs de packs (30 packs, 400 XP)
+  - ⚗️ Premiers essais (8 fusions, 400 XP)
+  - 🌈 Éclat arc-en-ciel (3 SSR, 600 XP)
+  - 🎁 Habitude matinale (8 daily, 350 XP)
+  - 💰 Soldes totales (100 ventes, 1300 XP)
+  - 🏪 Premiers achats (4 market, 500 XP)
+  - 🎪 Aventuriers divins (4 eventpacks, 500 XP)
+  - 🎁 Partage amical (4 dons, 400 XP)
+
+- **Distributions des raretés par set dans le README**
+  - Ajout de la distribution ☁️ Incarnam (120 cartes : 40 C, 32 U, 22 R, 11 SR, 7 HR, 4 UR, 2 S, 2 SSR)
+  - Ajout de la distribution 🌾 Astrub (258 cartes : 85 C, 69 U, 49 R, 23 SR, 15 HR, 8 UR, 5 S, 4 SSR)
+  - Ajout de la distribution 🌽 Amakna (298 cartes : 98 C, 79 U, 56 R, 27 SR, 18 HR, 10 UR, 5 S, 5 SSR)
+
+- **Table de leveling guilde dans le README** — XP requis et XP total cumulé pour les niveaux 5, 10, 25, 50, 75, 100
+
+### Changed
+
+- **Limite de membres par guilde** : 20 → **10 membres** (`systems/guildSystem.js`)
+  - `MAX_MEMBERS` passe de 20 à 10
+  - Guildes plus petites et plus compétitives
+  - Officiers toujours limités à 3
+
+- **Rééquilibrage des quêtes de guilde** (`systems/guildQuestSystem.js`)
+  - Les goals utilisent désormais `baseGoal` (calibré pour 8) au lieu de `goal` fixe
+  - Les descriptions utilisent `{goal}` comme placeholder, remplacé dynamiquement par le goal scalé
+  - Quêtes existantes rééquilibrées :
+    - `gq_packs50` (50 packs) → `gq_packs60` (60 packs base, scalé)
+    - `gq_packs100` (100 packs) → `gq_packs120` (120 packs base, scalé)
+    - `gq_ssr5` (5 SSR) → `gq_ssr6` (6 SSR base, scalé)
+    - `gq_ssr10` (10 SSR) → `gq_ssr12` (12 SSR base, scalé)
+    - `gq_daily50` (50 daily) → `gq_daily40` (40 daily base, scalé)
+    - `gq_sell30` (30 ventes) → `gq_sell16` (16 ventes base, scalé)
+    - `gq_sell100` (100 ventes) → `gq_sell50` (50 ventes base, scalé)
+    - `gq_market10` (10 market) → `gq_market4` / `gq_market10` (4 et 10 base, scalé)
+    - `gq_gift10` (10 dons) → `gq_gift12` (12 dons base, scalé)
+    - `gq_kamas50k` (50k kamas) → `gq_kamas25k` / `gq_kamas80k` (25k et 80k base, scalé)
+    - `gq_shop5` (5 shop) → `gq_shop4` (4 shop base, scalé)
+  - `getCombinedStats()` enrichi : ajout du tracking `shopBought` depuis `krosmoshopStats`
+
+- **Achievement "Guilde Complète"** : description mise à jour de 20/20 → **10/10 membres** (`systems/achievements/achievementGuild.js`)
+
+- **README.md** mis à jour :
+  - Section Guildes : 10 membres max au lieu de 20
+  - Nouvelle section "Scaling dynamique des quêtes" avec tableau effectif/ratio
+  - Pool de quêtes passé de 17 à 25
+  - Table de leveling guilde (niveaux 5→100 avec XP requis/cumulé)
+  - Ajout des 3 distributions manquantes (Incarnam, Astrub, Amakna)
+  - Exemples de quêtes mis à jour avec les nouveaux noms et objectifs
+
+### Improved
+
+- **Équilibrage global des quêtes de guilde** — les petites guildes (1-3 joueurs) peuvent désormais compléter les quêtes avec des objectifs proportionnels, tandis que les guildes complètes (10 joueurs) les font confortablement car calibrées sur 8
+
+---
+
 ## [0.29.0] - 2026-03-21
 
 ### Added

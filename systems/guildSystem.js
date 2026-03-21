@@ -51,7 +51,7 @@ function randomEmoji(){
 
 /* ================= CONSTANTES ================= */
 
-const MAX_MEMBERS = 20
+const MAX_MEMBERS = 10
 const CREATE_COST = 5000
 const RENAME_COST = 2000
 const MAX_OFFICERS = 3
