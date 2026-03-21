@@ -7,6 +7,7 @@ const {
 
 const achievements = require("../../systems/achievementRegistry")
 const { getUser } = require("../../systems/userSystem")
+const { getAchievementReward, formatRewardCompact } = require("../../systems/achievementRewards")
 
 module.exports={
 
@@ -27,6 +28,20 @@ module.exports={
   const unlockedCount=user.achievements?.length || 0
   const total=list.length
 
+  /* Calculer les totaux de récompenses restantes */
+  let totalKamasRemaining = 0
+  let totalXpRemaining = 0
+  let totalPacksRemaining = 0
+
+  for(const [id,data] of list){
+   if(!user.achievements?.includes(id)){
+    const r = getAchievementReward(id, data)
+    totalKamasRemaining += r.kamas
+    totalXpRemaining += r.xp
+    totalPacksRemaining += r.packs
+   }
+  }
+
   function build(){
 
    const maxPage=Math.max(1,Math.ceil(list.length/perPage))
@@ -43,20 +58,33 @@ module.exports={
 
     const title=data.title ? ` • 👑 ${data.title}` : ""
 
-    return `${unlocked?"✔":"🔒"} ${data.badge} **${data.name}**${title}`
+    const reward = getAchievementReward(id, data)
+    const rewardStr = formatRewardCompact(reward)
+
+    const status = unlocked ? "✔" : "🔒"
+    const rewardLine = unlocked ? ` ✅` : ` → ${rewardStr}`
+
+    return `${status} ${data.badge} **${data.name}**${title}\n　${rewardLine}`
 
    })
 
    const embed=new EmbedBuilder()
     .setTitle("🏆 Succès")
     .setDescription(lines.join("\n") || "Aucun succès.")
-    .addFields({
-     name:"Progression",
-     value:`${unlockedCount}/${total} succès débloqués`,
-     inline:false
-    })
+    .addFields(
+     {
+      name:"Progression",
+      value:`${unlockedCount}/${total} succès débloqués`,
+      inline:true
+     },
+     {
+      name:"🎁 Récompenses restantes",
+      value:`💰 ${totalKamasRemaining.toLocaleString("fr-FR")} • ⭐ ${totalXpRemaining.toLocaleString("fr-FR")} • 📦 ${totalPacksRemaining}`,
+      inline:false
+     }
+    )
     .setFooter({
-     text:`Page ${page}/${maxPage}`
+     text:`Page ${page}/${maxPage} • Kamas gagnés via succès : ${(user.stats?.achievementKamasEarned||0).toLocaleString("fr-FR")}`
     })
     .setColor("#f1c40f")
 

@@ -21,6 +21,18 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Shiny SSR toujours possible (0.5%) dans les event packs
   - Nouveau `rollEventRarity()` indépendant du `rollRarity()` des packs normaux
   - Export de `EVENT_RATES` pour référence et debug
+  - **Système de récompenses pour les achievements** (`systems/achievementRewards.js`)
+  - 8 tiers de difficulté avec récompenses progressives (kamas, XP, packs)
+  - Tier 1 (Facile) : 100 kamas, 15 XP → Tier 8 (Mythique) : 10 000 kamas, 2 000 XP, 5 packs
+  - Auto-détection du tier par pattern numérique dans l'ID de l'achievement
+  - ~100 overrides manuels pour les achievements spéciaux (RNG, secrets, comportementaux, events)
+  - Bonus +50% kamas pour les achievements secrets
+  - Fonctions `formatReward()` et `formatRewardCompact()` pour l'affichage
+
+- **Nouvelles stats user** trackées :
+  - `achievementKamasEarned` — total kamas gagnés via succès
+  - `achievementXpEarned` — total XP gagnée via succès
+  - `achievementPacksEarned` — total packs gagnés via succès
 
 ### Changed
 
@@ -71,6 +83,24 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Suppression de la dépendance à `generatePack()` pour les event packs
   - Les compteurs de pity ne sont plus affectés par les event packs
   - `limitSSR()` toujours appliqué (1 SSR max, 2 S max) sauf si `allowMultiSSR`
+
+  - **`systems/achievementEngine.js`** — applique désormais les récompenses (kamas, XP, packs) automatiquement au déblocage d'un achievement
+  - L'XP passe par `addXP()` pour déclencher les level-ups en chaîne
+  - Les kamas et packs sont ajoutés directement sur le user
+  - Stocke les rewards dans `user._lastAchievementRewards` pour le notifier (nettoyé après affichage)
+  - Rétro-compatible : retourne toujours un tableau d'IDs débloqués
+
+- **`systems/achievementNotifier.js`** — refonte de l'affichage
+  - Utilise des **embeds** au lieu de messages texte bruts
+  - Affiche les récompenses obtenues (kamas, XP, packs) dans chaque notification
+  - Affiche un footer "Succès secret !" pour les achievements secrets
+  - Paramètre `user` optionnel ajouté (rétro-compatible avec les anciens appels)
+
+- **`commands/joueur/achievement.js`** — affichage enrichi de la commande `/achievements`
+  - Affiche les récompenses à côté de chaque succès (format compact : `💰400 ⭐60`)
+  - Succès débloqués marqués ✅, non débloqués montrent les récompenses à obtenir
+  - Nouveau champ "🎁 Récompenses restantes" avec le total de kamas, XP et packs à débloquer
+  - Footer avec le total de kamas déjà gagnés via succès
 
 ### Fixed
 

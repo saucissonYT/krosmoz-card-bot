@@ -125,22 +125,60 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succès débloqués |
 
-### 🏆 ~370 Achievements (12 modules)
+## 🏆 Achievements
 
-| Module | Contenu |
-|--------|---------|
-| achievementPacks | Packs ouverts, RNG spéciaux |
-| achievementRarity | SSR, Shiny, KrosmoShop |
-| achievementFusion | Fusions (critique, double, triple) |
-| achievementCollection | Cartes totales, uniques, sets |
-| achievementEconomy | Kamas, daily, balance, inventaire, help, titres |
-| achievementSocial | Profil, leaderboard, mentions |
-| achievementSecrets | Secrets (Krosmo-bot, etc.) |
-| achievementEvents | 148 achievements events (classes, jackpots) |
-| achievementSpecial | 39 achievements comportementaux |
-| achievementGift | 15 achievements de dons (donnés, reçus, spéciaux) |
-| achievementGuild | 29 achievements de guilde (niveaux, quêtes, social, secrets) |
-| achievementLevel | 20 achievements de progression (niveaux, XP total, secrets) |
+~370 succès automatiques répartis en 12 catégories :
+
+- **Packs** — ouvertures, achats, RNG spéciaux
+- **Raretés** — SSR, Shiny, KrosmoShop
+- **Fusion** — critique, double, triple
+- **Collection** — cartes totales, uniques, sets, hoarder
+- **Économie** — kamas, daily, balance, inventaire, titres
+- **Social** — profil, leaderboard, mentions du bot
+- **Secrets** — Krosmo-bot, achievements cachés
+- **Events** — 148 achievements (participation, SSR par classe, jackpots)
+- **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
+- **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
+- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Niveaux** — 20 achievements (niveaux 5→100, XP total, secrets)
+
+Les succès débloquent des **badges**, des **titres** et des **récompenses** (kamas, XP, packs).
+
+Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte et donnent **+50% de kamas** bonus.
+
+### 🎁 Récompenses par tier
+
+Chaque achievement est assigné à un tier de difficulté (1-8) qui détermine ses récompenses automatiques :
+
+| Tier | Difficulté | Kamas | XP | Packs |
+|------|-----------|-------|-----|-------|
+| 1 | Facile | 100 | 15 | 0 |
+| 2 | Basique | 200 | 30 | 0 |
+| 3 | Moyen | 400 | 60 | 0 |
+| 4 | Difficile | 750 | 120 | 0 |
+| 5 | Très dur | 1 500 | 250 | 1 |
+| 6 | Extrême | 3 000 | 500 | 2 |
+| 7 | Légendaire | 5 000 | 1 000 | 3 |
+| 8 | Mythique | 10 000 | 2 000 | 5 |
+
+Le tier est **auto-détecté** par le nombre dans l'ID de l'achievement (ex: `pack100` → tier 4), avec des **overrides manuels** (~100) pour les cas spéciaux (RNG, secrets, comportementaux).
+
+L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** en chaîne.
+
+### Architecture rewards
+
+| Fichier | Rôle |
+|---------|------|
+| achievementRewards | Tiers, auto-détection, overrides, formatage |
+| achievementEngine | Applique kamas + XP + packs au déblocage |
+| achievementNotifier | Affiche les récompenses en embed Discord |
+| achievementCheck | Pipeline de vérification (inchangé) |
+
+### Stats trackées
+
+- `user.stats.achievementKamasEarned` — total kamas gagnés via succès
+- `user.stats.achievementXpEarned` — total XP gagnée via succès
+- `user.stats.achievementPacksEarned` — total packs gagnés via succès
 
 ---
 
