@@ -141,12 +141,21 @@ module.exports = {
    const remaining = Math.max(0, event.endTime - Date.now())
    const minutes = Math.ceil(remaining / 60000)
 
+   /* FIX: lire l'effet depuis le registry via event.key,
+      car currentEvent ne stocke pas "effect" */
+   const registryEntry = EVENTS[event.key]
+   const effect = registryEntry?.effect || "Effet spécial"
+
    const embed = new EmbedBuilder()
     .setTitle("📊 Event en cours")
     .setDescription(`🎰 **${event.name}**`)
     .addFields(
-     { name:"Effet", value:event.effect || "Inconnu" },
-     { name:"Temps restant", value:`${minutes} min` }
+     { name:"Effet", value:effect },
+     { name:"Temps restant", value:`${minutes} min` },
+     { name:"🎟️ Tickets", value:`${event.tickets} par joueur` },
+     { name:"📦 Packs ouverts", value:`${event.stats?.packs || 0}`, inline:true },
+     { name:"🌈 SSR obtenues", value:`${event.stats?.ssr || 0}`, inline:true },
+     { name:"🎴 Cartes", value:`${event.stats?.totalCards || 0}`, inline:true }
     )
     .setColor("Purple")
 

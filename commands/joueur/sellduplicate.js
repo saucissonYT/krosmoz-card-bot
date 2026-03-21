@@ -1,14 +1,5 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
-/*
- * FIX v0.24: rarityEmoji et sellValues étaient hardcodés localement.
- * Remplacés par RARITY_EMOJI et SELL_PRICE depuis constants.js
- * pour garantir la cohérence avec le reste du projet.
- *
- * BUG CORRIGÉ: dans le collector (confirmation de vente),
- * le code utilisait encore rarityEmoji[card.rarity] au lieu de
- * RARITY_EMOJI[card.rarity] → crash au moment de confirmer la vente.
- */
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 
 const { getCardsById } = require("../../systems/cardRegistry")
@@ -22,7 +13,6 @@ module.exports={
 
  async execute(interaction){
 
-  // Fix : appel au moment de l'exécution, pas au chargement du module
   const cardsById = getCardsById()
 
   const user = getUser(interaction.user.id)
@@ -77,6 +67,7 @@ module.exports={
 `${totalCards} cartes seront vendues
 
 ${previewLines.slice(0,15).join("\n")}
+${previewLines.length > 15 ? `\n... et ${previewLines.length - 15} autres` : ""}
 
 💰 Gain total : **${totalKamas} kamas**`
    )
@@ -114,14 +105,16 @@ ${previewLines.slice(0,15).join("\n")}
 
    await i.deferUpdate()
 
-   if(i.customId==="cancel_sell_dup")
+   if(i.customId==="cancel_sell_dup"){
     return interaction.editReply({
      content:"❌ Vente annulée.",
      embeds:[],
      components:[]
     })
+   }
 
-   // Fix : appel au moment de la confirmation aussi
+   /* ======== CONFIRMATION : VENDRE ======== */
+
    const cardsByIdFresh = getCardsById()
 
    const soldLines=[]
@@ -131,27 +124,26 @@ ${previewLines.slice(0,15).join("\n")}
     const card=cardsByIdFresh[item.id]
     if(!card) continue
 
+    /* Retirer les cartes */
     user.cards[item.id]-=item.duplicates
 
     if(user.cards[item.id]<=0)
      delete user.cards[item.id]
 
-    user.kamas+=item.duplicates*item.price
+    /* Ajouter les kamas */
+    user.kamas = (user.kamas || 0) + (item.duplicates * item.price)
 
+    /* Stats */
     user.stats.cardsSold=(user.stats.cardsSold||0)+item.duplicates
 
-    /*
-     * FIX v0.24: rarityEmoji → RARITY_EMOJI
-     * L'ancienne variable locale n'existe plus,
-     * utiliser l'ancienne causait un crash ici.
-     */
     soldLines.push(
 `${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`
     )
 
    }
 
-   save()
+   /* FIX CRITIQUE : save avec userId ciblé pour garantir la persistance */
+   save(interaction.user.id)
 
    const unlocked = achievementCheck(user,"economy")
 
@@ -159,9 +151,11 @@ ${previewLines.slice(0,15).join("\n")}
     .setTitle("💰 Doublons vendus")
     .setDescription(
 `${soldLines.slice(0,20).join("\n")}
+${soldLines.length > 20 ? `\n... et ${soldLines.length - 20} autres` : ""}
 
 Cartes vendues : **${totalCards}**
-Gain total : **${totalKamas} kamas**`
+Gain total : **${totalKamas} kamas**
+💰 Nouveau solde : **${user.kamas} kamas**`
     )
 
    await interaction.editReply({

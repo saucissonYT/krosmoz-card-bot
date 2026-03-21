@@ -145,7 +145,7 @@ Niveau **${guild.level}** • ${guild.memberIds.length}/${MAX_MEMBERS} membres`
      if(result.error)
       return i.reply({ content:`❌ ${result.error}`, flags:64 })
 
-     /* Achievement */
+     /* Achievement — check sur le joueur invité */
      const freshTarget = getUser(targetUser.id)
      const unlocked = achievementCheck(freshTarget, "guild")
 
@@ -167,8 +167,9 @@ Niveau **${guild.level}** • ${guild.memberIds.length}/${MAX_MEMBERS} membres`
 
      await i.update({ embeds:[successEmbed], components:[] })
 
+     /* FIX: notifier le joueur invité (i) et non l'inviteur (interaction) */
      if(unlocked.length)
-      await notifyAchievements(interaction, unlocked)
+      await notifyAchievements(i, unlocked)
     }
 
    })

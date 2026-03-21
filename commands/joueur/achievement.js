@@ -7,7 +7,6 @@ const {
 
 const achievements = require("../../systems/achievementRegistry")
 const { getUser } = require("../../systems/userSystem")
-const { getAchievementReward, formatRewardCompact } = require("../../systems/achievementRewards")
 
 module.exports={
 
@@ -28,20 +27,6 @@ module.exports={
   const unlockedCount=user.achievements?.length || 0
   const total=list.length
 
-  /* Calculer les totaux de récompenses restantes */
-  let totalKamasRemaining = 0
-  let totalXpRemaining = 0
-  let totalPacksRemaining = 0
-
-  for(const [id,data] of list){
-   if(!user.achievements?.includes(id)){
-    const r = getAchievementReward(id, data)
-    totalKamasRemaining += r.kamas
-    totalXpRemaining += r.xp
-    totalPacksRemaining += r.packs
-   }
-  }
-
   function build(){
 
    const maxPage=Math.max(1,Math.ceil(list.length/perPage))
@@ -58,33 +43,17 @@ module.exports={
 
     const title=data.title ? ` • 👑 ${data.title}` : ""
 
-    const reward = getAchievementReward(id, data)
-    const rewardStr = formatRewardCompact(reward)
+    const status = unlocked ? "✅" : "🔒"
 
-    const status = unlocked ? "✔" : "🔒"
-    const rewardLine = unlocked ? ` ✅` : ` → ${rewardStr}`
-
-    return `${status} ${data.badge} **${data.name}**${title}\n　${rewardLine}`
+    return `${status} ${data.badge} **${data.name}**${title}\n　${data.description || ""}`
 
    })
 
    const embed=new EmbedBuilder()
     .setTitle("🏆 Succès")
-    .setDescription(lines.join("\n") || "Aucun succès.")
-    .addFields(
-     {
-      name:"Progression",
-      value:`${unlockedCount}/${total} succès débloqués`,
-      inline:true
-     },
-     {
-      name:"🎁 Récompenses restantes",
-      value:`💰 ${totalKamasRemaining.toLocaleString("fr-FR")} • ⭐ ${totalXpRemaining.toLocaleString("fr-FR")} • 📦 ${totalPacksRemaining}`,
-      inline:false
-     }
-    )
+    .setDescription(lines.join("\n\n") || "Aucun succès.")
     .setFooter({
-     text:`Page ${page}/${maxPage} • Kamas gagnés via succès : ${(user.stats?.achievementKamasEarned||0).toLocaleString("fr-FR")}`
+     text:`Page ${page}/${maxPage} • ${unlockedCount}/${total} succès débloqués`
     })
     .setColor("#f1c40f")
 
@@ -95,6 +64,12 @@ module.exports={
      .setLabel("⬅️")
      .setStyle(ButtonStyle.Primary)
      .setDisabled(page<=1),
+
+    new ButtonBuilder()
+     .setCustomId("ach_page")
+     .setLabel(`${page}/${maxPage}`)
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(true),
 
     new ButtonBuilder()
      .setCustomId("ach_next")

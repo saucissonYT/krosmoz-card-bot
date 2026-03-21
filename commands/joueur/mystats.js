@@ -10,6 +10,10 @@ const { getUser } = require("../../systems/userSystem")
 const { getCards } = require("../../systems/cardRegistry")
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 
+/* FIX: import dynamique du registry pour compter les achievements */
+const achievements = require("../../systems/achievementRegistry")
+const TOTAL_ACHIEVEMENTS = Object.keys(achievements).length
+
 /* ================= HELPERS ================= */
 
 function bar(value, max, size=10){
@@ -79,8 +83,8 @@ function buildPage(pageId, user, interaction){
 🎴 Cartes : **${ownedTotal}** (${ownedUnique} uniques / ${totalCards})
 ${bar(ownedUnique, totalCards, 12)} ${pct(ownedUnique, totalCards)}
 
-🏆 Achievements : **${achievementCount}** / 306
-${bar(achievementCount, 306, 12)} ${pct(achievementCount, 306)}
+🏆 Achievements : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}
+${bar(achievementCount, TOTAL_ACHIEVEMENTS, 12)} ${pct(achievementCount, TOTAL_ACHIEVEMENTS)}
 
 📦 Packs ouverts : **${s.packsOpened || 0}**
 📦 Packs achetés : **${s.packsBought || 0}**
@@ -97,7 +101,6 @@ ${bar(achievementCount, 306, 12)} ${pct(achievementCount, 306)}
 
  if(pageId === "collection"){
 
-  /* Comptage par rareté */
   const byRarity = {}
   for(const r of RARITY_ORDER) byRarity[r] = { owned:0, total:0 }
 
@@ -115,7 +118,6 @@ ${bar(achievementCount, 306, 12)} ${pct(achievementCount, 306)}
    return `${RARITY_EMOJI[r]} **${r}** : ${d.owned}/${d.total} ${bar(d.owned, d.total, 8)}`
   })
 
-  /* Sets */
   const sets = [...new Set(cards.map(c=>c.set))]
   const setLines = sets.map(setId => {
    const setCards = cards.filter(c=>c.set===setId)
@@ -123,7 +125,6 @@ ${bar(achievementCount, 306, 12)} ${pct(achievementCount, 306)}
    return `📦 **${setId}** : ${owned}/${setCards.length} ${bar(owned, setCards.length, 8)}`
   })
 
-  /* Max dupes */
   const maxDupes = Math.max(0, ...Object.values(user.cards || {}))
   const maxDupeCard = Object.entries(user.cards || {}).find(([,v])=>v===maxDupes)
   let maxDupeName = "—"
@@ -230,7 +231,6 @@ ${setLines.join("\n")}
   const ssrByClass = s.ssrByClass || {}
   const packsByClass = s.eventPacksByClass || {}
 
-  /* Top 3 classes par packs */
   const classRanking = Object.entries(packsByClass)
    .sort((a,b)=>b[1]-a[1])
    .slice(0, 5)
@@ -239,7 +239,6 @@ ${setLines.join("\n")}
    ? classRanking.map(([k,v],i) => `${i+1}. **${k}** — ${v} packs`).join("\n")
    : "Aucun event joué"
 
-  /* Classes avec SSR */
   const ssrClasses = Object.entries(ssrByClass)
    .filter(([,v])=>v>=1)
    .length
@@ -295,7 +294,7 @@ ${classLines}`
 🎖️ Titres débloqués : **${user.titles?.length || 1}**
 
 **Badges**
-🏆 Achievements : **${achievementCount}** / 306`
+🏆 Achievements : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}`
    )
  }
 
