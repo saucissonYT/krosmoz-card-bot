@@ -6,43 +6,73 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { addXP } = require("../../systems/progressionSystem")
-
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+const { loadSets } = require("../../systems/setSystemFile")
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
 
+/* ---- Bonus helpers ---- */
+
+function getFusionBonuses(userId, user){
+ let gCrit = 0, gDouble = 0, gTriple = 0
+ let pCrit = 0
+
+ try{
+  const { getUserGuildBonuses } = require("../../systems/guildBonuses")
+  const gb = getUserGuildBonuses(userId)
+  gCrit = gb.fusionCritBonus || 0
+  gDouble = gb.fusionDoubleBonus || 0
+  gTriple = gb.fusionTripleBonus || 0
+ }catch(e){}
+
+ try{
+  const { getPlayerBonuses } = require("../../systems/playerBonuses")
+  const pb = getPlayerBonuses(user.progression?.level || 1)
+  pCrit = pb.fusionCritBonus || 0
+ }catch(e){}
+
+ return {
+  critBonus: gCrit + pCrit,
+  doubleBonus: gDouble,
+  tripleBonus: gTriple
+ }
+}
+
 module.exports={
 
- data:new SlashCommandBuilder()
-  .setName("fusion")
-  .setDescription("Fusionner des doublons pour obtenir une rareté supérieure")
+ data: (() => {
 
-  .addStringOption(option=>
-   option.setName("set")
-   .setDescription("Set des cartes")
-   .setRequired(true)
-   .addChoices(...sets.map(s=>({name:s.name,value:s.id})))
-  )
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
-  .addStringOption(option=>
-   option.setName("rarete")
-   .setDescription("Rareté à fusionner")
-   .setRequired(true)
-   .addChoices(
-    {name:"C",value:"C"},{name:"U",value:"U"},
-    {name:"R",value:"R"},{name:"SR",value:"SR"},
-    {name:"HR",value:"HR"},{name:"UR",value:"UR"},
-    {name:"S",value:"S"}
+  return new SlashCommandBuilder()
+   .setName("fusion")
+   .setDescription("Fusionner des doublons pour obtenir une rareté supérieure")
+   .addStringOption(option=>{
+    option.setName("set")
+     .setDescription("Set des cartes")
+     .setRequired(true)
+    if(sets.length > 0)
+     option.addChoices(...sets.slice(0,25).map(s=>({name:s.name,value:s.id})))
+    return option
+   })
+   .addStringOption(option=>
+    option.setName("rarete")
+     .setDescription("Rareté à fusionner")
+     .setRequired(true)
+     .addChoices(
+      {name:"C",value:"C"},{name:"U",value:"U"},
+      {name:"R",value:"R"},{name:"SR",value:"SR"},
+      {name:"HR",value:"HR"},{name:"UR",value:"UR"},
+      {name:"S",value:"S"}
+     )
    )
-  ),
+ })(),
 
  async execute(interaction){
 
   const cards = getCards()
-
   const user = getUser(interaction.user.id)
   const setName = interaction.options.getString("set")
   const rarity = interaction.options.getString("rarete")
@@ -105,7 +135,19 @@ module.exports={
    user.stats.lastTripleReset=now
   }
 
-  /* RNG */
+  /* ---- BONUS DE GUILDE + JOUEUR ---- */
+
+  const fusionBonus = getFusionBonuses(interaction.user.id, user)
+
+  /* RNG avec bonus appliqués */
+
+  const baseCrit = 0.10
+  const baseDouble = 0.10
+  const baseTriple = 0.005
+
+  const critChance = baseCrit + (fusionBonus.critBonus / 100)
+  const doubleChance = baseDouble + (fusionBonus.doubleBonus / 100)
+  const tripleChance = baseTriple + (fusionBonus.tripleBonus / 100)
 
   const roll=Math.random()
 
@@ -114,20 +156,20 @@ module.exports={
   let message=""
   let xpGain=15
 
-  if(roll<0.005 && user.stats.tripleFusionToday<1){
+  if(roll < tripleChance && user.stats.tripleFusionToday<1){
    rarityGain=3
    message="🌈 TRIPLE FUSION !!!"
    xpGain=50
    user.stats.tripleFusionToday++
    user.stats.tripleFusion=(user.stats.tripleFusion||0)+1
   }
-  else if(roll<0.10){
+  else if(roll < tripleChance + critChance){
    rarityGain=2
    message="🔥 Fusion critique !"
    xpGain=25
    user.stats.fusionCrit=(user.stats.fusionCrit||0)+1
   }
-  else if(roll<0.20 && ["C","U","R","SR"].includes(rarity)){
+  else if(roll < tripleChance + critChance + doubleChance && ["C","U","R","SR"].includes(rarity)){
    quantity=2
    message="✨ Fusion double !"
    xpGain=25
@@ -179,17 +221,14 @@ module.exports={
    user.cards[card.id]=(user.cards[card.id]||0)+1
   }
 
-  /* ---- ACHIEVEMENT FUSION SSR ---- */
-  // Obtenir une SSR comme résultat de fusion
-  if(targetRarity === "SSR"){
+  /* ACHIEVEMENT FUSION SSR */
+  if(targetRarity === "SSR")
    user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + 1
-  }
 
   addXP(user,xpGain)
-  save()
+  save(interaction.user.id)
 
   let unlocked=[]
-
   unlocked.push(...achievementCheck(user,"fusion"))
   unlocked.push(...achievementCheck(user,"collection"))
   unlocked.push(...achievementCheck(user,"pack"))
@@ -206,6 +245,11 @@ module.exports={
   const fusionStats=`📊 **Stats fusion**\n\nFusions : **${user.stats.fusions||0}**\n🔥 Critiques : **${user.stats.fusionCrit||0}**\n✨ Doubles : **${user.stats.fusionDouble||0}**\n🌈 Triples : **${user.stats.tripleFusion||0}**`
 
   const remainingDup=available-cost
+
+  /* Afficher les chances réelles avec bonus */
+  const critPct = (critChance * 100).toFixed(1)
+  const doublePct = (doubleChance * 100).toFixed(1)
+  const triplePct = (tripleChance * 100).toFixed(2)
 
   const resultEmbed=new EmbedBuilder()
    .setTitle("⚗️ Fusion terminée")
@@ -226,11 +270,11 @@ Doublons restants : **${remainingDup}**
 
 ${rewardLines.join("\n")}
 
-📊 **Chances**
+📊 **Chances (avec bonus)**
 
-🔥 Critique : **10%**
-🌈 Triple : **0.5%**
-✨ Double : **10%**
+🔥 Critique : **${critPct}%**
+🌈 Triple : **${triplePct}%**
+✨ Double : **${doublePct}%**
 
 ${fusionStats}`
    )

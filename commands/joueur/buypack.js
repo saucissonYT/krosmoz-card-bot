@@ -8,6 +8,7 @@ const {
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
+const { PACK_PRICE } = require("../../systems/constants")
 
 module.exports = {
 
@@ -18,11 +19,11 @@ module.exports = {
 
   const user = getUser(interaction.user.id)
 
-  const price = 1250
+  const price = PACK_PRICE
 
   if(user.kamas < price)
    return interaction.reply({
-    content:"❌ Pas assez de kamas.",
+    content:`❌ Pas assez de kamas (il faut ${price}).`,
     flags:64
    })
 
@@ -90,7 +91,7 @@ Confirmer l'achat ?`
     if(!user.stats) user.stats={}
     user.stats.packsBought=(user.stats.packsBought||0)+1
 
-    save()
+    save(interaction.user.id)
 
     const unlocked = achievementCheck(user,"economy")
 

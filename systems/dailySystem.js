@@ -10,6 +10,33 @@ function getRandom(arr){
  return arr[Math.floor(Math.random()*arr.length)]
 }
 
+/* ---- Bonus helpers ---- */
+
+function getDailyBonuses(userId, user){
+ let gKamas = 0, gPacks = 0, gDouble = 0
+ let pKamas = 0, pDouble = 0
+
+ try{
+  const { getUserGuildBonuses } = require("./guildBonuses")
+  const gb = getUserGuildBonuses(userId)
+  gPacks = gb.dailyBonusPacks || 0
+  gDouble = gb.doubleDailyBonus || 0
+ }catch(e){}
+
+ try{
+  const { getPlayerBonuses } = require("./playerBonuses")
+  const pb = getPlayerBonuses(user.progression?.level || 1)
+  pKamas = pb.dailyKamasBonus || 0
+  pDouble = pb.doubleDailyBonus || 0
+ }catch(e){}
+
+ return {
+  bonusKamas: pKamas,
+  bonusPacks: gPacks,
+  doubleDailyBonus: gDouble + pDouble
+ }
+}
+
 /* ---------------- GIVE SSR ---------------- */
 
 function giveSSR(user){
@@ -45,7 +72,7 @@ function canClaim(user){
 
 /* ---------------- CLAIM DAILY ---------------- */
 
-async function claimDaily(interaction, user){
+async function claimDaily(interaction, user, userId){
 
  const now = Date.now()
 
@@ -70,13 +97,18 @@ async function claimDaily(interaction, user){
 
  user.stats.dailyClaims++
 
- /* ---------------- DOUBLE DAILY 10% ---------------- */
+ /* ---- BONUS DE GUILDE + JOUEUR ---- */
 
- // SSR streak non doublée — donner 2 SSR n'a pas de sens
+ const bonuses = getDailyBonuses(userId || interaction?.user?.id || "", user)
+
+ /* ---------------- DOUBLE DAILY (base 10% + bonus) ---------------- */
+
  const isStreakSSR = user.daily.streak >= 7
- const doubleReward = !isStreakSSR && Math.random() < 0.10
+ const doubleDailyChance = 0.10 + (bonuses.doubleDailyBonus / 100)
+ const doubleReward = !isStreakSSR && Math.random() < doubleDailyChance
 
  let reward = null
+ let bonusPacksGiven = 0
 
  /* ---------------- SSR STREAK ---------------- */
 
@@ -112,7 +144,7 @@ async function claimDaily(interaction, user){
 
   }else{
 
-   let kamas = 200
+   let kamas = 200 + bonuses.bonusKamas
 
    if(doubleReward) kamas *= 2
 
@@ -127,6 +159,13 @@ async function claimDaily(interaction, user){
 
  }
 
+ /* ---- Bonus packs de guilde (indépendant du reward) ---- */
+
+ if(bonuses.bonusPacks > 0){
+  user.packs = (user.packs || 0) + bonuses.bonusPacks
+  bonusPacksGiven = bonuses.bonusPacks
+ }
+
  /* ---------------- STREAK BAR ---------------- */
 
  const streak = Math.max(0, Math.min(user.daily.streak, 7))
@@ -136,13 +175,16 @@ async function claimDaily(interaction, user){
 
  const streakBar = `${filled}${empty}`
 
- save()
+ save(userId || interaction?.user?.id)
 
  return{
   reward,
   streak: user.daily.streak,
   streakBar,
-  doubleReward
+  doubleReward,
+  doubleDailyChance,
+  bonusPacksGiven,
+  bonusKamas: bonuses.bonusKamas
  }
 
 }

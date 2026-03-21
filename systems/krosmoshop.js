@@ -8,12 +8,17 @@ const { achievementCheck } = require("./achievementCheck")
 const DATA_DIR = path.join(__dirname, "../data")
 const SHOP_PATH = path.join(DATA_DIR, "krosmoshop.json")
 
+/*
+ * v0.29 — Prix rééquilibrés
+ * Avant : SSR:3000, S:1800, UR:900, HR:450, SR:200
+ * Principe : le shop est premium (~2.5x le market price)
+ */
 const PRICES = {
- SSR:3000,
- S:1800,
- UR:900,
- HR:450,
- SR:200
+ SSR:12000,  /* avant: 3000 — SSR au shop = investissement majeur */
+ S:5000,     /* avant: 1800 */
+ UR:2000,    /* avant: 900 */
+ HR:750,     /* avant: 450 */
+ SR:300      /* avant: 200 */
 }
 
 const DISTRIBUTION = {
@@ -168,7 +173,31 @@ function buyFromShop(userId,cardId){
  if(user.krosmoshop[today][cardId])
   return {error:"Déjà achetée aujourd'hui."}
 
- if(user.kamas<entry.price)
+ /* ---- Réduction via bonus de guilde ---- */
+ let finalPrice = entry.price
+
+ try{
+  const { getUserGuildBonuses } = require("./guildBonuses")
+  const bonuses = getUserGuildBonuses(userId)
+  if(bonuses.shopDiscount > 0){
+   finalPrice = Math.floor(entry.price * (1 - bonuses.shopDiscount / 100))
+  }
+ }catch(e){
+  /* guildBonuses pas disponible, prix normal */
+ }
+
+ /* ---- Réduction via bonus de niveau joueur ---- */
+ try{
+  const { getPlayerBonuses } = require("./playerBonuses")
+  const pBonuses = getPlayerBonuses(user.progression?.level || 1)
+  if(pBonuses.shopDiscount > 0){
+   finalPrice = Math.floor(finalPrice * (1 - pBonuses.shopDiscount / 100))
+  }
+ }catch(e){
+  /* playerBonuses pas disponible, prix normal */
+ }
+
+ if(user.kamas<finalPrice)
   return {error:"Kamas insuffisants"}
 
  /* -------- DISCOVERED CHECK (avant d'ajouter) -------- */
@@ -179,7 +208,7 @@ function buyFromShop(userId,cardId){
 
  /* -------- TRANSACTION -------- */
 
- user.kamas-=entry.price
+ user.kamas-=finalPrice
 
  user.cards[entry.card]=(user.cards[entry.card]||0)+1
 
@@ -198,13 +227,17 @@ function buyFromShop(userId,cardId){
 
  user.krosmoshopStats.cardsBought++
 
+ /* Track shopBought pour les quêtes de guilde */
+ if(!user.stats) user.stats = {}
+ user.stats.shopBought = (user.stats.shopBought || 0) + 1
+
  if(entry.rarity==="SSR")
   user.krosmoshopStats.ssrBought++
 
  if(entry.rarity==="S")
   user.krosmoshopStats.sBought = (user.krosmoshopStats.sBought||0)+1
 
- user.krosmoshopStats.kamasSpent = (user.krosmoshopStats.kamasSpent||0)+entry.price
+ user.krosmoshopStats.kamasSpent = (user.krosmoshopStats.kamasSpent||0)+finalPrice
 
  /* Compteur de jours distincts de visite au shop */
  if(!user.krosmoshopStats._lastDay || user.krosmoshopStats._lastDay !== today){
@@ -225,7 +258,8 @@ function buyFromShop(userId,cardId){
  return {
   success:true,
   rarity:entry.rarity,
-  price:entry.price,
+  price:finalPrice,
+  originalPrice:entry.price,
   isNew,
   cardInfo,
   unlocked
@@ -234,5 +268,6 @@ function buyFromShop(userId,cardId){
 
 module.exports={
  getShop,
- buyFromShop
+ buyFromShop,
+ PRICES
 }

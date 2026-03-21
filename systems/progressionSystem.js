@@ -1,97 +1,209 @@
+/* ===============================================
+   PROGRESSION SYSTEM — XP & Level
+   
+   v0.29 — Refonte complète
+   
+   - Level cap : 100
+   - Formule XP : 80 + level × 30 (progressive, jamais brutale)
+   - XP total pour level 100 : ~160 000
+   - Récompenses par level améliorées avec milestones
+   - Bonus de niveau appliqués via playerBonuses.js
+=============================================== */
+
+const { MAX_PLAYER_LEVEL } = require("./constants")
+
+/* ================= XP REQUIRED ================= */
+
 function getXPRequired(level){
- return Math.floor(120 * Math.pow(level,1.35))
+
+ if(level >= MAX_PLAYER_LEVEL) return Infinity
+
+ return 80 + level * 30
 }
 
-/* -------- LEVEL REWARDS -------- */
+/* ================= LEVEL REWARDS ================= */
 
 function getLevelReward(level){
 
- const reward={
-  kamas:200 + (level * 40),
-  packs:0,
-  milestone:false
+ const reward = {
+  kamas: 150 + (level * 25),
+  packs: 0,
+  milestone: false,
+  milestoneText: null
  }
 
- if(level % 5 === 0){
+ /* Pack tous les 5 niveaux */
+ if(level % 5 === 0)
   reward.packs = 1
- }
 
- if(level % 10 === 0){
+ /* 2 packs tous les 10 niveaux */
+ if(level % 10 === 0)
   reward.packs = 2
+
+ /* 3 packs tous les 25 niveaux */
+ if(level % 25 === 0)
+  reward.packs = 3
+
+ /* Milestones spéciaux */
+ if(level === 10){
+  reward.milestone = true
+  reward.kamas += 500
+  reward.milestoneText = "🎉 Niveau 10 ! +500 kamas bonus"
  }
 
- if(level === 20 || level === 30 || level === 40 || level === 50){
-  reward.milestone=true
+ if(level === 25){
+  reward.milestone = true
+  reward.kamas += 1500
+  reward.packs += 2
+  reward.milestoneText = "🎉 Niveau 25 ! +1500 kamas +2 packs"
+ }
+
+ if(level === 50){
+  reward.milestone = true
+  reward.kamas += 5000
+  reward.packs += 5
+  reward.milestoneText = "🏆 Niveau 50 ! +5000 kamas +5 packs"
+ }
+
+ if(level === 75){
+  reward.milestone = true
+  reward.kamas += 10000
+  reward.packs += 5
+  reward.milestoneText = "🔥 Niveau 75 ! +10000 kamas +5 packs"
+ }
+
+ if(level === 100){
+  reward.milestone = true
+  reward.kamas += 25000
+  reward.packs += 10
+  reward.milestoneText = "👑 NIVEAU 100 ! +25000 kamas +10 packs !"
  }
 
  return reward
 }
 
-/* -------- XP SYSTEM -------- */
+/* ================= ADD XP ================= */
 
-function addXP(user,amount){
+function addXP(user, amount){
 
  if(!user.progression){
-  user.progression={
-   level:1,
-   xp:0,
-   totalXp:0
+  user.progression = {
+   level: 1,
+   xp: 0,
+   totalXp: 0
   }
  }
 
- user.progression.xp += amount
- user.progression.totalXp += amount
+ /* Déjà au max : on ne fait rien */
+ if(user.progression.level >= MAX_PLAYER_LEVEL){
+  user.progression.level = MAX_PLAYER_LEVEL
+  user.progression.xp = 0
+  return []
+ }
 
- const levelUps=[]
+ /* Bonus XP de guilde */
+ let bonusPercent = 0
 
- while(user.progression.xp >= getXPRequired(user.progression.level)){
+ try{
+  const { getUserGuildBonuses } = require("./guildBonuses")
+  const gBonuses = getUserGuildBonuses(user.odemonId || "")
+  /* Note: on ne peut pas facilement avoir le userId ici,
+     donc le bonus guilde est appliqué en amont dans packEngine */
+ }catch(e){}
+
+ /* Bonus XP de niveau joueur */
+ try{
+  const { getPlayerBonuses } = require("./playerBonuses")
+  const pBonuses = getPlayerBonuses(user.progression.level)
+  bonusPercent += pBonuses.xpBonus || 0
+ }catch(e){}
+
+ const finalAmount = Math.floor(amount * (1 + bonusPercent / 100))
+
+ user.progression.xp += finalAmount
+ user.progression.totalXp = (user.progression.totalXp || 0) + finalAmount
+
+ const levelUps = []
+
+ while(
+  user.progression.level < MAX_PLAYER_LEVEL &&
+  user.progression.xp >= getXPRequired(user.progression.level)
+ ){
 
   user.progression.xp -= getXPRequired(user.progression.level)
   user.progression.level++
 
-  const lvl=user.progression.level
+  const lvl = user.progression.level
 
-  const reward=getLevelReward(lvl)
+  const reward = getLevelReward(lvl)
 
-  if(!user.kamas) user.kamas=0
-  if(!user.packs) user.packs=0
+  if(!user.kamas) user.kamas = 0
+  if(!user.packs) user.packs = 0
 
   user.kamas += reward.kamas
   user.packs += reward.packs
 
   levelUps.push({
-   level:lvl,
-   kamas:reward.kamas,
-   packs:reward.packs,
-   milestone:reward.milestone
+   level: lvl,
+   kamas: reward.kamas,
+   packs: reward.packs,
+   milestone: reward.milestone,
+   milestoneText: reward.milestoneText
   })
+ }
 
+ /* Si on atteint le cap, on fixe l'XP à 0 */
+ if(user.progression.level >= MAX_PLAYER_LEVEL){
+  user.progression.level = MAX_PLAYER_LEVEL
+  user.progression.xp = 0
  }
 
  return levelUps
 }
 
-/* -------- PROGRESSION INFO -------- */
+/* ================= PROGRESSION INFO ================= */
 
 function getProgression(user){
 
  if(!user.progression){
-  user.progression={
-   level:1,
-   xp:0,
-   totalXp:0
+  user.progression = {
+   level: 1,
+   xp: 0,
+   totalXp: 0
   }
  }
 
- const level=user.progression.level
- const xp=user.progression.xp
- const required=getXPRequired(level)
+ const level = user.progression.level
+ const xp = user.progression.xp
 
- return {level,xp,required}
+ const required = level >= MAX_PLAYER_LEVEL
+  ? 0
+  : getXPRequired(level)
+
+ const isMaxLevel = level >= MAX_PLAYER_LEVEL
+
+ return { level, xp, required, isMaxLevel }
 }
 
-module.exports={
+/* ================= TOTAL XP FOR LEVEL ================= */
+
+function getTotalXPForLevel(targetLevel){
+
+ let total = 0
+
+ for(let i = 1; i < targetLevel; i++){
+  total += getXPRequired(i)
+ }
+
+ return total
+}
+
+/* ================= EXPORT ================= */
+
+module.exports = {
  addXP,
  getXPRequired,
- getProgression
+ getProgression,
+ getLevelReward,
+ getTotalXPForLevel
 }

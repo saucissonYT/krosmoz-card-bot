@@ -5,16 +5,14 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
-
-const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+const { RARITY_EMOJI, RARITY_COLOR, PACK_PRICE } = require("../../systems/constants")
 
 const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
+const { loadSets } = require("../../systems/setSystemFile")
 const cooldownDev = require("../dev/cooldown")
 
 /*
@@ -23,7 +21,6 @@ const cooldownDev = require("../dev/cooldown")
  * via /importcards ou /addcard n'étaient jamais prises en compte.
  *
  * APRÈS: getSetCache() reconstruit le cache dynamiquement à chaque appel.
- * Le coût est négligeable (quelques ms pour ~1000 cartes).
  */
 
 function getSetCache(){
@@ -40,15 +37,36 @@ function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
 }
 
-/* ---------- COOLDOWN ---------- */
+/* ---------- COOLDOWN (with player bonus) ---------- */
+
+const BASE_COOLDOWN = 3600000 /* 60 minutes */
+
+function getCooldownMs(user){
+ let reduction = 0
+ try{
+  const { getPlayerBonuses } = require("../../systems/playerBonuses")
+  const pb = getPlayerBonuses(user.progression?.level || 1)
+  reduction = (pb.cooldownReduction || 0) * 60000 /* minutes → ms */
+ }catch(e){}
+
+ return Math.max(BASE_COOLDOWN - reduction, 35 * 60000) /* minimum 35 min */
+}
 
 function getCooldownText(user){
  const now = Date.now()
+ const cooldown = getCooldownMs(user)
+
  if(!user.lastPack) return "🎁 Pack gratuit : **disponible**"
- const remain = 3600000 - (now - user.lastPack)
+
+ const remain = cooldown - (now - user.lastPack)
+
  if(remain <= 0) return "🎁 Pack gratuit : **disponible**"
+
  const minutes = Math.ceil(remain / 60000)
- return `⏳ Pack gratuit : **${minutes} min**`
+
+ const totalMinutes = Math.round(cooldown / 60000)
+
+ return `⏳ Pack gratuit : **${minutes} min** (cooldown ${totalMinutes} min)`
 }
 
 /* ---------- SET COMPLETION ---------- */
@@ -73,6 +91,9 @@ module.exports = {
  async execute(interaction){
 
   const user = getUser(interaction.user.id)
+
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
   if(!sets || sets.length === 0)
    return interaction.reply({ content:"❌ Aucun set disponible.", flags:64 })
@@ -141,17 +162,19 @@ ${getCooldownText(user)}`,
 
   const now = Date.now()
 
+  /* ---- Cooldown with player bonus ---- */
+  const cooldown = getCooldownMs(user)
   let freePack = false
 
   if(!cooldownDev.cooldownDisabled()){
-   if(!user.lastPack || now - user.lastPack >= 3600000)
+   if(!user.lastPack || now - user.lastPack >= cooldown)
     freePack = true
   } else {
    freePack = true
   }
 
   if(!freePack && (!user.packs || user.packs <= 0)){
-   const remain = Math.ceil((3600000 - (now - user.lastPack)) / 60000)
+   const remain = Math.ceil((cooldown - (now - user.lastPack)) / 60000)
    return interaction.editReply(
 `❌ Aucun pack disponible.
 ⏳ Prochain pack gratuit : **${remain} min**`
@@ -166,24 +189,10 @@ ${getCooldownText(user)}`,
 
   user.lastSet = setId
 
-  /* ---- ACTIVITY STREAK (unique à krosmoz.js) ---- */
+  /* ---- ACTIVITY STREAK ---- */
   updateActivityStreak(user)
 
-  /*
-   * FIX: Suppression du double tracking de stats.
-   * Les stats suivantes sont maintenant gérées UNIQUEMENT par packEngine.js :
-   *   - packAtMidnight
-   *   - allCPack / allUPack
-   *   - dryStreak / dryStreakMax
-   *   - ssrOnMonday
-   *   - palindromeReached
-   *   - hardPityReached
-   *
-   * Avant ce fix, krosmoz.js ET packEngine.js incrémentaient ces compteurs,
-   * ce qui doublait les stats à chaque pack ouvert via /krosmoz.
-   */
-
-  const result = openPack(user, setId)
+  const result = openPack(user, setId, interaction.user.id)
 
   const {
    pack,
@@ -229,7 +238,7 @@ ${getCooldownText(user)}`,
    await sleep(800)
   }
 
-  save()
+  save(interaction.user.id)
 
   let unlocked = []
 
