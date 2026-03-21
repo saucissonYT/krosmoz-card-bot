@@ -1,6 +1,113 @@
-const { generatePack } = require("./pack")
+const { getCards, getCardsBySet } = require("./cardRegistry")
 const handlers = require("./eventHandlerRegistry")
 const { getEvent } = require("./eventSystem")
+
+/* ================================================
+   EVENT PACK ENGINE — v2
+   ------------------------------------------------
+   • Taux boostés par rapport aux packs normaux
+   • ZERO pity (pas de compteur, pas de hard pity)
+   • Chaque event handler reçoit un basePack boosté
+   • limitSSR toujours appliqué sauf allowMultiSSR
+================================================ */
+
+/* ---------- TAUX EVENT (BOOSTÉS) ---------- */
+
+const EVENT_RATES = {
+ SSR: 0.02,   // 2%  (vs 0.05% normal)
+ S:   0.05,   // 5%  (vs 0.15% normal)
+ UR:  0.10,   // 10% (vs ~3% normal)
+ HR:  0.18,   // 18%
+ SR:  0.25,   // 25%
+ R:   0.22,   // 22%
+ U:   0.13,   // 13%
+ C:   0.05    // 5%
+}
+
+const RARITY_ORDER = ["C","U","R","SR","HR","UR","S","SSR"]
+
+/* ---------- ROLL AVEC TAUX EVENT ---------- */
+
+function rollEventRarity(){
+
+ const r = Math.random()
+ let cumulative = 0
+
+ for(const rarity of RARITY_ORDER){
+
+  cumulative += EVENT_RATES[rarity]
+
+  if(r <= cumulative)
+   return rarity
+ }
+
+ return "C"
+}
+
+/* ---------- GENERATE EVENT BASE PACK ---------- */
+/*
+ * Génère un pack de 5 cartes avec les taux event boostés.
+ * PAS de pity. PAS de lucky pack.
+ * Utilise le lastSet du joueur ou un set disponible.
+ */
+
+function generateEventBasePack(user){
+
+ /* ---- Déterminer le set ---- */
+
+ let setId = user.lastSet
+
+ if(!setId && user.pity){
+  const keys = Object.keys(user.pity)
+  if(keys.length) setId = keys[0]
+ }
+
+ if(!setId){
+  console.error("❌ generateEventBasePack : aucun setId trouvable")
+  return []
+ }
+
+ const setCards = getCardsBySet(setId)
+
+ if(!setCards || setCards.length === 0){
+  console.error("❌ generateEventBasePack : set vide pour", setId)
+  return []
+ }
+
+ const pack = []
+
+ for(let i = 0; i < 5; i++){
+
+  const rarity = rollEventRarity()
+
+  let pool = setCards.filter(c => c.rarity === rarity)
+
+  /* Fallback : si pas de cartes de cette rareté dans le set,
+     chercher dans TOUTES les cartes */
+  if(pool.length === 0){
+   const allCards = getCards()
+   pool = allCards.filter(c => c.rarity === rarity)
+  }
+
+  /* Fallback ultime : carte random du set */
+  if(pool.length === 0){
+   pool = setCards
+  }
+
+  const card = pool[Math.floor(Math.random() * pool.length)]
+
+  if(!card) continue
+
+  /* Shiny SSR : 0.5% sur une SSR */
+  if(card.rarity === "SSR" && Math.random() < 0.005){
+   pack.push({ ...card, shiny: true })
+  } else {
+   pack.push(card)
+  }
+ }
+
+ return pack
+}
 
 /* ---------------- LIMIT SSR ---------------- */
 // 1 SSR max par pack (sauf allowMultiSSR)
@@ -52,33 +159,22 @@ function limitSSR(pack){
 
 function generateEventPack(user, event){
 
- let setId = user.lastSet
+ /* ---- Base pack avec taux boostés, ZERO pity ---- */
 
- if(!setId && user.pity){
-  const keys = Object.keys(user.pity)
-  if(keys.length) setId = keys[0]
- }
-
- if(!setId){
-  console.error("❌ generateEventPack : aucun setId trouvable pour cet user")
-  return { pack:[], meta:{} }
- }
-
- const result = generatePack(user, setId)
-
- const basePack = result?.pack || []
+ const basePack = generateEventBasePack(user)
 
  if(!basePack.length){
-  console.error("❌ generateEventPack : basePack vide pour setId", setId)
-  return { pack:[], meta:{} }
+  console.error("❌ generateEventPack : basePack vide")
+  return { pack: [], meta: {} }
  }
+
+ /* ---- Handler spécifique ---- */
 
  const handler = handlers[event.key]
 
  if(!handler){
-  // Pas de handler → on applique quand même limitSSR sur le basePack
   const safePack = event.allowMultiSSR ? basePack : limitSSR(basePack)
-  return { pack: safePack, meta:{} }
+  return { pack: safePack, meta: {} }
  }
 
  let handlerResult = {}
@@ -87,7 +183,7 @@ function generateEventPack(user, event){
   handlerResult = handler.generate(user, basePack, event)
  } catch(e) {
   console.error(`❌ Handler error [${event.key}]:`, e)
-  handlerResult = { pack: basePack, meta:{} }
+  handlerResult = { pack: basePack, meta: {} }
  }
 
  let pack = handlerResult.pack || basePack
@@ -119,5 +215,8 @@ function generateEventPack(user, event){
 
 module.exports = {
  generateEventPack,
- limitSSR
+ generateEventBasePack,
+ limitSSR,
+ rollEventRarity,
+ EVENT_RATES
 }
