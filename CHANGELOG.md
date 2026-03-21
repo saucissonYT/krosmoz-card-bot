@@ -8,6 +8,29 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Improved → améliorations internes
 
 ---
+[0.26.0] - 2026-03-21
+
+### Added
+
+- **Nouveau set 🌊 Sufokia** — 349 cartes, le plus gros set du jeu
+  - Distribution : 115 C, 94 U, 66 R, 31 SR, 21 HR, 11 UR, 6 S, 5 SSR
+  - Pyramide de raretés C > U > R > SR > HR > UR > S > SSR respectée
+  - Images importées et validées via le script d'import
+  - Set ajouté dans `cards/sets.json`
+  - Pity indépendant pour Sufokia (comme les autres sets)
+
+- **2 nouvelles cartes Amakna** — 1 UR + 1 SSR ajoutées au set existant (296 → 298 cartes)
+
+### Changed
+
+- **Total de cartes** : 674 → **1025 cartes** (+351)
+- **Nombre de sets** : 3 → **4 sets** (Incarnam, Astrub, Amakna, Sufokia)
+- **README.md** mis à jour :
+  - Introduction : 1025 cartes, 4 sets
+  - Tableau des sets : ajout de 🌊 Sufokia (349), Amakna mis à jour (298)
+  - Nouvelle section "Distribution Sufokia" avec breakdown par rareté et taux
+
+---
 [0.25.0] - 2026-03-20
 
 ### Added
@@ -280,15 +303,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 ### added
 
 - Nouveau système eventHandlers modulaires (1 fichier par event)
-- Séparation complète des logiques d’events (Iop, Cra, Xelor, etc.)
-- Ajout de 19 handlers d’events indépendants
+- Séparation complète des logiques d'events (Iop, Cra, Xelor, etc.)
+- Ajout de 19 handlers d'events indépendants
 - Ajout du champ meta.ux pour enrichir le rendu visuel des packs
 - Ajout des voiceLines dynamiques par event (S / SSR)
 - Affichage des voiceLines directement en channel après ouverture
-- Ajout d’un système UX unifié pour tous les events
-- Ajout de titres dynamiques d’embed selon l’event
-- Ajout d’un système de fallback sécurisé si handler absent
-- Ajout de logs de debug pour les erreurs d’event handlers
+- Ajout d'un système UX unifié pour tous les events
+- Ajout de titres dynamiques d'embed selon l'event
+- Ajout d'un système de fallback sécurisé si handler absent
+- Ajout de logs de debug pour les erreurs d'event handlers
 
 ### Changed
 
@@ -298,7 +321,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Amélioration du découplage entre :
 logique gameplay
 affichage UX
-données d’event
+données d'event
 - Amélioration du système de détection des raretés (S / SSR)
 - Refonte du système de voiceLines (plus robuste + priorisation SSR)
 - Mise à jour de eventpack.js avec support UX avancé
@@ -307,18 +330,18 @@ données d’event
 
 - Amélioration majeure de la scalabilité des events
 - Amélioration de la lisibilité du code
-- Amélioration de la maintenabilité du système d’events
+- Amélioration de la maintenabilité du système d'events
 - Amélioration de la robustesse du RNG event
-- Amélioration de l’immersion utilisateur (RP + feedback visuel)
+- Amélioration de l'immersion utilisateur (RP + feedback visuel)
 - Amélioration du système de reveal des packs
 - Amélioration du système de gestion des erreurs (try/catch handlers)
-- Amélioration globale de l’architecture orientée modularité
+- Amélioration globale de l'architecture orientée modularité
 
 ### Fixed
 
 - Correction du non-déclenchement des voiceLines S / SSR
 - Correction de la détection de rareté dans les packs event
-- Correction d’un problème où voiceLines pouvait être undefined
+- Correction d'un problème où voiceLines pouvait être undefined
 - Correction du downgrade SSR incohérent (remplacé par vraie carte S)
 - Correction de packs invalides retournés par certains handlers
 - Correction de crash potentiel si handler absent
@@ -332,23 +355,23 @@ données d’event
 
 - Nouveau système KrosmoEvent (/krosmoevent, /eventpack, /forceevent)
 - Implémentation de 19 événements basés sur les classes Krosmoz
-- Système de tickets d’event (2 à 3 par joueur) : non stockables, reset à chaque event
-- Nouvea moteur eventPackEngine : génération dynamique de packs selon l’event actif, support complet des overrides RNG
-- Ajout d’un système meta event pour UX : mutations (Sacrieur), upgrades (Zobal, Forgelance), duplications (Pandawa, Sadida), cartes ajoutées / supprimées (Xelor, Huppermage)
+- Système de tickets d'event (2 à 3 par joueur) : non stockables, reset à chaque event
+- Nouvea moteur eventPackEngine : génération dynamique de packs selon l'event actif, support complet des overrides RNG
+- Ajout d'un système meta event pour UX : mutations (Sacrieur), upgrades (Zobal, Forgelance), duplications (Pandawa, Sadida), cartes ajoutées / supprimées (Xelor, Huppermage)
 chaos RNG (Steamer)
-- Ajout des messages RP dynamiques : message de début d’event, message en cours, message de fin
-- Ajout d’un système de statistiques d’event : nombre de packs ouverts, nombre de SSR obtenues, nombre de cartes obtenues 
+- Ajout des messages RP dynamiques : message de début d'event, message en cours, message de fin
+- Ajout d'un système de statistiques d'event : nombre de packs ouverts, nombre de SSR obtenues, nombre de cartes obtenues 
 - Ajout de multiplicateurs spéciaux : Enutrof → kamas x5 + jackpot caché, Feca → XP x5 + jackpot caché
 - Ajout du système SSR cap (1 max par pack) hors cas spéciaux
-- Ajout de l’animation Sram complète : pack totalement invisible (???), aucune révélation finale
-- Ajout d’un système de logs RP dans les packs : affichage des mutations / upgrades / duplications
+- Ajout de l'animation Sram complète : pack totalement invisible (???), aucune révélation finale
+- Ajout d'un système de logs RP dans les packs : affichage des mutations / upgrades / duplications
 - Ajout du système Steamer RNG dynamique affiché
 - Ajout du système Cra ciblé : carte S spécifique avec affichage RP
 
 - Ajout du système de voice lines par event (S / SSR) avec déclenchement post-pack
 - Ajout de 3 phrases RP par rareté et par classe (immersion renforcée)
 - Ajout du système de sélection automatique de la meilleure rareté (SSR > S)
-- Ajout d’un système d’affichage visuel contextuel par event (emoji dynamiques sur cartes)
+- Ajout d'un système d'affichage visuel contextuel par event (emoji dynamiques sur cartes)
 - Ajout du support des métadonnées enrichies (duplicates structurés, added objects, downgrades)
 - Ajout du support generateCustomPack et generateGlobalPack pour events spéciaux (Steamer, Ouginak, Ecaflip)
 
@@ -357,16 +380,16 @@ chaos RNG (Steamer)
 ### Changed
 
 - Refonte complète du système eventSystem
-- Passage d’un event SSR simple → système modulaire multi-events
+- Passage d'un event SSR simple → système modulaire multi-events
 - Refonte de la commande /krosmoevent : gestion start / stop / force / status, sécurisation dev uniquement
 - Amélioration de la commande /eventpack : affichage des tickets restants, fusion du résultat + rewards dans un seul embed
-- Amélioration globale de l’UX des packs event : animations spécifiques par event, affichage du nombre de cartes réel
+- Amélioration globale de l'UX des packs event : animations spécifiques par event, affichage du nombre de cartes réel
 - Amélioration du système Osamodas : limitation du nombre de duplications selon rareté
 - Amélioration du système Steamer : RNG chaos limité (évite abus SSR)
 - Amélioration du système Xelor : affichage des cartes retirées / ajoutées
 - Ajustement des probabilités globales pour éviter excès de SSR
 
-- Refonte complète du système d’affichage des cartes (emoji + nom + rareté texte)
+- Refonte complète du système d'affichage des cartes (emoji + nom + rareté texte)
 - Amélioration des animations de reveal avec timing optimisé (perf + lisibilité)
 - Amélioration du système Pandawa : duplication stable avec tracking original/copie
 - Amélioration du système Xelor : structure meta ajoutée pour UX (cartes ajoutées identifiables)
@@ -380,8 +403,8 @@ chaos RNG (Steamer)
 
 ### Improved
 
-- Système d’event désormais scalable et extensible
-- Meilleure lisibilité des effets d’event côté joueur
+- Système d'event désormais scalable et extensible
+- Meilleure lisibilité des effets d'event côté joueur
 - UX enrichie avec feedback direct sur chaque modification de pack
 - Meilleure cohérence entre RNG, UX et narration RP
 - Meilleure stabilité globale des interactions Discord (events inclus)
@@ -392,7 +415,7 @@ chaos RNG (Steamer)
 - Feedback joueur amélioré avec distinction claire des modifications (ajout, suppression, mutation)
 - Meilleure compréhension des effets RNG complexes (Xelor, Steamer, Ecaflip)
 - Fluidité des animations optimisée pour éviter surcharge serveur (multi users)
-- Système eventPackEngine rendu totalement extensible (ajout d’events sans refactor)
+- Système eventPackEngine rendu totalement extensible (ajout d'events sans refactor)
 
 ---
 
@@ -412,7 +435,7 @@ chaos RNG (Steamer)
 - Correction du système Xelor : pack non modifié correctement
 - Correction du système Sadida : duplication non appliquée
 - Correction du système Forgelance : upgrade rareté non appliqué
-- Correction de /forceevent : select menu non fonctionnel, problème d’ownership interaction
+- Correction de /forceevent : select menu non fonctionnel, problème d'ownership interaction
 - Correction de /krosmoevent : interaction failed, mauvais routing select menu
 - Correction globale des events : incohérences RNG, absence de feedback UX, effets non appliqués
 
@@ -422,7 +445,7 @@ chaos RNG (Steamer)
 - Correction du bug Xelor : meta.added non exploitable côté UX
 - Correction du bug Ouginak : downgrade non affiché
 - Correction du bug UX Huppermage : mauvais emoji (⏳ → 🧠)
-- Correction du bug reveal : perte d’informations visuelles (rarity texte manquante)
+- Correction du bug reveal : perte d'informations visuelles (rarity texte manquante)
 - Correction du bug tickets event non reset correctement entre events
 - Correction du bug eventpack bloqué (pack vide / generatePack non exporté)
 
@@ -430,9 +453,9 @@ chaos RNG (Steamer)
 
 ### Removed
 
-- Suppression complète de l’ancien eventSystem SSR
+- Suppression complète de l'ancien eventSystem SSR
 - Suppression de la commande /event legacy
-- Suppression des anciennes logiques d’event non modulaires
+- Suppression des anciennes logiques d'event non modulaires
 
 
 ---
@@ -462,7 +485,7 @@ chaos RNG (Steamer)
 - Ajout de nouveaux **achievements KrosmoShop** :
   - Acheter 1 / 10 / 100 / 1000 cartes
   - Acheter une SSR
-- Intégration complète du trigger **"krosmoshop"** dans le système d’achievements
+- Intégration complète du trigger **"krosmoshop"** dans le système d'achievements
 - Ajout de la **pity S (30 pulls)** dans le système de packs
 - Support complet de la pity S dans :
   - `/krosmoz`
@@ -480,7 +503,7 @@ chaos RNG (Steamer)
 - retour à un système simple :
   - vente via ID
   - UX clarifiée
-- ajout d’un **tip utilisateur** :
+- ajout d'un **tip utilisateur** :
   - ID visible dans `/inventaire`
 - amélioration de la navigation du marché
 - stabilisation des boutons et modals
@@ -504,7 +527,7 @@ chaos RNG (Steamer)
 - Simulation désormais fiable pour équilibrage économique
 - Meilleure intégration entre : market, shop, packs
 - Amélioration de la logique de progression joueur
-- Meilleure scalabilité du système d’achievements
+- Meilleure scalabilité du système d'achievements
 - Stabilisation des interactions (select menu, modals, boutons)
 - Amélioration de la persistance des données (Railway safe)
 
@@ -516,7 +539,7 @@ chaos RNG (Steamer)
 - problème de state non persisté
 - Correction des interactions Discord
 - select menu non routé (krosmoshop)
-- échec d’interaction après 3s
+- échec d'interaction après 3s
 - Correction du **KrosmoShop**
 - erreur `ENOENT` (fichier inexistant)
 - duplication des options dans le select menu
@@ -543,11 +566,11 @@ chaos RNG (Steamer)
 ### Added
 
 - Event spécial **Krosmo-bot** dans `/trade`
-- Krosmo-bot peut **voler une carte lors d’un échange**
+- Krosmo-bot peut **voler une carte lors d'un échange**
 - **1% de chance** que Krosmo-bot rende une **SSR aléatoire**
 - Nouveau **titre secret** : *Favori du Krosmoz*
 - Nouveaux **achievements secrets liés à Krosmo-bot**
-- Messages aléatoires lors de l’event Krosmo-bot
+- Messages aléatoires lors de l'event Krosmo-bot
 - Commande admin **/ecogive** `add` `remove` `set`
 - Simulation RNG améliorée dans **/simpack**
 - Simulation **multi-joueurs (50 profils)** pour un pity plus réaliste
@@ -560,7 +583,7 @@ chaos RNG (Steamer)
 
 - Amélioration de la commande **/daily**
 - affichage du **streak visuel**
-- ajout d’**XP progressive**
+- ajout d'**XP progressive**
 - affichage du **record de streak**
 - messages aléatoires
 - visibilité publique de la récompense
@@ -591,9 +614,9 @@ chaos RNG (Steamer)
 ### Improved
 
 - Stabilisation globale des **interactions Discord**
-- Sécurisation des **menus pour éviter l’utilisation par un autre joueur**
+- Sécurisation des **menus pour éviter l'utilisation par un autre joueur**
 - Amélioration des outils **dev pour le debug RNG**
-- Amélioration des outils **dev pour tester l’économie**
+- Amélioration des outils **dev pour tester l'économie**
 - Optimisation du **système de pack opening**
 
 ### Fixed

@@ -4,8 +4,8 @@ Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes
 
 Les joueurs peuvent :
 
-- Ouvrir des packs et collectionner 674 cartes
-- Compléter 3 sets (Incarnam, Astrub, Amakna)
+- Ouvrir des packs et collectionner 1025 cartes
+- Compléter 4 sets (Incarnam, Astrub, Amakna, Sufokia)
 - Fusionner des doublons pour monter en rareté
 - Vendre et acheter sur le marché entre joueurs
 - Participer aux événements des 19 Dieux du Krosmoz
@@ -127,13 +127,14 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## 🎴 Cartes
 
-674 cartes réparties en 3 sets :
+1025 cartes réparties en 4 sets :
 
 | Set | Cartes |
 |-----|--------|
 | ☁️ Incarnam | 120 |
 | 🌾 Astrub | 258 |
-| 🌽 Amakna | 296 |
+| 🌽 Amakna | 298 |
+| 🌊 Sufokia | 349 |
 
 ### ⭐ Raretés
 
@@ -147,6 +148,19 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | UR | 🟡 | 75 | 150 |
 | S | ✨ | 150 | 300 |
 | SSR | 🌈 | 500 | 1000 |
+
+### 🌊 Distribution Sufokia
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 115 | 32.95% |
+| U | 94 | 26.93% |
+| R | 66 | 18.91% |
+| SR | 31 | 8.88% |
+| HR | 21 | 6.02% |
+| UR | 11 | 3.15% |
+| S | 6 | 1.72% |
+| SSR | 5 | 1.43% |
 
 ### ✨ SSR Shiny
 
