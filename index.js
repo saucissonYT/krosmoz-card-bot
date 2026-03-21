@@ -17,6 +17,11 @@ const path = require("path")
 const dataManager = require("./systems/dataManager")
 dataManager.loadAll()
 
+/* ---------------- GUILD SYSTEM (init) ---------------- */
+
+const { loadGuilds } = require("./systems/guildSystem")
+loadGuilds()
+
 /* --------------------------------------------- */
 
 const client = new Client({
@@ -236,6 +241,14 @@ client.on("interactionCreate",async interaction=>{
     return command.button(interaction)
    }
 
+   /*
+    * Note : les boutons guild_ (guild_back, guild_members, guild_quests,
+    * guild_bonuses, guild_leave, guild_claim_quests, guild_create,
+    * guild_accept, guild_decline, guild_transfer_confirm, guild_disband_confirm)
+    * sont gérés par les collectors internes de guild.js et guildmanage.js.
+    * Pas besoin de les router ici.
+    */
+
   }
 
   /* ---------------- MODALS ---------------- */
@@ -257,6 +270,12 @@ client.on("interactionCreate",async interaction=>{
     const command = require("./commands/joueur/carte")
     return command.modal(interaction)
    }
+
+   /*
+    * Note : le modal guild_create_modal est géré par le collector
+    * interne de guild.js via awaitModalSubmit(). Pas besoin de le
+    * router ici.
+    */
 
   }
 

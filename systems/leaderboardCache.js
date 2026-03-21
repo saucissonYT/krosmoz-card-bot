@@ -20,7 +20,8 @@ function buildLeaderboard(){
   ssr:[],
   packs:[],
   achievements:[],
-  level:[]
+  level:[],
+  guilds:[]
  }
 
  /*
@@ -105,6 +106,29 @@ function buildLeaderboard(){
    value:u.progression?.level || 0
   })
 
+ }
+
+ /* ---- GUILDES ---- */
+
+ try{
+
+  const { getAllGuilds } = require("./guildSystem")
+  const guilds = getAllGuilds()
+
+  boards.guilds = guilds.map(g => ({
+   id: g.id,
+   name: g.name,
+   emoji: g.emoji,
+   value: g.level,
+   xp: g.xp,
+   members: g.memberIds.length,
+   leaderId: g.leaderId,
+   isGuild: true
+  }))
+
+ }catch(err){
+  /* guildSystem pas encore chargé, on skip */
+  boards.guilds = []
  }
 
  /* ---- TRI DESCENDANT ---- */

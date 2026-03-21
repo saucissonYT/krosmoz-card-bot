@@ -18,7 +18,8 @@ const MODES = {
  ssr:         { label:"🌈 SSR",          key:"ssr"         },
  packs:       { label:"📦 Packs",        key:"packs"       },
  achievements:{ label:"🏆 Succès",       key:"achievements"},
- level:       { label:"⭐ Niveau",        key:"level"       }
+ level:       { label:"⭐ Niveau",        key:"level"       },
+ guilds:      { label:"🏰 Guildes",      key:"guilds"      }
 }
 
 function bar(value, max){
@@ -67,34 +68,66 @@ module.exports = {
 
    const maxValue = data[0]?.value || 1
 
-   const lines = slice.map((r, i) => {
+   /* ---- Mode guildes : affichage spécial ---- */
 
-    const rank  = start + i + 1
-    const medal = medals[i] || `#${rank}`
-
-    return `${medal} <@${r.id}> — **${r.value}** ${bar(r.value, maxValue)}`
-   })
-
-   const playerIndex = data.findIndex(r => String(r.id) === interaction.user.id)
-
+   let lines
    let playerLine = "Non classé"
 
-   if(playerIndex !== -1){
-    const rank  = playerIndex + 1
-    const value = data[playerIndex].value
-    playerLine  = `#${rank} • **${value}**`
+   if(mode === "guilds"){
+
+    lines = slice.map((r, i) => {
+
+     const rank  = start + i + 1
+     const medal = medals[i] || `#${rank}`
+
+     return `${medal} ${r.emoji} **${r.name}** — Niv. **${r.value}** (${r.members} mbr)`
+    })
+
+    /* Position de la guilde du joueur */
+    const userGuildId = self.guildId
+    if(userGuildId){
+     const guildIndex = data.findIndex(r => r.id === userGuildId)
+     if(guildIndex !== -1){
+      const g = data[guildIndex]
+      playerLine = `#${guildIndex + 1} • ${g.emoji} **${g.name}** — Niv. **${g.value}**`
+     } else {
+      playerLine = "Ta guilde n'est pas classée"
+     }
+    } else {
+     playerLine = "Pas de guilde"
+    }
+
+   } else {
+
+    /* ---- Mode joueurs classique ---- */
+
+    lines = slice.map((r, i) => {
+
+     const rank  = start + i + 1
+     const medal = medals[i] || `#${rank}`
+
+     return `${medal} <@${r.id}> — **${r.value}** ${bar(r.value, maxValue)}`
+    })
+
+    const playerIndex = data.findIndex(r => String(r.id) === interaction.user.id)
+
+    if(playerIndex !== -1){
+     const rank  = playerIndex + 1
+     const value = data[playerIndex].value
+     playerLine  = `#${rank} • **${value}**`
+    }
    }
 
    const embed = new EmbedBuilder()
     .setTitle(`🏆 Leaderboard — ${MODES[mode].label}`)
-    .setDescription(lines.join("\n") || "Aucun joueur")
-    .addFields({ name:"Ta position", value:playerLine })
+    .setDescription(lines.join("\n") || "Aucune donnée")
+    .addFields({ name: mode === "guilds" ? "Ta guilde" : "Ta position", value:playerLine })
     .setFooter({ text:`Page ${page}/${maxPage}` })
     .setColor("#f1c40f")
 
-   /* ---- Rangée 1 : modes colonne gauche ---- */
+   /* ---- Rangée 1 : collection, wealth, ssr, packs ---- */
    const modeRow1 = new ActionRowBuilder().addComponents(
-    ["collection","wealth","ssr"].map(key =>
+    ["collection","wealth","ssr","packs"].map(key =>
      new ButtonBuilder()
       .setCustomId(`lb_mode_${key}`)
       .setLabel(MODES[key].label)
@@ -102,9 +135,9 @@ module.exports = {
     )
    )
 
-   /* ---- Rangée 2 : modes colonne droite ---- */
+   /* ---- Rangée 2 : achievements, level, guilds ---- */
    const modeRow2 = new ActionRowBuilder().addComponents(
-    ["packs","achievements","level"].map(key =>
+    ["achievements","level","guilds"].map(key =>
      new ButtonBuilder()
       .setCustomId(`lb_mode_${key}`)
       .setLabel(MODES[key].label)

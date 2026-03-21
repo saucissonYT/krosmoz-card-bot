@@ -12,4 +12,6 @@ module.exports = {
  ...require("./achievements/achievementSecrets"),
  ...require("./achievements/achievementEvents"),
  ...require("./achievements/achievementSpecial"),
+ ...require("./achievements/achievementGift"),
+ ...require("./achievements/achievementGuild"),
 }
