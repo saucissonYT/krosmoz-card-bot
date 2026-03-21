@@ -9,16 +9,96 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
-# Changelog
+## [0.29.0] - 2026-03-21
 
-Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées dans ce fichier.
+### Added
 
-- Added → nouvelles fonctionnalités
-- Changed → modifications importantes
-- Fixed → corrections de bugs
-- Improved → améliorations internes
+- **Système de bonus par niveau joueur** (`systems/playerBonuses.js`)
+  - 9 bonus progressifs débloqués au fur et à mesure que le joueur monte en niveau (cap 100)
+  - 💰 Kamas bonus (+1% / 4 niv. → +25% max)
+  - 🔥 Fusion critique (+0.5% / 8 niv. → +6% max)
+  - 🍀 Lucky pack (+1% / 10 niv. → +10% max)
+  - ⭐ XP bonus (+5% / 20 niv. → +25% max)
+  - 🏪 Réduction KrosmoShop (+1% / 15 niv. → +6% max)
+  - 🎁 Kamas daily bonus (+50 / 10 niv. → +500 max)
+  - 🎲 Double daily (+2% / 25 niv. → +8% max)
+  - ✨ Chance shiny (+1% / 50 niv. → +2% max)
+  - ⏱️ Réduction cooldown pack (-5 min / 20 niv. → -25 min max, plancher 35 min)
+  - Les bonus joueur se **cumulent** avec les bonus de guilde
 
+- **20 achievements de niveaux** (`systems/achievements/achievementLevel.js`)
+  - 15 paliers de niveau : 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100
+  - 4 paliers XP total : 10k, 50k, 100k, 200k
+  - 1 secret : niveau palindrome (11, 22, 33...)
+  - 12 titres associés : Débutant → Divinité du Krosmoz
+  - **Total achievements : ~370** (350 + 20)
+
+### Changed
+
+- **Rééquilibrage économie complète** (`systems/constants.js`)
+  - **Prix de vente au bot (SELL_PRICE)** : C:2→3, U:5→8, R:10→20, SR:20→50, HR:40→120, UR:75→320, S:150→800, SSR:500→2000
+  - **Prix market (RARITY_PRICE)** : C:5→8, U:10→20, R:20→50, SR:40→120, HR:80→300, UR:150→800, S:300→2000, SSR:1000→5000
+  - **Coûts de fusion (FUSION_COST)** : C:5→10, U:6→20, R:8→40, SR:10→80, HR:12→150, UR:15→300, S:20→500
+  - **Prix d'un pack** : 1250 → **800 kamas** (centralisé dans `PACK_PRICE`)
+  - **Nouveau** : constante `MAX_PLAYER_LEVEL = 100` exportée
+  - Principe : courbe exponentielle cohérente, sell = ~40% market, shop = ~2.5x market
+
+- **Prix KrosmoShop rééquilibrés** (`systems/krosmoshop.js`)
+  - SR:200→300, HR:450→750, UR:900→2000, S:1800→5000, SSR:3000→**12000**
+  - Le KrosmoShop applique maintenant les **réductions de guilde ET de niveau joueur** au checkout
+  - Track `shopBought` dans `user.stats` pour les quêtes de guilde
+
+- **Refonte du système de niveaux** (`systems/progressionSystem.js`)
+  - **Level cap : 100** (avant : pas de cap)
+  - Nouvelle formule XP : `80 + level × 30` (avant : `120 × level^1.35` — montait trop vite)
+  - XP total pour level 100 : ~160 000
+  - Milestones enrichis : niv. 10 (+500k), niv. 25 (+1500k +2 packs), niv. 50 (+5000k +5 packs), niv. 75 (+10000k +5 packs), niv. 100 (+25000k +10 packs)
+  - `getProgression()` retourne maintenant `isMaxLevel: true` quand le joueur est au cap
+  - Bonus XP de `playerBonuses` appliqué dans `addXP()`
+
+- **Intégration des bonus guilde + joueur dans `packEngine.js`**
+  - 💰 Kamas bonus (guilde + joueur) appliqué après le calcul du pack
+  - 🍀 Lucky pack bonus : chance supplémentaire de lucky pack en plus du 10% de base
+  - ✨ Shiny bonus : s'ajoute au 0.5% de base (joueur uniquement)
+  - `openPack()` accepte maintenant un 3ème paramètre `userId` pour charger les bonus
+
+- **Intégration des bonus dans `fusion.js`**
+  - 🔥 Fusion critique : bonus guilde + joueur ajouté au 10% de base
+  - ✨ Fusion double : bonus guilde ajouté au 10% de base
+  - 🌈 Fusion triple : bonus guilde ajouté au 0.5% de base
+  - L'embed final affiche les **chances réelles avec bonus** au lieu des pourcentages fixes
+  - `loadSets()` dynamique + `getCards()` dans execute() + `save(userId)` ciblé
+
+- **Intégration des bonus dans `dailySystem.js`**
+  - 🎁 Kamas daily bonus (joueur) ajouté aux 200 kamas de base
+  - 🎲 Double daily bonus (guilde + joueur) ajouté au 10% de base
+  - 📦 Packs daily bonus (guilde) : packs gratuits ajoutés à chaque claim
+  - `claimDaily()` accepte maintenant un 3ème paramètre `userId`
+  - Le retour inclut `doubleDailyChance`, `bonusPacksGiven`, `bonusKamas`
+
+- **Intégration du cooldown réduit dans `krosmoz.js`**
+  - ⏱️ Cooldown de base 60 min réduit par le bonus joueur (minimum 35 min au niv. 100)
+  - `getCooldownMs(user)` calcule le cooldown dynamique
+  - `getCooldownText()` affiche le cooldown réel du joueur
+  - `loadSets()` dynamique au lieu de `require()` statique
+  - `openPack(user, setId, userId)` passe le userId pour les bonus
+
+- **`commands/joueur/buypack.js`** — utilise `PACK_PRICE` depuis constants + `save(userId)` ciblé
+
+- **`systems/economy.js`** — track `totalKamasEarned` en plus de `kamasEarned`
+
+- **`systems/achievementRegistry.js`** — ajout du module `achievementLevel` (12 modules au total)
+
+### Fixed
+
+- **Bug critique `profil.js`** — `RangeError: Invalid count value: -45` dans `buildXPBar()` : quand `required = 0` (niveau max) ou quand `xp > required` (ancienne courbe XP → nouvelle), `percent` devenait `Infinity` ou `> 1`, `filled > size`, `empty` négatif → crash `String.repeat(-45)`
+  - Fix : `Math.min(1, Math.max(0, current / max))` clamp le pourcentage + `if(max <= 0) return barre pleine + "MAX"`
+  - Même fix appliqué à `buildCollectionBar()`
+- **`profil.js`** — affichage XP : "MAX" au lieu de "0 / 0" quand le joueur est au niveau 100
+- **`profil.js`** — ajout du champ **🏰 Guilde** dans l'embed profil (emoji + nom + niveau ou "Aucune")
 ---
+
+
 
 ## [0.28.0] - 2026-03-21
 

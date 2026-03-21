@@ -15,14 +15,7 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 /*
  * FIX: Référence statique aux cartes supprimée.
- *
- * AVANT: const cards = data.cards || []
- *   → Snapshot statique au require(). Si data.cards est remplacé
- *     (via addcard, importcards, resetdata), profil.js garde
- *     l'ancienne référence et le compte totalCards est faux.
- *
- * APRÈS: on utilise getCards() depuis cardRegistry à chaque appel.
- *   → Lecture dynamique, toujours synchronisée.
+ * On utilise getCards() depuis cardRegistry à chaque appel.
  */
 const { getCards } = require("../../systems/cardRegistry")
 
@@ -30,10 +23,23 @@ function rand(min,max){
  return Math.floor(Math.random()*(max-min+1))+min
 }
 
+/*
+ * FIX v0.29: buildXPBar et buildCollectionBar crashaient avec
+ * RangeError: Invalid count value: -45
+ *
+ * Cause : quand max=0 (level 100, required=0) → percent=Infinity
+ *         ou quand xp > required (ancienne courbe) → filled > size → empty négatif
+ *
+ * Fix : clamp percent entre 0 et 1, et gérer max=0 (niveau max)
+ */
+
 function buildXPBar(current,max){
 
  const size = 12
- const percent = current / max
+
+ if(max <= 0) return "🟩".repeat(size) + " MAX"
+
+ const percent = Math.min(1, Math.max(0, current / max))
 
  const filled = Math.round(size * percent)
  const empty = size - filled
@@ -50,7 +56,10 @@ function buildXPBar(current,max){
 function buildCollectionBar(current,max){
 
  const size = 10
- const percent = current / max
+
+ if(max <= 0) return "🟩".repeat(size) + " 100%"
+
+ const percent = Math.min(1, Math.max(0, current / max))
 
  const filled = Math.round(size * percent)
  const empty = size - filled
@@ -117,7 +126,7 @@ module.exports = {
    const ownedCards = rand(Math.floor(totalCards*0.5),totalCards)
 
    const progression={
-    level:rand(50,200),
+    level:rand(50,100),
     xp:rand(100,900),
     required:1000
    }
@@ -208,10 +217,25 @@ module.exports = {
   const rank = getRank(user)
   const progression = getProgression(user)
 
-  const xpBar = buildXPBar(progression.xp,progression.required)
-  const collectionBar = buildCollectionBar(ownedCards,totalCards)
+  const xpText = progression.isMaxLevel
+   ? `MAX`
+   : `${progression.xp} / ${progression.required}`
+
+  const xpBar = progression.isMaxLevel
+   ? buildXPBar(1, 1)
+   : buildXPBar(progression.xp, progression.required)
+
+  const collectionBar = buildCollectionBar(ownedCards, totalCards)
 
   const stats = user.stats || {}
+
+  /* ---- Guilde ---- */
+  let guildLine = "Aucune"
+  try{
+   const { getUserGuild } = require("../../systems/guildSystem")
+   const guild = getUserGuild(target.id)
+   if(guild) guildLine = `${guild.emoji} ${guild.name} (Niv. ${guild.level})`
+  }catch(e){}
 
   const embed = new EmbedBuilder()
 
@@ -225,7 +249,8 @@ module.exports = {
     {name:"🏆 Succès",value:String(user.achievements?.length || 0),inline:true},
 
     {name:"⭐ Niveau",value:`${progression.level}`,inline:true},
-    {name:"📈 XP",value:`${progression.xp} / ${progression.required}`,inline:true},
+    {name:"📈 XP",value:xpText,inline:true},
+    {name:"🏰 Guilde",value:guildLine,inline:true},
 
     {name:"📊 Progression XP",value:xpBar},
 

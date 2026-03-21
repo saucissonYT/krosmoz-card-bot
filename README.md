@@ -13,8 +13,8 @@ Les joueurs peuvent :
 - Compléter des quêtes journalières et hebdomadaires
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
-- Débloquer ~350 succès et des titres exclusifs
-- Progresser en niveau et en rang
+- Progresser jusqu'au niveau 100 et débloquer des bonus permanents
+- Débloquer ~370 succès et des titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -41,11 +41,12 @@ krosmoz-card-bot
 │   └── dev/            # commandes dev (addcard, simpack, devguild...)
 │
 ├── systems/
-│   ├── achievements/   # 11 fichiers d'achievements modulaires
+│   ├── achievements/   # 12 fichiers d'achievements modulaires
 │   ├── eventHandlers/  # 19 handlers d'events (1 par Dieu)
 │   ├── guildSystem.js  # CRUD guildes, XP, niveaux
-│   ├── guildBonuses.js # Calcul des 9 bonus par niveau
+│   ├── guildBonuses.js # Calcul des 9 bonus par niveau de guilde
 │   ├── guildQuestSystem.js # Quêtes hebdo de guilde
+│   ├── playerBonuses.js # Calcul des 9 bonus par niveau du joueur
 │   └── ...             # systèmes principaux
 │
 ├── cards/
@@ -80,19 +81,19 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | dataManager | Données persistantes, autosave 30s, dirty save |
 | userSystem | Gestion des utilisateurs (fichiers individuels) |
 | cardRegistry | Indexation dynamique des cartes |
-| constants | Constantes centralisées (raretés, prix, couleurs) |
+| constants | Constantes centralisées (raretés, prix, couleurs, PACK_PRICE, MAX_PLAYER_LEVEL) |
 
 ### 🎮 Gameplay
 
 | Système | Rôle |
 |---------|------|
 | pack | Génération RNG des cartes avec soft/hard pity |
-| packEngine | Wrapper avec achievements, XP, stats |
+| packEngine | Wrapper avec achievements, XP, stats, bonus guilde/joueur |
 | eventPackEngine | Packs d'events avec handlers modulaires |
 | eventSystem | Gestion du cycle de vie des events |
 | eventRegistry | Définition des 19 events |
 | eventHandlers/ | Logique RNG spécifique par Dieu |
-| fusion | Fusion de doublons (critique, double, triple) |
+| fusion | Fusion de doublons (critique, double, triple) + bonus |
 | questSystem | Quêtes journalières et hebdomadaires |
 
 ### 🏰 Guildes
@@ -107,23 +108,24 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 | Système | Rôle |
 |---------|------|
-| economy | Gestion des kamas |
+| economy | Gestion des kamas (reward par rareté) |
 | market | Marché entre joueurs (anti-manipulation) |
-| krosmoshop | Shop quotidien (15 cartes, reset minuit) |
+| krosmoshop | Shop quotidien (15 cartes, reset minuit, réductions guilde/joueur) |
 | rewardSystem | Récompenses events (multiplicateurs, jackpots) |
 
 ### 📈 Progression
 
 | Système | Rôle |
 |---------|------|
-| progressionSystem | XP et level-up |
+| progressionSystem | XP et level-up (cap 100), milestones, bonus XP intégré |
+| playerBonuses | 9 bonus progressifs par niveau du joueur |
 | rankSystem | Rangs basés sur les achievements |
-| achievementRegistry | Agrégateur des 11 modules d'achievements |
+| achievementRegistry | Agrégateur des 12 modules d'achievements |
 | achievementEngine | Détection avec lecture dynamique des cartes |
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succès débloqués |
 
-### 🏆 ~350 Achievements (11 modules)
+### 🏆 ~370 Achievements (12 modules)
 
 | Module | Contenu |
 |--------|---------|
@@ -138,6 +140,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | achievementSpecial | 39 achievements comportementaux |
 | achievementGift | 15 achievements de dons (donnés, reçus, spéciaux) |
 | achievementGuild | 29 achievements de guilde (niveaux, quêtes, social, secrets) |
+| achievementLevel | 20 achievements de progression (niveaux, XP total, secrets) |
 
 ---
 
@@ -152,18 +155,32 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | 🌽 Amakna | 298 |
 | 🌊 Sufokia | 349 |
 
-### ⭐ Raretés
+### ⭐ Raretés & Économie
 
-| Rareté | Emoji | Prix vente | Prix market |
-|--------|-------|-----------|-------------|
-| C | ⚪ | 2 | 5 |
-| U | 🟢 | 5 | 10 |
-| R | 🔵 | 10 | 20 |
-| SR | 🟣 | 20 | 40 |
-| HR | 🔴 | 40 | 80 |
-| UR | 🟡 | 75 | 150 |
-| S | ✨ | 150 | 300 |
-| SSR | 🌈 | 500 | 1000 |
+| Rareté | Emoji | Prix vente (bot) | Prix market | Prix KrosmoShop |
+|--------|-------|-----------------|-------------|-----------------|
+| C | ⚪ | 3 | 8 | — |
+| U | 🟢 | 8 | 20 | — |
+| R | 🔵 | 20 | 50 | — |
+| SR | 🟣 | 50 | 120 | 300 |
+| HR | 🔴 | 120 | 300 | 750 |
+| UR | 🟡 | 320 | 800 | 2 000 |
+| S | ✨ | 800 | 2 000 | 5 000 |
+| SSR | 🌈 | 2 000 | 5 000 | 12 000 |
+
+**Prix d'un pack : 800 kamas** (1 gratuit/heure, cooldown réduit par niveau)
+
+### Coûts de fusion
+
+| Rareté fusionnée | Doublons requis |
+|-----------------|-----------------|
+| C → U | 10 doublons |
+| U → R | 20 doublons |
+| R → SR | 40 doublons |
+| SR → HR | 80 doublons |
+| HR → UR | 150 doublons |
+| UR → S | 300 doublons |
+| S → SSR | 500 doublons |
 
 ### 🌊 Distribution Sufokia
 
@@ -180,7 +197,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ### ✨ SSR Shiny
 
-Les SSR ont 0.5% de chance d'être **Shiny** — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
+Les SSR ont 0.5% de chance d'être **Shiny** (+ bonus de niveau joueur) — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
 
 ---
 
@@ -193,6 +210,50 @@ Chaque set possède son propre compteur de pity indépendant.
 | UR | 10 packs | Garantie à 10 packs sans UR |
 | S | 30 packs | Soft pity progressive dès 20 packs |
 | SSR | 50 packs | Soft pity progressive dès 30 packs |
+
+---
+
+## ⭐ Système de Niveaux
+
+### Progression joueur
+
+- **Niveau max : 100**
+- Formule XP : `80 + niveau × 30` par niveau (progressive, jamais brutale)
+- XP total pour atteindre le niveau 100 : ~160 000
+
+| Niveau | XP requis | XP total cumulé |
+|--------|-----------|-----------------|
+| 10 | 380 | ~2 300 |
+| 25 | 830 | ~11 500 |
+| 50 | 1 580 | ~42 000 |
+| 75 | 2 330 | ~92 000 |
+| 100 | 3 080 | ~160 000 |
+
+### Milestones
+
+| Niveau | Bonus kamas | Bonus packs |
+|--------|-------------|-------------|
+| 10 | +500 | — |
+| 25 | +1 500 | +2 |
+| 50 | +5 000 | +5 |
+| 75 | +10 000 | +5 |
+| 100 | +25 000 | +10 |
+
+### 9 Bonus par niveau du joueur
+
+Les bonus se **cumulent** avec les bonus de guilde.
+
+| Bonus | Progression | Max (niv.100) |
+|-------|------------|---------------|
+| 💰 Kamas bonus | +1% / 4 niv. | +25% |
+| 🔥 Fusion critique | +0.5% / 8 niv. | +6% |
+| 🍀 Lucky pack | +1% / 10 niv. | +10% |
+| ⭐ XP bonus | +5% / 20 niv. | +25% |
+| 🏪 Réduction KrosmoShop | +1% / 15 niv. | +6% |
+| 🎁 Kamas daily bonus | +50 / 10 niv. | +500 |
+| 🎲 Double daily | +2% / 25 niv. | +8% |
+| ✨ Chance shiny | +1% / 50 niv. | +2% |
+| ⏱️ Réduction cooldown pack | -5 min / 20 niv. | -25 min (35 min min.) |
 
 ---
 
@@ -214,7 +275,7 @@ Chaque set possède son propre compteur de pity indépendant.
 - XP requis par niveau : `100 + niveau × 50` (progressif mais pas trop long)
 - L'XP est gagnée via les **quêtes de guilde**
 
-### 9 Bonus progressifs
+### 9 Bonus progressifs de guilde
 
 | Bonus | Progression | Max (niv.100) |
 |-------|------------|---------------|
@@ -341,8 +402,8 @@ La commande **/quests** affiche une interface interactive avec :
 ### Packs
 | Commande | Description |
 |----------|-------------|
-| /krosmoz | Ouvrir un pack (1 gratuit/heure) |
-| /buypack | Acheter un pack (1250 kamas) |
+| /krosmoz | Ouvrir un pack (1 gratuit/heure, cooldown réduit par niveau) |
+| /buypack | Acheter un pack (800 kamas) |
 | /eventpack | Ouvrir un pack d'event |
 | /pity | Voir ta pity par set |
 
@@ -360,13 +421,13 @@ La commande **/quests** affiche une interface interactive avec :
 | /sellcard | Vendre une carte |
 | /sellduplicates | Vendre tous les doublons |
 | /market | Marché entre joueurs |
-| /krosmoshop | Boutique quotidienne |
+| /krosmoshop | Boutique quotidienne (réductions par niveau/guilde) |
 
 ### Gameplay
 | Commande | Description |
 |----------|-------------|
-| /daily | Récompense quotidienne (streak 7 = SSR) |
-| /fusion | Fusionner des doublons |
+| /daily | Récompense quotidienne (streak 7 = SSR, bonus par niveau) |
+| /fusion | Fusionner des doublons (bonus crit par niveau/guilde) |
 | /trade | Échanger avec un joueur |
 | /gift | Donner une carte à un joueur (3/jour) |
 | /quests | Quêtes journalières et hebdomadaires |
@@ -380,18 +441,18 @@ La commande **/quests** affiche une interface interactive avec :
 ### Progression
 | Commande | Description |
 |----------|-------------|
-| /profil | Profil complet (avec guilde affichée) |
+| /profil | Profil complet (niveau, guilde, badges, stats) |
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les ~350 succès |
+| /achievements | Voir les ~370 succès |
 | /krosmohelp | Aide du bot |
 
 ---
 
 ## 🏆 Achievements
 
-~350 succès automatiques répartis en 11 catégories :
+~370 succès automatiques répartis en 12 catégories :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -404,6 +465,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Niveaux** — 20 achievements (niveaux 5→100, XP total, secrets)
 
 Les succès débloquent des **badges** et des **titres**.
 
@@ -424,9 +486,9 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 9. Donner des cartes à ses amis (/gift)
 10. Créer ou rejoindre une guilde (/guild)
 11. Compléter les quêtes de guilde pour faire monter la guilde en niveau
-12. Profiter des bonus de guilde (kamas, fusion, lucky pack, XP...)
+12. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
 13. Débloquer des achievements et des titres
-14. Monter en niveau et en rang
+14. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
 
 ---
 
@@ -444,14 +506,20 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
         │              │              │
         └──────► userSystem ◄────────┘
                     │     │
-              guildSystem  │
-                    │      │
-                    ▼      ▼
-                  dataManager
-                       │
-                  ┌────┴────┐
-                  ▼         ▼
-              /data     guilds.json
+         ┌──────────┘     └──────────┐
+         ▼                           ▼
+    guildSystem              playerBonuses
+         │                           │
+         ▼                           ▼
+    guildBonuses            progressionSystem
+         │                           │
+         └───────────┬───────────────┘
+                     ▼
+                dataManager
+                     │
+                ┌────┴────┐
+                ▼         ▼
+            /data     guilds.json
 ```
 
 ---
