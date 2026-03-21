@@ -30,6 +30,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Tableau des sets : ajout de 🌊 Sufokia (349), Amakna mis à jour (298)
   - Nouvelle section "Distribution Sufokia" avec breakdown par rareté et taux
 
+### Fixed
+
+- **Snapshot statique `getCards()` dans 20 fichiers** — `const cards = getCards()` appelé au top-level (chargement du module) créait un snapshot figé au démarrage du bot. Les cartes ajoutées via `/importcards` ou `/addcard` (dont Sufokia) n'étaient jamais visibles dans ces fichiers sans restart.
+  - 16 event handlers : eventCra, eventEcaflip, eventEliotrope, eventEniripsa, eventFeca, eventForgelance, eventHuppermage, eventIop, eventOsamodas, eventOuginak, eventRoublard, eventSacrieur, eventSram, eventSteamer, eventXelor, eventZobal → `getCards()` déplacé dans `generate()`
+  - `systems/krosmoshop.js` → `getCardsById()` déplacé dans `buyFromShop()` et `getCardsByRarity()`
+  - `commands/joueur/fusion.js` → `getCards()` déplacé dans `execute()`
+  - `commands/joueur/krosmoz.js` → `getCards()` + `setCache` statique remplacés par `getSetCache()` dynamique
+  - `commands/dev/devfusion.js` → `getCards()` déplacé dans `execute()`
+  
 ---
 [0.25.0] - 2026-03-20
 
