@@ -128,7 +128,6 @@ async function openPacksBatch(interaction, setId, requestedCount) {
 
  if (!user.pity) user.pity = {}
  if (!isRandom && !user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
- if (isRandom && !user.pity.random) user.pity.random = { SSR: 0, S: 0, UR: 0 }
  if (!user.stats) user.stats = {}
 
  if (!isRandom) {
@@ -192,10 +191,10 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
   setOpenCount[chosenSetId] = (setOpenCount[chosenSetId] || 0) + 1
   user.lastSet = chosenSetId
+  if (!user.pity[chosenSetId]) user.pity[chosenSetId] = { SSR: 0, S: 0, UR: 0 }
 
   const result = openPack(user, chosenSetId, interaction.user.id, {
-   isSimpleCommandOpen: packCount === 1,
-   pityKey: isRandom ? "random" : chosenSetId
+   isSimpleCommandOpen: packCount === 1
   })
   result._setId = chosenSetId
   results.push(result)
@@ -285,9 +284,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    { name: "💰 Kamas gagnés", value: `+${totals.kamas}`, inline: true },
    { name: "⭐ XP gagnée", value: `+${totals.xp}`, inline: true },
    { name: "📦 Packs consommés", value: `${packCount} (${freePacks} gratuit + ${paidNeeded} payants)`, inline: true },
-   { name: "🌈 SSR Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.SSR ?? 0}/50`, inline: true },
-   { name: "✨ S Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.S ?? 0}/30`, inline: true },
-   { name: "🟡 UR Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.UR ?? 0}/10`, inline: true }
+   { name: "🌈 SSR Pity", value: isRandom ? "Mode random (pity par set)" : `${user.pity?.[setId]?.SSR ?? 0}/50`, inline: true },
+   { name: "✨ S Pity", value: isRandom ? "Mode random (pity par set)" : `${user.pity?.[setId]?.S ?? 0}/30`, inline: true },
+   { name: "🟡 UR Pity", value: isRandom ? "Mode random (pity par set)" : `${user.pity?.[setId]?.UR ?? 0}/10`, inline: true }
   )
   .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
 
