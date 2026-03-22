@@ -10,6 +10,7 @@ const { RARITY_EMOJI, RARITY_COLOR, PACK_PRICE } = require("../../systems/consta
 const { getCards } = require("../../systems/cardRegistry")
 const { openPack } = require("../../systems/packEngine")
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
+const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { loadSets } = require("../../systems/setSystemFile")
@@ -145,6 +146,7 @@ ${getCooldownText(user)}`,
 
   const setId = interaction.values[0]
   const user  = getUser(interaction.user.id)
+  const beforeCompletion = getSetCompletion(user, setId)
 
   if(!user.pity) user.pity = {}
 
@@ -203,6 +205,16 @@ ${getCooldownText(user)}`,
    best,
    dailyBonus
   } = result
+
+  await addBattlePassXP(interaction.user.id, "pack_open")
+  const afterCompletion = getSetCompletion(user, setId)
+  if(
+   beforeCompletion.total > 0 &&
+   beforeCompletion.owned < beforeCompletion.total &&
+   afterCompletion.owned === afterCompletion.total
+  ){
+   await addBattlePassXP(interaction.user.id, 480, "set_complete")
+  }
 
   let revealed = []
 

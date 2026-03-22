@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "daily_claim": 40,
+    "pack_open": 60,
+    "fusion": 120,
+    "market_sell": 20,
+    "event_pack": 240,
+    "manual": 0
+  }
+}

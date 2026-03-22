@@ -6,6 +6,7 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { addXP } = require("../../systems/progressionSystem")
+const { addBattlePassXP } = require("../../systems/battlePassService")
 const { loadSets } = require("../../systems/setSystemFile")
 
 function sleep(ms){
@@ -234,6 +235,7 @@ module.exports={
    user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + 1
 
   addXP(user,xpGain)
+  await addBattlePassXP(interaction.user.id, "fusion")
   save(interaction.user.id)
 
   let unlocked=[]

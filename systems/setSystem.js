@@ -1,5 +1,6 @@
 const { data } = require("./dataManager")
 const { addXP } = require("./progressionSystem")
+const { addBattlePassXP } = require("./battlePassService")
 
 const sets = data.sets || []
 const cardsData = data.cards || []
@@ -84,6 +85,10 @@ function checkSetCompletion(user,setId){
    user.completedSets.push(setId)
 
    addXP(user,200)
+   if(user.id || user.userId){
+    const uid = user.id || user.userId
+    addBattlePassXP(uid, 480, "set_complete").catch(() => {})
+   }
 
    return true
 

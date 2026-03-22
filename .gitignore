@@ -2,6 +2,7 @@ node_modules
 .env
 config.json
 database/
+data/
 exportImportCards.js
 cards/import-old
 cards/sets.json

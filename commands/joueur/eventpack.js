@@ -18,6 +18,7 @@ const {
 
 const { generateEventPack } = require("../../systems/eventPackEngine")
 const { getUser, save } = require("../../systems/userSystem")
+const { addBattlePassXP } = require("../../systems/battlePassService")
 const { applyEventRewards } = require("../../systems/rewardSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
@@ -114,6 +115,8 @@ module.exports = {
    } catch(e){
     console.error("REWARD ERROR:", e)
    }
+
+   await addBattlePassXP(interaction.user.id, "event_pack")
 
    if(jackpotMessage){
     channel.send(jackpotMessage)

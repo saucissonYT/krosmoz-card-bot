@@ -23,6 +23,7 @@ const {
  */
 const { getCards } = require("../../systems/cardRegistry")
 const { getUser, save } = require("../../systems/userSystem")
+const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
@@ -325,6 +326,7 @@ module.exports={
 
    /* ---- ACHIEVEMENTS APRÈS VENTE ---- */
    const user = getUser(interaction.user.id)
+   await addBattlePassXP(interaction.user.id, "market_sell")
    const unlocked = achievementCheck(user,"economy")
 
    await interaction.editReply({content:"🛒 Carte mise en vente."})

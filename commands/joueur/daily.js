@@ -5,6 +5,7 @@ const {
 
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
 const { claimDaily, canClaim } = require("../../systems/dailySystem")
+const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
@@ -73,6 +74,8 @@ module.exports={
 
   user.progression.xp+=xp
   user.progression.totalXp+=xp
+
+  await addBattlePassXP(interaction.user.id, "daily_claim")
 
   /* ---------------- STREAK MAX ---------------- */
 
