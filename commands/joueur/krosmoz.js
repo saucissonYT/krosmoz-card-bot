@@ -1,4 +1,4 @@
-﻿const {
+const {
  SlashCommandBuilder,
  ActionRowBuilder,
  StringSelectMenuBuilder,
@@ -16,7 +16,7 @@ const { loadSets } = require("../../systems/setSystemFile")
 const cooldownDev = require("../dev/cooldown")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-const MAX_BATCH = 20
+const MAX_BATCH = 25
 
 function sleep(ms) {
  return new Promise((resolve) => setTimeout(resolve, ms))
@@ -171,6 +171,10 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  user.stats.packsOpened = (user.stats.packsOpened || 0) + packCount
  user.stats.krosmozOpened = (user.stats.krosmozOpened || 0) + packCount
+ user.stats.maxBulkOpen = Math.max(user.stats.maxBulkOpen || 0, packCount)
+ if (packCount >= 2) {
+  user.stats.multiPackOpens = (user.stats.multiPackOpens || 0) + 1
+ }
 
  updateActivityStreak(user)
 
@@ -188,7 +192,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   setOpenCount[chosenSetId] = (setOpenCount[chosenSetId] || 0) + 1
   user.lastSet = chosenSetId
 
-  const result = openPack(user, chosenSetId, interaction.user.id)
+  const result = openPack(user, chosenSetId, interaction.user.id, {
+   isSimpleCommandOpen: packCount === 1
+  })
   result._setId = chosenSetId
   results.push(result)
 
@@ -223,6 +229,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  unlocked.push(...achievementCheck(user, "collection"))
  unlocked.push(...achievementCheck(user, "economy"))
  unlocked.push(...achievementCheck(user, "rng"))
+ const uniqueUnlocked = [...new Set(unlocked)]
 
  const grouped = aggregateCards(results)
  const displayed = grouped.slice(0, 45)
@@ -305,8 +312,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   await interaction.followUp({ content: `Nouvelle découverte !\n${linesDiscover.join("\n")}${more}`, flags: 64 })
  }
 
- if (unlocked.length) {
-  await notifyAchievements(interaction, unlocked)
+ if (uniqueUnlocked.length) {
+  await notifyAchievements(interaction, uniqueUnlocked)
  }
 }
 
@@ -337,7 +344,7 @@ module.exports = {
    .addIntegerOption((option) =>
     option
      .setName("packs")
-     .setDescription("Nombre de packs à ouvrir (1-20)")
+     .setDescription("Nombre de packs à ouvrir (1-25)")
      .setRequired(false)
      .setMinValue(1)
      .setMaxValue(MAX_BATCH)

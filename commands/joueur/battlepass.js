@@ -14,6 +14,9 @@ const {
  getBattlePassRewardsView
 } = require("../../systems/battlePassService")
 
+const REWARDS_PER_PAGE = 8
+const activeRewardsPagers = new Map()
+
 function rewardLabel(reward) {
  if (!reward) return "—"
  if (reward.type === "kamas") return `💰 ${reward.value} kamas`
@@ -26,6 +29,11 @@ function rewardLabel(reward) {
  if (reward.type === "card_random_rare") return "🃏 Carte rare aleatoire"
  if (reward.type === "card_random_ssr") return "🌈 Carte SSR aleatoire"
  return `${reward.type}`
+}
+
+function rewardsLabels(rewards, fallback = "—") {
+ if (!Array.isArray(rewards) || rewards.length === 0) return fallback
+ return rewards.map((reward) => rewardLabel(reward)).join(" | ")
 }
 
 function bar(percent) {
@@ -114,12 +122,12 @@ function buildBuyConfirmRow() {
 }
 
 function buildRewardsPage(userId, page = 1) {
- const view = getBattlePassRewardsView(userId, page, 8)
+ const view = getBattlePassRewardsView(userId, page, REWARDS_PER_PAGE)
  const lines = view.rows.map((row) => {
   const freeState = row.claimedFree ? "✅" : "🎁"
   const premiumState = row.claimedPremium ? "✅" : "⭐"
-  const freeText = rewardLabel(row.free)
-  const premiumText = row.premium ? rewardLabel(row.premium) : "Aucune reward premium sur ce palier"
+  const freeText = rewardsLabels(row.freeRewards)
+  const premiumText = rewardsLabels(row.premiumRewards, "Aucune reward premium sur ce palier")
   return `**Palier ${row.level}**\n${freeState} **Gratuit**: ${freeText}\n${premiumState} **Premium**: ${premiumText}`
  })
 
@@ -151,6 +159,13 @@ function buildRewardsPage(userId, page = 1) {
 }
 
 async function openRewardsPager(interaction, userId, startPage = 1) {
+ const existing = activeRewardsPagers.get(userId)
+ if (existing) {
+  try {
+   existing.collector.stop("replaced")
+  } catch (_) {}
+ }
+
  let currentPage = startPage
  const first = buildRewardsPage(userId, currentPage)
  let msg = null
@@ -162,6 +177,7 @@ async function openRewardsPager(interaction, userId, startPage = 1) {
  }
 
  const collector = msg.createMessageComponentCollector({ time: 180000 })
+ activeRewardsPagers.set(userId, { collector, messageId: msg.id })
 
  collector.on("collect", async (i) => {
   if (i.user.id !== interaction.user.id) {
@@ -175,6 +191,16 @@ async function openRewardsPager(interaction, userId, startPage = 1) {
   currentPage = pageData.page
 
   await i.update({ embeds: [pageData.embed], components: [pageData.row] })
+ })
+
+ collector.on("end", async () => {
+  const entry = activeRewardsPagers.get(userId)
+  if (entry?.messageId === msg.id) {
+   activeRewardsPagers.delete(userId)
+  }
+  try {
+   await msg.edit({ components: [] })
+  } catch (_) {}
  })
 }
 
@@ -304,7 +330,7 @@ module.exports = {
     }
     const refreshed = buildMainEmbed(userId)
     await i.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
-    return interaction.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
+    return i.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
    }
 
    if (i.customId === "bp_buy") {

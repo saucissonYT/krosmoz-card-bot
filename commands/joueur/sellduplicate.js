@@ -1,4 +1,4 @@
-﻿const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../../systems/seasonService")
@@ -8,19 +8,33 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
+let sellMultiplierCache = {
+ value: 1,
+ expiresAt: 0
+}
+
 function getSeasonSellMultiplier() {
+ if (Date.now() < sellMultiplierCache.expiresAt) {
+  return sellMultiplierCache.value
+ }
+
+ let value = 1
  try {
   const current = ensureCurrentSeason()
   const season = getSeasonTemplate(current.activeSeason)
   const bonus = season?.passiveBonus
 
   if (bonus?.type === "market_sell_bonus") {
-   const value = Number(bonus.value)
-   if (Number.isFinite(value) && value > 0) return value
+   const parsed = Number(bonus.value)
+   if (Number.isFinite(parsed) && parsed > 0) value = parsed
   }
  } catch (_) {}
 
- return 1
+ sellMultiplierCache = {
+  value,
+  expiresAt: Date.now() + 15000
+ }
+ return value
 }
 
 module.exports = {

@@ -45,6 +45,10 @@ function ensureStats(user, now){
  if(s.lastTripleReset === undefined) s.lastTripleReset = now
  if(s.packsOpened === undefined) s.packsOpened = 0
  if(s.packsBought === undefined) s.packsBought = 0
+ if(s.multiPackBuys === undefined) s.multiPackBuys = 0
+ if(s.multiPackOpens === undefined) s.multiPackOpens = 0
+ if(s.maxBulkBuy === undefined) s.maxBulkBuy = 0
+ if(s.maxBulkOpen === undefined) s.maxBulkOpen = 0
 
  /* ---- STATS EVENTS ---- */
  if(s.eventPacksOpened === undefined) s.eventPacksOpened = 0
@@ -298,6 +302,8 @@ function getUser(id){
     fusions:0, fusionCrit:0, fusionDouble:0,
     tripleFusionToday:0, lastTripleReset:now,
     packsOpened:0, packsBought:0,
+    multiPackBuys:0, multiPackOpens:0,
+    maxBulkBuy:0, maxBulkOpen:0,
     /* EVENTS */
     eventPacksOpened:0, ssrFromEvent:0,
     ticketsFullyUsed:0, jackpotEnutrof:0, jackpotFeca:0,

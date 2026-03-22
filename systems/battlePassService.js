@@ -18,6 +18,9 @@ const {
 const claimLocks = new Set()
 const commandCooldown = new Map()
 const COOLDOWN_MS = 2000
+const SEASON_CHECK_THROTTLE_MS = 5000
+const FILE_LOCK_STALE_MS = 15000
+let lastSeasonTransitionCheckAt = 0
 
 function getXpConfig() {
  const configPath = path.join(process.cwd(), "config", "battlepassXP.json")
@@ -132,6 +135,57 @@ function saveUserProgress(progress) {
  writeAtomic(getProgressPath(progress.userId), progress)
 }
 
+function getUserLockPath(userId) {
+ const paths = getBattlePassPaths()
+ return path.join(paths.battlepass, `op_${userId}.lock`)
+}
+
+function acquireFileLock(lockPath, staleMs = FILE_LOCK_STALE_MS) {
+ const now = Date.now()
+
+ function tryCreate() {
+  const fd = fs.openSync(lockPath, "wx")
+  fs.writeFileSync(fd, String(now), "utf8")
+  fs.closeSync(fd)
+ }
+
+ try {
+  tryCreate()
+  return true
+ } catch (err) {
+  if (err?.code !== "EEXIST") return false
+ }
+
+ try {
+  const stat = fs.statSync(lockPath)
+  if (now - stat.mtimeMs > staleMs) {
+   fs.rmSync(lockPath, { force: true })
+   tryCreate()
+   return true
+  }
+ } catch (_) {}
+
+ return false
+}
+
+function releaseFileLock(lockPath) {
+ try {
+  fs.rmSync(lockPath, { force: true })
+ } catch (_) {}
+}
+
+function moveFileSafe(src, dst) {
+ try {
+  fs.renameSync(src, dst)
+  return
+ } catch (err) {
+  if (!["EXDEV", "EPERM", "EBUSY"].includes(err?.code)) throw err
+ }
+
+ fs.copyFileSync(src, dst)
+ fs.rmSync(src, { force: true })
+}
+
 function awardReward(userId, reward) {
  const user = getUser(userId)
  const { getCards } = require("./cardRegistry")
@@ -210,6 +264,7 @@ function awardReward(userId, reward) {
    names.push(card.name || card.id)
    user.stats = user.stats || {}
    user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
+   user.stats.ssrFromEvent = (user.stats.ssrFromEvent || 0) + 1
   }
   result.text = names.length ? `🌈 SSR x${names.length}: ${names.slice(0, 2).join(", ")}` : "🌈 Carte SSR"
  }
@@ -370,7 +425,7 @@ function rotateSeasonIfNeeded() {
   const src = path.join(paths.progress, file)
   const dst = path.join(archiveDir, file)
   try {
-   fs.renameSync(src, dst)
+   moveFileSafe(src, dst)
   } catch (err) {
    console.error("[battlepass] archive move failed:", file, err.message)
   }
@@ -395,7 +450,14 @@ function rotateSeasonIfNeeded() {
  return { rotated: true, current: nextState }
 }
 
-function checkSeasonTransitions() {
+function checkSeasonTransitions(options = {}) {
+ const force = Boolean(options.force)
+ const now = Date.now()
+ if (!force && now - lastSeasonTransitionCheckAt < SEASON_CHECK_THROTTLE_MS) {
+  return { skipped: true, autoDistributed: false, rotated: false }
+ }
+ lastSeasonTransitionCheckAt = now
+
  const current = ensureCurrentSeason()
  const today = toDateOnly(new Date())
  const autoDate = addDaysDateOnly(current.endDate, -2)
@@ -416,7 +478,7 @@ function devStopSeasonNow() {
  current.endDate = toDateOnly(new Date())
  current.forcedByDev = true
  setCurrentSeasonState(current)
- const result = checkSeasonTransitions()
+ const result = checkSeasonTransitions({ force: true })
  return { ok: true, result }
 }
 
@@ -510,6 +572,10 @@ function runSeasonReset(options = {}) {
 async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
  checkSeasonTransitions()
 
+ if (!userId) {
+  return { addedXP: 0, leveledUp: false, error: "userId manquant." }
+ }
+
  const current = ensureCurrentSeason()
  const season = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
@@ -559,10 +625,15 @@ async function claimAllBattlePassRewards(userId) {
   return { ok: false, error: "Claim deja en cours." }
  }
 
+ const lockPath = getUserLockPath(userId)
+ if (!acquireFileLock(lockPath)) {
+  return { ok: false, error: "Claim deja en cours." }
+ }
+
  claimLocks.add(userId)
 
  try {
-  checkSeasonTransitions()
+  checkSeasonTransitions({ force: true })
 
   const current = ensureCurrentSeason()
   const season = getSeasonTemplate(current.activeSeason)
@@ -606,6 +677,7 @@ async function claimAllBattlePassRewards(userId) {
   }
  } finally {
   claimLocks.delete(userId)
+  releaseFileLock(lockPath)
  }
 }
 
@@ -614,10 +686,15 @@ async function buyPremium(userId) {
   return { ok: false, error: "Operation deja en cours." }
  }
 
+ const lockPath = getUserLockPath(userId)
+ if (!acquireFileLock(lockPath)) {
+  return { ok: false, error: "Operation deja en cours." }
+ }
+
  claimLocks.add(userId)
 
  try {
-  checkSeasonTransitions()
+  checkSeasonTransitions({ force: true })
 
   const current = ensureCurrentSeason()
   const season = getSeasonTemplate(current.activeSeason)
@@ -666,6 +743,7 @@ async function buyPremium(userId) {
   }
  } finally {
   claimLocks.delete(userId)
+  releaseFileLock(lockPath)
  }
 }
 
@@ -693,7 +771,7 @@ function getBattlePassOverview(userId) {
  }
 }
 
-function getBattlePassRewardsView(userId, page = 1, perPage = 10) {
+function getBattlePassRewardsView(userId, page = 1, perPage = 8) {
  const overview = getBattlePassOverview(userId)
  const season = overview.seasonTemplate
  const totalLevels = season.totalLevels || 40
@@ -704,13 +782,15 @@ function getBattlePassRewardsView(userId, page = 1, perPage = 10) {
 
  const rows = []
  for (let level = start; level <= end; level++) {
-  const free = (season.freeRewards || []).find((r) => r.level === level)
-  const premium = (season.premiumRewards || []).find((r) => r.level === level)
+  const freeRewards = (season.freeRewards || []).filter((r) => r.level === level)
+  const premiumRewards = (season.premiumRewards || []).filter((r) => r.level === level)
 
   rows.push({
    level,
-   free,
-   premium,
+   freeRewards,
+   premiumRewards,
+   free: freeRewards[0] || null,
+   premium: premiumRewards[0] || null,
    claimedFree: overview.progress.claimedFree.includes(level),
    claimedPremium: overview.progress.claimedPremium.includes(level)
   })

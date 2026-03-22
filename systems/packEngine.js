@@ -104,7 +104,9 @@ function isPalindrome(n){
 
 /* ================= OPEN PACK ================= */
 
-function openPack(user, setId, userId){
+function openPack(user, setId, userId, options = {}){
+
+ const isSimpleCommandOpen = options.isSimpleCommandOpen !== false
 
  /* Capture pity AVANT le pack pour détecter le hard pity */
  const pitySSRBefore = user.pity?.[setId]?.SSR ?? 0
@@ -178,7 +180,7 @@ function openPack(user, setId, userId){
    user.stats.ssrStreak++
    ssrCount++
 
-   if(user.stats.ssrStreak>=2)
+   if(isSimpleCommandOpen && user.stats.ssrStreak>=2)
     giveAchievement(user,"ssrStreak")
 
    user.stats.lastSSR=true
@@ -206,10 +208,10 @@ function openPack(user, setId, userId){
  /* ---- ACHIEVEMENTS PACK ---- */
 
  const hrCount=pack.filter(c=>c?.rarity==="HR").length
- if(hrCount>=3) giveAchievement(user,"threeStars")
+ if(isSimpleCommandOpen && hrCount>=3) giveAchievement(user,"threeStars")
 
  const rarities=pack.map(c=>c?.rarity).filter(Boolean)
- if(rarities.includes("SSR") && rarities.includes("UR"))
+ if(isSimpleCommandOpen && rarities.includes("SSR") && rarities.includes("UR"))
   giveAchievement(user,"packDivin")
 
  const ids=pack.map(c=>c?.id).filter(Boolean)
@@ -219,13 +221,13 @@ function openPack(user, setId, userId){
   if(seen.has(id)) duplicates++
   seen.add(id)
  }
- if(duplicates>=2) giveAchievement(user,"pileOuFace")
+ if(isSimpleCommandOpen && duplicates>=2) giveAchievement(user,"pileOuFace")
 
- if(luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
- if(user.stats.packsOpened<=1 && ssrCount>0) giveAchievement(user,"luckyStart")
- if(ssrCount>=3) giveAchievement(user,"hotHand")
+ if(isSimpleCommandOpen && luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
+ if(isSimpleCommandOpen && user.stats.packsOpened<=1 && ssrCount>0) giveAchievement(user,"luckyStart")
+ if(isSimpleCommandOpen && ssrCount>=3) giveAchievement(user,"hotHand")
 
- if(pitySSRBefore>=48 && ssrCount>0)
+ if(isSimpleCommandOpen && pitySSRBefore>=48 && ssrCount>0)
   giveAchievement(user,"pityBreaker")
 
  const hour=new Date().getHours()
@@ -235,8 +237,8 @@ function openPack(user, setId, userId){
  /* ---- DETECTION ALL C / ALL U ---- */
  const allC = pack.every(c=>c?.rarity==="C")
  const allU = pack.every(c=>c?.rarity==="U")
- if(allC) user.stats.allCPack = (user.stats.allCPack||0)+1
- if(allU) user.stats.allUPack = (user.stats.allUPack||0)+1
+ if(isSimpleCommandOpen && allC) user.stats.allCPack = (user.stats.allCPack||0)+1
+ if(isSimpleCommandOpen && allU) user.stats.allUPack = (user.stats.allUPack||0)+1
 
  /* ---- DRY STREAK ---- */
  const hasSOrSSR = rarities.includes("S") || rarities.includes("SSR")
