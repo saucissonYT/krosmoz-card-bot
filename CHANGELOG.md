@@ -9,6 +9,62 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ---
 
+## [0.32.0] - 2026-03-22
+
+### Added
+
+- **Système Battle Pass saisonnier complet** (`systems/battlePassService.js`, `systems/seasonService.js`, `commands/joueur/battlepass.js`, `commands/dev/devbp.js`, `cron/seasonReset.js`)
+  - Cycle de saisons (Emeraude -> Pourpre -> Turquoise -> Ocre -> Ivoire -> Ebene)
+  - Durée de saison configurée à **21 jours**
+  - Progression Battle Pass persistante par joueur (niveau, XP, premium, récompenses claim)
+  - Auto-récompenses, reset de fin de saison et archivage des saisons précédentes
+  - Fichier de configuration XP dédié : `config/battlepassXP.json`
+  - Outils dev `/devbp` (status, add-xp, force saison, reset progress, dry-run, etc.)
+
+- **Nouveau flux d'achat Premium sécurisé**
+  - Ajout d'une étape de **confirmation** avant achat Premium
+  - Boutons de confirmation/annulation dédiés
+  - Affichage explicite du prix Premium dans l'UX Battle Pass
+
+- **Affichage des récompenses enrichi**
+  - Pagination des récompenses
+  - Affichage des récompenses **free + premium** dans la vue récompenses
+  - Résumé détaillé après claim (récompenses récupérées + totaux)
+
+### Changed
+
+- **Équilibrage des récompenses Battle Pass** (`systems/seasonService.js`)
+  - Augmentation globale des récompenses (kamas, XP, packs)
+  - Ajout de récompenses Premium à **chaque palier**
+  - Versioning des récompenses (`rewardsVersion`) pour migrer proprement les saisons existantes
+
+- **UX de `fusion` améliorée** (`commands/joueur/fusion.js`)
+  - Affichage du nombre de doublons par rareté directement dans l'interface
+  - Visibilité immédiate des ressources disponibles par set
+
+- **UX de `krosmoz` améliorée** (`commands/joueur/krosmoz.js`)
+  - Les sets sans cartes jouables ne sont plus proposés dans le menu
+  - Affichage du nombre de cartes par set dans la description des options
+
+- **UX de `krosmoshop` améliorée** (`commands/joueur/krosmoshop.js`)
+  - Indicateur de possession sur chaque carte (`:white_check_mark: xN` / `:x: x0`)
+  - Statut de possession visible dans la liste et dans le menu d'achat
+
+### Fixed
+
+- **Fix critique `fusion`** : correction d'un bloc de message corrompu pouvant provoquer des erreurs d'exécution
+- **Fix `krosmoz`** : protection contre la sélection de sets vides (sets sans cartes chargées)
+- **Fix UX `battlepass`** : suppression de l'achat Premium instantané sans validation utilisateur
+- **Fix feedback claim** : retour utilisateur explicite après récupération des récompenses
+
+### Improved
+
+- Meilleure lisibilité générale des commandes Battle Pass, Fusion, Krosmoz et KrosmoShop
+- Expérience utilisateur plus sûre (confirmation avant dépense) et plus transparente (états de possession, suivi des récompenses)
+- Base technique prête pour les prochaines saisons sans migration manuelle
+
+---
+
 ## [0.31.0] - 2026-03-21
 
 ### Added
