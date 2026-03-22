@@ -61,7 +61,8 @@ function buildMainEmbed(userId) {
   `[${bar(ratio)}] ${pct}%\n\n` +
   `🎁 **A recuperer maintenant:** ${data.claimableCount}\n` +
   `➡️ **Prochaine recompense:** ${nextFree ? `Niv.${nextFree.level} — ${rewardLabel(nextFree)}` : "Pass entierement complete"}\n` +
-  `🏁 **Prochain palier legendaire:** ${keyNext ? `Niv.${keyNext}` : "Atteint"}`
+  `🏁 **Prochain palier legendaire:** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
+  `💎 **Prix Premium:** ${season.premiumPrice || 8000} kamas`
 
  const embed = new EmbedBuilder()
   .setTitle(`${season.emoji || "✨"} BATTLE PASS — ${season.name}`)
@@ -72,6 +73,7 @@ function buildMainEmbed(userId) {
 }
 
 function buildActionRow(data) {
+ const premiumPrice = data.seasonTemplate?.premiumPrice || 8000
  return new ActionRowBuilder().addComponents(
   new ButtonBuilder()
    .setCustomId("bp_claim")
@@ -84,7 +86,7 @@ function buildActionRow(data) {
    .setStyle(ButtonStyle.Primary),
   new ButtonBuilder()
    .setCustomId("bp_buy")
-   .setLabel("💎 Premium")
+   .setLabel(`💎 Premium (${premiumPrice})`)
    .setStyle(ButtonStyle.Secondary)
    .setDisabled(data.progress.hasPremium),
   new ButtonBuilder()
@@ -98,24 +100,108 @@ function buildActionRow(data) {
  )
 }
 
-async function sendRewards(interaction, userId, page = 1) {
- const view = getBattlePassRewardsView(userId, page, 10)
+function buildBuyConfirmRow() {
+ return new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setCustomId("bp_buy_confirm")
+   .setLabel("✅ Confirmer achat")
+   .setStyle(ButtonStyle.Success),
+  new ButtonBuilder()
+   .setCustomId("bp_buy_cancel")
+   .setLabel("↩️ Retour")
+   .setStyle(ButtonStyle.Secondary)
+ )
+}
+
+function buildRewardsPage(userId, page = 1) {
+ const view = getBattlePassRewardsView(userId, page, 8)
  const lines = view.rows.map((row) => {
-  const f = row.claimedFree ? "✅" : "🎁"
-  const p = row.claimedPremium ? "✅" : "⭐"
-  return `**Palier ${row.level}**\n${f} Gratuit: ${rewardLabel(row.free)}\n${p} Premium: ${rewardLabel(row.premium)}`
+  const freeState = row.claimedFree ? "✅" : "🎁"
+  const premiumState = row.claimedPremium ? "✅" : "⭐"
+  const freeText = rewardLabel(row.free)
+  const premiumText = row.premium ? rewardLabel(row.premium) : "Aucune reward premium sur ce palier"
+  return `**Palier ${row.level}**\n${freeState} **Gratuit**: ${freeText}\n${premiumState} **Premium**: ${premiumText}`
  })
 
  const embed = new EmbedBuilder()
-  .setTitle("📜 Grimoire des Recompenses (40 paliers)")
+  .setTitle("📜 Grimoire des Recompenses")
   .setDescription(lines.join("\n\n") || "Aucune reward.")
-  .setFooter({ text: `Page ${view.page}/${view.maxPage}` })
+  .setFooter({ text: `Page ${view.page}/${view.maxPage} • 40 paliers` })
   .setColor("#1B6B3A")
 
+ const row = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setCustomId("bp_rewards_prev")
+   .setLabel("⬅️")
+   .setStyle(ButtonStyle.Secondary)
+   .setDisabled(view.page <= 1),
+  new ButtonBuilder()
+   .setCustomId("bp_rewards_page")
+   .setLabel(`${view.page}/${view.maxPage}`)
+   .setStyle(ButtonStyle.Primary)
+   .setDisabled(true),
+  new ButtonBuilder()
+   .setCustomId("bp_rewards_next")
+   .setLabel("➡️")
+   .setStyle(ButtonStyle.Secondary)
+   .setDisabled(view.page >= view.maxPage)
+ )
+
+ return { embed, row, page: view.page, maxPage: view.maxPage }
+}
+
+async function openRewardsPager(interaction, userId, startPage = 1) {
+ let currentPage = startPage
+ const first = buildRewardsPage(userId, currentPage)
+ let msg = null
+
  if (interaction.deferred || interaction.replied) {
-  return interaction.followUp({ embeds: [embed], flags: 64 })
+  msg = await interaction.followUp({ embeds: [first.embed], components: [first.row], flags: 64, fetchReply: true })
+ } else {
+  msg = await interaction.reply({ embeds: [first.embed], components: [first.row], flags: 64, fetchReply: true })
  }
- return interaction.reply({ embeds: [embed], flags: 64 })
+
+ const collector = msg.createMessageComponentCollector({ time: 180000 })
+
+ collector.on("collect", async (i) => {
+  if (i.user.id !== interaction.user.id) {
+   return i.reply({ content: "Ce menu n'est pas pour toi.", flags: 64 })
+  }
+
+  if (i.customId === "bp_rewards_next") currentPage++
+  if (i.customId === "bp_rewards_prev") currentPage--
+
+  const pageData = buildRewardsPage(userId, currentPage)
+  currentPage = pageData.page
+
+  await i.update({ embeds: [pageData.embed], components: [pageData.row] })
+ })
+}
+
+function buildClaimSummaryEmbed(result) {
+ const preview = (result.claimedRewards || []).slice(0, 10)
+ const lines = preview.map((r) => {
+  const track = r.track === "premium" ? "⭐" : "🎁"
+  return `${track} **Niv.${r.level}** — ${r.text}`
+ })
+
+ if ((result.claimedRewards || []).length > preview.length) {
+  lines.push(`… +${result.claimedRewards.length - preview.length} autre(s) reward(s)`)
+ }
+
+ return new EmbedBuilder()
+  .setTitle("🎉 Recompenses recuperees")
+  .setDescription(lines.join("\n") || "Aucune reward.")
+  .addFields(
+   { name: "Total", value: `${result.total}`, inline: true },
+   { name: "💰 Kamas", value: `+${result.totals?.kamas || 0}`, inline: true },
+   { name: "📦 Packs", value: `+${result.totals?.packs || 0}`, inline: true }
+  )
+  .setColor("#2ecc71")
+}
+
+async function sendRewards(interaction, userId, page = 1) {
+ return openRewardsPager(interaction, userId, page)
 }
 
 async function sendAchievements(interaction, userId) {
@@ -185,7 +271,7 @@ module.exports = {
   if (action === "claim") {
    const result = await claimAllBattlePassRewards(userId)
    if (!result.ok) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
-   return interaction.reply({ content: `✅ Coffres ouverts. Butin recupere: ${result.total} (${result.freeCount} gratuit + ${result.premiumCount} premium).`, flags: 64 })
+   return interaction.reply({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
   }
 
   if (action === "buy") {
@@ -217,10 +303,22 @@ module.exports = {
       return i.reply({ content: `❌ ${result.error}`, flags: 64 })
     }
     const refreshed = buildMainEmbed(userId)
-    return i.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+    await i.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+    return interaction.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
    }
 
    if (i.customId === "bp_buy") {
+    const refreshed = buildMainEmbed(userId)
+    const confirmEmbed = new EmbedBuilder(refreshed.embed.data).addFields({
+     name: "Confirmation Premium",
+     value:
+      `Tu vas depenser **${refreshed.data.seasonTemplate.premiumPrice || 8000} kamas**.\n` +
+      `Veux-tu activer le Pass Premium maintenant ?`
+    })
+    return i.update({ embeds: [confirmEmbed], components: [buildBuyConfirmRow()] })
+   }
+
+   if (i.customId === "bp_buy_confirm") {
     const result = await buyPremium(userId)
     if (!result.ok) {
      return i.reply({ content: `❌ ${result.error}`, flags: 64 })
@@ -228,6 +326,11 @@ module.exports = {
     await i.reply({ content: `✅ Pass Premium active. Retroactif: ${result.retroCount} paliers.`, flags: 64 })
     const refreshed = buildMainEmbed(userId)
     return interaction.editReply({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+   }
+
+   if (i.customId === "bp_buy_cancel") {
+    const refreshed = buildMainEmbed(userId)
+    return i.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
    }
 
    if (i.customId === "bp_rewards") {

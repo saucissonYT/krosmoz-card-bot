@@ -135,24 +135,45 @@ function saveUserProgress(progress) {
 function awardReward(userId, reward) {
  const user = getUser(userId)
  const { getCards } = require("./cardRegistry")
+ const result = {
+  text: "",
+  kamas: 0,
+  packs: 0,
+  xp: 0
+ }
 
  if (reward.type === "kamas") {
-  user.kamas = (user.kamas || 0) + (reward.value || 0)
+  const amount = reward.value || 0
+  user.kamas = (user.kamas || 0) + amount
+  result.kamas += amount
+  result.text = `💰 ${amount} kamas`
  } else if (reward.type === "player_xp") {
-  addXP(user, reward.value || 0)
+  const amount = reward.value || 0
+  addXP(user, amount)
+  result.xp += amount
+  result.text = `⭐ ${amount} XP joueur`
  } else if (reward.type === "pack") {
-  user.packs = (user.packs || 0) + (reward.value || 1)
+  const amount = reward.value || 1
+  user.packs = (user.packs || 0) + amount
+  result.packs += amount
+  result.text = `📦 ${amount} pack(s)`
  } else if (reward.type === "pack_premium") {
-  user.packs = (user.packs || 0) + ((reward.value || 1) * 2)
+  const amount = (reward.value || 1) * 2
+  user.packs = (user.packs || 0) + amount
+  result.packs += amount
+  result.text = `🎁 ${amount} pack(s) premium`
  } else if (reward.type === "title") {
   if (!user.titles) user.titles = ["Nouveau"]
   if (!user.titles.includes(reward.value)) user.titles.push(reward.value)
+  result.text = `📜 Titre: ${reward.value}`
  } else if (reward.type === "badge") {
   if (!user.badges) user.badges = []
   if (!user.badges.includes(reward.value)) user.badges.push(reward.value)
+  result.text = `🏅 Badge: ${reward.value}`
  } else if (reward.type === "card" && reward.cardId) {
   if (!user.cards) user.cards = {}
   user.cards[reward.cardId] = (user.cards[reward.cardId] || 0) + 1
+  result.text = `🃏 ${reward.cardId}`
   if (reward.cardId.includes("_exclusive_rare")) {
    const current = ensureCurrentSeason()
    const progress = getUserProgress(userId, current.activeSeason)
@@ -160,11 +181,15 @@ function awardReward(userId, reward) {
    saveUserProgress(progress)
   }
  } else if (reward.type === "card_random_rare") {
+  const count = reward.value || 1
   const rares = getCards().filter((c) => c.rarity === "R")
-  if (rares.length) {
+  const names = []
+  for (let i = 0; i < count; i++) {
+   if (!rares.length) break
    const card = rares[Math.floor(Math.random() * rares.length)]
    if (!user.cards) user.cards = {}
    user.cards[card.id] = (user.cards[card.id] || 0) + 1
+   names.push(card.name || card.id)
    user.stats = user.stats || {}
    user.stats.rarePulled = (user.stats.rarePulled || 0) + 1
    const current = ensureCurrentSeason()
@@ -172,18 +197,25 @@ function awardReward(userId, reward) {
    progress.stats.rareCards = (progress.stats.rareCards || 0) + 1
    saveUserProgress(progress)
   }
+  result.text = names.length ? `🃏 Rare x${names.length}: ${names.slice(0, 2).join(", ")}` : "🃏 Carte rare"
  } else if (reward.type === "card_random_ssr") {
+  const count = reward.value || 1
   const ssrs = getCards().filter((c) => c.rarity === "SSR")
-  if (ssrs.length) {
+  const names = []
+  for (let i = 0; i < count; i++) {
+   if (!ssrs.length) break
    const card = ssrs[Math.floor(Math.random() * ssrs.length)]
    if (!user.cards) user.cards = {}
    user.cards[card.id] = (user.cards[card.id] || 0) + 1
+   names.push(card.name || card.id)
    user.stats = user.stats || {}
    user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
   }
+  result.text = names.length ? `🌈 SSR x${names.length}: ${names.slice(0, 2).join(", ")}` : "🌈 Carte SSR"
  }
 
  save(userId)
+ return result
 }
 
 function getClaimableRewards(progress, season) {
@@ -539,17 +571,27 @@ async function claimAllBattlePassRewards(userId) {
 
   let freeCount = 0
   let premiumCount = 0
+  const claimedRewards = []
+  const totals = { kamas: 0, packs: 0, xp: 0 }
 
   for (const reward of claimable.free) {
-   awardReward(userId, reward)
+   const granted = awardReward(userId, reward)
    progress.claimedFree.push(reward.level)
    freeCount++
+   claimedRewards.push({ track: "free", level: reward.level, text: granted.text || reward.type })
+   totals.kamas += granted.kamas || 0
+   totals.packs += granted.packs || 0
+   totals.xp += granted.xp || 0
   }
 
   for (const reward of claimable.premium) {
-   awardReward(userId, reward)
+   const granted = awardReward(userId, reward)
    progress.claimedPremium.push(reward.level)
    premiumCount++
+   claimedRewards.push({ track: "premium", level: reward.level, text: granted.text || reward.type })
+   totals.kamas += granted.kamas || 0
+   totals.packs += granted.packs || 0
+   totals.xp += granted.xp || 0
   }
 
   saveUserProgress(progress)
@@ -558,7 +600,9 @@ async function claimAllBattlePassRewards(userId) {
    ok: true,
    freeCount,
    premiumCount,
-   total: freeCount + premiumCount
+   total: freeCount + premiumCount,
+   claimedRewards,
+   totals
   }
  } finally {
   claimLocks.delete(userId)

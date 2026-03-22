@@ -222,27 +222,27 @@ function buildLevelRewards(seasonId) {
  const premiumRewards = []
 
  for (let level = 1; level <= 40; level++) {
-  if (level === 1) freeRewards.push({ level, type: "kamas", value: 200 })
-  else if ([2, 4, 7].includes(level)) freeRewards.push({ level, type: "player_xp", value: 100 })
-  else if ([3, 6, 8].includes(level)) freeRewards.push({ level, type: "kamas", value: 300 + (level - 3) * 50 })
+  if (level === 1) freeRewards.push({ level, type: "kamas", value: 600 })
+  else if ([2, 4, 7].includes(level)) freeRewards.push({ level, type: "player_xp", value: 300 })
+  else if ([3, 6, 8].includes(level)) freeRewards.push({ level, type: "kamas", value: 700 + (level - 3) * 120 })
   else if ([5, 9, 13, 16, 19].includes(level)) freeRewards.push({ level, type: "card_random_rare", value: 1 })
-  else if ([11, 14, 17, 21, 24, 27, 31, 34, 37].includes(level)) freeRewards.push({ level, type: "kamas", value: 500 + Math.floor(level * 30) })
-  else if ([12, 15, 18, 22, 25, 28, 32, 35, 38].includes(level)) freeRewards.push({ level, type: "player_xp", value: 200 + Math.floor(level * 6) })
+  else if ([11, 14, 17, 21, 24, 27, 31, 34, 37].includes(level)) freeRewards.push({ level, type: "kamas", value: 1400 + Math.floor(level * 80) })
+  else if ([12, 15, 18, 22, 25, 28, 32, 35, 38].includes(level)) freeRewards.push({ level, type: "player_xp", value: 450 + Math.floor(level * 18) })
   else if ([23, 26, 29, 33, 36, 39].includes(level)) freeRewards.push({ level, type: "card_random_ssr", value: 1 })
   else if (level === 10) freeRewards.push({ level, type: "title", value: "Vents Naissants" })
   else if (level === 20) freeRewards.push({ level, type: "title", value: theme.freeTitle20 })
   else if (level === 30) freeRewards.push({ level, type: "card", cardId: theme.rareCard30 })
   else if (level === 40) freeRewards.push({ level, type: "title", value: theme.premiumTitle40 })
-  else freeRewards.push({ level, type: "kamas", value: 250 + level * 25 })
+  else freeRewards.push({ level, type: "kamas", value: 700 + level * 60 })
 
   if ([5, 10, 15, 20, 25, 30, 35, 40].includes(level)) {
-   if (level === 5) premiumRewards.push({ level, type: "kamas", value: 500 })
-   else if (level === 10) premiumRewards.push({ level, type: "kamas", value: 800 })
-   else if (level === 15) premiumRewards.push({ level, type: "pack", value: 1 })
-   else if (level === 20) premiumRewards.push({ level, type: "pack_premium", value: 1 })
-   else if (level === 25) premiumRewards.push({ level, type: "kamas", value: 2000 })
-   else if (level === 30) premiumRewards.push({ level, type: "card_random_ssr", value: 1 })
-   else if (level === 35) premiumRewards.push({ level, type: "pack_premium", value: 2 })
+   if (level === 5) premiumRewards.push({ level, type: "kamas", value: 2000 })
+   else if (level === 10) premiumRewards.push({ level, type: "kamas", value: 3000 })
+   else if (level === 15) premiumRewards.push({ level, type: "pack", value: 2 })
+   else if (level === 20) premiumRewards.push({ level, type: "pack_premium", value: 2 })
+   else if (level === 25) premiumRewards.push({ level, type: "kamas", value: 6000 })
+   else if (level === 30) premiumRewards.push({ level, type: "card_random_ssr", value: 2 })
+   else if (level === 35) premiumRewards.push({ level, type: "pack_premium", value: 3 })
    else if (level === 40) premiumRewards.push({ level, type: "badge", value: theme.badge40 })
   }
  }
@@ -284,6 +284,7 @@ function buildSeasonTemplate(seasonId) {
   freeRewards: rewards.freeRewards,
   premiumRewards: rewards.premiumRewards,
   achievements: buildSeasonAchievements(seasonId),
+  rewardsVersion: 2,
   premiumPrice: 8000
  }
 }
@@ -460,6 +461,12 @@ function getSeasonTemplate(seasonId) {
  }
  if (!merged.passiveBonus) {
   merged.passiveBonus = fallback.passiveBonus
+  changed = true
+ }
+ if ((data.rewardsVersion || 0) < 2) {
+  merged.freeRewards = fallback.freeRewards
+  merged.premiumRewards = fallback.premiumRewards
+  merged.rewardsVersion = 2
   changed = true
  }
 
