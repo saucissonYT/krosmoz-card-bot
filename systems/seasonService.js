@@ -1,5 +1,6 @@
 const fs = require("fs")
 const path = require("path")
+const { getCard } = require("./cardRegistry")
 
 const CYCLE = ["emeraude", "pourpre", "turquoise", "ocre", "ivoire", "ebene"]
 const DEFAULT_DURATION_DAYS = 21
@@ -233,7 +234,7 @@ function buildLevelRewards(seasonId) {
   else if ([23, 26, 29, 33, 36, 39].includes(level)) freeRewards.push({ level, type: "card_random_ssr", value: 1 })
   else if (level === 10) freeRewards.push({ level, type: "title", value: "Vents Naissants" })
   else if (level === 20) freeRewards.push({ level, type: "title", value: theme.freeTitle20 })
-  else if (level === 30) freeRewards.push({ level, type: "card", cardId: theme.rareCard30 })
+  else if (level === 30) freeRewards.push({ level, type: "player_xp", value: 1800 })
   else if (level === 40) freeRewards.push({ level, type: "title", value: theme.premiumTitle40 })
   else freeRewards.push({ level, type: "kamas", value: 700 + level * 60 })
 
@@ -257,7 +258,7 @@ function buildLevelRewards(seasonId) {
  }
 
  premiumRewards.push({ level: 40, type: "title", value: theme.premiumTitle40 })
- premiumRewards.push({ level: 40, type: "card", cardId: theme.dofusCard40 })
+ premiumRewards.push({ level: 40, type: "kamas", value: 8000 })
 
  return { freeRewards, premiumRewards }
 }
@@ -294,9 +295,29 @@ function buildSeasonTemplate(seasonId) {
   premiumRewards: rewards.premiumRewards,
   achievements: buildSeasonAchievements(seasonId),
   bonusVersion: 2,
-  rewardsVersion: 4,
+  rewardsVersion: 6,
   premiumPrice: 12000
  }
+}
+
+function sanitizeMissingCardRewards(template) {
+ let changed = false
+
+ function replaceReward(reward, track) {
+  if (!reward || reward.type !== "card") return reward
+  if (reward.cardId && getCard(reward.cardId)) return reward
+  changed = true
+
+  if (track === "premium") {
+   return { level: reward.level, type: "kamas", value: 5000 }
+  }
+  return { level: reward.level, type: "player_xp", value: 1600 }
+ }
+
+ template.freeRewards = (template.freeRewards || []).map((reward) => replaceReward(reward, "free"))
+ template.premiumRewards = (template.premiumRewards || []).map((reward) => replaceReward(reward, "premium"))
+
+ return changed
 }
 
 function ensureSeasonFiles() {
@@ -478,10 +499,14 @@ function getSeasonTemplate(seasonId) {
   merged.bonusVersion = 2
   changed = true
  }
- if ((data.rewardsVersion || 0) < 4) {
+ if ((data.rewardsVersion || 0) < 6) {
   merged.freeRewards = fallback.freeRewards
   merged.premiumRewards = fallback.premiumRewards
-  merged.rewardsVersion = 4
+  merged.rewardsVersion = 6
+  changed = true
+ }
+
+ if (sanitizeMissingCardRewards(merged)) {
   changed = true
  }
 

@@ -39,6 +39,8 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentÃƒÆ
   - Total des succes du registre principal : **395**
 ### Changed
 
+- Battle Pass: removed fixed card rewards from season tracks to avoid confusion when a card ID is unavailable. These slots now grant only kamas / player_xp.
+
 - **ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°quilibrage des rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©compenses Battle Pass** (`systems/seasonService.js`)
   - Augmentation globale des rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©compenses (kamas, XP, packs)
   - Ajout de rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©compenses Premium ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  **chaque palier**
@@ -1525,3 +1527,4 @@ profil
 
 
 ---
+
