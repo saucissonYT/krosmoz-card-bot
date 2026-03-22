@@ -102,22 +102,40 @@ function aggregateCards(results) {
 async function openPacksBatch(interaction, setId, requestedCount) {
  const packCount = Math.max(1, Math.min(MAX_BATCH, requestedCount || 1))
  const user = getUser(interaction.user.id)
+ const rawSets = loadSets()
+ const playableSets = getPlayableSets(rawSets)
+ const playableIds = playableSets.map((s) => s.id)
+ const isRandom = setId === "random"
 
- const beforeCompletion = getSetCompletion(user, setId)
+ if (playableIds.length === 0) {
+  return interaction.editReply("Aucun set jouable disponible actuellement.")
+ }
+
+ if (!isRandom && !playableIds.includes(setId)) {
+  return interaction.editReply("Ce set n'est pas disponible actuellement.")
+ }
+
  const setCache = getSetCache()
 
- if ((setCache[setId] || []).length === 0) {
+ if (!isRandom && (setCache[setId] || []).length === 0) {
   return interaction.editReply("Ce set ne contient aucune carte jouable actuellement.")
  }
 
+ const beforeCompletionBySet = {}
+ for (const sid of (isRandom ? playableIds : [setId])) {
+  beforeCompletionBySet[sid] = getSetCompletion(user, sid)
+ }
+
  if (!user.pity) user.pity = {}
- if (!user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
+ if (!isRandom && !user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
  if (!user.stats) user.stats = {}
 
- const pity = user.pity[setId]
- if (pity.S === undefined) pity.S = 0
- if (pity.UR === undefined) pity.UR = 0
- if (pity.SSR === undefined) pity.SSR = 0
+ if (!isRandom) {
+  const pity = user.pity[setId]
+  if (pity.S === undefined) pity.S = 0
+  if (pity.UR === undefined) pity.UR = 0
+  if (pity.SSR === undefined) pity.SSR = 0
+ }
 
  const now = Date.now()
  const cooldown = getCooldownMs(user)
@@ -153,25 +171,49 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  user.stats.packsOpened = (user.stats.packsOpened || 0) + packCount
  user.stats.krosmozOpened = (user.stats.krosmozOpened || 0) + packCount
- user.lastSet = setId
 
  updateActivityStreak(user)
 
- await interaction.editReply(`🎴 Ouverture de **${packCount}** pack(s) sur **${setId}**...`)
+ await interaction.editReply(`🎴 Ouverture de **${packCount}** pack(s) sur **${isRandom ? "random" : setId}**...`)
 
  const results = []
+ const setOpenCount = {}
+ const progressStep = packCount >= 10 ? 3 : 2
+
  for (let i = 0; i < packCount; i++) {
-  results.push(openPack(user, setId, interaction.user.id))
+  const chosenSetId = isRandom
+   ? playableIds[Math.floor(Math.random() * playableIds.length)]
+   : setId
+
+  setOpenCount[chosenSetId] = (setOpenCount[chosenSetId] || 0) + 1
+  user.lastSet = chosenSetId
+
+  const result = openPack(user, chosenSetId, interaction.user.id)
+  result._setId = chosenSetId
+  results.push(result)
+
   await addBattlePassXP(interaction.user.id, "pack_open")
+
+  if ((i + 1) % progressStep === 0 || i + 1 === packCount) {
+   const top = Object.entries(setOpenCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([sid, qty]) => `${sid}:${qty}`)
+    .join(" | ")
+   await interaction.editReply(`🎴 Ouverture en cours... **${i + 1}/${packCount}**${top ? `\n🎲 ${top}` : ""}`)
+  }
  }
 
- const afterCompletion = getSetCompletion(user, setId)
- if (
-  beforeCompletion.total > 0 &&
-  beforeCompletion.owned < beforeCompletion.total &&
-  afterCompletion.owned === afterCompletion.total
- ) {
-  await addBattlePassXP(interaction.user.id, 480, "set_complete")
+ for (const sid of Object.keys(setOpenCount)) {
+  const beforeCompletion = beforeCompletionBySet[sid] || { owned: 0, total: 0 }
+  const afterCompletion = getSetCompletion(user, sid)
+  if (
+   beforeCompletion.total > 0 &&
+   beforeCompletion.owned < beforeCompletion.total &&
+   afterCompletion.owned === afterCompletion.total
+  ) {
+   await addBattlePassXP(interaction.user.id, 480, "set_complete")
+  }
  }
 
  save(interaction.user.id)
@@ -235,14 +277,23 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    { name: "💰 Kamas gagnés", value: `+${totals.kamas}`, inline: true },
    { name: "⭐ XP gagnée", value: `+${totals.xp}`, inline: true },
    { name: "📦 Packs consommés", value: `${packCount} (${freePacks} gratuit + ${paidNeeded} payants)`, inline: true },
-   { name: "🌈 SSR Pity", value: `${pity.SSR}/50`, inline: true },
-   { name: "✨ S Pity", value: `${pity.S}/30`, inline: true },
-   { name: "🟡 UR Pity", value: `${pity.UR}/10`, inline: true }
+   { name: "🌈 SSR Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.SSR ?? 0}/50`, inline: true },
+   { name: "✨ S Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.S ?? 0}/30`, inline: true },
+   { name: "🟡 UR Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.UR ?? 0}/10`, inline: true }
   )
   .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
 
  if (totals.lucky > 0) {
   embed.addFields({ name: "🎁 Lucky Packs", value: `${totals.lucky}`, inline: true })
+ }
+
+ const breakdown = Object.entries(setOpenCount)
+  .sort((a, b) => b[1] - a[1])
+  .map(([sid, qty]) => `• ${sid}: ${qty}`)
+  .join("\n")
+
+ if (breakdown) {
+  embed.addFields({ name: "🎲 Répartition des sets", value: breakdown, inline: false })
  }
 
  await interaction.editReply({ embeds: [embed] })
@@ -275,9 +326,11 @@ module.exports = {
      .setDescription("Set à ouvrir")
      .setRequired(false)
 
+    const choices = [{ name: "🎲 Random", value: "random" }]
     if (sets.length > 0) {
-     option.addChoices(...sets.slice(0, 25).map((s) => ({ name: s.name, value: s.id })))
+     choices.push(...sets.slice(0, 24).map((s) => ({ name: s.name, value: s.id })))
     }
+    option.addChoices(...choices)
 
     return option
    })
@@ -299,7 +352,7 @@ module.exports = {
   const quickCount = interaction.options.getInteger("packs") || 1
 
   if (quickSet) {
-   await interaction.deferReply({ flags: 64 })
+   await interaction.deferReply()
    return openPacksBatch(interaction, quickSet, quickCount)
   }
 
@@ -314,7 +367,14 @@ module.exports = {
   if (!user.stats) user.stats = {}
 
   const setCache = getSetCache()
-  const options = sets.slice(0, 25).map((set) => {
+  const options = []
+  options.push({
+   label: "🎲 Random",
+   value: "random",
+   description: "Packs répartis aléatoirement entre tous les sets"
+  })
+
+  options.push(...sets.slice(0, 24).map((set) => {
    if (!user.pity[set.id]) user.pity[set.id] = { SSR: 0, S: 0, UR: 0 }
 
    const pity = user.pity[set.id]
@@ -330,10 +390,10 @@ module.exports = {
     value: set.id,
     description: `SSR ${ssr}/50 | S ${s}/30 | UR ${ur}/10 | ${completion.owned}/${completion.total} (${setCardCount} cartes)`
    }
-  })
+  }))
 
   const menu = new StringSelectMenuBuilder()
-   .setCustomId("krosmoz_set")
+   .setCustomId(`krosmoz_set_${interaction.user.id}`)
    .setPlaceholder("Choisis un set")
    .addOptions(options)
 
@@ -345,12 +405,16 @@ module.exports = {
 
 📦 Packs achetés : **${user.packs || 0}**
 ${getCooldownText(user)}`,
-   components: [row],
-   flags: 64
+   components: [row]
   })
  },
 
  async select(interaction) {
+  const ownerId = String(interaction.customId || "").replace("krosmoz_set_", "")
+  if (ownerId && ownerId !== interaction.user.id) {
+   return interaction.reply({ content: "Ce menu n'est pas pour toi.", flags: 64 })
+  }
+
   await interaction.deferReply()
   const setId = interaction.values[0]
   return openPacksBatch(interaction, setId, 1)

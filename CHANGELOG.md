@@ -36,6 +36,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Équilibrage des récompenses Battle Pass** (`systems/seasonService.js`)
   - Augmentation globale des récompenses (kamas, XP, packs)
   - Ajout de récompenses Premium à **chaque palier**
+  - Remplacement des récompenses `pack_premium` par des **packs normaux**
   - Versioning des récompenses (`rewardsVersion`) pour migrer proprement les saisons existantes
 
 - **UX de `fusion` améliorée** (`commands/joueur/fusion.js`)
@@ -45,6 +46,19 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **UX de `krosmoz` améliorée** (`commands/joueur/krosmoz.js`)
   - Les sets sans cartes jouables ne sont plus proposés dans le menu
   - Affichage du nombre de cartes par set dans la description des options
+  - Ouverture **multi-pack** (jusqu'à 20) avec affichage cumulé des cartes (`xN`)
+  - Mode **random** : répartition automatique des ouvertures sur tous les sets jouables
+  - Défilement accéléré pendant l'ouverture + résumé final de lot
+  - Affichage de la répartition des sets ouverts dans le résultat final
+
+- **Bonus saisonniers revalorisés (version équilibrée)** (`systems/seasonService.js`)
+  - Émeraude : +20% XP Battle Pass
+  - Pourpre : +25% kamas sur les gains
+  - Turquoise : 20% de chance de double drop sur pack
+  - Ocre : +35% XP guilde
+  - Ivoire : -25% coût fusion
+  - Ébène : +40% kamas ventes bot (`/sellcard`, `/sellduplicates`)
+  - Migration automatique des bonus existants via `bonusVersion`
 
 - **UX de `krosmoshop` améliorée** (`commands/joueur/krosmoshop.js`)
   - Indicateur de possession sur chaque carte (`:white_check_mark: xN` / `:x: x0`)
@@ -54,8 +68,10 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **Fix critique `fusion`** : correction d'un bloc de message corrompu pouvant provoquer des erreurs d'exécution
 - **Fix `krosmoz`** : protection contre la sélection de sets vides (sets sans cartes chargées)
+- **Fix `krosmoz`** : visibilité publique restaurée (plus de réponse privée forcée)
 - **Fix UX `battlepass`** : suppression de l'achat Premium instantané sans validation utilisateur
 - **Fix feedback claim** : retour utilisateur explicite après récupération des récompenses
+- **Fix cohérence économie saisonnière** : bonus Ébène appliqué à `/sellcard` et `/sellduplicates` (pas au `/market`)
 
 ### Improved
 

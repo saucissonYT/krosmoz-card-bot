@@ -583,6 +583,7 @@ La commande **/quests** affiche une interface interactive avec :
 ### ⚡ Ouverture multi-pack /krosmoz
 
 - Ouvre rapidement plusieurs packs d'un même set (jusqu'à 20 en une commande)
+- Mode **🎲 random** disponible (répartition automatique entre tous les sets jouables)
 - Affichage en **défilement rapide** puis résumé final
 - Les cartes sont **cumulées** (ex: `x2`, `x3`) au lieu d'être répétées
 - La consommation de packs est exacte (gratuit si dispo, puis packs du stock)
@@ -599,7 +600,7 @@ La commande **/quests** affiche une interface interactive avec :
 ### Packs
 | Commande | Description |
 |----------|-------------|
-| /krosmoz | Ouvrir 1 à 20 packs d'un set (1 gratuit/heure puis consommation du stock), avec mode giga-pack cumulé |
+| /krosmoz | Ouvrir 1 à 20 packs d'un set ou en mode 🎲 random (1 gratuit/heure puis consommation du stock), avec mode giga-pack cumulé |
 | /buypack | Acheter un pack (800 kamas) |
 | /eventpack | Ouvrir un pack d'event |
 | /pity | Voir ta pity par set |
