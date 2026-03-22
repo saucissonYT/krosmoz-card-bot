@@ -5,7 +5,10 @@ const { getCardsById } = require("./cardRegistry")
 const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
 
-const DATA_DIR = path.join(__dirname, "../data")
+let DATA_DIR = "/data"
+if(!fs.existsSync(DATA_DIR)){
+ DATA_DIR = path.join(process.cwd(), "data")
+}
 const SHOP_PATH = path.join(DATA_DIR, "krosmoshop.json")
 
 /*

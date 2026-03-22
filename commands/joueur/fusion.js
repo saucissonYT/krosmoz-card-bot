@@ -40,6 +40,20 @@ function getFusionBonuses(userId, user){
  }
 }
 
+function getSetDupByRarity(user, cards, setId){
+ const counts = {}
+ for(const rarity of ["C","U","R","SR","HR","UR","S","SSR"]){
+  const pool = cards.filter(c=>c.set===setId && c.rarity===rarity)
+  let dup = 0
+  for(const card of pool){
+   const count = user.cards?.[card.id]||0
+   if(count>1) dup += (count-1)
+  }
+  counts[rarity] = dup
+ }
+ return counts
+}
+
 module.exports={
 
  data: (() => {
@@ -87,6 +101,7 @@ module.exports={
    return interaction.reply({content:"Impossible de fusionner des SSR.",flags:64})
 
   const cost = FUSION_COST[rarity]
+  const dupByRarity = getSetDupByRarity(user, cards, setName)
 
   const pool = cards.filter(c=>c.set===setName && c.rarity===rarity)
 
@@ -102,7 +117,14 @@ module.exports={
 
   if(available<cost)
    return interaction.reply({
-    content:`❌ Il faut **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nTu en as **${available}**.`,
+    content:
+`Il faut **${cost} doublons ${RARITY_EMOJI[rarity]}**.
+
+Tu en as **${available}**.
+
+Doublons (${setName})
+C:${dupByRarity.C} | U:${dupByRarity.U} | R:${dupByRarity.R} | SR:${dupByRarity.SR}
+HR:${dupByRarity.HR} | UR:${dupByRarity.UR} | S:${dupByRarity.S} | SSR:${dupByRarity.SSR}`,
     flags:64
    })
 
@@ -207,7 +229,7 @@ module.exports={
 
   const embed=new EmbedBuilder()
    .setTitle("⚗️ Fusion en cours...")
-   .setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nDoublons disponibles : **${available}**`)
+   .setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nDoublons disponibles : **${available}**\n\nSet: ${setName}\nC:${dupByRarity.C} | U:${dupByRarity.U} | R:${dupByRarity.R} | SR:${dupByRarity.SR}\nHR:${dupByRarity.HR} | UR:${dupByRarity.UR} | S:${dupByRarity.S} | SSR:${dupByRarity.SSR}`)
 
   await interaction.reply({embeds:[embed]})
   const msg=await interaction.fetchReply()
@@ -297,3 +319,4 @@ ${fusionStats}`
  }
 
 }
+

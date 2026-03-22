@@ -235,16 +235,23 @@ function buildLevelRewards(seasonId) {
   else if (level === 40) freeRewards.push({ level, type: "title", value: theme.premiumTitle40 })
   else freeRewards.push({ level, type: "kamas", value: 700 + level * 60 })
 
+  // Premium reward chaque palier (base), puis override sur paliers cles.
+  let premiumReward = level % 2 === 0
+   ? { level, type: "player_xp", value: 350 + Math.floor(level * 20) }
+   : { level, type: "kamas", value: 900 + Math.floor(level * 120) }
+
   if ([5, 10, 15, 20, 25, 30, 35, 40].includes(level)) {
-   if (level === 5) premiumRewards.push({ level, type: "kamas", value: 2000 })
-   else if (level === 10) premiumRewards.push({ level, type: "kamas", value: 3000 })
-   else if (level === 15) premiumRewards.push({ level, type: "pack", value: 2 })
-   else if (level === 20) premiumRewards.push({ level, type: "pack_premium", value: 2 })
-   else if (level === 25) premiumRewards.push({ level, type: "kamas", value: 6000 })
-   else if (level === 30) premiumRewards.push({ level, type: "card_random_ssr", value: 2 })
-   else if (level === 35) premiumRewards.push({ level, type: "pack_premium", value: 3 })
-   else if (level === 40) premiumRewards.push({ level, type: "badge", value: theme.badge40 })
+   if (level === 5) premiumReward = { level, type: "kamas", value: 2000 }
+   else if (level === 10) premiumReward = { level, type: "kamas", value: 3000 }
+   else if (level === 15) premiumReward = { level, type: "pack", value: 2 }
+   else if (level === 20) premiumReward = { level, type: "pack_premium", value: 2 }
+   else if (level === 25) premiumReward = { level, type: "kamas", value: 6000 }
+   else if (level === 30) premiumReward = { level, type: "card_random_ssr", value: 2 }
+   else if (level === 35) premiumReward = { level, type: "pack_premium", value: 3 }
+   else if (level === 40) premiumReward = { level, type: "badge", value: theme.badge40 }
   }
+
+  premiumRewards.push(premiumReward)
  }
 
  premiumRewards.push({ level: 40, type: "title", value: theme.premiumTitle40 })
@@ -284,7 +291,7 @@ function buildSeasonTemplate(seasonId) {
   freeRewards: rewards.freeRewards,
   premiumRewards: rewards.premiumRewards,
   achievements: buildSeasonAchievements(seasonId),
-  rewardsVersion: 2,
+  rewardsVersion: 3,
   premiumPrice: 8000
  }
 }
@@ -463,10 +470,10 @@ function getSeasonTemplate(seasonId) {
   merged.passiveBonus = fallback.passiveBonus
   changed = true
  }
- if ((data.rewardsVersion || 0) < 2) {
+ if ((data.rewardsVersion || 0) < 3) {
   merged.freeRewards = fallback.freeRewards
   merged.premiumRewards = fallback.premiumRewards
-  merged.rewardsVersion = 2
+  merged.rewardsVersion = 3
   changed = true
  }
 

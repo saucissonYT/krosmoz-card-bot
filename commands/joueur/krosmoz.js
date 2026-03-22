@@ -81,6 +81,12 @@ function getSetCompletion(user, setId){
  return { owned, total: setCards.length }
 }
 
+function getPlayableSets(rawSets){
+ const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
+ const setCache = getSetCache()
+ return sets.filter(set => (setCache[set.id] || []).length > 0)
+}
+
 module.exports = {
 
  name:"krosmoz",
@@ -94,7 +100,7 @@ module.exports = {
   const user = getUser(interaction.user.id)
 
   const rawSets = loadSets()
-  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
+  const sets = getPlayableSets(rawSets)
 
   if(!sets || sets.length === 0)
    return interaction.reply({ content:"❌ Aucun set disponible.", flags:64 })
@@ -102,6 +108,7 @@ module.exports = {
   if(!user.pity) user.pity = {}
   if(!user.stats) user.stats = {}
 
+  const setCache = getSetCache()
   const options = sets.slice(0,25).map(set=>{
 
    if(!user.pity[set.id])
@@ -113,11 +120,12 @@ module.exports = {
    const ur  = pity.UR  ?? 0
 
    const completion = getSetCompletion(user, set.id)
+   const setCardCount = (setCache[set.id] || []).length
 
    return {
     label: set.name,
     value: set.id,
-    description: `SSR ${ssr}/50 • S ${s}/30 • UR ${ur}/10 • 📚 ${completion.owned}/${completion.total}`
+    description: `SSR ${ssr}/50 | S ${s}/30 | UR ${ur}/10 | ${completion.owned}/${completion.total} (${setCardCount} cartes)`
    }
   })
 
@@ -147,6 +155,11 @@ ${getCooldownText(user)}`,
   const setId = interaction.values[0]
   const user  = getUser(interaction.user.id)
   const beforeCompletion = getSetCompletion(user, setId)
+  const setCache = getSetCache()
+
+  if((setCache[setId] || []).length === 0){
+   return interaction.editReply("Ce set ne contient aucune carte jouable actuellement.")
+  }
 
   if(!user.pity) user.pity = {}
 
@@ -292,3 +305,4 @@ ${getCooldownText(user)}`,
  }
 
 }
+
