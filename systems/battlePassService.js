@@ -20,6 +20,9 @@ const commandCooldown = new Map()
 const COOLDOWN_MS = 2000
 const SEASON_CHECK_THROTTLE_MS = 5000
 const FILE_LOCK_STALE_MS = 15000
+const ENDLESS_XP_STEP = 900
+const ENDLESS_KAMAS_REWARD = 2500
+const ENDLESS_PLAYER_XP_REWARD = 700
 let lastSeasonTransitionCheckAt = 0
 
 function getXpConfig() {
@@ -46,11 +49,37 @@ function computeLevel(totalXP, xpCurve, maxLevel = 40) {
   if (totalXP >= xpCurve[i]) level = i + 2
   else break
  }
- return Math.min(level, maxLevel)
+
+ if (xpCurve.length > 0 && totalXP >= xpCurve[xpCurve.length - 1]) {
+  const overflow = totalXP - xpCurve[xpCurve.length - 1]
+  level = (xpCurve.length + 1) + Math.floor(overflow / ENDLESS_XP_STEP)
+ }
+
+ if (typeof maxLevel === "number" && Number.isFinite(maxLevel) && maxLevel > 0) {
+  return Math.min(level, maxLevel)
+ }
+ return level
+}
+
+function getLevelMinXP(level, xpCurve) {
+ if (level <= 1) return 0
+ const index = level - 2
+ if (index < xpCurve.length) return xpCurve[index] || 0
+ const last = xpCurve[xpCurve.length - 1] || 0
+ const extra = index - (xpCurve.length - 1)
+ return last + (extra * ENDLESS_XP_STEP)
+}
+
+function getEndlessRewardForLevel(level) {
+ if (level <= 40) return null
+ if (level % 2 === 1) {
+  return { level, type: "kamas", value: ENDLESS_KAMAS_REWARD }
+ }
+ return { level, type: "player_xp", value: ENDLESS_PLAYER_XP_REWARD }
 }
 
 function syncProgressLevel(progress, season) {
- const computed = computeLevel(progress.totalXP || 0, season.xpCurve || [], season.totalLevels || 40)
+ const computed = computeLevel(progress.totalXP || 0, season.xpCurve || [], null)
  if (computed !== progress.currentLevel) {
   progress.currentLevel = computed
   saveUserProgress(progress)
@@ -299,6 +328,14 @@ function getClaimableRewards(progress, season) {
    if (reward.level <= progress.currentLevel && !progress.claimedPremium.includes(reward.level)) {
     claimable.premium.push(reward)
    }
+  }
+ }
+
+ if (progress.currentLevel > 40) {
+  for (let level = 41; level <= progress.currentLevel; level++) {
+   if (progress.claimedFree.includes(level)) continue
+   const reward = getEndlessRewardForLevel(level)
+   if (reward) claimable.free.push(reward)
   }
  }
 
@@ -609,7 +646,7 @@ async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
 
  progress.totalXP += finalAmount
  const oldLevel = progress.currentLevel
- const newLevel = computeLevel(progress.totalXP, season.xpCurve || [], season.totalLevels || 40)
+ const newLevel = computeLevel(progress.totalXP, season.xpCurve || [], null)
  progress.currentLevel = newLevel
 
  const unlocked = checkAndUnlockAchievements(progress, season)
@@ -769,8 +806,8 @@ function getBattlePassOverview(userId) {
 
  const curve = season.xpCurve || []
  const currentLevel = progress.currentLevel
- const prevCap = currentLevel <= 1 ? 0 : (curve[currentLevel - 2] || 0)
- const nextCap = curve[currentLevel - 1] || curve[curve.length - 1] || 0
+ const prevCap = getLevelMinXP(currentLevel, curve)
+ const nextCap = getLevelMinXP(currentLevel + 1, curve)
 
  return {
   season: current,
@@ -862,14 +899,14 @@ function devForceSeason(seasonId) {
 function devSetLevel(userId, level) {
  const current = ensureCurrentSeason()
  const season = getSeasonTemplate(current.activeSeason)
- if (level < 1 || level > (season.totalLevels || 40)) {
+ if (level < 1 || level > 9999) {
   return { ok: false, error: "Niveau invalide." }
  }
 
  const progress = getUserProgress(userId, current.activeSeason)
  const curve = season.xpCurve || []
  progress.currentLevel = level
- progress.totalXP = level <= 1 ? 0 : (curve[Math.max(0, level - 2)] || 0)
+ progress.totalXP = getLevelMinXP(level, curve)
  saveUserProgress(progress)
  return { ok: true, progress }
 }
@@ -879,7 +916,7 @@ function devSetXP(userId, totalXP) {
  const season = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
  progress.totalXP = Math.max(0, totalXP)
- progress.currentLevel = computeLevel(progress.totalXP, season.xpCurve || [], season.totalLevels || 40)
+ progress.currentLevel = computeLevel(progress.totalXP, season.xpCurve || [], null)
  saveUserProgress(progress)
  return { ok: true, progress }
 }
@@ -932,6 +969,7 @@ module.exports = {
  checkSeasonTransitions,
   claimAllBattlePassRewards,
   computeLevel,
+  getEndlessRewardForLevel,
   devForceSeason,
   devGivePremium,
   devNextSeason,

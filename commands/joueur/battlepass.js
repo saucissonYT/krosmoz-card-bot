@@ -9,6 +9,7 @@ const {
 const {
  buyPremium,
  claimAllBattlePassRewards,
+ getEndlessRewardForLevel,
  getBattlePassAchievements,
  getBattlePassOverview,
  getBattlePassRewardsView
@@ -47,28 +48,35 @@ function buildMainEmbed(userId) {
  const season = data.seasonTemplate
  const progress = data.progress
 
+ const maxSeasonLevel = season.totalLevels || 40
+ const isEndless = progress.currentLevel > maxSeasonLevel
  const xpLevel = Math.max(0, data.xpInLevel || 0)
- const xpNeed = progress.currentLevel >= (season.totalLevels || 40)
-  ? Math.max(1, xpLevel)
-  : Math.max(1, xpLevel + (data.xpToNextLevel || 0))
- const ratio = progress.currentLevel >= (season.totalLevels || 40)
-  ? 1
-  : Math.min(1, Math.max(0, xpLevel / xpNeed))
+ const xpNeed = Math.max(1, xpLevel + (data.xpToNextLevel || 0))
+ const ratio = Math.min(1, Math.max(0, xpLevel / xpNeed))
  const pct = Math.round(ratio * 100)
 
  const nextFree = (season.freeRewards || []).find((r) => r.level > progress.currentLevel)
+ const endlessNext = !nextFree ? getEndlessRewardForLevel(progress.currentLevel + 1) : null
+ const nextRewardText = nextFree
+  ? `Niv.${nextFree.level} — ${rewardLabel(nextFree)}`
+  : endlessNext
+   ? `Niv.${endlessNext.level} — ${rewardLabel(endlessNext)}`
+   : "Pass entierement complete"
  const keyLevels = [20, 25, 30, 35, 40]
  const keyNext = keyLevels.find((lv) => lv > progress.currentLevel)
+ const levelLabel = isEndless
+  ? `Niveau ${progress.currentLevel} (Suite)  ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
+  : `Niveau ${progress.currentLevel}/${maxSeasonLevel}  ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
 
  const desc =
   `*${season.subtitle || "La saison est en marche."}*\n\n` +
   `📅 **Cloture de saison:** ${data.season.endDate}\n` +
   `⚡ **Aura active:** ${season.passiveBonus?.description || "-"}\n\n` +
-  `🎚️ **Progression:** Niveau ${progress.currentLevel}/${season.totalLevels}  ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}\n` +
+  `🎚️ **Progression:** ${levelLabel}\n` +
   `⭐ **XP du palier:** ${xpLevel}/${xpNeed}\n` +
   `[${bar(ratio)}] ${pct}%\n\n` +
   `🎁 **A recuperer maintenant:** ${data.claimableCount}\n` +
-  `➡️ **Prochaine recompense:** ${nextFree ? `Niv.${nextFree.level} — ${rewardLabel(nextFree)}` : "Pass entierement complete"}\n` +
+  `➡️ **Prochaine recompense:** ${nextRewardText}\n` +
   `🏁 **Prochain palier legendaire:** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
   `💎 **Prix Premium:** ${season.premiumPrice || 8000} kamas`
 
@@ -376,3 +384,4 @@ module.exports = {
   })
  }
 }
+
