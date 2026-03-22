@@ -14,7 +14,7 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 100 et débloquer des bonus permanents
-- Débloquer 367 succès et des titres exclusifs
+- Débloquer 395 succès et des titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -134,7 +134,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## 🏆 Achievements
 
-367 succès automatiques répartis en 11 catégories actives :
+395 succès automatiques répartis en 11 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -578,15 +578,28 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievements()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere/maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Les `367 succes` du README correspondent au registre principal; les succes Battle Pass sont un bloc separe
+- Les `395 succes` du README correspondent au registre principal; les succes Battle Pass sont un bloc separe
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
-- Ouvre rapidement plusieurs packs d'un même set (jusqu'à 20 en une commande)
+- Ouvre rapidement plusieurs packs d'un même set (jusqu'à 25 en une commande)
 - Mode **🎲 random** disponible (répartition automatique entre tous les sets jouables)
 - Affichage en **défilement rapide** puis résumé final
 - Les cartes sont **cumulées** (ex: `x2`, `x3`) au lieu d'être répétées
 - La consommation de packs est exacte (gratuit si dispo, puis packs du stock)
+- Les succès RNG de "pack unique" se valident uniquement sur une ouverture simple (pas sur le total d'un multipack)
+
+### 🛒 Achat groupé /buypack
+
+- `/buypack` permet d'acheter **1 à 25 packs d'un coup** avec confirmation du total
+- Affiche prix unitaire, quantité et coût total avant validation
+- Débloque des succès dédiés aux achats groupés et aux gros lots
+
+### 🔒 Succès cachés multi
+
+- Nouvelles séries cachées liées aux gros volumes (achat et ouverture)
+- Paliers "gros lot" sur les quantités 5, 10, 15, 20 et 25 d'un coup
+- Titres et badges exclusifs pour les combos multi (achat + ouverture)
 
 ### Commandes liees
 
@@ -600,8 +613,8 @@ La commande **/quests** affiche une interface interactive avec :
 ### Packs
 | Commande | Description |
 |----------|-------------|
-| /krosmoz | Ouvrir 1 à 20 packs d'un set ou en mode 🎲 random (1 gratuit/heure puis consommation du stock), avec mode giga-pack cumulé |
-| /buypack | Acheter un pack (800 kamas) |
+| /krosmoz | Ouvrir 1 à 25 packs d'un set ou en mode 🎲 random (1 gratuit/heure puis consommation du stock), avec mode giga-pack cumulé |
+| /buypack | Acheter 1 à 25 packs d'un coup (800 kamas / pack) avec confirmation |
 | /eventpack | Ouvrir un pack d'event |
 | /pity | Voir ta pity par set |
 
@@ -644,7 +657,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 367 succès |
+| /achievements | Voir les 395 succès |
 | /krosmohelp | Aide du bot |
 
 ---
@@ -700,7 +713,7 @@ La commande **/quests** affiche une interface interactive avec :
 
 ## 🏆 Achievements
 
-367 succès automatiques répartis en 11 catégories actives :
+395 succès automatiques répartis en 11 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop

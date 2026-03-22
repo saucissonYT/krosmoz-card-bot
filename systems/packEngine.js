@@ -1,4 +1,4 @@
-const { generatePack: coreGeneratePack } = require("./pack")
+﻿const { generatePack: coreGeneratePack } = require("./pack")
 const { getCards } = require("./cardRegistry")
 const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
@@ -46,14 +46,14 @@ function generatePack(user){
  }
 
  if(!setId){
-  console.error("❌ NO SET ID FOR USER", user.id)
+  console.error("âŒ NO SET ID FOR USER", user.id)
   return []
  }
 
  const result = coreGeneratePack(user,setId)
 
  if(!result || !Array.isArray(result.pack)){
-  console.error("❌ INVALID PACK RESULT", result)
+  console.error("âŒ INVALID PACK RESULT", result)
   return []
  }
 
@@ -70,7 +70,7 @@ function generateGlobalPack(size=5){
 
 function generateCustomPack(pool,size=5){
  if(!pool || !pool.length){
-  console.error("❌ EMPTY CUSTOM POOL")
+  console.error("âŒ EMPTY CUSTOM POOL")
   return []
  }
  return Array.from({length:size},()=>pool[Math.floor(Math.random()*pool.length)])
@@ -107,14 +107,14 @@ function isPalindrome(n){
 function openPack(user, setId, userId, options = {}){
 
  const isSimpleCommandOpen = options.isSimpleCommandOpen !== false
-
- /* Capture pity AVANT le pack pour détecter le hard pity */
- const pitySSRBefore = user.pity?.[setId]?.SSR ?? 0
+ const pityKey = options.pityKey || setId
+ /* Capture pity AVANT le pack pour dÃ©tecter le hard pity */
+ const pitySSRBefore = user.pity?.[pityKey]?.SSR ?? 0
 
  /* ---- Charger les bonus ---- */
  const bonuses = getBonuses(userId || "", user)
 
- const result = coreGeneratePack(user, setId)
+ const result = coreGeneratePack(user, setId, { pityKey })
 
  const pack = result?.pack || []
  let luckyPack = result?.luckyPack || false
@@ -237,8 +237,8 @@ function openPack(user, setId, userId, options = {}){
  /* ---- DETECTION ALL C / ALL U ---- */
  const allC = pack.every(c=>c?.rarity==="C")
  const allU = pack.every(c=>c?.rarity==="U")
- if(isSimpleCommandOpen && allC) user.stats.allCPack = (user.stats.allCPack||0)+1
- if(isSimpleCommandOpen && allU) user.stats.allUPack = (user.stats.allUPack||0)+1
+ if(isSimpleCommandOpen && pack.length===5 && allC) user.stats.allCPack = (user.stats.allCPack||0)+1
+ if(isSimpleCommandOpen && pack.length===5 && allU) user.stats.allUPack = (user.stats.allUPack||0)+1
 
  /* ---- DRY STREAK ---- */
  const hasSOrSSR = rarities.includes("S") || rarities.includes("SSR")
@@ -308,3 +308,4 @@ module.exports={
  generateGlobalPack,
  generateCustomPack
 }
+

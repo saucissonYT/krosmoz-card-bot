@@ -106,7 +106,7 @@ function randomCard(pool){
  return pool[Math.floor(Math.random()*pool.length)]
 }
 
-function generatePack(user,setId){
+function generatePack(user,setId,options={}){
 
  const setCards=getCardsBySet(setId)
 
@@ -115,11 +115,13 @@ function generatePack(user,setId){
 
  if(!user.pity) user.pity={}
 
- if(!user.pity[setId]){
-  user.pity[setId]={UR:0,S:0,SSR:0}
+ const pityKey = options.pityKey || setId
+
+ if(!user.pity[pityKey]){
+  user.pity[pityKey]={UR:0,S:0,SSR:0}
  }
 
- const pity=user.pity[setId]
+ const pity=user.pity[pityKey]
 
  if(pity.UR === undefined) pity.UR = 0
  if(pity.S === undefined) pity.S = 0

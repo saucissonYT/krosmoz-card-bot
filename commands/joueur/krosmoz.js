@@ -128,6 +128,7 @@ async function openPacksBatch(interaction, setId, requestedCount) {
 
  if (!user.pity) user.pity = {}
  if (!isRandom && !user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
+ if (isRandom && !user.pity.random) user.pity.random = { SSR: 0, S: 0, UR: 0 }
  if (!user.stats) user.stats = {}
 
  if (!isRandom) {
@@ -193,7 +194,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   user.lastSet = chosenSetId
 
   const result = openPack(user, chosenSetId, interaction.user.id, {
-   isSimpleCommandOpen: packCount === 1
+   isSimpleCommandOpen: packCount === 1,
+   pityKey: isRandom ? "random" : chosenSetId
   })
   result._setId = chosenSetId
   results.push(result)
@@ -222,14 +224,13 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   }
  }
 
- save(interaction.user.id)
-
  const unlocked = []
  unlocked.push(...achievementCheck(user, "pack"))
  unlocked.push(...achievementCheck(user, "collection"))
  unlocked.push(...achievementCheck(user, "economy"))
  unlocked.push(...achievementCheck(user, "rng"))
  const uniqueUnlocked = [...new Set(unlocked)]
+ save(interaction.user.id)
 
  const grouped = aggregateCards(results)
  const displayed = grouped.slice(0, 45)
@@ -284,9 +285,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    { name: "💰 Kamas gagnés", value: `+${totals.kamas}`, inline: true },
    { name: "⭐ XP gagnée", value: `+${totals.xp}`, inline: true },
    { name: "📦 Packs consommés", value: `${packCount} (${freePacks} gratuit + ${paidNeeded} payants)`, inline: true },
-   { name: "🌈 SSR Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.SSR ?? 0}/50`, inline: true },
-   { name: "✨ S Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.S ?? 0}/30`, inline: true },
-   { name: "🟡 UR Pity", value: isRandom ? "Mode random" : `${user.pity?.[setId]?.UR ?? 0}/10`, inline: true }
+   { name: "🌈 SSR Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.SSR ?? 0}/50`, inline: true },
+   { name: "✨ S Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.S ?? 0}/30`, inline: true },
+   { name: "🟡 UR Pity", value: `${user.pity?.[isRandom ? "random" : setId]?.UR ?? 0}/10`, inline: true }
   )
   .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
 
