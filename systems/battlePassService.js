@@ -158,10 +158,10 @@ function awardReward(userId, reward) {
   result.packs += amount
   result.text = `📦 ${amount} pack(s)`
  } else if (reward.type === "pack_premium") {
-  const amount = (reward.value || 1) * 2
+  const amount = reward.value || 1
   user.packs = (user.packs || 0) + amount
   result.packs += amount
-  result.text = `🎁 ${amount} pack(s) premium`
+  result.text = `📦 ${amount} pack(s)`
  } else if (reward.type === "title") {
   if (!user.titles) user.titles = ["Nouveau"]
   if (!user.titles.includes(reward.value)) user.titles.push(reward.value)

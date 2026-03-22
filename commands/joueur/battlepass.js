@@ -19,7 +19,7 @@ function rewardLabel(reward) {
  if (reward.type === "kamas") return `💰 ${reward.value} kamas`
  if (reward.type === "player_xp") return `⭐ ${reward.value} XP joueur`
  if (reward.type === "pack") return `📦 ${reward.value || 1} pack`
- if (reward.type === "pack_premium") return `🎁 ${reward.value || 1} pack premium`
+ if (reward.type === "pack_premium") return `📦 ${reward.value || 1} pack`
  if (reward.type === "title") return `📜 ${reward.value}`
  if (reward.type === "badge") return `🏅 ${reward.value}`
  if (reward.type === "card") return `🃏 ${reward.cardId}`

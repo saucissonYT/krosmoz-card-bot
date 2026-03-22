@@ -122,8 +122,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_emeraude_ssr",
    passiveBonus: {
     type: "xp_boost",
-    value: 1.1,
-    description: "+10% XP Battle Pass pendant la saison"
+    value: 1.2,
+    description: "+20% XP Battle Pass pendant la saison"
    }
   },
   pourpre: {
@@ -139,8 +139,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_pourpre_ssr",
    passiveBonus: {
     type: "kamas_gain",
-    value: 1.15,
-    description: "+15% kamas sur les gains"
+    value: 1.25,
+    description: "+25% kamas sur les gains"
    }
   },
   turquoise: {
@@ -156,8 +156,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_turquoise_ssr",
    passiveBonus: {
     type: "pack_double_drop",
-    value: 0.1,
-    description: "10% chance de double drop sur pack"
+    value: 0.2,
+    description: "20% chance de double drop sur pack"
    }
   },
   ocre: {
@@ -173,8 +173,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_ocre_ssr",
    passiveBonus: {
     type: "guild_xp_boost",
-    value: 1.2,
-    description: "+20% XP guilde"
+    value: 1.35,
+    description: "+35% XP guilde"
    }
   },
   ivoire: {
@@ -190,8 +190,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_ivoire_ssr",
    passiveBonus: {
     type: "fusion_cost_reduction",
-    value: 0.85,
-    description: "-15% cout fusion"
+    value: 0.75,
+    description: "-25% cout fusion"
    }
   },
   ebene: {
@@ -207,8 +207,8 @@ function getSeasonTheme(seasonId) {
    dofusCard40: "dofus_ebene_ssr",
    passiveBonus: {
     type: "market_sell_bonus",
-    value: 1.25,
-    description: "+25% kamas ventes market"
+    value: 1.4,
+    description: "+40% kamas ventes market"
    }
   }
  }
@@ -244,10 +244,10 @@ function buildLevelRewards(seasonId) {
    if (level === 5) premiumReward = { level, type: "kamas", value: 2000 }
    else if (level === 10) premiumReward = { level, type: "kamas", value: 3000 }
    else if (level === 15) premiumReward = { level, type: "pack", value: 2 }
-   else if (level === 20) premiumReward = { level, type: "pack_premium", value: 2 }
+   else if (level === 20) premiumReward = { level, type: "pack", value: 4 }
    else if (level === 25) premiumReward = { level, type: "kamas", value: 6000 }
    else if (level === 30) premiumReward = { level, type: "card_random_ssr", value: 2 }
-   else if (level === 35) premiumReward = { level, type: "pack_premium", value: 3 }
+   else if (level === 35) premiumReward = { level, type: "pack", value: 6 }
    else if (level === 40) premiumReward = { level, type: "badge", value: theme.badge40 }
   }
 
@@ -291,7 +291,8 @@ function buildSeasonTemplate(seasonId) {
   freeRewards: rewards.freeRewards,
   premiumRewards: rewards.premiumRewards,
   achievements: buildSeasonAchievements(seasonId),
-  rewardsVersion: 3,
+  bonusVersion: 2,
+  rewardsVersion: 4,
   premiumPrice: 8000
  }
 }
@@ -470,10 +471,15 @@ function getSeasonTemplate(seasonId) {
   merged.passiveBonus = fallback.passiveBonus
   changed = true
  }
- if ((data.rewardsVersion || 0) < 3) {
+ if ((data.bonusVersion || 0) < 2) {
+  merged.passiveBonus = fallback.passiveBonus
+  merged.bonusVersion = 2
+  changed = true
+ }
+ if ((data.rewardsVersion || 0) < 4) {
   merged.freeRewards = fallback.freeRewards
   merged.premiumRewards = fallback.premiumRewards
-  merged.rewardsVersion = 3
+  merged.rewardsVersion = 4
   changed = true
  }
 
