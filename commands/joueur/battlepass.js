@@ -47,13 +47,13 @@ function buildMainEmbed(userId) {
  const season = data.seasonTemplate
  const progress = data.progress
 
- const curve = season.xpCurve || []
- const prevCap = progress.currentLevel <= 1 ? 0 : (curve[progress.currentLevel - 2] || 0)
- const levelCap = curve[progress.currentLevel - 1] || curve[curve.length - 1] || progress.totalXP
-
- const xpLevel = Math.max(0, progress.totalXP - prevCap)
- const xpNeed = Math.max(1, levelCap - prevCap)
- const ratio = Math.min(1, Math.max(0, xpLevel / xpNeed))
+ const xpLevel = Math.max(0, data.xpInLevel || 0)
+ const xpNeed = progress.currentLevel >= (season.totalLevels || 40)
+  ? Math.max(1, xpLevel)
+  : Math.max(1, xpLevel + (data.xpToNextLevel || 0))
+ const ratio = progress.currentLevel >= (season.totalLevels || 40)
+  ? 1
+  : Math.min(1, Math.max(0, xpLevel / xpNeed))
  const pct = Math.round(ratio * 100)
 
  const nextFree = (season.freeRewards || []).find((r) => r.level > progress.currentLevel)

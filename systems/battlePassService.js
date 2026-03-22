@@ -43,10 +43,19 @@ function getXpConfig() {
 function computeLevel(totalXP, xpCurve, maxLevel = 40) {
  let level = 1
  for (let i = 0; i < xpCurve.length; i++) {
-  if (totalXP >= xpCurve[i]) level = i + 1
+  if (totalXP >= xpCurve[i]) level = i + 2
   else break
  }
  return Math.min(level, maxLevel)
+}
+
+function syncProgressLevel(progress, season) {
+ const computed = computeLevel(progress.totalXP || 0, season.xpCurve || [], season.totalLevels || 40)
+ if (computed !== progress.currentLevel) {
+  progress.currentLevel = computed
+  saveUserProgress(progress)
+ }
+ return computed
 }
 
 function getProgressPath(userId) {
@@ -638,6 +647,7 @@ async function claimAllBattlePassRewards(userId) {
   const current = ensureCurrentSeason()
   const season = getSeasonTemplate(current.activeSeason)
   const progress = getUserProgress(userId, current.activeSeason)
+  syncProgressLevel(progress, season)
   const claimable = getClaimableRewards(progress, season)
 
   let freeCount = 0
@@ -699,6 +709,7 @@ async function buyPremium(userId) {
   const current = ensureCurrentSeason()
   const season = getSeasonTemplate(current.activeSeason)
   const progress = getUserProgress(userId, current.activeSeason)
+  syncProgressLevel(progress, season)
   const user = getUser(userId)
 
   if (progress.hasPremium) return { ok: false, error: "Pass premium deja actif." }
@@ -753,6 +764,7 @@ function getBattlePassOverview(userId) {
  const current = ensureCurrentSeason()
  const season = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
+ syncProgressLevel(progress, season)
  const claimable = getClaimableRewards(progress, season)
 
  const curve = season.xpCurve || []
@@ -857,7 +869,7 @@ function devSetLevel(userId, level) {
  const progress = getUserProgress(userId, current.activeSeason)
  const curve = season.xpCurve || []
  progress.currentLevel = level
- progress.totalXP = curve[Math.max(0, level - 1)] || 0
+ progress.totalXP = level <= 1 ? 0 : (curve[Math.max(0, level - 2)] || 0)
  saveUserProgress(progress)
  return { ok: true, progress }
 }
