@@ -18,6 +18,10 @@ const cooldownDev = require("../dev/cooldown")
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const MAX_BATCH = 20
 
+function sleep(ms) {
+ return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function getSetCache() {
  const cards = getCards()
  const cache = {}
@@ -182,11 +186,11 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  const displayed = grouped.slice(0, 45)
  const hidden = Math.max(0, grouped.length - displayed.length)
 
- const lines = displayed.map(({ card, qty }) => {
-  const qtyText = qty > 1 ? ` (x${qty})` : ""
-  return `${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny ? " ✨" : ""}** \`${card.rarity}\`${qtyText}`
- })
- if (hidden > 0) lines.push(`... +${hidden} carte(s) unique(s) supplémentaire(s)`)
+  const lines = displayed.map(({ card, qty }) => {
+   const qtyText = qty > 1 ? ` (x${qty})` : ""
+   return `${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny ? " ✨" : ""}** \`${card.rarity}\`${qtyText}`
+  })
+  if (hidden > 0) lines.push(`... +${hidden} carte(s) unique(s) supplémentaire(s)`)
 
  const totals = results.reduce((acc, r) => {
   acc.kamas += r.kamasGain || 0
@@ -205,6 +209,24 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   if (!r.best) continue
   if (!best || rarityRank(r.best.rarity) > rarityRank(best.rarity)) best = r.best
  }
+
+  // Défilement rapide: plus fluide qu'un pack normal, mais garde l'effet reveal.
+  const scrollPreview = lines.slice(0, 18)
+  if (scrollPreview.length > 0) {
+   const step = packCount >= 10 ? 6 : 4
+   const delay = packCount >= 10 ? 180 : 240
+
+   for (let i = step; i <= scrollPreview.length; i += step) {
+    const chunk = scrollPreview.slice(0, i).join("\n")
+    const revealEmbed = new EmbedBuilder()
+     .setTitle(`🎴 Giga Pack x${packCount} — Défilement`)
+     .setDescription(`${chunk}${i < scrollPreview.length ? "\n\n..." : ""}`)
+     .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
+
+    await interaction.editReply({ embeds: [revealEmbed] })
+    await sleep(delay)
+   }
+  }
 
  const embed = new EmbedBuilder()
   .setTitle(`🎴 Giga Pack ouvert x${packCount}`)
