@@ -79,7 +79,7 @@ krosmoz-card
 
 Le bot utilise une architecture modulaire basée sur des systèmes indépendants.
 
-### ⚙ï¸ Systèmes principaux
+### ⚙¸ Systèmes principaux
 
 | Système | Rôle |
 |---------|------|
