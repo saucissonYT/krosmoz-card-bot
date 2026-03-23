@@ -426,7 +426,6 @@ module.exports = {
   const rawSets      = loadSets()
   const playableSets = getPlayableSets(rawSets)
 
-  /* Charger l'user pour afficher sa complétion */
   let user = null
   try { user = getUser(interaction.user.id) } catch (_) {}
 
@@ -436,7 +435,11 @@ module.exports = {
    let label = set.name
    if (user) {
     const { owned, total } = getSetCompletion(user, set.id)
-    label = `${set.name} (${owned}/${total})`
+    const pct = total > 0 ? Math.floor(owned / total * 100) : 0
+    if (!user.pity)        user.pity = {}
+    if (!user.pity[set.id]) user.pity[set.id] = { SSR: 0, S: 0, UR: 0 }
+    const ssr = user.pity[set.id].SSR ?? 0
+    label = `${set.name} (${owned}/${total}) — ${pct}% · SSR pity : ${ssr}/50`
    }
    choices.push({ name: label, value: set.id })
   }

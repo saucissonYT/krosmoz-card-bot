@@ -37,33 +37,35 @@ function rewardsLabels(rewards, fallback = "—") {
  return rewards.map((reward) => rewardLabel(reward)).join(" | ")
 }
 
+/* ── Barre style pity (🟩⬛) ─────────────────────────────────────────────── */
 function bar(percent) {
- const width = 20
+ const width  = 12
  const filled = Math.max(0, Math.min(width, Math.round(percent * width)))
- return `${"█".repeat(filled)}${"░".repeat(width - filled)}`
+ return "🟩".repeat(filled) + "⬛".repeat(width - filled)
 }
 
 function buildMainEmbed(userId) {
- const data = getBattlePassOverview(userId)
- const season = data.seasonTemplate
+ const data     = getBattlePassOverview(userId)
+ const season   = data.seasonTemplate
  const progress = data.progress
 
  const maxSeasonLevel = season.totalLevels || 40
- const isEndless = progress.currentLevel > maxSeasonLevel
- const xpLevel = Math.max(0, data.xpInLevel || 0)
- const xpNeed = Math.max(1, xpLevel + (data.xpToNextLevel || 0))
- const ratio = Math.min(1, Math.max(0, xpLevel / xpNeed))
- const pct = Math.round(ratio * 100)
+ const isEndless      = progress.currentLevel > maxSeasonLevel
+ const xpLevel        = Math.max(0, data.xpInLevel || 0)
+ const xpNeed         = Math.max(1, xpLevel + (data.xpToNextLevel || 0))
+ const ratio          = Math.min(1, Math.max(0, xpLevel / xpNeed))
+ const pct            = Math.round(ratio * 100)
 
- const nextFree = (season.freeRewards || []).find((r) => r.level > progress.currentLevel)
+ const nextFree    = (season.freeRewards || []).find((r) => r.level > progress.currentLevel)
  const endlessNext = !nextFree ? getEndlessRewardForLevel(progress.currentLevel + 1) : null
  const nextRewardText = nextFree
   ? `Niv.${nextFree.level} — ${rewardLabel(nextFree)}`
   : endlessNext
    ? `Niv.${endlessNext.level} — ${rewardLabel(endlessNext)}`
    : "Pass entierement complete"
+
  const keyLevels = [20, 25, 30, 35, 40]
- const keyNext = keyLevels.find((lv) => lv > progress.currentLevel)
+ const keyNext   = keyLevels.find((lv) => lv > progress.currentLevel)
  const levelLabel = isEndless
   ? `Niveau ${progress.currentLevel} (Suite)  ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
   : `Niveau ${progress.currentLevel}/${maxSeasonLevel}  ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
@@ -74,7 +76,7 @@ function buildMainEmbed(userId) {
   `⚡ **Aura active:** ${season.passiveBonus?.description || "-"}\n\n` +
   `🎚️ **Progression:** ${levelLabel}\n` +
   `⭐ **XP du palier:** ${xpLevel}/${xpNeed}\n` +
-  `[${bar(ratio)}] ${pct}%\n\n` +
+  `${bar(ratio)} ${pct}%\n\n` +
   `🎁 **A recuperer maintenant:** ${data.claimableCount}\n` +
   `➡️ **Prochaine recompense:** ${nextRewardText}\n` +
   `🏁 **Prochain palier legendaire:** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
@@ -130,12 +132,12 @@ function buildBuyConfirmRow() {
 }
 
 function buildRewardsPage(userId, page = 1) {
- const view = getBattlePassRewardsView(userId, page, REWARDS_PER_PAGE)
+ const view  = getBattlePassRewardsView(userId, page, REWARDS_PER_PAGE)
  const lines = view.rows.map((row) => {
-  const freeState = row.claimedFree ? "✅" : "🎁"
+  const freeState    = row.claimedFree    ? "✅" : "🎁"
   const premiumState = row.claimedPremium ? "✅" : "⭐"
-  const freeText = rewardsLabels(row.freeRewards)
-  const premiumText = rewardsLabels(row.premiumRewards, "Aucune reward premium sur ce palier")
+  const freeText     = rewardsLabels(row.freeRewards)
+  const premiumText  = rewardsLabels(row.premiumRewards, "Aucune reward premium sur ce palier")
   return `**Palier ${row.level}**\n${freeState} **Gratuit**: ${freeText}\n${premiumState} **Premium**: ${premiumText}`
  })
 
@@ -169,9 +171,7 @@ function buildRewardsPage(userId, page = 1) {
 async function openRewardsPager(interaction, userId, startPage = 1) {
  const existing = activeRewardsPagers.get(userId)
  if (existing) {
-  try {
-   existing.collector.stop("replaced")
-  } catch (_) {}
+  try { existing.collector.stop("replaced") } catch (_) {}
  }
 
  let currentPage = startPage
@@ -188,9 +188,8 @@ async function openRewardsPager(interaction, userId, startPage = 1) {
  activeRewardsPagers.set(userId, { collector, messageId: msg.id })
 
  collector.on("collect", async (i) => {
-  if (i.user.id !== interaction.user.id) {
+  if (i.user.id !== interaction.user.id)
    return i.reply({ content: "Ce menu n'est pas pour toi.", flags: 64 })
-  }
 
   if (i.customId === "bp_rewards_next") currentPage++
   if (i.customId === "bp_rewards_prev") currentPage--
@@ -203,18 +202,14 @@ async function openRewardsPager(interaction, userId, startPage = 1) {
 
  collector.on("end", async () => {
   const entry = activeRewardsPagers.get(userId)
-  if (entry?.messageId === msg.id) {
-   activeRewardsPagers.delete(userId)
-  }
-  try {
-   await msg.edit({ components: [] })
-  } catch (_) {}
+  if (entry?.messageId === msg.id) activeRewardsPagers.delete(userId)
+  try { await msg.edit({ components: [] }) } catch (_) {}
  })
 }
 
 function buildClaimSummaryEmbed(result) {
  const preview = (result.claimedRewards || []).slice(0, 10)
- const lines = preview.map((r) => {
+ const lines   = preview.map((r) => {
   const track = r.track === "premium" ? "⭐" : "🎁"
   return `${track} **Niv.${r.level}** — ${r.text}`
  })
@@ -227,7 +222,7 @@ function buildClaimSummaryEmbed(result) {
   .setTitle("🎉 Recompenses recuperees")
   .setDescription(lines.join("\n") || "Aucune reward.")
   .addFields(
-   { name: "Total", value: `${result.total}`, inline: true },
+   { name: "Total",    value: `${result.total}`,              inline: true },
    { name: "💰 Kamas", value: `+${result.totals?.kamas || 0}`, inline: true },
    { name: "📦 Packs", value: `+${result.totals?.packs || 0}`, inline: true }
   )
@@ -239,7 +234,7 @@ async function sendRewards(interaction, userId, page = 1) {
 }
 
 async function sendAchievements(interaction, userId) {
- const data = getBattlePassAchievements(userId)
+ const data  = getBattlePassAchievements(userId)
  const lines = data.entries.slice(0, 25).map((entry) => `${entry.unlocked ? "✅" : "🔒"} ${entry.name}`)
 
  const embed = new EmbedBuilder()
@@ -252,7 +247,7 @@ async function sendAchievements(interaction, userId) {
 }
 
 async function sendSeason(interaction, userId) {
- const data = getBattlePassOverview(userId)
+ const data   = getBattlePassOverview(userId)
  const season = data.seasonTemplate
 
  const embed = new EmbedBuilder()
@@ -263,9 +258,9 @@ async function sendSeason(interaction, userId) {
    `**Cycle:** 6 saisons fixes (Emeraude -> Pourpre -> Turquoise -> Ocre -> Ivoire -> Ebene)`
   )
   .addFields(
-   { name: "Debut", value: data.season.startDate, inline: true },
-   { name: "Fin", value: data.season.endDate, inline: true },
-   { name: "Prix Premium", value: `${season.premiumPrice || 8000} kamas`, inline: true }
+   { name: "Debut",         value: data.season.startDate,              inline: true },
+   { name: "Fin",           value: data.season.endDate,                inline: true },
+   { name: "Prix Premium",  value: `${season.premiumPrice || 8000} kamas`, inline: true }
   )
   .setColor(season.color || "#1B6B3A")
 
@@ -281,12 +276,12 @@ module.exports = {
     .setDescription("Action rapide")
     .setRequired(false)
     .addChoices(
-     { name: "Voir", value: "view" },
-     { name: "Claim", value: "claim" },
-     { name: "Rewards", value: "rewards" },
-     { name: "Buy", value: "buy" },
+     { name: "Voir",         value: "view"         },
+     { name: "Claim",        value: "claim"        },
+     { name: "Rewards",      value: "rewards"      },
+     { name: "Buy",          value: "buy"          },
      { name: "Achievements", value: "achievements" },
-     { name: "Season", value: "season" }
+     { name: "Season",       value: "season"       }
     )
   )
   .addIntegerOption((option) =>
@@ -299,7 +294,7 @@ module.exports = {
 
  async execute(interaction) {
   const action = interaction.options.getString("action") || "view"
-  const page = interaction.options.getInteger("page") || 1
+  const page   = interaction.options.getInteger("page")  || 1
   const userId = interaction.user.id
 
   if (action === "claim") {
@@ -314,9 +309,9 @@ module.exports = {
    return interaction.reply({ content: `✅ Pass Premium active. Recompenses retroactives accordees: ${result.retroCount}.`, flags: 64 })
   }
 
-  if (action === "rewards") return sendRewards(interaction, userId, page)
+  if (action === "rewards")      return sendRewards(interaction, userId, page)
   if (action === "achievements") return sendAchievements(interaction, userId)
-  if (action === "season") return sendSeason(interaction, userId)
+  if (action === "season")       return sendSeason(interaction, userId)
 
   const { embed, data } = buildMainEmbed(userId)
   const row = buildActionRow(data)
@@ -327,36 +322,29 @@ module.exports = {
   const collector = msg.createMessageComponentCollector({ time: 180000 })
 
   collector.on("collect", async (i) => {
-   if (i.user.id !== interaction.user.id) {
+   if (i.user.id !== interaction.user.id)
     return i.reply({ content: "Ce menu n'est pas pour toi.", flags: 64 })
-   }
 
-  if (i.customId === "bp_claim") {
+   if (i.customId === "bp_claim") {
     const result = await claimAllBattlePassRewards(userId)
-    if (!result.ok) {
-      return i.reply({ content: `❌ ${result.error}`, flags: 64 })
-    }
+    if (!result.ok) return i.reply({ content: `❌ ${result.error}`, flags: 64 })
     const refreshed = buildMainEmbed(userId)
     await i.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
     return i.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
    }
 
    if (i.customId === "bp_buy") {
-    const refreshed = buildMainEmbed(userId)
+    const refreshed    = buildMainEmbed(userId)
     const confirmEmbed = new EmbedBuilder(refreshed.embed.data).addFields({
-     name: "Confirmation Premium",
-     value:
-      `Tu vas depenser **${refreshed.data.seasonTemplate.premiumPrice || 8000} kamas**.\n` +
-      `Veux-tu activer le Pass Premium maintenant ?`
+     name:  "Confirmation Premium",
+     value: `Tu vas depenser **${refreshed.data.seasonTemplate.premiumPrice || 8000} kamas**.\nVeux-tu activer le Pass Premium maintenant ?`
     })
     return i.update({ embeds: [confirmEmbed], components: [buildBuyConfirmRow()] })
    }
 
    if (i.customId === "bp_buy_confirm") {
     const result = await buyPremium(userId)
-    if (!result.ok) {
-     return i.reply({ content: `❌ ${result.error}`, flags: 64 })
-    }
+    if (!result.ok) return i.reply({ content: `❌ ${result.error}`, flags: 64 })
     await i.reply({ content: `✅ Pass Premium active. Retroactif: ${result.retroCount} paliers.`, flags: 64 })
     const refreshed = buildMainEmbed(userId)
     return interaction.editReply({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
@@ -384,4 +372,3 @@ module.exports = {
   })
  }
 }
-

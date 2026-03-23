@@ -33,10 +33,11 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
 
 /* ================= HELPERS ================= */
 
-function progressBar(current, max, size = 10){
- const pct = max > 0 ? Math.min(1, current / max) : 0
+function progressBar(current, max, size = 12){
+ if(max <= 0) return "🟩".repeat(size)
+ const pct = Math.min(1, current / max)
  const filled = Math.round(size * pct)
- return "█".repeat(filled) + "░".repeat(size - filled)
+ return "🟩".repeat(filled) + "⬛".repeat(size - filled)
 }
 
 /* ================= COMMAND ================= */
