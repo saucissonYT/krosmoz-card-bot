@@ -23,7 +23,11 @@ const {
  CREATE_COST
 } = require("../../systems/guildSystem")
 const { getGuildBonuses, formatBonuses, formatNextUnlocks } = require("../../systems/guildBonuses")
-const { getGuildQuestProgress, claimGuildQuests, getNextGuildQuestReset } = require("../../systems/guildQuestSystem")
+const {
+ getGuildQuestProgress,
+ claimGuildQuests,
+ getNextGuildQuestReset
+} = require("../../systems/guildQuestSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
@@ -47,13 +51,13 @@ module.exports = {
 
   await interaction.deferReply()
 
-  const user = getUser(interaction.user.id)
+  const user  = getUser(interaction.user.id)
   const guild = getUserGuild(interaction.user.id)
 
   if(!user.stats) user.stats = {}
 
-  let view = "main"
-  let page = 1
+  let view      = "main"
+  let questType = "daily" /* onglet quêtes actif */
 
   /* ================= BUILD FUNCTIONS ================= */
 
@@ -83,7 +87,6 @@ ${guildList}`
     )
 
    const row = new ActionRowBuilder().addComponents(
-
     new ButtonBuilder()
      .setCustomId("guild_create")
      .setLabel("Créer une guilde")
@@ -99,13 +102,13 @@ ${guildList}`
    const g = getGuild(user.guildId)
    if(!g) return buildNoGuild()
 
-   const rank = getGuildRank(g.id, interaction.user.id)
+   const rank      = getGuildRank(g.id, interaction.user.id)
    const rankLabel = rank === "meneur" ? "👑 Meneur" : rank === "officier" ? "⚔️ Officier" : "👤 Membre"
 
    const xpReq = xpRequired(g.level)
-   const bar = progressBar(g.xp, xpReq, 14)
+   const bar   = progressBar(g.xp, xpReq, 14)
 
-   const bonuses = getGuildBonuses(g.level)
+   const bonuses         = getGuildBonuses(g.level)
    const activeBonusCount = Object.values(bonuses).filter(v => v > 0).length
 
    const embed = new EmbedBuilder()
@@ -115,6 +118,7 @@ ${guildList}`
 `**Niveau ${g.level}** — ${g.xp}/${xpReq} XP
 ${bar}
 
+🆔 ID : \`${g.id}\`
 👥 Membres : **${g.memberIds.length}/${MAX_MEMBERS}**
 🎖️ Ton rôle : ${rankLabel}
 🎯 Bonus actifs : **${activeBonusCount}**
@@ -158,11 +162,9 @@ ${bar}
    if(!g) return buildMain()
 
    const lines = g.memberIds.map(id => {
-
     let role = ""
     if(id === g.leaderId) role = " 👑"
     else if(g.officerIds.includes(id)) role = " ⚔️"
-
     return `<@${id}>${role}`
    })
 
@@ -191,37 +193,53 @@ ${bar}
    const g = getGuild(user.guildId)
    if(!g) return buildMain()
 
-   const progress = getGuildQuestProgress(g.id)
+   const progress = getGuildQuestProgress(g.id, questType)
 
    const lines = progress.map(q => {
-
     const status = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
-    const bar = progressBar(q.current, q.goal, 8)
-
+    const bar    = progressBar(q.current, q.goal, 8)
     return `${status} ${q.emoji} **${q.name}** — ${q.current}/${q.goal}\n${bar} *${q.desc}* → ⭐ ${q.xp} XP`
    })
 
    const completed = progress.filter(q => q.done).length
-   const allDone = completed >= progress.length
+   const allDone   = completed >= progress.length
+   const resetIn   = getNextGuildQuestReset(questType)
+
+   const typeLabel    = questType === "daily" ? "☀️ Journalières" : "📅 Hebdomadaires"
+   const bonusAmount  = questType === "daily" ? 200 : 500
 
    const embed = new EmbedBuilder()
     .setTitle(`📋 Quêtes de guilde — ${g.emoji} ${g.name}`)
     .setColor(allDone ? "#f1c40f" : "#e67e22")
     .setDescription(
-`Reset dans **${getNextGuildQuestReset()}**
+`**${typeLabel}** • Reset dans **${resetIn}**
 
 ${progressBar(completed, progress.length, 12)} **${completed}/${progress.length}**
-${allDone ? "\n🌟 **Bonus semaine parfaite : +500 XP !**" : ""}
+${allDone ? `\n🌟 **Bonus parfait : +${bonusAmount} XP !**` : ""}
 
 ${lines.join("\n\n")}`
     )
 
    const hasClaimable = progress.some(q => q.done && !q.claimed)
+   const rank         = getGuildRank(g.id, interaction.user.id)
+   const canClaim     = rank === "meneur" || rank === "officier"
 
-   const rank = getGuildRank(g.id, interaction.user.id)
-   const canClaim = rank === "meneur" || rank === "officier"
+   /* Row 1 : onglets */
+   const tabRow = new ActionRowBuilder().addComponents(
 
-   const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+     .setCustomId("guild_quests_daily")
+     .setLabel("☀️ Journalières")
+     .setStyle(questType === "daily" ? ButtonStyle.Success : ButtonStyle.Secondary),
+
+    new ButtonBuilder()
+     .setCustomId("guild_quests_weekly")
+     .setLabel("📅 Hebdomadaires")
+     .setStyle(questType === "weekly" ? ButtonStyle.Success : ButtonStyle.Secondary)
+   )
+
+   /* Row 2 : claim + retour */
+   const actionRow = new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("guild_claim_quests")
@@ -236,7 +254,7 @@ ${lines.join("\n\n")}`
      .setStyle(ButtonStyle.Secondary)
    )
 
-   return { embeds:[embed], components:[row] }
+   return { embeds:[embed], components:[tabRow, actionRow] }
   }
 
   function buildBonuses(){
@@ -245,7 +263,7 @@ ${lines.join("\n\n")}`
    if(!g) return buildMain()
 
    const bonusText = formatBonuses(g.level)
-   const nextText = formatNextUnlocks(g.level)
+   const nextText  = formatNextUnlocks(g.level)
 
    const embed = new EmbedBuilder()
     .setTitle(`🎯 Bonus de guilde — Niv. ${g.level}`)
@@ -301,9 +319,7 @@ ${nextText}`
      .setMaxLength(24)
      .setRequired(true)
 
-    modal.addComponents(
-     new ActionRowBuilder().addComponents(nameInput)
-    )
+    modal.addComponents(new ActionRowBuilder().addComponents(nameInput))
 
     await i.showModal(modal)
 
@@ -311,19 +327,16 @@ ${nextText}`
 
      const modalResponse = await i.awaitModalSubmit({ time:60000 })
 
-     const name = modalResponse.fields.getTextInputValue("guild_name_input").trim()
-
+     const name   = modalResponse.fields.getTextInputValue("guild_name_input").trim()
      const result = createGuild(interaction.user.id, name)
 
-     if(result.error){
+     if(result.error)
       return modalResponse.reply({ content:`❌ ${result.error}`, flags:64 })
-     }
 
      const g = result.guild
 
-     /* Achievement check */
      const freshUser = getUser(interaction.user.id)
-     const unlocked = achievementCheck(freshUser, "guild")
+     const unlocked  = achievementCheck(freshUser, "guild")
 
      const successEmbed = new EmbedBuilder()
       .setTitle("🏰 Guilde créée !")
@@ -337,7 +350,6 @@ Coût : **${CREATE_COST} kamas**`
 
      await modalResponse.reply({ embeds:[successEmbed] })
 
-     /* Refresh main view */
      const built = buildMain()
      await interaction.editReply(built)
 
@@ -373,16 +385,28 @@ Coût : **${CREATE_COST} kamas**`
     return i.update(buildBonuses())
    }
 
+   /* ---- ONGLETS QUÊTES ---- */
+
+   if(i.customId === "guild_quests_daily"){
+    questType = "daily"
+    return i.update(buildQuests())
+   }
+
+   if(i.customId === "guild_quests_weekly"){
+    questType = "weekly"
+    return i.update(buildQuests())
+   }
+
    /* ---- CLAIM QUESTS ---- */
 
    if(i.customId === "guild_claim_quests"){
 
     const freshUser = getUser(interaction.user.id)
-    const g = getUserGuild(interaction.user.id)
+    const g         = getUserGuild(interaction.user.id)
 
     if(!g) return i.update(buildNoGuild())
 
-    const result = claimGuildQuests(g.id, interaction.user.id)
+    const result = claimGuildQuests(g.id, interaction.user.id, questType)
 
     if(result.error)
      return i.reply({ content:`❌ ${result.error}`, flags:64 })
@@ -391,16 +415,14 @@ Coût : **${CREATE_COST} kamas**`
     freshUser.stats.guildQuestsClaimed = (freshUser.stats.guildQuestsClaimed || 0) + result.claimed
     freshUser.stats.guildXpContributed = (freshUser.stats.guildXpContributed || 0) + result.totalXP
 
-    if(result.allDone)
+    if(result.isPerfect)
      freshUser.stats.guildPerfectWeeks = (freshUser.stats.guildPerfectWeeks || 0) + 1
 
-    /* Track guild level dans les stats user pour les achievements */
     freshUser.stats.guildMaxLevel = Math.max(
      freshUser.stats.guildMaxLevel || 0,
      g.level
     )
 
-    /* First claim ever */
     if((freshUser.stats.guildQuestsClaimed || 0) <= result.claimed)
      freshUser.stats.guildFirstClaim = 1
 
@@ -408,23 +430,20 @@ Coût : **${CREATE_COST} kamas**`
 
     const unlocked = achievementCheck(freshUser, "guild")
 
-    /* Update guild level pour tous les membres */
     if(result.levelResult?.leveled){
      for(const memberId of g.memberIds){
-      const member = getUser(memberId)
-      member.stats = member.stats || {}
-      member.stats.guildMaxLevel = Math.max(
-       member.stats.guildMaxLevel || 0,
-       g.level
-      )
+      const member  = getUser(memberId)
+      member.stats  = member.stats || {}
+      member.stats.guildMaxLevel = Math.max(member.stats.guildMaxLevel || 0, g.level)
       save(memberId)
      }
     }
 
-    let claimText = `✅ **${result.claimed}** quête(s) récupérée(s) → **+${result.totalXP} XP** de guilde`
+    const typeLabel = questType === "daily" ? "journalières" : "hebdomadaires"
+    let claimText = `✅ **${result.claimed}** quête(s) ${typeLabel} récupérée(s) → **+${result.totalXP} XP** de guilde`
 
     if(result.bonusXP > 0)
-     claimText += `\n🌟 Bonus semaine parfaite : **+${result.bonusXP} XP**`
+     claimText += `\n🌟 Bonus parfait : **+${result.bonusXP} XP**`
 
     if(result.levelResult?.leveled)
      claimText += `\n\n🎉 **La guilde passe niveau ${result.levelResult.newLevel} !**`

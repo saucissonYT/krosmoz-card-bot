@@ -10,6 +10,11 @@ const rarityXP={
  C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
 
+/* XP de guilde gagnée par carte selon sa rareté (très réduit) */
+const GUILD_XP_PER_RARITY={
+ C:1, U:1, R:3, SR:3, HR:4, UR:6, S:7, SSR:8
+}
+
 /* ================= BONUS HELPERS ================= */
 
 function getBonuses(userId, user){
@@ -46,14 +51,14 @@ function generatePack(user){
  }
 
  if(!setId){
-  console.error("âŒ NO SET ID FOR USER", user.id)
+  console.error("❌ NO SET ID FOR USER", user.id)
   return []
  }
 
  const result = coreGeneratePack(user,setId)
 
  if(!result || !Array.isArray(result.pack)){
-  console.error("âŒ INVALID PACK RESULT", result)
+  console.error("❌ INVALID PACK RESULT", result)
   return []
  }
 
@@ -70,7 +75,7 @@ function generateGlobalPack(size=5){
 
 function generateCustomPack(pool,size=5){
  if(!pool || !pool.length){
-  console.error("âŒ EMPTY CUSTOM POOL")
+  console.error("❌ EMPTY CUSTOM POOL")
   return []
  }
  return Array.from({length:size},()=>pool[Math.floor(Math.random()*pool.length)])
@@ -108,7 +113,7 @@ function openPack(user, setId, userId, options = {}){
 
  const isSimpleCommandOpen = options.isSimpleCommandOpen !== false
  const pityKey = options.pityKey || setId
- /* Capture pity AVANT le pack pour dÃ©tecter le hard pity */
+ /* Capture pity AVANT le pack pour détecter le hard pity */
  const pitySSRBefore = user.pity?.[pityKey]?.SSR ?? 0
 
  /* ---- Charger les bonus ---- */
@@ -180,61 +185,25 @@ function openPack(user, setId, userId, options = {}){
    user.stats.ssrStreak++
    ssrCount++
 
-   if(isSimpleCommandOpen && user.stats.ssrStreak>=2)
-    giveAchievement(user,"ssrStreak")
+   if(isShinySsr(card,shinyRate)){
+    user.stats.shinySSR++
+    if(!user.shinyCards[card.id]) user.shinyCards[card.id]=0
+    user.shinyCards[card.id]++
+    card.shiny=true
+   }
 
-   user.stats.lastSSR=true
-   user.stats.dryStreak=0
   } else {
    user.stats.ssrStreak=0
   }
 
-  /* Shiny check with bonus */
-  if(card.rarity==="SSR" && (card.shiny || Math.random() < shinyRate)){
-   user.shinyCards[card.id] = (user.shinyCards[card.id] || 0) + 1
-   user.stats.shinySSR++
-   giveAchievement(user,"shinySSR")
-   card.shiny = true
-  }
  }
 
- /* ---- Kamas bonus (guilde + joueur) ---- */
- if(bonuses.kamasBonus > 0){
-  const bonusKamas = Math.floor(kamasGain * bonuses.kamasBonus / 100)
-  user.kamas = (user.kamas || 0) + bonusKamas
-  kamasGain += bonusKamas
- }
+ /* ---- Stats pack ---- */
+ user.stats.packsOpened++
 
- /* ---- ACHIEVEMENTS PACK ---- */
+ const hour = new Date().getHours()
+ const rarities = pack.map(c=>c?.rarity).filter(Boolean)
 
- const hrCount=pack.filter(c=>c?.rarity==="HR").length
- if(isSimpleCommandOpen && hrCount>=3) giveAchievement(user,"threeStars")
-
- const rarities=pack.map(c=>c?.rarity).filter(Boolean)
- if(isSimpleCommandOpen && rarities.includes("SSR") && rarities.includes("UR"))
-  giveAchievement(user,"packDivin")
-
- const ids=pack.map(c=>c?.id).filter(Boolean)
- const seen=new Set()
- let duplicates=0
- for(const id of ids){
-  if(seen.has(id)) duplicates++
-  seen.add(id)
- }
- if(isSimpleCommandOpen && duplicates>=2) giveAchievement(user,"pileOuFace")
-
- if(isSimpleCommandOpen && luckyPack && ssrCount>=3) giveAchievement(user,"impossible")
- if(isSimpleCommandOpen && user.stats.packsOpened<=1 && ssrCount>0) giveAchievement(user,"luckyStart")
- if(isSimpleCommandOpen && ssrCount>=3) giveAchievement(user,"hotHand")
-
- if(isSimpleCommandOpen && pitySSRBefore>=48 && ssrCount>0)
-  giveAchievement(user,"pityBreaker")
-
- const hour=new Date().getHours()
-
- if(hour>=2 && hour<5) giveAchievement(user,"nightPlayer")
-
- /* ---- DETECTION ALL C / ALL U ---- */
  const allC = pack.every(c=>c?.rarity==="C")
  const allU = pack.every(c=>c?.rarity==="U")
  if(isSimpleCommandOpen && pack.length===5 && allC) user.stats.allCPack = (user.stats.allCPack||0)+1
@@ -286,8 +255,27 @@ function openPack(user, setId, userId, options = {}){
 
  if(best) xpGain+=rarityXP[best.rarity] || 0
 
- /* XP bonus applied in addXP via progressionSystem */
  addXP(user,xpGain)
+
+ /* ---- XP GUILDE via pack (très réduit : C=1, R=3, UR=6, SSR=8) ---- */
+ if(userId){
+  try{
+   const { getUserGuild, addGuildXP, saveGuilds } = require("./guildSystem")
+   const guild = getUserGuild(userId)
+   if(guild){
+    let guildXpGain = 0
+    for(const card of pack){
+     if(card && GUILD_XP_PER_RARITY[card.rarity])
+      guildXpGain += GUILD_XP_PER_RARITY[card.rarity]
+    }
+    if(guildXpGain > 0){
+     addGuildXP(guild.id, guildXpGain)
+     saveGuilds()
+     user.stats.guildXpContributed = (user.stats.guildXpContributed || 0) + guildXpGain
+    }
+   }
+  }catch(e){ /* guild non dispo */ }
+ }
 
  return{
   pack,
@@ -300,6 +288,11 @@ function openPack(user, setId, userId, options = {}){
  }
 }
 
+/* ---- Helper shiny SSR ---- */
+function isShinySsr(card, rate){
+ return card.rarity==="SSR" && Math.random() < rate
+}
+
 /* ================= EXPORT ================= */
 
 module.exports={
@@ -308,4 +301,3 @@ module.exports={
  generateGlobalPack,
  generateCustomPack
 }
-
