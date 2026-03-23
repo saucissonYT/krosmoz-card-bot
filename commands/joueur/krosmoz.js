@@ -235,11 +235,11 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  const displayed = grouped.slice(0, 45)
  const hidden = Math.max(0, grouped.length - displayed.length)
 
-  const lines = displayed.map(({ card, qty }) => {
-   const qtyText = qty > 1 ? ` (x${qty})` : ""
-   return `${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny ? " ✨" : ""}** \`${card.rarity}\`${qtyText}`
-  })
-  if (hidden > 0) lines.push(`... +${hidden} carte(s) unique(s) supplémentaire(s)`)
+ const lines = displayed.map(({ card, qty }) => {
+  const qtyText = qty > 1 ? ` (x${qty})` : ""
+  return `${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny ? " ✨" : ""}** \`${card.rarity}\`${qtyText}`
+ })
+ if (hidden > 0) lines.push(`... +${hidden} carte(s) unique(s) supplémentaire(s)`)
 
  const totals = results.reduce((acc, r) => {
   acc.kamas += r.kamasGain || 0
@@ -259,23 +259,23 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   if (!best || rarityRank(r.best.rarity) > rarityRank(best.rarity)) best = r.best
  }
 
-  // Défilement rapide: plus fluide qu'un pack normal, mais garde l'effet reveal.
-  const scrollPreview = lines.slice(0, 18)
-  if (scrollPreview.length > 0) {
-   const step = packCount >= 10 ? 6 : 4
-   const delay = packCount >= 10 ? 180 : 240
+ // Défilement rapide
+ const scrollPreview = lines.slice(0, 18)
+ if (scrollPreview.length > 0) {
+  const step = packCount >= 10 ? 6 : 4
+  const delay = packCount >= 10 ? 180 : 240
 
-   for (let i = step; i <= scrollPreview.length; i += step) {
-    const chunk = scrollPreview.slice(0, i).join("\n")
-    const revealEmbed = new EmbedBuilder()
-     .setTitle(`🎴 Giga Pack x${packCount} — Défilement`)
-     .setDescription(`${chunk}${i < scrollPreview.length ? "\n\n..." : ""}`)
-     .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
+  for (let i = step; i <= scrollPreview.length; i += step) {
+   const chunk = scrollPreview.slice(0, i).join("\n")
+   const revealEmbed = new EmbedBuilder()
+    .setTitle(`🎴 Giga Pack x${packCount} — Défilement`)
+    .setDescription(`${chunk}${i < scrollPreview.length ? "\n\n..." : ""}`)
+    .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")
 
-    await interaction.editReply({ embeds: [revealEmbed] })
-    await sleep(delay)
-   }
+   await interaction.editReply({ embeds: [revealEmbed] })
+   await sleep(delay)
   }
+ }
 
  const embed = new EmbedBuilder()
   .setTitle(`🎴 Giga Pack ouvert x${packCount}`)
@@ -320,39 +320,53 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 module.exports = {
  name: "krosmoz",
 
- data: (() => {
+ // ─── Définition de la commande ───────────────────────────────────────────────
+ // Le paramètre "set" utilise l'autocomplete pour charger les sets dynamiquement
+ // depuis loadSets() à chaque fois — plus de hardcoding au démarrage du bot.
+ data: new SlashCommandBuilder()
+  .setName("krosmoz")
+  .setDescription("Ouvrir un ou plusieurs packs Krosmoz")
+  .addStringOption((option) =>
+   option
+    .setName("set")
+    .setDescription("Set à ouvrir (laisser vide pour le menu interactif)")
+    .setRequired(false)
+    .setAutocomplete(true)
+  )
+  .addIntegerOption((option) =>
+   option
+    .setName("packs")
+    .setDescription("Nombre de packs à ouvrir (1-25)")
+    .setRequired(false)
+    .setMinValue(1)
+    .setMaxValue(MAX_BATCH)
+  ),
+
+ // ─── Autocomplete : appelé à chaque frappe dans le champ "set" ──────────────
+ async autocomplete(interaction) {
+  const focused = interaction.options.getFocused().toLowerCase()
   const rawSets = loadSets()
-  const sets = getPlayableSets(rawSets)
+  const playableSets = getPlayableSets(rawSets)
+  const setCache = getSetCache()
 
-  const builder = new SlashCommandBuilder()
-   .setName("krosmoz")
-   .setDescription("Ouvrir un ou plusieurs packs Krosmoz")
-   .addStringOption((option) => {
-    option
-     .setName("set")
-     .setDescription("Set à ouvrir")
-     .setRequired(false)
+  const choices = [{ name: "🎲 Random — tous les sets", value: "random" }]
 
-    const choices = [{ name: "🎲 Random", value: "random" }]
-    if (sets.length > 0) {
-     choices.push(...sets.slice(0, 24).map((s) => ({ name: s.name, value: s.id })))
-    }
-    option.addChoices(...choices)
-
-    return option
+  for (const set of playableSets.slice(0, 24)) {
+   const cardCount = (setCache[set.id] || []).length
+   choices.push({
+    name: `${set.name} (${cardCount} cartes)`,
+    value: set.id
    })
-   .addIntegerOption((option) =>
-    option
-     .setName("packs")
-     .setDescription("Nombre de packs à ouvrir (1-25)")
-     .setRequired(false)
-     .setMinValue(1)
-     .setMaxValue(MAX_BATCH)
-   )
+  }
 
-  return builder
- })(),
+  const filtered = focused
+   ? choices.filter((c) => c.name.toLowerCase().includes(focused) || c.value.toLowerCase().includes(focused))
+   : choices
 
+  await interaction.respond(filtered.slice(0, 25))
+ },
+
+ // ─── Execute ─────────────────────────────────────────────────────────────────
  async execute(interaction) {
   const user = getUser(interaction.user.id)
   const quickSet = interaction.options.getString("set")
@@ -363,6 +377,7 @@ module.exports = {
    return openPacksBatch(interaction, quickSet, quickCount)
   }
 
+  // Pas de set précisé → menu interactif
   const rawSets = loadSets()
   const sets = getPlayableSets(rawSets)
 
