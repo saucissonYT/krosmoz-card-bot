@@ -8,6 +8,12 @@ function registerInteractionCreateHandler(client) {
   console.log(`Interaction recue : ${interaction.type}`)
 
   try {
+   if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName)
+    if (command?.autocomplete) await command.autocomplete(interaction)
+    return
+   }
+
    if (interaction.isChatInputCommand()) {
     await routeSlashInteraction(interaction, client)
     return
