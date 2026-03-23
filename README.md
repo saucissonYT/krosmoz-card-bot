@@ -344,13 +344,13 @@ Les bonus se **cumulent** avec les bonus de guilde.
 |-------|------------|---------------|
 | 💰 Kamas bonus | +1% / 4 niv. | +25% |
 | 🔥 Fusion critique | +0.5% / 8 niv. | +6% |
-| ðŸ€ Lucky pack | +1% / 10 niv. | +10% |
+| 🍀 Lucky pack | +1% / 10 niv. | +10% |
 | ⭐ XP bonus | +5% / 20 niv. | +25% |
-| ðŸª Réduction KrosmoShop | +1% / 15 niv. | +6% |
-| ðŸŽ Kamas daily bonus | +50 / 10 niv. | +500 |
+| 🏪 Réduction KrosmoShop | +1% / 15 niv. | +6% |
+| 🎁 Kamas daily bonus | +50 / 10 niv. | +500 |
 | 🎲 Double daily | +2% / 25 niv. | +8% |
 | ✨ Chance shiny | +1% / 50 niv. | +2% |
-| â±ï¸ Réduction cooldown pack | -5 min / 20 niv. | -25 min (35 min min.) |
+| ⏱️ Réduction cooldown pack | -5 min / 20 niv. | -25 min (35 min min.) |
 
 ---
 
