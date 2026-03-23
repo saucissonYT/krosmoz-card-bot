@@ -10,7 +10,6 @@ const { getUser } = require("../../systems/userSystem")
 const { getCards } = require("../../systems/cardRegistry")
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 
-/* FIX: import dynamique du registry pour compter les achievements */
 const achievements = require("../../systems/achievementRegistry")
 const TOTAL_ACHIEVEMENTS = Object.keys(achievements).length
 
@@ -59,17 +58,29 @@ function buildPage(pageId, user, interaction){
  const totalCards = cards.length
 
  const ownedUnique = Object.keys(user.cards || {}).length
- const ownedTotal = Object.values(user.cards || {}).reduce((a,b)=>a+b, 0)
+ const ownedTotal  = Object.values(user.cards || {}).reduce((a,b)=>a+b, 0)
  const shinyUnique = Object.keys(user.shinyCards || {}).length
- const shinyTotal = Object.values(user.shinyCards || {}).reduce((a,b)=>a+b, 0)
+ const shinyTotal  = Object.values(user.shinyCards || {}).reduce((a,b)=>a+b, 0)
  const achievementCount = user.achievements?.length || 0
+
+ /* ---- Achievements Battle Pass (séparés du registry principal) ---- */
+ let bpAchievementCount = 0
+ let bpAchievementTotal = 0
+ try {
+  const { getBattlePassAchievements } = require("../../systems/battlePassService")
+  const bpData = getBattlePassAchievements(user.id || interaction.user.id)
+  bpAchievementCount = bpData.unlocked?.length || 0
+  bpAchievementTotal = bpData.total || 0
+ } catch(e) { /* ignore si battle pass non dispo */ }
+
+ const totalAchWithBP    = TOTAL_ACHIEVEMENTS + bpAchievementTotal
+ const unlockedAchWithBP = achievementCount + bpAchievementCount
 
  /* ===== GÉNÉRAL ===== */
 
  if(pageId === "general"){
 
-  const level = user.progression?.level || 1
-  const xp = user.progression?.xp || 0
+  const level  = user.progression?.level  || 1
   const totalXp = user.progression?.totalXp || 0
 
   return new EmbedBuilder()
@@ -80,11 +91,14 @@ function buildPage(pageId, user, interaction){
 
 ⭐ Niveau **${level}** • XP totale : **${formatNumber(totalXp)}**
 💰 Kamas : **${formatNumber(user.kamas || 0)}**
+📦 Packs en stock : **${user.packs || 0}**
 🎴 Cartes : **${ownedTotal}** (${ownedUnique} uniques / ${totalCards})
 ${bar(ownedUnique, totalCards, 12)} ${pct(ownedUnique, totalCards)}
 
-🏆 Achievements : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}
-${bar(achievementCount, TOTAL_ACHIEVEMENTS, 12)} ${pct(achievementCount, TOTAL_ACHIEVEMENTS)}
+🏆 Succès : **${unlockedAchWithBP}** / ${totalAchWithBP}
+　├ Jeu principal : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}
+　└ Battle Pass : **${bpAchievementCount}** / ${bpAchievementTotal}
+${bar(unlockedAchWithBP, totalAchWithBP, 12)} ${pct(unlockedAchWithBP, totalAchWithBP)}
 
 📦 Packs ouverts : **${s.packsOpened || 0}**
 📦 Packs achetés : **${s.packsBought || 0}**
@@ -121,11 +135,11 @@ ${bar(achievementCount, TOTAL_ACHIEVEMENTS, 12)} ${pct(achievementCount, TOTAL_A
   const sets = [...new Set(cards.map(c=>c.set))]
   const setLines = sets.map(setId => {
    const setCards = cards.filter(c=>c.set===setId)
-   const owned = setCards.filter(c=>user.cards?.[c.id]).length
+   const owned    = setCards.filter(c=>user.cards?.[c.id]).length
    return `📦 **${setId}** : ${owned}/${setCards.length} ${bar(owned, setCards.length, 8)}`
   })
 
-  const maxDupes = Math.max(0, ...Object.values(user.cards || {}))
+  const maxDupes    = Math.max(0, ...Object.values(user.cards || {}))
   const maxDupeCard = Object.entries(user.cards || {}).find(([,v])=>v===maxDupes)
   let maxDupeName = "—"
   if(maxDupeCard){
@@ -156,17 +170,21 @@ ${setLines.join("\n")}
    ? ((s.ssrPulled || 0) / s.packsOpened * 100).toFixed(2) + "%"
    : "—"
 
+  const totalPacksOpened = (s.packsOpened || 0) + (s.eventPacksOpened || 0)
+
   return new EmbedBuilder()
    .setTitle(`🎲 Packs & RNG de ${interaction.user.username}`)
    .setColor("#e67e22")
    .setDescription(
-`**Packs**
-📦 Ouverts total : **${s.packsOpened || 0}**
-📦 Via /krosmoz : **${s.krosmozOpened || 0}**
-📦 Achetés : **${s.packsBought || 0}**
+`**Packs ouverts**
+📦 Total global : **${totalPacksOpened}**
+　├ Via /krosmoz : **${s.krosmozOpened || s.packsOpened || 0}**
+　└ Via /eventpack : **${s.eventPacksOpened || 0}**
+📦 Packs achetés : **${s.packsBought || 0}**
+📦 Packs en stock : **${user.packs || 0}**
 
 **Drops**
-🌈 SSR obtenues : **${s.ssrPulled || 0}** (taux : ${ssrRate})
+🌈 SSR obtenues : **${s.ssrPulled || 0}** (taux réel : ${ssrRate})
 ✨ SSR Shiny : **${s.shinySSR || 0}**
 🌈🌈 SSR streak max : **${s.ssrStreak || 0}**
 
@@ -227,9 +245,9 @@ ${setLines.join("\n")}
 
  if(pageId === "events"){
 
-  const participated = s.eventsParticipated || []
-  const ssrByClass = s.ssrByClass || {}
-  const packsByClass = s.eventPacksByClass || {}
+  const participated  = s.eventsParticipated || []
+  const ssrByClass    = s.ssrByClass || {}
+  const packsByClass  = s.eventPacksByClass || {}
 
   const classRanking = Object.entries(packsByClass)
    .sort((a,b)=>b[1]-a[1])
@@ -294,7 +312,8 @@ ${classLines}`
 🎖️ Titres débloqués : **${user.titles?.length || 1}**
 
 **Badges**
-🏆 Achievements : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}`
+🏆 Succès (jeu) : **${achievementCount}** / ${TOTAL_ACHIEVEMENTS}
+🎖️ Succès (Battle Pass) : **${bpAchievementCount}** / ${bpAchievementTotal}`
    )
  }
 
@@ -338,7 +357,7 @@ module.exports = {
 
   const user = getUser(interaction.user.id)
 
-  const embed = buildPage("general", user, interaction)
+  const embed      = buildPage("general", user, interaction)
   const components = buildNav(0)
 
   const msg = await interaction.reply({
@@ -354,7 +373,7 @@ module.exports = {
    if(i.user.id !== interaction.user.id)
     return i.reply({ content:"Pas tes stats.", flags:64 })
 
-   const pageId = i.customId.replace("mystats_","")
+   const pageId    = i.customId.replace("mystats_","")
    const pageIndex = PAGES.findIndex(p => p.id === pageId)
 
    if(pageIndex === -1) return
@@ -362,7 +381,7 @@ module.exports = {
    /* Relecture du user pour données fraîches */
    const freshUser = getUser(interaction.user.id)
 
-   const newEmbed = buildPage(pageId, freshUser, interaction)
+   const newEmbed      = buildPage(pageId, freshUser, interaction)
    const newComponents = buildNav(pageIndex)
 
    await i.update({

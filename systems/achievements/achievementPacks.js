@@ -1,6 +1,7 @@
 /* ===============================================
    ACHIEVEMENTS - PACKS
    Packs ouverts + RNG + multi achats/ouvertures
+   + Packs disponibles en stock
 =============================================== */
 
 module.exports = {
@@ -174,6 +175,63 @@ bulkBuy20:{
  condition:u=>(u.stats?.maxBulkBuy||0)>=20
 },
 
+/* ================= OUVERTURES MULTI (x2+) ================= */
+
+bulkOpen1:{
+ name:"Giga Pack",
+ badge:"⚙️",
+ description:"Ouvrir plusieurs packs en une commande (x2+) 1 fois.",
+ title:"Pilote de Giga Pack",
+ trigger:"pack",
+ condition:u=>(u.stats?.multiPackOpens||0)>=1
+},
+
+bulkOpen5:{
+ name:"5 Giga Packs",
+ badge:"🚀",
+ description:"Ouvrir plusieurs packs en une commande (x2+) 5 fois.",
+ title:"Accelerateur de Loot",
+ trigger:"pack",
+ condition:u=>(u.stats?.multiPackOpens||0)>=5
+},
+
+bulkOpen10:{
+ name:"10 Giga Packs",
+ badge:"🎛️",
+ description:"Ouvrir plusieurs packs en une commande (x2+) 10 fois.",
+ title:"Chef d'Orchestre RNG",
+ trigger:"pack",
+ condition:u=>(u.stats?.multiPackOpens||0)>=10
+},
+
+bulkOpen25:{
+ name:"25 Giga Packs",
+ badge:"🧠",
+ description:"Ouvrir plusieurs packs en une commande (x2+) 25 fois.",
+ title:"Architecte du Farm",
+ trigger:"pack",
+ condition:u=>(u.stats?.multiPackOpens||0)>=25
+},
+
+bulkOpen50:{
+ name:"50 Giga Packs",
+ badge:"👑",
+ description:"Ouvrir plusieurs packs en une commande (x2+) 50 fois.",
+ title:"Empereur des Ouvertures",
+ trigger:"pack",
+ condition:u=>(u.stats?.multiPackOpens||0)>=50
+},
+
+bulkOpen20:{
+ name:"Tempete de Packs",
+ badge:"🌪️",
+ description:"Ouvrir 20 packs d'un seul coup.",
+ title:"Briseur de Serveur",
+ trigger:"pack",
+ secret:true,
+ condition:u=>(u.stats?.maxBulkOpen||0)>=20
+},
+
 /* ================= RNG PACK ================= */
 
 shinySSR:{
@@ -265,63 +323,6 @@ nightPlayer:{
  trigger:"pack",
  secret:true,
  condition:u=>u.stats?.nightPing
-},
-
-/* ================= OUVERTURES MULTI (x2+) ================= */
-
-bulkOpen1:{
- name:"Giga Pack",
- badge:"⚙️",
- description:"Ouvrir plusieurs packs en une commande (x2+) 1 fois.",
- title:"Pilote de Giga Pack",
- trigger:"pack",
- condition:u=>(u.stats?.multiPackOpens||0)>=1
-},
-
-bulkOpen5:{
- name:"5 Giga Packs",
- badge:"🚀",
- description:"Ouvrir plusieurs packs en une commande (x2+) 5 fois.",
- title:"Accelerateur de Loot",
- trigger:"pack",
- condition:u=>(u.stats?.multiPackOpens||0)>=5
-},
-
-bulkOpen10:{
- name:"10 Giga Packs",
- badge:"🎛️",
- description:"Ouvrir plusieurs packs en une commande (x2+) 10 fois.",
- title:"Chef d'Orchestre RNG",
- trigger:"pack",
- condition:u=>(u.stats?.multiPackOpens||0)>=10
-},
-
-bulkOpen25:{
- name:"25 Giga Packs",
- badge:"🧠",
- description:"Ouvrir plusieurs packs en une commande (x2+) 25 fois.",
- title:"Architecte du Farm",
- trigger:"pack",
- condition:u=>(u.stats?.multiPackOpens||0)>=25
-},
-
-bulkOpen50:{
- name:"50 Giga Packs",
- badge:"👑",
- description:"Ouvrir plusieurs packs en une commande (x2+) 50 fois.",
- title:"Empereur des Ouvertures",
- trigger:"pack",
- condition:u=>(u.stats?.multiPackOpens||0)>=50
-},
-
-bulkOpen20:{
- name:"Tempete de Packs",
- badge:"🌪️",
- description:"Ouvrir 20 packs d'un seul coup.",
- title:"Briseur de Serveur",
- trigger:"pack",
- secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=20
 },
 
 /* ================= HIDDEN SHOTS - ACHAT (exact gros lot) ================= */
@@ -488,6 +489,53 @@ bulkDual100:{
  trigger:"pack",
  secret:true,
  condition:u=>((u.stats?.multiPackBuys||0) + (u.stats?.multiPackOpens||0))>=100
+},
+
+/* ================= PACKS EN STOCK (disponibles) ================= */
+
+packStock25:{
+ name:"Petite Réserve",
+ badge:"📦",
+ description:"Avoir 25 packs disponibles en stock.",
+ title:"Préparateur",
+ trigger:"economy",
+ condition:u=>(u.packs||0)>=25
+},
+
+packStock50:{
+ name:"Bonne Réserve",
+ badge:"🗃️",
+ description:"Avoir 50 packs disponibles en stock.",
+ title:"Stockeur",
+ trigger:"economy",
+ condition:u=>(u.packs||0)>=50
+},
+
+packStock100:{
+ name:"Grande Réserve",
+ badge:"🏦",
+ description:"Avoir 100 packs disponibles en stock.",
+ title:"Entrepôt du Krosmoz",
+ trigger:"economy",
+ condition:u=>(u.packs||0)>=100
+},
+
+packStock200:{
+ name:"Stock Massif",
+ badge:"🏰",
+ description:"Avoir 200 packs disponibles en stock.",
+ title:"Baron des Packs",
+ trigger:"economy",
+ condition:u=>(u.packs||0)>=200
+},
+
+packStock500:{
+ name:"Trésor de Packs",
+ badge:"💎",
+ description:"Avoir 500 packs disponibles en stock.",
+ title:"Trésorier du Krosmoz",
+ trigger:"economy",
+ condition:u=>(u.packs||0)>=500
 },
 
 }

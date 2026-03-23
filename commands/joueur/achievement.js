@@ -2,68 +2,129 @@ const {
  EmbedBuilder,
  ActionRowBuilder,
  ButtonBuilder,
- ButtonStyle
+ ButtonStyle,
+ StringSelectMenuBuilder,
+ StringSelectMenuOptionBuilder
 } = require("discord.js")
 
 const achievements = require("../../systems/achievementRegistry")
 const { getUser } = require("../../systems/userSystem")
 
-module.exports={
+/* =============================================
+   /achievements — Liste des succès
+   Tri par catégorie + pagination
+============================================= */
 
- name:"achievements",
- description:"Voir les succès",
+/* ---- Définition des catégories ---- */
+const CATEGORIES = [
+ { id:"all",      label:"Tous",        emoji:"🏆" },
+ { id:"pack",     label:"Packs",       emoji:"📦" },
+ { id:"rng",      label:"RNG",         emoji:"🎲" },
+ { id:"collection",label:"Collection", emoji:"📚" },
+ { id:"economy",  label:"Économie",    emoji:"💰" },
+ { id:"fusion",   label:"Fusion",      emoji:"🔧" },
+ { id:"daily",    label:"Daily",       emoji:"📅" },
+ { id:"social",   label:"Social",      emoji:"💬" },
+ { id:"inventory",label:"Inventaire",  emoji:"🎒" },
+ { id:"krosmoshop",label:"KrosmoShop", emoji:"🏪" },
+ { id:"event",    label:"Events",      emoji:"🎪" },
+ { id:"guild",    label:"Guildes",     emoji:"🏰" },
+ { id:"gift",     label:"Dons",        emoji:"🎁" },
+ { id:"secret",   label:"Secrets",     emoji:"🔒" },
+]
+
+/* ---- Couleurs par catégorie ---- */
+const CATEGORY_COLORS = {
+ all:        "#f1c40f",
+ pack:       "#e67e22",
+ rng:        "#9b59b6",
+ collection: "#2980b9",
+ economy:    "#27ae60",
+ fusion:     "#e74c3c",
+ daily:      "#f39c12",
+ social:     "#1abc9c",
+ inventory:  "#3498db",
+ krosmoshop: "#e91e8c",
+ event:      "#8e44ad",
+ guild:      "#c0392b",
+ gift:       "#e84393",
+ secret:     "#2c3e50",
+}
+
+module.exports = {
+
+ name: "achievements",
+ description: "Voir les succès",
 
  async execute(interaction){
 
   await interaction.deferReply()
 
-  const user=getUser(interaction.user.id)
+  const user = getUser(interaction.user.id)
 
-  const list=Object.entries(achievements)
+  const allList = Object.entries(achievements)
 
-  let page=1
-  const perPage=8
+  let page = 1
+  let categoryId = "all"
+  const perPage = 8
 
-  const unlockedCount=user.achievements?.length || 0
-  const total=list.length
+  /* ---- Filtrer la liste selon la catégorie ---- */
+  function getFiltered(){
+   if(categoryId === "all") return allList
+   if(categoryId === "secret")
+    return allList.filter(([, d]) => d.secret === true)
+   return allList.filter(([, d]) => d.trigger === categoryId && !d.secret)
+  }
 
+  /* ---- Statistiques débloquées ---- */
+  const unlockedCount = user.achievements?.length || 0
+  const total = allList.length
+
+  /* ---- Constructeur d'embed + composants ---- */
   function build(){
 
-   const maxPage=Math.max(1,Math.ceil(list.length/perPage))
+   const filtered = getFiltered()
+   const maxPage = Math.max(1, Math.ceil(filtered.length / perPage))
+   page = Math.max(1, Math.min(page, maxPage))
 
-   const start=(page-1)*perPage
-   const slice=list.slice(start,start+perPage)
+   const start = (page - 1) * perPage
+   const slice = filtered.slice(start, start + perPage)
 
-   const lines=slice.map(([id,data])=>{
+   /* Compte débloqués dans cette catégorie */
+   const catUnlocked = filtered.filter(([id]) => user.achievements?.includes(id)).length
 
-    const unlocked=user.achievements?.includes(id)
+   const lines = slice.map(([id, data]) => {
+    const unlocked = user.achievements?.includes(id)
 
+    /* Secrets non débloqués → masqués */
     if(data.secret && !unlocked)
-     return `🔒 **Succès secret**`
+     return `🔒 **Succès secret** — ???`
 
-    const title=data.title ? ` • 👑 ${data.title}` : ""
-
+    const titleTag = data.title ? ` • 👑 ${data.title}` : ""
     const status = unlocked ? "✅" : "🔒"
 
-    return `${status} ${data.badge} **${data.name}**${title}\n　${data.description || ""}`
-
+    return `${status} ${data.badge} **${data.name}**${titleTag}\n　${data.description || ""}`
    })
 
-   const embed=new EmbedBuilder()
-    .setTitle("🏆 Succès")
-    .setDescription(lines.join("\n\n") || "Aucun succès.")
-    .setFooter({
-     text:`Page ${page}/${maxPage} • ${unlockedCount}/${total} succès débloqués`
-    })
-    .setColor("#f1c40f")
+   /* Infos catégorie courante */
+   const cat = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0]
 
-   const row=new ActionRowBuilder().addComponents(
+   const embed = new EmbedBuilder()
+    .setTitle(`${cat.emoji} Succès — ${cat.label}`)
+    .setDescription(lines.join("\n\n") || "Aucun succès dans cette catégorie.")
+    .setFooter({
+     text:`${catUnlocked}/${filtered.length} débloqués ici • ${unlockedCount}/${total} au total • Page ${page}/${maxPage}`
+    })
+    .setColor(CATEGORY_COLORS[categoryId] || "#f1c40f")
+
+   /* ---- Row 1 : Navigation ---- */
+   const navRow = new ActionRowBuilder().addComponents(
 
     new ButtonBuilder()
      .setCustomId("ach_prev")
      .setLabel("⬅️")
      .setStyle(ButtonStyle.Primary)
-     .setDisabled(page<=1),
+     .setDisabled(page <= 1),
 
     new ButtonBuilder()
      .setCustomId("ach_page")
@@ -75,42 +136,77 @@ module.exports={
      .setCustomId("ach_next")
      .setLabel("➡️")
      .setStyle(ButtonStyle.Primary)
-     .setDisabled(page>=maxPage)
+     .setDisabled(page >= maxPage),
+
+    new ButtonBuilder()
+     .setCustomId("ach_reset")
+     .setLabel("Tout afficher")
+     .setStyle(categoryId === "all" ? ButtonStyle.Success : ButtonStyle.Danger)
+     .setDisabled(categoryId === "all")
 
    )
 
-   return {embed,row,maxPage}
+   /* ---- Row 2 : Select catégorie ---- */
+   const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId("ach_category")
+    .setPlaceholder(`📂 Catégorie : ${cat.label}`)
+    .addOptions(
+     CATEGORIES.map(c => {
+      /* Compte total débloqués pour affichage dans le menu */
+      let catFiltered
+      if(c.id === "all") catFiltered = allList
+      else if(c.id === "secret") catFiltered = allList.filter(([, d]) => d.secret === true)
+      else catFiltered = allList.filter(([, d]) => d.trigger === c.id && !d.secret)
 
+      const catCount = catFiltered.filter(([id]) => user.achievements?.includes(id)).length
+
+      return new StringSelectMenuOptionBuilder()
+       .setLabel(`${c.label} (${catCount}/${catFiltered.length})`)
+       .setValue(c.id)
+       .setEmoji(c.emoji)
+       .setDefault(c.id === categoryId)
+     })
+    )
+
+   const selectRow = new ActionRowBuilder().addComponents(selectMenu)
+
+   return { embed, components: [navRow, selectRow], maxPage }
   }
 
-  const {embed,row}=build()
+  /* ---- Envoi initial ---- */
+  const { embed, components } = build()
 
-  await interaction.editReply({
-   embeds:[embed],
-   components:[row]
+  const msg = await interaction.editReply({
+   embeds: [embed],
+   components
   })
 
-  const msg = await interaction.fetchReply()
+  /* ---- Collector ---- */
+  const collector = msg.createMessageComponentCollector({ time: 180000 })
 
-  const collector=msg.createMessageComponentCollector({
-   time:180000
-  })
+  collector.on("collect", async i => {
 
-  collector.on("collect",async i=>{
+   if(i.user.id !== interaction.user.id)
+    return i.reply({ content: "Pas tes succès.", flags: 64 })
 
-   if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ton menu.",flags:64})
+   if(i.customId === "ach_next") page++
+   if(i.customId === "ach_prev") page--
 
-   if(i.customId==="ach_next") page++
-   if(i.customId==="ach_prev") page--
+   if(i.customId === "ach_reset"){
+    categoryId = "all"
+    page = 1
+   }
 
-   const {embed,row,maxPage}=build()
+   if(i.customId === "ach_category"){
+    categoryId = i.values[0]
+    page = 1
+   }
 
-   page=Math.max(1,Math.min(page,maxPage))
+   const { embed: newEmbed, components: newComponents } = build()
 
    await i.update({
-    embeds:[embed],
-    components:[row]
+    embeds: [newEmbed],
+    components: newComponents
    })
 
   })

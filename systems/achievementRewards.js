@@ -24,11 +24,6 @@ const REWARD_TIERS = {
 }
 
 /* ================= OVERRIDES MANUELS ================= */
-/*
- * Pour les achievements dont le tier ne peut pas être
- * déduit automatiquement par le pattern d'ID.
- * Format : achievementId → tier number
- */
 
 const MANUAL_OVERRIDES = {
 
@@ -163,27 +158,25 @@ const MANUAL_OVERRIDES = {
  shopSSR:     4,
  shopS:       3,
 
+ /* ---- PACKS EN STOCK (disponibles) ---- */
+ packStock25:  3,
+ packStock50:  4,
+ packStock100: 5,
+ packStock200: 6,
+ packStock500: 7,
+
 }
 
 /* ================= AUTO-DÉTECTION DU TIER ================= */
-/*
- * Analyse l'ID de l'achievement pour déterminer le tier.
- * Cherche des patterns numériques dans l'ID pour estimer
- * la difficulté (paliers plus hauts = tier plus élevé).
- *
- * Priorité : override manuel > auto-détection
- */
 
 function autoDetectTier(id){
 
- /* Extraire le nombre à la fin de l'ID */
  const match = id.match(/(\d+)$/)
 
- if(!match) return 1 /* Pas de nombre → probablement une première action */
+ if(!match) return 1
 
  const num = parseInt(match[1])
 
- /* Paliers par nombre */
  if(num >= 1000) return 7
  if(num >= 500)  return 6
  if(num >= 250)  return 5
