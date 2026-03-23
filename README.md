@@ -364,7 +364,7 @@ Les bonus se **cumulent** avec les bonus de guilde.
 
 ### Hiérarchie
 - 👑 **Meneur** (1) — tous les droits
-- ⚔ï¸ **Officiers** (max 3) — invite, kick membres, claim quêtes
+- 👨‍✈️ **Officiers** (max 3) — invite, kick membres, claim quêtes
 - 👤 **Membres** (max 10 au total) — profitent des bonus
 
 ### Niveaux & XP
@@ -389,11 +389,11 @@ Les bonus se **cumulent** avec les bonus de guilde.
 | 🔥 Chance de fusion critique | +0.5% / 10 niv. | +5% |
 | ✨ Chance de fusion double | +0.5% / 15 niv. | +3% |
 | 🌈 Chance de fusion triple | +0.25% / 25 niv. | +1% |
-| ðŸ€ Chance de lucky pack | +1% / 10 niv. | +10% |
+| 🍀 Chance de lucky pack | +1% / 10 niv. | +10% |
 | ⭐ XP bonus | +5% / 20 niv. | +25% |
-| ðŸª Réduction KrosmoShop | +2% / 25 niv. | +8% |
+| 📉 Réduction KrosmoShop | +2% / 25 niv. | +8% |
 | 📦 Packs daily bonus | +1 / 50 niv. | +2 |
-| ðŸŽ Chance de double daily | +1% / 20 niv. | +5% |
+| 🧧 Chance de double daily | +1% / 20 niv. | +5% |
 
 ### Quêtes de guilde
 - **3 quêtes par semaine**, tirées d'un pool de **25 quêtes** possibles
@@ -432,12 +432,12 @@ Les goals de base sont calibrés pour **8 joueurs actifs**. Une guilde de 10 fai
 | 📦 Pluie de cartes | Ouvrir 200 packs | ⭐ 2000 XP |
 | 🌈 Éclat arc-en-ciel | Obtenir 3 SSR | ⭐ 600 XP |
 | 🌈 Chasseurs de SSR | Obtenir 6 SSR | ⭐ 1000 XP |
-| ⚗ï¸ Premiers essais | Faire 8 fusions | ⭐ 400 XP |
-| ⚗ï¸ Laboratoire actif | Faire 50 fusions | ⭐ 1400 XP |
-| ðŸŽ Partage amical | Faire 4 dons | ⭐ 400 XP |
-| ðŸŽ Philanthropes | Faire 25 dons | ⭐ 1200 XP |
+| ⚗️ Premiers essais | Faire 8 fusions | ⭐ 400 XP |
+| ⚗️ Laboratoire actif | Faire 50 fusions | ⭐ 1400 XP |
+| 🎁 Partage amical | Faire 4 dons | ⭐ 400 XP |
+| 🎁 Philanthropes | Faire 25 dons | ⭐ 1200 XP |
 | 💰 Grand déstockage | Vendre 50 cartes | ⭐ 800 XP |
-| ðŸŽ Fidélité collective | Réclamer 20 daily | ⭐ 600 XP |
+| 🎁 Fidélité collective | Réclamer 20 daily | ⭐ 600 XP |
 | 💎 Trésor de guilde | Gagner 80 000 kamas | ⭐ 1200 XP |
 | 🛒 Clients du KrosmoShop | Acheter 4 cartes au shop | ⭐ 400 XP |
 
@@ -505,25 +505,24 @@ Chaque Dieu a son propre mécanisme RNG et ses **voice lines** quand tu obtiens 
 | Dieu | Effet | Mécanique |
 |------|-------|-----------|
 | 🔥 Iop | Rage critique | Chaque carte peut être upgradée par la rage (5% SSR, 15% S, 25% UR/HR) |
-| ðŸ¹ Cra | Tir ciblé | Une carte S spécifique peut apparaître (20% par slot) |
-| â³ Xelor | Distorsion temporelle | Des cartes sont retirées et d'autres ajoutées aléatoirement |
-| 🕶ï¸ Sram | Pack invisible | Les cartes sont cachées puis révélées une par une + 1 carte bonus |
+| 🏹 Cra | Tir ciblé | Une carte S spécifique peut apparaître (20% par slot) |
+| ⏳ Xelor | Distorsion temporelle | Des cartes sont retirées et d'autres ajoutées aléatoirement |
+| 🕶️ Sram | Pack invisible | Les cartes sont cachées puis révélées une par une + 1 carte bonus |
 | 💀 Sacrieur | Sacrifice de sang | Mutation +1 rang (C/U/R 70%, SR/HR 50%, UR 30%, S→SSR 10%) |
 | 🎭 Zobal | Masque d'évolution | Upgrade garanti de +1 rang sur toutes les cartes |
 | 🧠 Huppermage | Énergie élémentaire | +1 à 3 cartes bonus (60% S/UR, 40% random) |
-| ðŸº Pandawa | Duplication éthylique | Chaque carte a une chance d'être dupliquée (30% C→HR, 5% SSR) |
-| ðŸ‰ Osamodas | Invocation bestiale | Pack homogène d'une seule rareté (5% SSR, 7% S, 8% UR...) |
+| 🍺 Pandawa | Duplication éthylique | Chaque carte a une chance d'être dupliquée (30% C→HR, 5% SSR) |
+| 🐉 Osamodas | Invocation bestiale | Pack homogène d'une seule rareté (5% SSR, 7% S, 8% UR...) |
 | 🎲 Ecaflip | RNG extrême | 60% jackpot (pack HR/UR/S/SSR) ou 40% double upgrade massif |
-| ðŸº Ouginak | Chasse du prédateur | Risque/récompense : 30% downgrade, 25% +1, 15% +2, 5% +3 (SSR) |
-| 🛡ï¸ Feca | Bouclier divin | Filtre C/U + remplissage protégé (3% SSR, 8% S, 25% UR) |
+| 🐺 Ouginak | Chasse du prédateur | Risque/récompense : 30% downgrade, 25% +1, 15% +2, 5% +3 (SSR) |
+| 🛡️ Feca | Bouclier divin | Filtre C/U + remplissage protégé (3% SSR, 8% S, 25% UR) |
 | 💰 Enutrof | Richesse divine | Kamas ×5 + jackpot caché (1%) |
 | 💣 Roublard | Explosion | +3 cartes bonus aléatoires |
-| ⚙ï¸ Steamer | Chaos mécanique | Pack totalement aléatoire (toutes raretés possibles) |
+| ⚙️ Steamer | Chaos mécanique | Pack totalement aléatoire (toutes raretés possibles) |
 | 🌀 Eliotrope | Portail dimensionnel | Pack haute qualité (8% SSR, 25% S, 35% UR, 32% HR par carte) |
 | ✨ Eniripsa | Miracle de guérison | Purification C/U/R + guérison (UR→S 15%, S→SSR 5%) + 1 carte bonus |
 | 🌿 Sadida | Croissance naturelle | Duplication progressive (35% par carte, max 2 duplications) |
-| ⚔ï¸ Forgelance | Forge divine | Upgrade global de +1 rang sur toutes les cartes |
-
+| ⚔️ Forgelance | Forge divine | Upgrade global de +1 rang sur toutes les cartes |
 ---
 
 ## 📅 Quêtes
