@@ -7,8 +7,6 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Fixed → corrections de bugs
 - Improved → améliorations internes
 
----
-
 ## [0.33.0] - 2026-03-23
 
 ### Added
@@ -22,15 +20,77 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **4 nouvelles cartes Sufokia** — 2 C, 1 R, 1 UR ajoutées au set existant (349 → 353 cartes)
 
+- **Tri par catégorie dans `/achievements`** (`commands/joueur/achievement.js`)
+  - `StringSelectMenu` avec 15 catégories : Tous / Packs / RNG / Collection / Économie / Fusion / Daily / Social / Inventaire / KrosmoShop / Events / Guildes / Dons / Secrets / **Battle Pass**
+  - Chaque option affiche le compteur débloqué/total `(ex: Packs 12/45)`
+  - Bouton "Tout afficher" pour reset le filtre
+  - Pagination conservée et fonctionnelle par catégorie
+  - Couleur de l'embed change selon la catégorie
+  - Les succès secrets non débloqués restent masqués
+  - Footer : `X/Y débloqués ici • X/Y au total • Page X/Y`
+
+- **Achievements Battle Pass visibles dans `/achievements`** (catégorie 🎖️ Battle Pass)
+  - Descriptions générées automatiquement depuis `type` + `target` (ex: *Ouvrir 50 packs via /krosmoz*)
+  - Récompenses BP affichées (`+XP BP`, `+kamas`)
+  - Badge 🌸 pour les succès saisonniers, 🎖️ pour les globaux
+  - `getBattlePassAchievements()` mis à jour pour exposer `type`, `target`, `reward`, `seasonal`
+
+- **5 nouveaux succès "packs en stock"** (`systems/achievements/achievementPacks.js`)
+  - `packStock25` — Avoir 25 packs en stock → titre *Préparateur*
+  - `packStock50` — Avoir 50 packs en stock → titre *Stockeur*
+  - `packStock100` — Avoir 100 packs en stock → titre *Entrepôt du Krosmoz*
+  - `packStock200` — Avoir 200 packs en stock → titre *Baron des Packs*
+  - `packStock500` — Avoir 500 packs en stock → titre *Trésorier du Krosmoz*
+  - Overrides tiers ajoutés dans `achievementRewards.js` (tier 3 → 7)
+
+- **XP de guilde via ouverture de pack** (`systems/packEngine.js`)
+  - Chaque carte obtenue rapporte de l'XP à la guilde du joueur
+  - Taux très réduit : C/U = 1 XP, R/SR = 3 XP, HR = 4 XP, UR = 6 XP, S = 7 XP, SSR = 8 XP
+  - Trackée dans `user.stats.guildXpContributed`
+  - Sans impact sur les achievements ni les performances (try/catch si pas de guilde)
+
+- **Quêtes de guilde journalières** (`systems/guildQuestSystem.js`)
+  - 5 quêtes journalières en plus des 5 hebdomadaires (anciennement 3)
+  - Pool journalier : 13 quêtes légères (packs, fusions, daily, ventes, shop, dons, eventpacks)
+  - Pool hebdomadaire : 22 quêtes (anciennement 17), sans achat au market
+  - Sélection déterministe par jour (`gqd-YYYY-MM-DD`) et par semaine (`gq-YYYY-Www`)
+  - Snapshot journalier indépendant (`questsDay`, `questDaySnapshot`, `questsDayClaimed`)
+  - Bonus parfait : +200 XP pour les journalières, +500 XP pour les hebdomadaires
+  - `claimGuildQuests(guildId, claimerId, type)` — paramètre `type: "daily" | "weekly"`
+
+- **Onglets journalier/hebdomadaire dans `/guild`** (`commands/joueur/guild.js`)
+  - Deux boutons **☀️ Journalières** / **📅 Hebdomadaires** dans la vue Quêtes
+  - Bouton actif mis en vert (ButtonStyle.Success)
+  - Timer de reset adapté selon l'onglet actif
+
+- **ID de la guilde affiché dans `/guild`**
+  - Champ `🆔 ID : \`<id>\`` visible dans le menu principal de la guilde
+
 ### Changed
 
 - **Total de cartes** : 1025 → **1485 cartes** (+460)
 - **Nombre de sets** : 4 → **5 sets** (Incarnam, Astrub, Amakna, Sufokia, Kelba)
-- **README.md** mis à jour :
-  - Introduction : 1485 cartes, 5 sets
-  - Tableau des sets : ajout de Kelba (456 cartes), Sufokia mis à jour (353 cartes)
-  - Nouvelle section "🌲 Distribution Kelba"
-  - Distribution Sufokia mise à jour (nouvelles proportions avec les 4 cartes ajoutées)
+- **`/mystats` — onglet Général** : achievements comptés avec Battle Pass séparément
+  - Affiche `├ Jeu principal : X/Y` et `└ Battle Pass : X/Y`
+  - Barre de progression sur le total combiné
+  - Packs en stock affichés dans le résumé
+- **`/mystats` — onglet Packs & RNG** : eventpacks intégrés
+  - Total global = packs normaux + eventpacks
+  - Sous-détail `├ Via /krosmoz` et `└ Via /eventpack`
+- **`/achievements`** — `StringSelectMenu` remplace les boutons de navigation par catégorie
+- **`guildQuestSystem.js`** — quêtes market retirées du pool (la stat `marketBought` n'est plus utilisée comme objectif de guilde)
+- **`achievementPacks.js`** — section `PACKS EN STOCK` ajoutée en fin de fichier
+
+### Fixed
+
+- **`guildQuestSystem.js`** — les quêtes journalières ont maintenant leur propre snapshot indépendant du weekly, évitant les conflits de progression
+- **`getBattlePassAchievements()`** — exposait uniquement `id` et `name`, privant l'affichage de toute description ; maintenant expose `type`, `target`, `reward`, `seasonal`
+
+### Improved
+
+- **`achievementRewards.js`** — overrides `packStock25/50/100/200/500` ajoutés
+- **`systems/packEngine.js`** — XP guilde calculée par boucle sur les cartes du pack (pas d'appel réseau, try/catch complet)
+- **`systems/guildQuestSystem.js`** — export `getWeeklyQuests` conservé pour rétrocompatibilité avec les éventuels appels externes
 
 ---
 
