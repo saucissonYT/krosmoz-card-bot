@@ -6,7 +6,7 @@
    Principes :
    - Un pack (800k) doit "rembourser" ~25-35% en vente moyenne
    - L'écart entre raretés est exponentiel, pas linéaire
-   - Le sell price = ~40% du market price (marge pour le market)
+   - Le sell price = ~40% du market price (marge pour le market) (en vrai jsp c'est à équilibrer)
    - Le KrosmoShop est premium (2x-3x le market price)
    - Les fusions doivent être ACCESSIBLES pour que les joueurs
      les utilisent : coûts bas = recyclage attractif des doublons
@@ -21,14 +21,14 @@ const RARITY_ORDER = ["C","U","R","SR","HR","UR","S","SSR"]
 
 /* ---- Prix de base (market entre joueurs, min/max calculés dessus) ---- */
 const RARITY_PRICE = {
- C:8,
+ C:10,
  U:20,
  R:50,
- SR:120,
- HR:300,
- UR:800,
- S:2000,
- SSR:5000
+ SR:100,
+ HR:200,
+ UR:700,
+ S:1000,
+ SSR:2500
 }
 
 /* ---- Prix de vente au bot (sellcard, sellduplicates) ~40% du market ---- */
@@ -40,7 +40,7 @@ const SELL_PRICE = {
  HR:120,
  UR:320,
  S:800,
- SSR:2000
+ SSR:2500
 }
 
 /* ---- Coût de fusion (en DOUBLONS nécessaires, PAS en kamas) ---- */
@@ -70,7 +70,7 @@ const RARITY_COLOR = {
 }
 
 /* ---- Prix d'un pack ---- */
-const PACK_PRICE = 800
+const PACK_PRICE = 2500
 
 /* ---- Niveau max joueur ---- */
 const MAX_PLAYER_LEVEL = 100
