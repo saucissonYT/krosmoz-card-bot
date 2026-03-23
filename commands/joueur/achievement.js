@@ -52,6 +52,47 @@ const CATEGORY_COLORS = {
  battlepass: "#8E1F1F",
 }
 
+/* ---- Générateur de description BP depuis type + target ---- */
+function bpDescription(type, target, seasonal){
+
+ const n = target ?? "?"
+ const s = seasonal ? " cette saison" : ""
+
+ switch(type){
+  case "daily_claims":    return `Récupérer le daily **${n}** fois${s}.`
+  case "packs_opened":    return `Ouvrir **${n}** packs${s} via /krosmoz.`
+  case "rare_cards":      return `Obtenir **${n}** carte${n>1?"s":""} rare${n>1?"s":""} (HR ou plus)${s}.`
+  case "ssr_cards":       return `Obtenir **${n}** SSR 🌈${s}.`
+  case "shiny_cards":     return `Obtenir **${n}** SSR Shiny ✨${s}.`
+  case "sets_completed":  return `Compléter **${n}** set${n>1?"s":""}${s} (posséder toutes les cartes).`
+  case "fusions":         return `Effectuer **${n}** fusion${n>1?"s":""}${s} via /fusion.`
+  case "market_sales":    return `Vendre **${n}** carte${n>1?"s":""} sur le marché${s}.`
+  case "events":          return `Participer à **${n}** event${n>1?"s":""} des Dieux${s}.`
+  case "level":           return `Atteindre le niveau **${n}** du Battle Pass${s}.`
+  case "season_level":    return `Atteindre le niveau **${n}** cette saison.`
+  case "season_packs":    return `Ouvrir **${n}** packs cette saison.`
+  case "season_sets":     return `Compléter **${n}** set${n>1?"s":""} cette saison.`
+  case "season_rare":     return `Obtenir **${n}** carte${n>1?"s":""} rare${n>1?"s":""} cette saison.`
+  case "season_exclusive":return `Obtenir **${n}** récompense${n>1?"s":""} exclusive${n>1?"s":""} de la saison.`
+  case "all6":            return `Compléter les **6 saisons** du Battle Pass.`
+  case "premium_buy":     return `Acheter le Pass Premium via /battlepass.`
+  case "kamas_earned":    return `Gagner **${n.toLocaleString("fr-FR")}** kamas au total.`
+  case "titles_owned":    return `Posséder **${n}** titre${n>1?"s":""} débloqués.`
+  case "badges_owned":    return `Posséder **${n}** badge${n>1?"s":""} (succès débloqués).`
+  default:                return `Objectif Battle Pass : **${type}** × ${n}.`
+ }
+}
+
+/* ---- Formatage récompense BP ---- */
+function bpRewardText(reward){
+ if(!reward) return ""
+ const parts = []
+ if(reward.bpXp)  parts.push(`⭐ +${reward.bpXp} XP BP`)
+ if(reward.kamas) parts.push(`💰 +${reward.kamas} kamas`)
+ if(reward.packs) parts.push(`📦 +${reward.packs} pack${reward.packs>1?"s":""}`)
+ return parts.length ? ` — ${parts.join(" • ")}` : ""
+}
+
 module.exports = {
 
  name: "achievements",
@@ -61,9 +102,9 @@ module.exports = {
 
   await interaction.deferReply()
 
-  const user     = getUser(interaction.user.id)
-  const allList  = Object.entries(achievements)
-  const userId   = interaction.user.id
+  const user    = getUser(interaction.user.id)
+  const allList = Object.entries(achievements)
+  const userId  = interaction.user.id
 
   /* ---- Charger les achievements Battle Pass ---- */
   let bpData = { entries: [], unlocked: [], total: 0 }
@@ -77,23 +118,22 @@ module.exports = {
   const perPage  = 8
 
   /* ---- Statistiques globales ---- */
-  const unlockedCount   = user.achievements?.length || 0
-  const totalMain       = allList.length
-  const bpUnlocked      = bpData.unlocked?.length || 0
-  const bpTotal         = bpData.total || 0
-  const totalAll        = totalMain + bpTotal
-  const unlockedAll     = unlockedCount + bpUnlocked
+  const unlockedCount = user.achievements?.length || 0
+  const totalMain     = allList.length
+  const bpUnlocked    = bpData.unlocked?.length || 0
+  const bpTotal       = bpData.total || 0
+  const totalAll      = totalMain + bpTotal
+  const unlockedAll   = unlockedCount + bpUnlocked
 
   /* ---- Filtrer la liste selon la catégorie ---- */
   function getFiltered(){
    if(categoryId === "battlepass"){
-    /* Retourner les BP entries sous forme [id, data] homogène */
     return bpData.entries.map(e => [e.id, {
-     name: e.name,
-     badge: "🎖️",
-     description: e.description || null,
-     trigger: "battlepass",
-     _bp: true,
+     name:     e.name,
+     badge:    e.seasonal ? "🌸" : "🎖️",
+     description: bpDescription(e.type, e.target, e.seasonal) + bpRewardText(e.reward),
+     trigger:  "battlepass",
+     _bp:      true,
      _unlocked: e.unlocked
     }])
    }
@@ -105,23 +145,19 @@ module.exports = {
   /* ---- Constructeur d'embed + composants ---- */
   function build(){
 
-   const filtered  = getFiltered()
-   const maxPage   = Math.max(1, Math.ceil(filtered.length / perPage))
-   page            = Math.max(1, Math.min(page, maxPage))
+   const filtered = getFiltered()
+   const maxPage  = Math.max(1, Math.ceil(filtered.length / perPage))
+   page           = Math.max(1, Math.min(page, maxPage))
 
-   const start  = (page - 1) * perPage
-   const slice  = filtered.slice(start, start + perPage)
+   const start = (page - 1) * perPage
+   const slice = filtered.slice(start, start + perPage)
 
    /* Débloqués dans cette catégorie */
-   let catUnlocked
-   if(categoryId === "battlepass"){
-    catUnlocked = bpUnlocked
-   } else {
-    catUnlocked = filtered.filter(([id, d]) => {
-     if(d._bp) return d._unlocked
-     return user.achievements?.includes(id)
-    }).length
-   }
+   const catUnlocked = categoryId === "battlepass"
+    ? bpUnlocked
+    : filtered.filter(([id, d]) => d._bp ? d._unlocked : user.achievements?.includes(id)).length
+
+   const catTotal = categoryId === "battlepass" ? bpTotal : filtered.length
 
    const lines = slice.map(([id, data]) => {
     const unlocked = data._bp ? data._unlocked : user.achievements?.includes(id)
@@ -129,25 +165,20 @@ module.exports = {
     if(data.secret && !unlocked)
      return `🔒 **Succès secret** — ???`
 
-    const titleTag  = data.title ? ` • 👑 ${data.title}` : ""
-    const bpTag     = data._bp   ? ` • 🎖️ Battle Pass`  : ""
-    const status    = unlocked ? "✅" : "🔒"
-    const descLine  = data.description ? `\n　${data.description}` : ""
+    const titleTag = data.title ? ` • 👑 ${data.title}` : ""
+    const status   = unlocked ? "✅" : "🔒"
+    const descLine = data.description ? `\n　${data.description}` : ""
 
-    return `${status} ${data.badge} **${data.name}**${titleTag}${bpTag}${descLine}`
+    return `${status} ${data.badge} **${data.name}**${titleTag}${descLine}`
    })
 
    const cat = CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[0]
-
-   const footerTotal = categoryId === "battlepass"
-    ? `${bpUnlocked}/${bpTotal} débloqués ici`
-    : `${catUnlocked}/${filtered.length} débloqués ici`
 
    const embed = new EmbedBuilder()
     .setTitle(`${cat.emoji} Succès — ${cat.label}`)
     .setDescription(lines.join("\n\n") || "Aucun succès dans cette catégorie.")
     .setFooter({
-     text:`${footerTotal} • ${unlockedAll}/${totalAll} au total • Page ${page}/${maxPage}`
+     text:`${catUnlocked}/${catTotal} débloqués ici • ${unlockedAll}/${totalAll} au total • Page ${page}/${maxPage}`
     })
     .setColor(CATEGORY_COLORS[categoryId] || "#f1c40f")
 
@@ -187,25 +218,26 @@ module.exports = {
     .addOptions(
      CATEGORIES.map(c => {
 
-      /* Compte débloqués pour le menu */
-      let catFiltered, catCount
+      let catLen, catC
 
       if(c.id === "battlepass"){
-       catCount    = bpUnlocked
-       catFiltered = { length: bpTotal }
+       catLen = bpTotal
+       catC   = bpUnlocked
       } else if(c.id === "all"){
-       catFiltered = allList
-       catCount    = allList.filter(([id]) => user.achievements?.includes(id)).length
+       catLen = allList.length
+       catC   = allList.filter(([id]) => user.achievements?.includes(id)).length
       } else if(c.id === "secret"){
-       catFiltered = allList.filter(([, d]) => d.secret === true)
-       catCount    = catFiltered.filter(([id]) => user.achievements?.includes(id)).length
+       const f = allList.filter(([, d]) => d.secret === true)
+       catLen  = f.length
+       catC    = f.filter(([id]) => user.achievements?.includes(id)).length
       } else {
-       catFiltered = allList.filter(([, d]) => d.trigger === c.id && !d.secret)
-       catCount    = catFiltered.filter(([id]) => user.achievements?.includes(id)).length
+       const f = allList.filter(([, d]) => d.trigger === c.id && !d.secret)
+       catLen  = f.length
+       catC    = f.filter(([id]) => user.achievements?.includes(id)).length
       }
 
       return new StringSelectMenuOptionBuilder()
-       .setLabel(`${c.label} (${catCount}/${catFiltered.length})`)
+       .setLabel(`${c.label} (${catC}/${catLen})`)
        .setValue(c.id)
        .setEmoji(c.emoji)
        .setDefault(c.id === categoryId)
@@ -214,7 +246,7 @@ module.exports = {
 
    const selectRow = new ActionRowBuilder().addComponents(selectMenu)
 
-   return { embed, components: [navRow, selectRow], maxPage }
+   return { embed, components:[navRow, selectRow], maxPage }
   }
 
   /* ---- Envoi initial ---- */
@@ -230,8 +262,8 @@ module.exports = {
    if(i.user.id !== interaction.user.id)
     return i.reply({ content:"Pas tes succès.", flags:64 })
 
-   if(i.customId === "ach_next")  page++
-   if(i.customId === "ach_prev")  page--
+   if(i.customId === "ach_next") page++
+   if(i.customId === "ach_prev") page--
 
    if(i.customId === "ach_reset"){
     categoryId = "all"

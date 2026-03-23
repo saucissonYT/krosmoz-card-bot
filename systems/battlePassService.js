@@ -685,40 +685,42 @@ async function claimAllBattlePassRewards(userId) {
   const season = getSeasonTemplate(current.activeSeason)
   const progress = getUserProgress(userId, current.activeSeason)
   syncProgressLevel(progress, season)
-  const claimable = getClaimableRewards(progress, season)
+  const user = getUser(userId)
 
-  let freeCount = 0
-  let premiumCount = 0
+  const claimable = getClaimableRewards(progress, season)
+  const allRewards = [...claimable.free, ...claimable.premium]
+
+  if (allRewards.length === 0) {
+   return { ok: false, error: "Aucune recompense a recuperer." }
+  }
+
   const claimedRewards = []
   const totals = { kamas: 0, packs: 0, xp: 0 }
 
   for (const reward of claimable.free) {
-   const granted = awardReward(userId, reward)
+   const result = awardReward(userId, reward)
    progress.claimedFree.push(reward.level)
-   freeCount++
-   claimedRewards.push({ track: "free", level: reward.level, text: granted.text || reward.type })
-   totals.kamas += granted.kamas || 0
-   totals.packs += granted.packs || 0
-   totals.xp += granted.xp || 0
+   claimedRewards.push({ ...reward, text: result.text, track: "free" })
+   totals.kamas += result.kamas
+   totals.packs += result.packs
+   totals.xp += result.xp
   }
 
   for (const reward of claimable.premium) {
-   const granted = awardReward(userId, reward)
+   const result = awardReward(userId, reward)
    progress.claimedPremium.push(reward.level)
-   premiumCount++
-   claimedRewards.push({ track: "premium", level: reward.level, text: granted.text || reward.type })
-   totals.kamas += granted.kamas || 0
-   totals.packs += granted.packs || 0
-   totals.xp += granted.xp || 0
+   claimedRewards.push({ ...reward, text: result.text, track: "premium" })
+   totals.kamas += result.kamas
+   totals.packs += result.packs
+   totals.xp += result.xp
   }
 
+  checkAndUnlockAchievements(progress, season)
   saveUserProgress(progress)
 
   return {
    ok: true,
-   freeCount,
-   premiumCount,
-   total: freeCount + premiumCount,
+   total: claimedRewards.length,
    claimedRewards,
    totals
   }
@@ -729,13 +731,17 @@ async function claimAllBattlePassRewards(userId) {
 }
 
 async function buyPremium(userId) {
+ if (!checkCooldown(userId)) {
+  return { ok: false, error: "Cooldown actif. Reessaie dans 2 secondes." }
+ }
+
  if (claimLocks.has(userId)) {
-  return { ok: false, error: "Operation deja en cours." }
+  return { ok: false, error: "Claim deja en cours." }
  }
 
  const lockPath = getUserLockPath(userId)
  if (!acquireFileLock(lockPath)) {
-  return { ok: false, error: "Operation deja en cours." }
+  return { ok: false, error: "Claim deja en cours." }
  }
 
  claimLocks.add(userId)
@@ -853,6 +859,7 @@ function getBattlePassRewardsView(userId, page = 1, perPage = 8) {
  }
 }
 
+/* ---- MODIFIÉ : expose type, target, reward, seasonal pour générer les descriptions ---- */
 function getBattlePassAchievements(userId) {
  const overview = getBattlePassOverview(userId)
  const unlocked = overview.progress.achievementsUnlocked || []
@@ -861,8 +868,22 @@ function getBattlePassAchievements(userId) {
  const seasonal = overview.seasonTemplate.achievements || []
 
  const combined = [
-  ...globalDefs.map((a) => ({ id: a.id, name: a.name })),
-  ...seasonal.map((a) => ({ id: a.id, name: a.name }))
+  ...globalDefs.map((a) => ({
+   id:       a.id,
+   name:     a.name,
+   type:     a.type   || null,
+   target:   a.target || null,
+   reward:   a.reward || null,
+   seasonal: false
+  })),
+  ...seasonal.map((a) => ({
+   id:       a.id,
+   name:     a.name,
+   type:     a.type   || null,
+   target:   a.target || null,
+   reward:   a.reward || null,
+   seasonal: true
+  }))
  ]
 
  return {
@@ -924,7 +945,8 @@ function devSetXP(userId, totalXP) {
 function devStatus() {
  const current = ensureCurrentSeason()
  const paths = getBattlePassPaths()
- const progressFiles = fs.existsSync(paths.progress) ? fs.readdirSync(paths.progress).filter((f) => f.endsWith(".json")) : []
+ const progressFiles = fs.existsSync(paths.progress) ?
+  fs.readdirSync(paths.progress).filter((f) => f.endsWith(".json")) : []
  return {
   current,
   playersWithProgress: progressFiles.length,
@@ -967,23 +989,23 @@ module.exports = {
  addBattlePassXP,
  buyPremium,
  checkSeasonTransitions,
-  claimAllBattlePassRewards,
-  computeLevel,
-  getEndlessRewardForLevel,
-  devForceSeason,
-  devGivePremium,
-  devNextSeason,
-  devStopSeasonNow,
-  devRestartSeason,
-  devResetProgress,
-  devClaimAllForUser,
-  devSetLevel,
-  devSetXP,
-  devStatus,
-  getBattlePassAchievements,
-  getBattlePassOverview,
-  getBattlePassRewardsView,
-  getUserProgress,
-  runSeasonReset,
-  saveUserProgress
+ claimAllBattlePassRewards,
+ computeLevel,
+ getEndlessRewardForLevel,
+ devForceSeason,
+ devGivePremium,
+ devNextSeason,
+ devStopSeasonNow,
+ devRestartSeason,
+ devResetProgress,
+ devClaimAllForUser,
+ devSetLevel,
+ devSetXP,
+ devStatus,
+ getBattlePassAchievements,
+ getBattlePassOverview,
+ getBattlePassRewardsView,
+ getUserProgress,
+ runSeasonReset,
+ saveUserProgress
 }
