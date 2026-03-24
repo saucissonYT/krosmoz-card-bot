@@ -1,7 +1,7 @@
-const fs = require("fs")
+const fs   = require("fs")
 const path = require("path")
 
-const { addXP } = require("./progressionSystem")
+const { addXP }         = require("./progressionSystem")
 const { getUser, save } = require("./userSystem")
 const {
  addDaysDateOnly,
@@ -15,15 +15,17 @@ const {
  writeAtomic
 } = require("./seasonService")
 
-const claimLocks = new Set()
-const commandCooldown = new Map()
-const COOLDOWN_MS = 2000
-const SEASON_CHECK_THROTTLE_MS = 5000
-const FILE_LOCK_STALE_MS = 15000
-const ENDLESS_XP_STEP = 900
-const ENDLESS_KAMAS_REWARD = 2500
-const ENDLESS_PLAYER_XP_REWARD = 700
+const claimLocks         = new Set()
+const commandCooldown    = new Map()
+const COOLDOWN_MS               = 2000
+const SEASON_CHECK_THROTTLE_MS  = 5000
+const FILE_LOCK_STALE_MS        = 15000
+const ENDLESS_XP_STEP           = 900
+const ENDLESS_KAMAS_REWARD      = 2500
+const ENDLESS_PLAYER_XP_REWARD  = 700
 let lastSeasonTransitionCheckAt = 0
+
+/* ─── XP Config ──────────────────────────────────────────────────────────── */
 
 function getXpConfig() {
  const configPath = path.join(process.cwd(), "config", "battlepassXP.json")
@@ -31,17 +33,18 @@ function getXpConfig() {
   schemaVersion: 1,
   sources: {
    daily_claim: 40,
-   pack_open: 60,
-   fusion: 120,
+   pack_open:   60,
+   fusion:      120,
    market_sell: 20,
-   event_pack: 240,
-   manual: 0
+   event_pack:  240,
+   manual:      0
   }
  }
-
  if (!fs.existsSync(configPath)) return fallback
  return readJson(configPath, fallback)
 }
+
+/* ─── Level maths ────────────────────────────────────────────────────────── */
 
 function computeLevel(totalXP, xpCurve, maxLevel = 40) {
  let level = 1
@@ -49,12 +52,10 @@ function computeLevel(totalXP, xpCurve, maxLevel = 40) {
   if (totalXP >= xpCurve[i]) level = i + 2
   else break
  }
-
  if (xpCurve.length > 0 && totalXP >= xpCurve[xpCurve.length - 1]) {
   const overflow = totalXP - xpCurve[xpCurve.length - 1]
   level = (xpCurve.length + 1) + Math.floor(overflow / ENDLESS_XP_STEP)
  }
-
  if (typeof maxLevel === "number" && Number.isFinite(maxLevel) && maxLevel > 0) {
   return Math.min(level, maxLevel)
  }
@@ -65,17 +66,15 @@ function getLevelMinXP(level, xpCurve) {
  if (level <= 1) return 0
  const index = level - 2
  if (index < xpCurve.length) return xpCurve[index] || 0
- const last = xpCurve[xpCurve.length - 1] || 0
+ const last  = xpCurve[xpCurve.length - 1] || 0
  const extra = index - (xpCurve.length - 1)
  return last + (extra * ENDLESS_XP_STEP)
 }
 
 function getEndlessRewardForLevel(level) {
  if (level <= 40) return null
- if (level % 2 === 1) {
-  return { level, type: "kamas", value: ENDLESS_KAMAS_REWARD }
- }
- return { level, type: "player_xp", value: ENDLESS_PLAYER_XP_REWARD }
+ if (level % 2 === 1) return { level, type: "kamas",     value: ENDLESS_KAMAS_REWARD }
+ return                        { level, type: "player_xp", value: ENDLESS_PLAYER_XP_REWARD }
 }
 
 function syncProgressLevel(progress, season) {
@@ -87,6 +86,8 @@ function syncProgressLevel(progress, season) {
  return computed
 }
 
+/* ─── Progress file paths ───────────────────────────────────────────────── */
+
 function getProgressPath(userId) {
  const paths = getBattlePassPaths()
  return path.join(paths.progress, `${userId}.json`)
@@ -95,20 +96,23 @@ function getProgressPath(userId) {
 function createDefaultProgress(userId, seasonId) {
  return {
   schemaVersion: 1,
-  userId: String(userId),
+  userId:   String(userId),
   seasonId,
-  totalXP: 0,
+  totalXP:  0,
   currentLevel: 1,
-  hasPremium: false,
-  claimedFree: [],
-  claimedPremium: [],
+  hasPremium:   false,
+  claimedFree:     [],
+  claimedPremium:  [],
   achievementsUnlocked: [],
   stats: {
-   premiumBuys: 0,
-   packsOpened: 0,
-   fusions: 0,
-   dailyClaims: 0,
-   marketSales: 0
+   premiumBuys:  0,
+   packsOpened:  0,
+   fusions:      0,
+   dailyClaims:  0,
+   marketSales:  0,
+   events:       0,
+   setsCompleted: 0,
+   rareCards:    0
   },
   lastUpdated: new Date().toISOString()
  }
@@ -133,26 +137,16 @@ function getUserProgress(userId, seasonId) {
  const progress = readJson(filePath, fallback)
  let changed = false
 
- if (!progress.schemaVersion) {
-  progress.schemaVersion = 1
-  changed = true
+ if (!progress.schemaVersion) { progress.schemaVersion = 1; changed = true }
+ if (!progress.stats) { progress.stats = fallback.stats; changed = true }
+ /* Init des nouveaux champs stats si absents */
+ const statDefaults = { events: 0, setsCompleted: 0, rareCards: 0 }
+ for (const [k, v] of Object.entries(statDefaults)) {
+  if (progress.stats[k] === undefined) { progress.stats[k] = v; changed = true }
  }
- if (!progress.stats) {
-  progress.stats = fallback.stats
-  changed = true
- }
- if (!Array.isArray(progress.achievementsUnlocked)) {
-  progress.achievementsUnlocked = []
-  changed = true
- }
- if (!Array.isArray(progress.claimedFree)) {
-  progress.claimedFree = []
-  changed = true
- }
- if (!Array.isArray(progress.claimedPremium)) {
-  progress.claimedPremium = []
-  changed = true
- }
+ if (!Array.isArray(progress.achievementsUnlocked)) { progress.achievementsUnlocked = []; changed = true }
+ if (!Array.isArray(progress.claimedFree))          { progress.claimedFree = [];          changed = true }
+ if (!Array.isArray(progress.claimedPremium))       { progress.claimedPremium = [];        changed = true }
 
  if (progress.seasonId !== seasonId) {
   const migrated = createDefaultProgress(userId, seasonId)
@@ -161,10 +155,7 @@ function getUserProgress(userId, seasonId) {
   return migrated
  }
 
- if (changed) {
-  writeAtomic(filePath, progress)
- }
-
+ if (changed) writeAtomic(filePath, progress)
  return progress
 }
 
@@ -173,6 +164,8 @@ function saveUserProgress(progress) {
  writeAtomic(getProgressPath(progress.userId), progress)
 }
 
+/* ─── File lock ─────────────────────────────────────────────────────────── */
+
 function getUserLockPath(userId) {
  const paths = getBattlePassPaths()
  return path.join(paths.battlepass, `op_${userId}.lock`)
@@ -180,98 +173,75 @@ function getUserLockPath(userId) {
 
 function acquireFileLock(lockPath, staleMs = FILE_LOCK_STALE_MS) {
  const now = Date.now()
-
  function tryCreate() {
   const fd = fs.openSync(lockPath, "wx")
   fs.writeFileSync(fd, String(now), "utf8")
   fs.closeSync(fd)
  }
-
- try {
-  tryCreate()
-  return true
- } catch (err) {
+ try { tryCreate(); return true } catch (err) {
   if (err?.code !== "EEXIST") return false
  }
-
  try {
   const stat = fs.statSync(lockPath)
   if (now - stat.mtimeMs > staleMs) {
-   fs.rmSync(lockPath, { force: true })
-   tryCreate()
-   return true
+   fs.rmSync(lockPath, { force: true }); tryCreate(); return true
   }
  } catch (_) {}
-
  return false
 }
 
 function releaseFileLock(lockPath) {
- try {
-  fs.rmSync(lockPath, { force: true })
- } catch (_) {}
+ try { fs.rmSync(lockPath, { force: true }) } catch (_) {}
 }
 
 function moveFileSafe(src, dst) {
- try {
-  fs.renameSync(src, dst)
-  return
- } catch (err) {
+ try { fs.renameSync(src, dst); return } catch (err) {
   if (!["EXDEV", "EPERM", "EBUSY"].includes(err?.code)) throw err
  }
-
  fs.copyFileSync(src, dst)
  fs.rmSync(src, { force: true })
 }
 
+/* ─── Award reward ───────────────────────────────────────────────────────── */
+
 function awardReward(userId, reward) {
  const user = getUser(userId)
  const { getCards } = require("./cardRegistry")
- const result = {
-  text: "",
-  kamas: 0,
-  packs: 0,
-  xp: 0
- }
+ const result = { text: "", kamas: 0, packs: 0, xp: 0 }
 
  if (reward.type === "kamas") {
   const amount = reward.value || 0
   user.kamas = (user.kamas || 0) + amount
   result.kamas += amount
   result.text = `💰 ${amount} kamas`
+
  } else if (reward.type === "player_xp") {
   const amount = reward.value || 0
   addXP(user, amount)
   result.xp += amount
   result.text = `⭐ ${amount} XP joueur`
- } else if (reward.type === "pack") {
+
+ } else if (reward.type === "pack" || reward.type === "pack_premium") {
   const amount = reward.value || 1
   user.packs = (user.packs || 0) + amount
   result.packs += amount
   result.text = `📦 ${amount} pack(s)`
- } else if (reward.type === "pack_premium") {
-  const amount = reward.value || 1
-  user.packs = (user.packs || 0) + amount
-  result.packs += amount
-  result.text = `📦 ${amount} pack(s)`
+
  } else if (reward.type === "title") {
   if (!user.titles) user.titles = ["Nouveau"]
   if (!user.titles.includes(reward.value)) user.titles.push(reward.value)
   result.text = `📜 Titre: ${reward.value}`
+
  } else if (reward.type === "badge") {
   if (!user.badges) user.badges = []
   if (!user.badges.includes(reward.value)) user.badges.push(reward.value)
   result.text = `🏅 Badge: ${reward.value}`
+
  } else if (reward.type === "card" && reward.cardId) {
   if (!user.cards) user.cards = {}
   user.cards[reward.cardId] = (user.cards[reward.cardId] || 0) + 1
   result.text = `🃏 ${reward.cardId}`
-  if (reward.cardId.includes("_exclusive_rare")) {
-   const current = ensureCurrentSeason()
-   const progress = getUserProgress(userId, current.activeSeason)
-   progress.stats.seasonExclusive = (progress.stats.seasonExclusive || 0) + 1
-   saveUserProgress(progress)
-  }
+
  } else if (reward.type === "card_random_rare") {
   const count = reward.value || 1
   const rares = getCards().filter((c) => c.rarity === "R")
@@ -284,15 +254,16 @@ function awardReward(userId, reward) {
    names.push(card.name || card.id)
    user.stats = user.stats || {}
    user.stats.rarePulled = (user.stats.rarePulled || 0) + 1
-   const current = ensureCurrentSeason()
+   const current  = ensureCurrentSeason()
    const progress = getUserProgress(userId, current.activeSeason)
    progress.stats.rareCards = (progress.stats.rareCards || 0) + 1
    saveUserProgress(progress)
   }
   result.text = names.length ? `🃏 Rare x${names.length}: ${names.slice(0, 2).join(", ")}` : "🃏 Carte rare"
+
  } else if (reward.type === "card_random_ssr") {
   const count = reward.value || 1
-  const ssrs = getCards().filter((c) => c.rarity === "SSR")
+  const ssrs  = getCards().filter((c) => c.rarity === "SSR")
   const names = []
   for (let i = 0; i < count; i++) {
    if (!ssrs.length) break
@@ -301,7 +272,7 @@ function awardReward(userId, reward) {
    user.cards[card.id] = (user.cards[card.id] || 0) + 1
    names.push(card.name || card.id)
    user.stats = user.stats || {}
-   user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
+   user.stats.ssrPulled   = (user.stats.ssrPulled   || 0) + 1
    user.stats.ssrFromEvent = (user.stats.ssrFromEvent || 0) + 1
   }
   result.text = names.length ? `🌈 SSR x${names.length}: ${names.slice(0, 2).join(", ")}` : "🌈 Carte SSR"
@@ -311,23 +282,20 @@ function awardReward(userId, reward) {
  return result
 }
 
+/* ─── Claimable rewards ─────────────────────────────────────────────────── */
+
 function getClaimableRewards(progress, season) {
- const claimable = {
-  free: [],
-  premium: []
- }
+ const claimable = { free: [], premium: [] }
 
  for (const reward of season.freeRewards || []) {
-  if (reward.level <= progress.currentLevel && !progress.claimedFree.includes(reward.level)) {
+  if (reward.level <= progress.currentLevel && !progress.claimedFree.includes(reward.level))
    claimable.free.push(reward)
-  }
  }
 
  if (progress.hasPremium) {
   for (const reward of season.premiumRewards || []) {
-   if (reward.level <= progress.currentLevel && !progress.claimedPremium.includes(reward.level)) {
+   if (reward.level <= progress.currentLevel && !progress.claimedPremium.includes(reward.level))
     claimable.premium.push(reward)
-   }
   }
  }
 
@@ -342,6 +310,8 @@ function getClaimableRewards(progress, season) {
  return claimable
 }
 
+/* ─── checkAndUnlockAchievements ────────────────────────────────────────── */
+
 function checkAndUnlockAchievements(progress, season) {
  const newlyUnlocked = []
 
@@ -352,25 +322,31 @@ function checkAndUnlockAchievements(progress, season) {
   }
  }
 
- const user = getUser(progress.userId)
+ const user    = getUser(progress.userId)
  const globals = readJson(getBattlePassPaths().globalAchievements, { achievements: [] }).achievements || []
+ const current = ensureCurrentSeason()
 
  function metricValue(type) {
-  if (type === "level") return progress.currentLevel
-  if (type === "premium_buy") return progress.stats.premiumBuys || 0
-  if (type === "daily_claims") return progress.stats.dailyClaims || 0
-  if (type === "packs_opened") return progress.stats.packsOpened || 0
-  if (type === "fusions") return progress.stats.fusions || 0
-  if (type === "market_sales") return progress.stats.marketSales || 0
-  if (type === "events") return progress.stats.events || 0
-  if (type === "rare_cards") return user.stats?.rarePulled || 0
-  if (type === "ssr_cards") return user.stats?.ssrPulled || 0
-  if (type === "shiny_cards") return user.stats?.shinySSR || 0
-  if (type === "sets_completed") return (user.completedSets || []).length
-  if (type === "kamas_earned") return user.stats?.kamasEarned || 0
-  if (type === "titles_owned") return (user.titles || []).length
-  if (type === "badges_owned") return (user.badges || []).length
-  if (type === "all6") return 0
+  if (type === "level")         return progress.currentLevel
+  if (type === "premium_buy")   return progress.stats.premiumBuys  || 0
+  if (type === "daily_claims")  return progress.stats.dailyClaims  || 0
+  if (type === "packs_opened")  return progress.stats.packsOpened  || 0
+  if (type === "fusions")       return progress.stats.fusions      || 0
+  if (type === "market_sales")  return progress.stats.marketSales  || 0
+  if (type === "events")        return progress.stats.events       || 0
+  if (type === "rare_cards")    return user.stats?.rarePulled      || 0
+  if (type === "ssr_cards")     return user.stats?.ssrPulled       || 0
+  if (type === "shiny_cards")   return user.stats?.shinySSR        || 0
+  if (type === "sets_completed")return (user.completedSets || []).length
+  if (type === "kamas_earned")  return user.stats?.kamasEarned     || 0
+  if (type === "titles_owned")  return (user.titles  || []).length
+  if (type === "badges_owned")  return (user.badges  || []).length
+  /* FIX all6 — compte les saisons précédentes + la saison courante si niveau ≥ 40 */
+  if (type === "all6") {
+   const previousCount = (current.previousSeasons || []).length
+   const finishedCurrent = progress.currentLevel >= 40 ? 1 : 0
+   return previousCount + finishedCurrent
+  }
   return 0
  }
 
@@ -379,71 +355,40 @@ function checkAndUnlockAchievements(progress, season) {
   if (value >= (achievement.target || 1)) unlock(achievement.id)
  }
 
+ /* Achievements saisonniers — tous les types corrigés */
  const seasonal = season.achievements || []
  for (const achievement of seasonal) {
   let value = 0
-  if (achievement.type === "season_level") value = progress.currentLevel
-  if (achievement.type === "season_packs") value = progress.stats.packsOpened || 0
-  if (achievement.type === "season_sets") value = progress.stats.setsCompleted || 0
-  if (achievement.type === "season_rare") value = progress.stats.rareCards || 0
-  if (achievement.type === "season_exclusive") value = progress.stats.seasonExclusive || 0
+  if (achievement.type === "season_level")   value = progress.currentLevel
+  if (achievement.type === "season_packs")   value = progress.stats.packsOpened  || 0
+  if (achievement.type === "season_daily")   value = progress.stats.dailyClaims  || 0
+  if (achievement.type === "season_fusions") value = progress.stats.fusions      || 0
+  if (achievement.type === "season_events")  value = progress.stats.events       || 0
+  if (achievement.type === "season_sets")    value = progress.stats.setsCompleted || 0
   if (value >= (achievement.target || 1)) unlock(achievement.id)
  }
 
  return newlyUnlocked
 }
 
+/* ─── updateActivityStat ────────────────────────────────────────────────── */
+
 function updateActivityStat(progress, source) {
- if (source === "pack_open") progress.stats.packsOpened = (progress.stats.packsOpened || 0) + 1
- if (source === "fusion") progress.stats.fusions = (progress.stats.fusions || 0) + 1
- if (source === "daily_claim") progress.stats.dailyClaims = (progress.stats.dailyClaims || 0) + 1
- if (source === "market_sell") progress.stats.marketSales = (progress.stats.marketSales || 0) + 1
- if (source === "event_pack") progress.stats.events = (progress.stats.events || 0) + 1
- if (source === "set_complete") progress.stats.setsCompleted = (progress.stats.setsCompleted || 0) + 1
+ if (source === "pack_open")   progress.stats.packsOpened  = (progress.stats.packsOpened  || 0) + 1
+ if (source === "fusion")      progress.stats.fusions      = (progress.stats.fusions      || 0) + 1
+ if (source === "daily_claim") progress.stats.dailyClaims  = (progress.stats.dailyClaims  || 0) + 1
+ if (source === "market_sell") progress.stats.marketSales  = (progress.stats.marketSales  || 0) + 1
+ if (source === "event_pack")  progress.stats.events       = (progress.stats.events       || 0) + 1
+ if (source === "set_complete")progress.stats.setsCompleted = (progress.stats.setsCompleted || 0) + 1
 }
 
 function getSeasonBonusMultiplier(season) {
- if (!season || !season.passiveBonus) return 1
+ if (!season?.passiveBonus) return 1
  if (season.passiveBonus.type === "xp_boost") return season.passiveBonus.value || 1
  return 1
 }
 
-function autoDistributeAllClaimable() {
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
- const paths = getBattlePassPaths()
- const files = fs.existsSync(paths.progress) ? fs.readdirSync(paths.progress) : []
-
- let distributedUsers = 0
- let distributedRewards = 0
-
- for (const file of files) {
-  if (!file.endsWith(".json")) continue
-  const userId = file.replace(".json", "")
-  const progress = getUserProgress(userId, current.activeSeason)
-  const claimable = getClaimableRewards(progress, season)
-  const rewards = [...claimable.free, ...claimable.premium]
-
-  if (rewards.length === 0) continue
-
-  for (const reward of claimable.free) {
-   awardReward(userId, reward)
-   progress.claimedFree.push(reward.level)
-   distributedRewards++
-  }
-
-  for (const reward of claimable.premium) {
-   awardReward(userId, reward)
-   progress.claimedPremium.push(reward.level)
-   distributedRewards++
-  }
-
-  saveUserProgress(progress)
-  distributedUsers++
- }
-
- return { distributedUsers, distributedRewards }
-}
+/* ─── getAllProgressUserIds ──────────────────────────────────────────────── */
 
 function getAllProgressUserIds() {
  const paths = getBattlePassPaths()
@@ -453,179 +398,191 @@ function getAllProgressUserIds() {
   .map((f) => f.replace(".json", ""))
 }
 
+/* ─── autoDistribute + rotate ───────────────────────────────────────────── */
+
+function autoDistributeAllClaimable() {
+ const current = ensureCurrentSeason()
+ const season  = getSeasonTemplate(current.activeSeason)
+ const ids     = getAllProgressUserIds()
+ for (const userId of ids) {
+  try {
+   const progress = getUserProgress(userId, current.activeSeason)
+   const claimable = getClaimableRewards(progress, season)
+   for (const reward of [...claimable.free, ...claimable.premium]) {
+    try { awardReward(userId, reward) } catch (_) {}
+   }
+   progress.claimedFree    = [...new Set([...progress.claimedFree,    ...claimable.free.map((r) => r.level)])]
+   progress.claimedPremium = [...new Set([...progress.claimedPremium, ...claimable.premium.map((r) => r.level)])]
+   saveUserProgress(progress)
+  } catch (_) {}
+ }
+}
+
 function rotateSeasonIfNeeded() {
  const current = ensureCurrentSeason()
- const today = toDateOnly(new Date())
+ const cycle   = getSeasonCycle()
+ const today   = toDateOnly(new Date())
 
- if (today < current.endDate) return { rotated: false, current }
+ if (!current.forcedByDev && today <= current.endDate) return { rotated: false, current }
 
- const paths = getBattlePassPaths()
- const cycle = getSeasonCycle()
- const archiveKey = `${current.activeSeason}_${current.startDate}`
- const archiveDir = path.join(paths.archive, archiveKey)
- if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true })
-
- const files = fs.existsSync(paths.progress) ? fs.readdirSync(paths.progress) : []
- for (const file of files) {
-  if (!file.endsWith(".json")) continue
-  const src = path.join(paths.progress, file)
-  const dst = path.join(archiveDir, file)
-  try {
-   moveFileSafe(src, dst)
-  } catch (err) {
-   console.error("[battlepass] archive move failed:", file, err.message)
-  }
- }
-
- const nextIndex = (current.cycleIndex + 1) % cycle.length
- const nextSeasonId = cycle[nextIndex]
- const nextStart = today
- const nextEnd = addDaysDateOnly(nextStart, 21)
-
- const nextState = {
-  schemaVersion: 1,
-  activeSeason: nextSeasonId,
-  cycleIndex: nextIndex,
-  startDate: nextStart,
-  endDate: nextEnd,
-  previousSeasons: [...(current.previousSeasons || []), archiveKey],
-  forcedByDev: false
- }
-
- setCurrentSeasonState(nextState)
- return { rotated: true, current: nextState }
-}
-
-function checkSeasonTransitions(options = {}) {
- const force = Boolean(options.force)
- const now = Date.now()
- if (!force && now - lastSeasonTransitionCheckAt < SEASON_CHECK_THROTTLE_MS) {
-  return { skipped: true, autoDistributed: false, rotated: false }
- }
- lastSeasonTransitionCheckAt = now
-
- const current = ensureCurrentSeason()
- const today = toDateOnly(new Date())
- const autoDate = addDaysDateOnly(current.endDate, -2)
-
- if (!current.autoDistributedAt && today >= autoDate && today < current.endDate) {
-  const summary = autoDistributeAllClaimable()
-  current.autoDistributedAt = today
-  setCurrentSeasonState(current)
-  return { autoDistributed: true, summary, rotated: false }
- }
-
- const rotated = rotateSeasonIfNeeded()
- return { autoDistributed: false, rotated: rotated.rotated }
-}
-
-function devStopSeasonNow() {
- const current = ensureCurrentSeason()
- current.endDate = toDateOnly(new Date())
- current.forcedByDev = true
- setCurrentSeasonState(current)
- const result = checkSeasonTransitions({ force: true })
- return { ok: true, result }
-}
-
-function devNextSeason() {
- const current = ensureCurrentSeason()
- const cycle = getSeasonCycle()
- const nextIndex = (current.cycleIndex + 1) % cycle.length
- return devForceSeason(cycle[nextIndex])
-}
-
-function devRestartSeason(options = {}) {
- const current = ensureCurrentSeason()
- const seasonId = current.activeSeason
- const today = toDateOnly(new Date())
- const keepProgress = options.keepProgress !== false
-
- if (!keepProgress) {
-  const ids = getAllProgressUserIds()
-  for (const userId of ids) {
-   const filePath = getProgressPath(userId)
-   try {
-    fs.rmSync(filePath, { force: true })
-   } catch (_) {}
-  }
- }
-
+ const nextIndex  = (current.cycleIndex + 1) % cycle.length
+ const nextSeason = cycle[nextIndex]
  const next = {
-  ...current,
-  activeSeason: seasonId,
-  startDate: today,
-  endDate: addDaysDateOnly(today, 21),
-  forcedByDev: true
+  schemaVersion:  1,
+  activeSeason:   nextSeason,
+  cycleIndex:     nextIndex,
+  startDate:      today,
+  endDate:        addDaysDateOnly(today, 21),
+  previousSeasons:[...current.previousSeasons, current.activeSeason],
+  forcedByDev:    false
  }
  setCurrentSeasonState(next)
- return { ok: true, keepProgress, state: next }
+ return { rotated: true, current: next }
 }
 
-function devResetProgress(userId) {
- const current = ensureCurrentSeason()
- const empty = createDefaultProgress(userId, current.activeSeason)
- writeAtomic(getProgressPath(userId), empty)
- return { ok: true, progress: empty }
+/* ─── checkSeasonTransitions ────────────────────────────────────────────── */
+
+function checkSeasonTransitions(options = {}) {
+ const now = Date.now()
+ if (!options.force && now - lastSeasonTransitionCheckAt < SEASON_CHECK_THROTTLE_MS) return
+ lastSeasonTransitionCheckAt = now
+ try { rotateSeasonIfNeeded() } catch (_) {}
 }
 
-async function devClaimAllForUser(userId) {
- return claimAllBattlePassRewards(userId)
+/* ─── getBattlePassAchievements — enrichi ────────────────────────────────── */
+
+function getBattlePassAchievements(userId) {
+ const overview  = getBattlePassOverview(userId)
+ const unlocked  = overview.progress.achievementsUnlocked || []
+ const current   = ensureCurrentSeason()
+
+ const globalDefs = readJson(getBattlePassPaths().globalAchievements, { achievements: [] }).achievements || []
+ const seasonal   = overview.seasonTemplate.achievements || []
+
+ /* ── Enrichir chaque def avec description + type + target ── */
+ const mapDef = (a) => ({
+  id:          a.id,
+  name:        a.name,
+  description: a.description || buildDescription(a),
+  type:        a.type,
+  target:      a.target,
+  reward:      a.reward,
+  seasonal:    false,
+  unlocked:    unlocked.includes(a.id)
+ })
+
+ const mapSeasonal = (a) => ({
+  ...mapDef(a),
+  seasonal:    true
+ })
+
+ return {
+  unlocked,
+  globals:  globalDefs.map(mapDef),
+  seasonal: seasonal.map(mapSeasonal),
+  total:    globalDefs.length + seasonal.length,
+  season:   current.activeSeason,
+  seasonName: overview.seasonTemplate.name,
+  seasonEmoji: overview.seasonTemplate.emoji || "✨"
+ }
 }
 
-function runSeasonReset(options = {}) {
- const dryRun = Boolean(options.dryRun)
- const current = ensureCurrentSeason()
- const cycle = getSeasonCycle()
- const nextIndex = (current.cycleIndex + 1) % cycle.length
- const nextSeason = cycle[nextIndex]
- const today = toDateOnly(new Date())
+/* Génère une description lisible depuis type + target */
+function buildDescription(a) {
+ const t = a.target || 1
+ const map = {
+  level:         `Atteindre le niveau ${t} du Battle Pass.`,
+  daily_claims:  `Réclamer le daily ${t} fois.`,
+  packs_opened:  `Ouvrir ${t} pack(s) via /krosmoz.`,
+  fusions:       `Effectuer ${t} fusion(s).`,
+  market_sales:  `Vendre ${t} carte(s) sur le marché.`,
+  events:        `Ouvrir ${t} pack(s) d'event.`,
+  rare_cards:    `Obtenir ${t} carte(s) rare (HR+).`,
+  ssr_cards:     `Obtenir ${t} carte(s) SSR 🌈.`,
+  shiny_cards:   `Obtenir ${t} SSR Shiny ✨.`,
+  sets_completed:`Compléter ${t} set(s) de cartes.`,
+  kamas_earned:  `Gagner ${t} kamas au total.`,
+  titles_owned:  `Posséder ${t} titre(s).`,
+  badges_owned:  `Posséder ${t} badge(s).`,
+  premium_buy:   `Acheter le Pass Premium.`,
+  all6:          `Terminer les 6 saisons du cycle Battle Pass.`,
+  season_level:  `Atteindre le niveau ${t} cette saison.`,
+  season_packs:  `Ouvrir ${t} pack(s) cette saison.`,
+  season_daily:  `Réclamer le daily ${t} fois cette saison.`,
+  season_fusions:`Effectuer ${t} fusion(s) cette saison.`,
+  season_events: `Ouvrir ${t} pack(s) d'event cette saison.`,
+  season_sets:   `Compléter ${t} set(s) entier cette saison.`,
+ }
+ return map[a.type] || a.name
+}
 
- const ids = getAllProgressUserIds()
- let rewardsToDistribute = 0
+/* ─── getBattlePassOverview ─────────────────────────────────────────────── */
 
- const seasonTemplate = getSeasonTemplate(current.activeSeason)
- for (const userId of ids) {
-  const progress = getUserProgress(userId, current.activeSeason)
-  const claimable = getClaimableRewards(progress, seasonTemplate)
-  rewardsToDistribute += claimable.free.length + claimable.premium.length
+function getBattlePassOverview(userId) {
+ checkSeasonTransitions()
+
+ const current  = ensureCurrentSeason()
+ const season   = getSeasonTemplate(current.activeSeason)
+ const progress = getUserProgress(userId, current.activeSeason)
+ syncProgressLevel(progress, season)
+ const claimable = getClaimableRewards(progress, season)
+
+ const curve        = season.xpCurve || []
+ const currentLevel = progress.currentLevel
+ const prevCap      = getLevelMinXP(currentLevel, curve)
+ const nextCap      = getLevelMinXP(currentLevel + 1, curve)
+
+ return {
+  season,
+  seasonTemplate: season,
+  progress,
+  xpInLevel:     Math.max(0, progress.totalXP - prevCap),
+  xpToNextLevel: Math.max(0, nextCap - progress.totalXP),
+  claimableCount: claimable.free.length + claimable.premium.length,
+  claimable
+ }
+}
+
+/* ─── getBattlePassRewardsView ──────────────────────────────────────────── */
+
+function getBattlePassRewardsView(userId, page = 1, perPage = 8) {
+ const overview    = getBattlePassOverview(userId)
+ const season      = overview.seasonTemplate
+ const totalLevels = season.totalLevels || 40
+ const maxPage     = Math.max(1, Math.ceil(totalLevels / perPage))
+ const safePage    = Math.max(1, Math.min(page, maxPage))
+ const start       = (safePage - 1) * perPage + 1
+ const end         = Math.min(totalLevels, safePage * perPage)
+
+ const rows = []
+ for (let level = start; level <= end; level++) {
+  const freeRewards    = (season.freeRewards    || []).filter((r) => r.level === level)
+  const premiumRewards = (season.premiumRewards || []).filter((r) => r.level === level)
+  rows.push({
+   level,
+   freeRewards,
+   premiumRewards,
+   free:    freeRewards[0]    || null,
+   premium: premiumRewards[0] || null,
+   claimedFree:    overview.progress.claimedFree.includes(level),
+   claimedPremium: overview.progress.claimedPremium.includes(level)
+  })
  }
 
- const summary = {
-  dryRun,
-  currentSeason: current.activeSeason,
-  nextSeason,
-  users: ids.length,
-  rewardsToDistribute,
-  actions: []
- }
-
- if (dryRun) {
-  for (const userId of ids.slice(0, 20)) {
-   summary.actions.push(`[DRY-RUN] archive progress/${userId}.json`)
-  }
-  summary.actions.push("[DRY-RUN] update current_season.json")
-  return summary
- }
-
- autoDistributeAllClaimable()
- const rotate = rotateSeasonIfNeeded()
- summary.rotated = rotate.rotated
- summary.newState = rotate.current
- return summary
+ return { page: safePage, maxPage, rows, totalLevels }
 }
+
+/* ─── addBattlePassXP ───────────────────────────────────────────────────── */
 
 async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
  checkSeasonTransitions()
 
- if (!userId) {
-  return { addedXP: 0, leveledUp: false, error: "userId manquant." }
- }
+ if (!userId) return { addedXP: 0, leveledUp: false, error: "userId manquant." }
 
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
+ const current  = ensureCurrentSeason()
+ const season   = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
- const cfg = getXpConfig()
+ const cfg      = getXpConfig()
 
  let source = maybeSource || "manual"
  let amount = 0
@@ -641,7 +598,7 @@ async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
 
  updateActivityStat(progress, source)
 
- const multiplier = getSeasonBonusMultiplier(season)
+ const multiplier  = getSeasonBonusMultiplier(season)
  const finalAmount = Math.floor(amount * multiplier)
 
  progress.totalXP += finalAmount
@@ -650,79 +607,63 @@ async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
  progress.currentLevel = newLevel
 
  const unlocked = checkAndUnlockAchievements(progress, season)
-
  saveUserProgress(progress)
 
- return {
-  addedXP: finalAmount,
-  leveledUp: newLevel > oldLevel,
-  oldLevel,
-  newLevel,
-  unlocked
- }
+ return { addedXP: finalAmount, leveledUp: newLevel > oldLevel, oldLevel, newLevel, unlocked }
 }
 
-async function claimAllBattlePassRewards(userId) {
- if (!checkCooldown(userId)) {
-  return { ok: false, error: "Cooldown actif. Reessaie dans 2 secondes." }
- }
+/* ─── claimAllBattlePassRewards ─────────────────────────────────────────── */
 
- if (claimLocks.has(userId)) {
+async function claimAllBattlePassRewards(userId) {
+ if (!checkCooldown(userId))
+  return { ok: false, error: "Cooldown actif. Reessaie dans 2 secondes." }
+ if (claimLocks.has(userId))
   return { ok: false, error: "Claim deja en cours." }
- }
 
  const lockPath = getUserLockPath(userId)
- if (!acquireFileLock(lockPath)) {
+ if (!acquireFileLock(lockPath))
   return { ok: false, error: "Claim deja en cours." }
- }
 
  claimLocks.add(userId)
 
  try {
   checkSeasonTransitions({ force: true })
 
-  const current = ensureCurrentSeason()
-  const season = getSeasonTemplate(current.activeSeason)
+  const current  = ensureCurrentSeason()
+  const season   = getSeasonTemplate(current.activeSeason)
   const progress = getUserProgress(userId, current.activeSeason)
   syncProgressLevel(progress, season)
-  const user = getUser(userId)
 
   const claimable = getClaimableRewards(progress, season)
-  const allRewards = [...claimable.free, ...claimable.premium]
+  if (claimable.free.length + claimable.premium.length === 0)
+   return { ok: false, error: "Rien a recuperer pour le moment." }
 
-  if (allRewards.length === 0) {
-   return { ok: false, error: "Aucune recompense a recuperer." }
-  }
-
+  const totals         = { kamas: 0, packs: 0, xp: 0 }
   const claimedRewards = []
-  const totals = { kamas: 0, packs: 0, xp: 0 }
 
   for (const reward of claimable.free) {
    const result = awardReward(userId, reward)
+   totals.kamas += result.kamas; totals.packs += result.packs; totals.xp += result.xp
    progress.claimedFree.push(reward.level)
-   claimedRewards.push({ ...reward, text: result.text, track: "free" })
-   totals.kamas += result.kamas
-   totals.packs += result.packs
-   totals.xp += result.xp
+   claimedRewards.push({ level: reward.level, text: result.text, track: "free" })
   }
 
   for (const reward of claimable.premium) {
    const result = awardReward(userId, reward)
+   totals.kamas += result.kamas; totals.packs += result.packs; totals.xp += result.xp
    progress.claimedPremium.push(reward.level)
-   claimedRewards.push({ ...reward, text: result.text, track: "premium" })
-   totals.kamas += result.kamas
-   totals.packs += result.packs
-   totals.xp += result.xp
+   claimedRewards.push({ level: reward.level, text: result.text, track: "premium" })
   }
 
-  checkAndUnlockAchievements(progress, season)
+  const newlyUnlocked = checkAndUnlockAchievements(progress, season)
   saveUserProgress(progress)
 
   return {
-   ok: true,
+   ok:   true,
    total: claimedRewards.length,
+   totals,
    claimedRewards,
-   totals
+   newlyUnlocked
   }
  } finally {
   claimLocks.delete(userId)
@@ -730,27 +671,23 @@ async function claimAllBattlePassRewards(userId) {
  }
 }
 
-async function buyPremium(userId) {
- if (!checkCooldown(userId)) {
-  return { ok: false, error: "Cooldown actif. Reessaie dans 2 secondes." }
- }
+/* ─── buyPremium ────────────────────────────────────────────────────────── */
 
- if (claimLocks.has(userId)) {
-  return { ok: false, error: "Claim deja en cours." }
- }
+async function buyPremium(userId) {
+ if (!checkCooldown(userId))
+  return { ok: false, error: "Cooldown actif." }
 
  const lockPath = getUserLockPath(userId)
- if (!acquireFileLock(lockPath)) {
+ if (!acquireFileLock(lockPath))
   return { ok: false, error: "Claim deja en cours." }
- }
 
  claimLocks.add(userId)
 
  try {
   checkSeasonTransitions({ force: true })
 
-  const current = ensureCurrentSeason()
-  const season = getSeasonTemplate(current.activeSeason)
+  const current  = ensureCurrentSeason()
+  const season   = getSeasonTemplate(current.activeSeason)
   const progress = getUserProgress(userId, current.activeSeason)
   syncProgressLevel(progress, season)
   const user = getUser(userId)
@@ -760,9 +697,8 @@ async function buyPremium(userId) {
   const now = toDateOnly(new Date())
   if (now > current.endDate) return { ok: false, error: "Saison cloturee." }
 
-  if ((user.kamas || 0) < (season.premiumPrice || 8000)) {
+  if ((user.kamas || 0) < (season.premiumPrice || 8000))
    return { ok: false, error: `Kamas insuffisants (${season.premiumPrice || 8000} requis).` }
-  }
 
   user.kamas -= (season.premiumPrice || 8000)
   progress.hasPremium = true
@@ -776,7 +712,6 @@ async function buyPremium(userId) {
   )
 
   let retroCount = 0
-
   for (const reward of retroRewards) {
    try {
     awardReward(userId, reward)
@@ -790,153 +725,46 @@ async function buyPremium(userId) {
   checkAndUnlockAchievements(progress, season)
   saveUserProgress(progress)
 
-  return {
-   ok: true,
-   retroCount,
-   price: season.premiumPrice || 8000
-  }
+  return { ok: true, retroCount, price: season.premiumPrice || 8000 }
  } finally {
   claimLocks.delete(userId)
   releaseFileLock(lockPath)
  }
 }
 
-function getBattlePassOverview(userId) {
- checkSeasonTransitions()
-
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
- const progress = getUserProgress(userId, current.activeSeason)
- syncProgressLevel(progress, season)
- const claimable = getClaimableRewards(progress, season)
-
- const curve = season.xpCurve || []
- const currentLevel = progress.currentLevel
- const prevCap = getLevelMinXP(currentLevel, curve)
- const nextCap = getLevelMinXP(currentLevel + 1, curve)
-
- return {
-  season: current,
-  seasonTemplate: season,
-  progress,
-  xpInLevel: Math.max(0, progress.totalXP - prevCap),
-  xpToNextLevel: Math.max(0, nextCap - progress.totalXP),
-  claimableCount: claimable.free.length + claimable.premium.length,
-  claimable
- }
-}
-
-function getBattlePassRewardsView(userId, page = 1, perPage = 8) {
- const overview = getBattlePassOverview(userId)
- const season = overview.seasonTemplate
- const totalLevels = season.totalLevels || 40
- const maxPage = Math.max(1, Math.ceil(totalLevels / perPage))
- const safePage = Math.max(1, Math.min(page, maxPage))
- const start = (safePage - 1) * perPage + 1
- const end = Math.min(totalLevels, safePage * perPage)
-
- const rows = []
- for (let level = start; level <= end; level++) {
-  const freeRewards = (season.freeRewards || []).filter((r) => r.level === level)
-  const premiumRewards = (season.premiumRewards || []).filter((r) => r.level === level)
-
-  rows.push({
-   level,
-   freeRewards,
-   premiumRewards,
-   free: freeRewards[0] || null,
-   premium: premiumRewards[0] || null,
-   claimedFree: overview.progress.claimedFree.includes(level),
-   claimedPremium: overview.progress.claimedPremium.includes(level)
-  })
- }
-
- return {
-  page: safePage,
-  maxPage,
-  rows,
-  totalLevels
- }
-}
-
-/* ---- MODIFIÉ : expose type, target, reward, seasonal pour générer les descriptions ---- */
-function getBattlePassAchievements(userId) {
- const overview = getBattlePassOverview(userId)
- const unlocked = overview.progress.achievementsUnlocked || []
-
- const globalDefs = readJson(getBattlePassPaths().globalAchievements, { achievements: [] }).achievements || []
- const seasonal = overview.seasonTemplate.achievements || []
-
- const combined = [
-  ...globalDefs.map((a) => ({
-   id:       a.id,
-   name:     a.name,
-   type:     a.type   || null,
-   target:   a.target || null,
-   reward:   a.reward || null,
-   seasonal: false
-  })),
-  ...seasonal.map((a) => ({
-   id:       a.id,
-   name:     a.name,
-   type:     a.type   || null,
-   target:   a.target || null,
-   reward:   a.reward || null,
-   seasonal: true
-  }))
- ]
-
- return {
-  unlocked,
-  total: combined.length,
-  entries: combined.map((entry) => ({
-   ...entry,
-   unlocked: unlocked.includes(entry.id)
-  }))
- }
-}
+/* ─── Dev tools ──────────────────────────────────────────────────────────── */
 
 function devForceSeason(seasonId) {
  const current = ensureCurrentSeason()
- const cycle = getSeasonCycle()
- const idx = cycle.indexOf(seasonId)
+ const cycle   = getSeasonCycle()
+ const idx     = cycle.indexOf(seasonId)
  if (idx === -1) return { ok: false, error: "Saison inconnue." }
-
  const today = toDateOnly(new Date())
  const next = {
-  schemaVersion: 1,
-  activeSeason: seasonId,
-  cycleIndex: idx,
-  startDate: today,
-  endDate: addDaysDateOnly(today, 21),
-  previousSeasons: current.previousSeasons || [],
-  forcedByDev: true
+  schemaVersion: 1, activeSeason: seasonId, cycleIndex: idx,
+  startDate: today, endDate: addDaysDateOnly(today, 21),
+  previousSeasons: current.previousSeasons || [], forcedByDev: true
  }
-
  setCurrentSeasonState(next)
  return { ok: true, state: next }
 }
 
 function devSetLevel(userId, level) {
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
- if (level < 1 || level > 9999) {
-  return { ok: false, error: "Niveau invalide." }
- }
-
+ const current  = ensureCurrentSeason()
+ const season   = getSeasonTemplate(current.activeSeason)
+ if (level < 1 || level > 9999) return { ok: false, error: "Niveau invalide." }
  const progress = getUserProgress(userId, current.activeSeason)
- const curve = season.xpCurve || []
  progress.currentLevel = level
- progress.totalXP = getLevelMinXP(level, curve)
+ progress.totalXP      = getLevelMinXP(level, season.xpCurve || [])
  saveUserProgress(progress)
  return { ok: true, progress }
 }
 
 function devSetXP(userId, totalXP) {
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
+ const current  = ensureCurrentSeason()
+ const season   = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
- progress.totalXP = Math.max(0, totalXP)
+ progress.totalXP      = Math.max(0, totalXP)
  progress.currentLevel = computeLevel(progress.totalXP, season.xpCurve || [], null)
  saveUserProgress(progress)
  return { ok: true, progress }
@@ -944,46 +772,82 @@ function devSetXP(userId, totalXP) {
 
 function devStatus() {
  const current = ensureCurrentSeason()
- const paths = getBattlePassPaths()
- const progressFiles = fs.existsSync(paths.progress) ?
-  fs.readdirSync(paths.progress).filter((f) => f.endsWith(".json")) : []
- return {
-  current,
-  playersWithProgress: progressFiles.length,
-  progressPath: paths.progress
- }
+ const paths   = getBattlePassPaths()
+ const files   = fs.existsSync(paths.progress)
+  ? fs.readdirSync(paths.progress).filter((f) => f.endsWith(".json")) : []
+ return { current, playersWithProgress: files.length, progressPath: paths.progress }
 }
 
 function devGivePremium(userId) {
- const current = ensureCurrentSeason()
- const season = getSeasonTemplate(current.activeSeason)
+ const current  = ensureCurrentSeason()
+ const season   = getSeasonTemplate(current.activeSeason)
  const progress = getUserProgress(userId, current.activeSeason)
-
- if (progress.hasPremium) {
-  return { ok: true, retroCount: 0, already: true }
- }
-
+ if (progress.hasPremium) return { ok: true, retroCount: 0, already: true }
  progress.hasPremium = true
  let retroCount = 0
-
- const retroRewards = (season.premiumRewards || []).filter((reward) =>
-  reward.level <= progress.currentLevel &&
-  !progress.claimedPremium.includes(reward.level)
+ const retroRewards = (season.premiumRewards || []).filter((r) =>
+  r.level <= progress.currentLevel && !progress.claimedPremium.includes(r.level)
  )
-
  for (const reward of retroRewards) {
-  try {
-   awardReward(userId, reward)
-   progress.claimedPremium.push(reward.level)
-   retroCount++
-  } catch (err) {
-   console.error("[battlepass] devGivePremium reward failed:", err.message)
-  }
+  try { awardReward(userId, reward); progress.claimedPremium.push(reward.level); retroCount++ }
+  catch (err) { console.error("[battlepass] devGivePremium reward failed:", err.message) }
  }
-
  saveUserProgress(progress)
  return { ok: true, retroCount, already: false }
 }
+
+function devNextSeason() { return rotateSeasonIfNeeded() }
+function devStopSeasonNow() {
+ const c = ensureCurrentSeason()
+ const yesterday = addDaysDateOnly(toDateOnly(new Date()), -1)
+ c.endDate = yesterday; c.forcedByDev = true
+ setCurrentSeasonState(c); return { ok: true }
+}
+function devRestartSeason() {
+ const c     = ensureCurrentSeason()
+ const today = toDateOnly(new Date())
+ c.startDate = today; c.endDate = addDaysDateOnly(today, 21); c.forcedByDev = false
+ setCurrentSeasonState(c); return { ok: true }
+}
+function devResetProgress(userId) {
+ const current  = ensureCurrentSeason()
+ const progress = createDefaultProgress(userId, current.activeSeason)
+ saveUserProgress(progress)
+ return { ok: true }
+}
+async function devClaimAllForUser(userId) { return claimAllBattlePassRewards(userId) }
+
+function runSeasonReset(options = {}) {
+ const dryRun  = Boolean(options.dryRun)
+ const current = ensureCurrentSeason()
+ const cycle   = getSeasonCycle()
+ const nextIdx = (current.cycleIndex + 1) % cycle.length
+ const today   = toDateOnly(new Date())
+ const ids     = getAllProgressUserIds()
+ const seasonTemplate = getSeasonTemplate(current.activeSeason)
+ let rewardsToDistribute = 0
+ for (const userId of ids) {
+  const p = getUserProgress(userId, current.activeSeason)
+  const c = getClaimableRewards(p, seasonTemplate)
+  rewardsToDistribute += c.free.length + c.premium.length
+ }
+ const summary = {
+  dryRun, currentSeason: current.activeSeason, nextSeason: cycle[nextIdx],
+  users: ids.length, rewardsToDistribute, actions: []
+ }
+ if (dryRun) {
+  for (const uid of ids.slice(0, 20)) summary.actions.push(`[DRY-RUN] archive progress/${uid}.json`)
+  summary.actions.push("[DRY-RUN] update current_season.json")
+  return summary
+ }
+ autoDistributeAllClaimable()
+ const rotate = rotateSeasonIfNeeded()
+ summary.rotated  = rotate.rotated
+ summary.newState = rotate.current
+ return summary
+}
+
+/* ─── Exports ────────────────────────────────────────────────────────────── */
 
 module.exports = {
  addBattlePassXP,
