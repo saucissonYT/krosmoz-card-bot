@@ -49,6 +49,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **Katrepat / import**
   - Correction d'un conflit d'import sur deux cartes partageant le même nom mais pas la même rareté
+  
 ## [0.33.0] - 2026-03-23
 
 ### Added

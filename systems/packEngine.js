@@ -140,11 +140,13 @@ function openPack(user, setId, userId, options = {}){
 
  const pack = result?.pack || []
  let luckyPack = result?.luckyPack || false
+ let fragment = null
 
  if(!Array.isArray(pack) || pack.length === 0){
   console.error("Pack vide ou invalide :", setId)
   return {
    pack:[],
+   fragment:null,
    luckyPack:false,
    discovered:[],
    kamasGain:0,
@@ -249,6 +251,20 @@ function openPack(user, setId, userId, options = {}){
  if(totalCards>0 && isPalindrome(totalCards))
   user.stats.palindromeReached = (user.stats.palindromeReached||0)+1
 
+ if(userId){
+  try{
+   const { rollFragmentForSet, grantRolledFragment } = require("./fragmentService")
+   const rolledFragment = rollFragmentForSet(setId, options.fragmentDropRate ?? 0.22)
+
+   if(rolledFragment){
+    grantRolledFragment(userId, rolledFragment, "pack")
+    fragment = rolledFragment
+   }
+  }catch(error){
+   console.error("Fragment roll error:", error)
+  }
+ }
+
  /* ---- BEST CARD ---- */
  let best=null
  for(const card of pack){
@@ -295,6 +311,7 @@ function openPack(user, setId, userId, options = {}){
 
  return{
   pack,
+  fragment,
   luckyPack,
   discovered,
   kamasGain,

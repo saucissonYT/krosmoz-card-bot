@@ -4,6 +4,7 @@ const path = require("path")
 
 const dataManager = require("../systems/dataManager")
 const { loadGuilds, cleanOrphanedGuildIds } = require("../systems/guildSystem")
+const { buildCraftableIndex } = require("../systems/fragmentService")
 
 const { createClient, attachClientState } = require("./createClient")
 const { loadCommands } = require("./handlers/loadCommands")
@@ -15,6 +16,7 @@ function initializeSystems() {
  dataManager.loadAll()
  loadGuilds()
  cleanOrphanedGuildIds()
+ buildCraftableIndex()
 }
 
 async function bootstrap() {

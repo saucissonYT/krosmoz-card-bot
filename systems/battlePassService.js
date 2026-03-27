@@ -278,6 +278,20 @@ function awardReward(userId, reward) {
   result.text = names.length ? `🌈 SSR x${names.length}: ${names.slice(0, 2).join(", ")}` : "🌈 Carte SSR"
  }
 
+ else if (reward.type === "fragment_random") {
+  const current = ensureCurrentSeason()
+  const {
+   grantBattlePassFragmentReward,
+   getFragmentDisplayName
+  } = require("./fragmentService")
+
+  const granted = grantBattlePassFragmentReward(userId, reward, current)
+  const names = granted.map((fragment) => getFragmentDisplayName(fragment.cardId, fragment.fragmentNumber))
+  result.text = names.length
+   ? `🧩 ${names.slice(0, 2).join(", ")}${names.length > 2 ? ` +${names.length - 2}` : ""}`
+   : "🧩 Fragment aleatoire"
+ }
+
  save(userId)
  return result
 }

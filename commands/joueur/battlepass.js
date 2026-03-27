@@ -59,6 +59,7 @@ function rewardLabel(reward) {
  if (reward.type === "badge") return `${EMOJI.badge} ${reward.value}`
  if (reward.type === "card_random_rare") return `${EMOJI.card} Carte rare aleatoire`
  if (reward.type === "card_random_ssr") return `${EMOJI.rainbow} Carte SSR aleatoire`
+ if (reward.type === "fragment_random") return `🧩 ${reward.value || reward.quantity || 1} fragment(s)`
  if (reward.type === "card") return `${EMOJI.card} ${reward.cardId}`
  return String(reward.type || "reward")
 }

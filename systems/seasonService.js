@@ -158,6 +158,8 @@ function buildLevelRewards(seasonId) {
    else if (level === 20) freeReward = { level, type: "title", value: theme.freeTitle20 }
    else if (level === 30) freeReward = { level, type: "card_random_rare", value: 1 }
    else if (level === 40) freeReward = { level, type: "card_random_ssr", value: 1 }
+  } else if ([8, 12, 24, 32].includes(level)) {
+   freeReward = { level, type: "fragment_random", quantity: 1, value: 1, pool: "all" }
   }
   freeRewards.push(freeReward)
 
@@ -174,6 +176,8 @@ function buildLevelRewards(seasonId) {
    else if (level === 30) premiumReward = { level, type: "card_random_ssr", value: 2 }
    else if (level === 35) premiumReward = { level, type: "pack", value: 6 }
    else if (level === 40) premiumReward = { level, type: "badge", value: theme.badge40 }
+  } else if ([12, 18, 24, 38].includes(level)) {
+   premiumReward = { level, type: "fragment_random", quantity: 3, value: 3, pool: "season" }
   }
   premiumRewards.push(premiumReward)
  }

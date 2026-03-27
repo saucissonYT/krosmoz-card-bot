@@ -15,6 +15,11 @@ const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { loadSets } = require("../../systems/setSystemFile")
+const {
+ getFragmentDisplayName,
+ getCardCraftProgress,
+ buildProgressBar
+} = require("../../systems/fragmentService")
 const cooldownDev = require("../dev/cooldown")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
@@ -284,6 +289,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  unlocked.push(...achievementCheck(user, "pack"))
  unlocked.push(...achievementCheck(user, "collection"))
  unlocked.push(...achievementCheck(user, "economy"))
+ unlocked.push(...achievementCheck(user, "fragment"))
  unlocked.push(...achievementCheck(user, "rng"))
  const uniqueUnlocked = [...new Set(unlocked)]
  save(interaction.user.id)
@@ -316,8 +322,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   acc.kamas += r.kamasGain || 0
   acc.xp    += r.xpGain    || 0
   if (r.luckyPack) acc.lucky++
+  if (r.fragment) acc.fragments.push(r.fragment)
   return acc
- }, { kamas: 0, xp: 0, lucky: 0 })
+ }, { kamas: 0, xp: 0, lucky: 0, fragments: [] })
 
  let best = null
  for (const r of results) {
@@ -364,6 +371,23 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  if (newCardIds.size > 0)
   embed.addFields({ name: "🆕 Nouvelles cartes", value: `${newCardIds.size}`, inline: true })
+
+ if (totals.fragments.length > 0) {
+  const fragmentLines = totals.fragments.slice(0, 8).map((fragment) => {
+   const progress = getCardCraftProgress(user, fragment.cardId)
+   return `• ${getFragmentDisplayName(fragment.cardId, fragment.fragmentNumber)} - ${buildProgressBar(progress)} ${progress.ownedCount}/5`
+  })
+
+  if (totals.fragments.length > fragmentLines.length) {
+   fragmentLines.push(`... +${totals.fragments.length - fragmentLines.length} autre(s)`)
+  }
+
+  embed.addFields({
+   name: "🧩 Fragments gagnes",
+   value: fragmentLines.join("\n"),
+   inline: false
+  })
+ }
 
  if (isRandom) {
   const breakdown = Object.entries(setOpenCount)

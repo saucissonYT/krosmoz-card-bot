@@ -145,6 +145,11 @@ function ensureShinyCards(user){
  return user
 }
 
+function ensureFragments(user){
+ if(!Array.isArray(user.fragments)) user.fragments = []
+ return user
+}
+
 /* ================================================
    ACTIVITY STREAK
 ================================================ */
@@ -211,6 +216,7 @@ function migrateAll(){
   ensureDaily(user)
   ensureKrosmoShop(user)
   ensureShinyCards(user)
+  ensureFragments(user)
   ensureStats(user, now)
 
   if(!user.pity){ user.pity = {}; changed = true }
@@ -286,6 +292,7 @@ function getUser(id){
 
   user = {
    cards:{},
+   fragments:[],
    shinyCards:{},
    kamas:0,
    packs:0,
@@ -337,6 +344,7 @@ function getUser(id){
  ensureDaily(user)
  ensureKrosmoShop(user)
  ensureShinyCards(user)
+ ensureFragments(user)
  ensureStats(user, now)
 
  if(!user.pity) user.pity = {}

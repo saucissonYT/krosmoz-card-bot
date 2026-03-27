@@ -22,6 +22,13 @@ const { addBattlePassXP } = require("../../systems/battlePassService")
 const { applyEventRewards } = require("../../systems/rewardSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
+const {
+ rollFragmentForEvent,
+ grantRolledFragment,
+ getFragmentDisplayName,
+ getCardCraftProgress,
+ buildProgressBar
+} = require("../../systems/fragmentService")
 
 function sleep(ms){
  return new Promise(r=>setTimeout(r,ms))
@@ -85,6 +92,7 @@ module.exports = {
    /* ================= PACK ================= */
 
    let pack=[], meta={}
+   let fragment = null
 
    try {
     const result = generateEventPack(user, event)
@@ -123,6 +131,16 @@ module.exports = {
    }
 
    registerEventPack(pack)
+
+   try {
+    const rolledFragment = rollFragmentForEvent(0.55)
+    if (rolledFragment) {
+      grantRolledFragment(interaction.user.id, rolledFragment, "event")
+      fragment = rolledFragment
+    }
+   } catch (error) {
+    console.error("EVENT FRAGMENT ERROR:", error)
+   }
 
    /* ================= USER STATS ================= */
 
@@ -228,7 +246,10 @@ module.exports = {
      ]
     })
 
-    const unlocked = achievementCheck(user, "event")
+    const unlocked = [
+     ...achievementCheck(user, "event"),
+     ...achievementCheck(user, "fragment")
+    ]
     save(interaction.user.id)
 
     /* NOTIFICATION NOUVELLES CARTES (même pour Sram) */
@@ -357,11 +378,21 @@ module.exports = {
     (rp || "")
    ).trim() || "❌ Aucune carte"
 
+   let fragmentText = ""
+   if (fragment) {
+    const progress = getCardCraftProgress(user, fragment.cardId)
+    fragmentText =
+`\n\n━━━━━━━━━━━━━━━━
+🧩 **BONUS - FRAGMENT**
+${getFragmentDisplayName(fragment.cardId, fragment.fragmentNumber)}
+${buildProgressBar(progress)} ${progress.ownedCount}/5`
+   }
+
    await message.edit({
     embeds:[
      new EmbedBuilder()
       .setTitle(`🎁 ${event.name}${meta.ux?.[0] ? " • " + meta.ux[0] : ""}`)
-      .setDescription(description)
+      .setDescription(`${description}${fragmentText}`)
       .addFields(
        {name:"💰 Kamas",value:`+${kamas}`,inline:true},
        {name:"⭐ XP",value:`+${xp}`,inline:true},
@@ -408,7 +439,10 @@ module.exports = {
 
    /* ================= ACHIEVEMENTS ================= */
 
-   const unlocked = achievementCheck(user, "event")
+   const unlocked = [
+    ...achievementCheck(user, "event"),
+    ...achievementCheck(user, "fragment")
+   ]
 
    save(interaction.user.id)
 

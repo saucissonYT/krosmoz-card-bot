@@ -11,6 +11,10 @@ const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { loadSets } = require("../../systems/setSystemFile")
+const {
+ getFragmentInventoryRows,
+ buildProgressBar
+} = require("../../systems/fragmentService")
 
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
 
@@ -18,11 +22,75 @@ const rarityOrderMap = Object.fromEntries(
  RARITY_ORDER.map((r, i) => [r, i + 1])
 )
 
+async function renderFragmentInventory(interaction, user) {
+ const perPage = 10
+ let page = 1
+
+ function build() {
+  const rows = getFragmentInventoryRows(user)
+  const totalPages = Math.max(1, Math.ceil(rows.length / perPage))
+  page = Math.max(1, Math.min(page, totalPages))
+  const slice = rows.slice((page - 1) * perPage, page * perPage)
+
+  const lines = slice.map((row) => {
+   const craftTag = row.canCraft ? " [Crafter]" : ""
+   const owned = row.numbers.length ? row.numbers.join(", ") : "-"
+   const missing = row.missing.length ? row.missing.join(", ") : "-"
+   return `${row.card?.name || row.cardId} (${row.ownedCount}/5) • stock:${row.totalCount}${craftTag}
+Possedes: ${owned}
+Manquants: ${missing}`
+  })
+
+  const craftableNow = rows.filter((row) => row.canCraft).length
+  const totalFragments = (user.fragments || []).length
+
+  const embed = new EmbedBuilder()
+   .setTitle(`🧩 Fragments de ${interaction.user.username}`)
+   .setDescription(lines.join("\n") || "Aucun fragment.")
+   .setFooter({ text: `Page ${page}/${totalPages} • ${totalFragments} fragments • ${craftableNow} craftable(s)` })
+
+  const nav = new ActionRowBuilder().addComponents(
+   new ButtonBuilder().setCustomId("frag_prev").setEmoji("⬅").setStyle(ButtonStyle.Secondary).setDisabled(page === 1),
+   new ButtonBuilder().setCustomId("frag_page").setLabel(`${page}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+   new ButtonBuilder().setCustomId("frag_next").setEmoji("➡").setStyle(ButtonStyle.Secondary).setDisabled(page === totalPages)
+  )
+
+  return { embed, components: [nav] }
+ }
+
+ const built = build()
+ await interaction.editReply({ embeds: [built.embed], components: built.components })
+
+ const msg = await interaction.fetchReply()
+ const collector = msg.createMessageComponentCollector({ time: 120000 })
+
+ collector.on("collect", async (i) => {
+  if (i.user.id !== interaction.user.id) {
+   return i.reply({ content: "Pas ton inventaire.", flags: 64 })
+  }
+
+  if (i.customId === "frag_next") page++
+  if (i.customId === "frag_prev") page--
+
+  const rebuilt = build()
+  await i.update({ embeds: [rebuilt.embed], components: rebuilt.components })
+ })
+}
+
 module.exports = {
 
  data: new SlashCommandBuilder()
   .setName("inventaire")
   .setDescription("Voir ton inventaire")
+  .addStringOption(o =>
+   o.setName("mode")
+    .setDescription("Choisir entre cartes et fragments")
+    .setRequired(false)
+    .addChoices(
+     { name:"Cartes", value:"cartes" },
+     { name:"Fragments", value:"fragments" }
+    )
+  )
   .addStringOption(o =>
    o.setName("rarete")
     .setDescription("Filtrer par rareté")
@@ -48,6 +116,11 @@ module.exports = {
 
   if(!user.cards) user.cards = {}
   if(!user.stats) user.stats = {}
+
+  const mode = interaction.options.getString("mode") || "cartes"
+  if(mode === "fragments"){
+   return renderFragmentInventory(interaction, user)
+  }
 
   user.stats.inventoryOpen = (user.stats.inventoryOpen || 0) + 1
 
