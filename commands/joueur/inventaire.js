@@ -97,12 +97,10 @@ module.exports = {
    const slice = rows.slice((fragPage - 1) * fragPerPage, fragPage * fragPerPage)
 
    const lines = slice.map((row) => {
-    const craftTag = row.canCraft ? " [Crafter]" : ""
-    const owned = row.numbers.length ? row.numbers.join(", ") : "-"
-    const missing = row.missing.length ? row.missing.join(", ") : "-"
-    return `${row.card?.name || row.cardId} (${row.ownedCount}/5) • stock:${row.totalCount}${craftTag}
-Possedes: ${owned}
-Manquants: ${missing}`
+    const name = row.card?.name || row.cardId
+    const craftTag = row.canCraft ? " ✅" : ""
+    const bar = "🟩".repeat(row.ownedCount) + "⬛".repeat(5 - row.ownedCount)
+    return `**${name}**${craftTag}\n${bar}`
    })
 
    const craftableNow = allRows.filter((row) => row.canCraft).length
@@ -118,7 +116,7 @@ Manquants: ${missing}`
 
    const embed = new EmbedBuilder()
     .setTitle(`🧩 Fragments de ${interaction.user.username}`)
-    .setDescription(lines.join("\n") || "Aucun fragment.")
+    .setDescription(lines.join("\n\n") || "Aucun fragment.")
     .setFooter({ text: footerParts.join(" • ") })
 
    /* ---- ROW 1 : Navigation + Reset + Switch Cartes ---- */
