@@ -7,6 +7,36 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Fixed → corrections de bugs
 - Improved → améliorations internes
 
+## [0.35.0] - 2026-03-27
+
+### Changed
+
+- Refonte UX vente de fragments sur /market (commands/joueur/market.js)
+  - Ancien flow : bouton "Vendre fragment" → modal 3 champs (ID carte, numéro slot, prix) — impossible à utiliser sans connaître les IDs par cœur
+  - Nouveau flow : bouton → StringSelectMenu listant tous les fragments possédés du joueur (nom de la carte, slot X/5, stock, prix minimum) → sélection → modal avec uniquement le prix, pré-rempli avec le minimum en placeholder
+  - Le cardId et le fragmentNumber sont mémorisés dans le state entre les deux étapes — le joueur ne tape plus jamais d'ID à la main
+  - Nouveau customId du modal prix : marketFragmentPriceModal (remplace marketSellFragmentModal)
+
+
+
+### Fixed
+
+- Bug critique app/handlers/routes/modalRoutes.js : marketSellFragmentModal absent du router → la soumission du modal de vente de fragment partait en silence sans réponse ni erreur. La vente de fragments via le marché était entièrement cassée
+  - Fix : ajout de marketFragmentPriceModal dans le router (nouveau nom suite à la refonte UX) + fallback console.warn pour les modals non gérés
+
+- Bug critique app/handlers/routes/buttonRoutes.js : les routes profil_* et mystats_* ajoutées vers command.button() interceptaient les interactions avant le collector actif → double acknowledge → le message "expiré" s'affichait immédiatement à chaque clic, même dans la fenêtre active. Tout /profil et /mystats était inutilisable
+  - Fix : suppression de ces deux routes — les collectors internes gèrent seuls leurs boutons pendant leur durée de vie ; quand ils expirent, msg.edit({ components: [] }) retire les boutons, rendant tout fallback global inutile
+
+- Bug commands/joueur/profil.js : absence de collector.on("end") → les boutons restaient visuellement actifs après expiration des 120s, mais ne répondaient plus
+  - Fix : ajout de collector.on("end", () => msg.edit({ components: [] }).catch(() => {})) + export button() de secours
+
+Bug commands/joueur/mystats.js : même problème que profil.js (collector 180s sans on("end"))
+  - Fix : même correction appliquée
+
+Bug commands/joueur/carte.js : save() appelé sans userId dans le handler sell_ (vente directe) et dans le modal() (mise au market) → sauvegarde de tous les users en mémoire à chaque vente, surcharge disque inutile
+  - Fix : save() → save(interaction.user.id) dans les deux endroits + ajout de collector.on("end") pour désactiver les boutons après 60s
+
+
 
 ## [0.34.0] - 2026-03-26
 
