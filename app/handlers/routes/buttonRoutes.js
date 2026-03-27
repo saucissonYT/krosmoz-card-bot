@@ -36,25 +36,19 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
- /* FIX : boutons profil — après expiration collector (120s) ou restart bot */
- if (id.startsWith("profil_")) {
-  const command = client.commands.get("profil")
-  if (command?.button) return command.button(interaction)
-  return interaction.reply({
-   content: "⏳ Ce profil a expiré. Utilise `/profil` pour en ouvrir un nouveau.",
-   flags: 64
-  })
- }
-
- /* FIX : boutons mystats — après expiration collector (180s) ou restart bot */
- if (id.startsWith("mystats_")) {
-  const command = client.commands.get("mystats")
-  if (command?.button) return command.button(interaction)
-  return interaction.reply({
-   content: "⏳ Cette page a expiré. Utilise `/mystats` pour en ouvrir une nouvelle.",
-   flags: 64
-  })
- }
+ /*
+  * NE PAS router profil_* ni mystats_* ici.
+  *
+  * Ces boutons sont gérés par des collectors internes dans profil.js
+  * et mystats.js. Si on les routait vers command.button() ici, le
+  * global interactionCreate répondrait "expiré" AVANT que le collector
+  * puisse traiter l'interaction → double acknowledge → crash, et le
+  * message "expiré" s'affiche même pendant la fenêtre active.
+  *
+  * Quand le collector expire, il retire les composants du message
+  * (msg.edit({ components: [] })) donc il n'y a plus de boutons
+  * cliquables — pas besoin de fallback ici.
+  */
 
  console.warn(`[buttonRoutes] Unhandled button customId: ${id}`)
  return false
