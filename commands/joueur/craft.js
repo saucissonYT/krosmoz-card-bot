@@ -12,6 +12,20 @@ const {
  isCraftableSSRCard
 } = require("../../systems/fragmentService")
 
+/* ---- Jauge style pity avec compteurs par slot ---- */
+
+function buildFragBar(user, cardId) {
+ const counts = [1, 2, 3, 4, 5].map(n =>
+  (user.fragments || []).filter(f =>
+   String(f.cardId) === String(cardId) &&
+   Number(f.fragmentNumber) === n
+  ).length
+ )
+ const bar  = counts.map(c => c > 0 ? "🟩" : "⬛").join("")
+ const nums = counts.map(c => ` ${c} `).join(" ")
+ return `${bar}\n${nums}`
+}
+
 module.exports = {
  data: new SlashCommandBuilder()
   .setName("craft")
@@ -26,12 +40,35 @@ module.exports = {
 
  async autocomplete(interaction) {
   const focused = interaction.options.getFocused().toLowerCase()
+  const user = getUser(interaction.user.id)
+
   const choices = getCraftableSSRCards()
-   .map((card) => ({
-    name: `${card.name} (#${card.id})`,
-    value: String(card.id)
-   }))
-   .filter((choice) => choice.name.toLowerCase().includes(focused) || choice.value.includes(focused))
+   .map((card) => {
+    const progress = getCardCraftProgress(user, card.id)
+    return {
+     card,
+     progress,
+     canCraft: progress.canCraft,
+     ownedCount: progress.ownedCount
+    }
+   })
+   /* Craftable en premier, puis par fragments possédés décroissant */
+   .sort((a, b) => {
+    if (a.canCraft !== b.canCraft) return a.canCraft ? -1 : 1
+    return b.ownedCount - a.ownedCount
+   })
+   .map(({ card, progress }) => {
+    const tag = progress.canCraft
+     ? "✅ CRAFTABLE"
+     : progress.ownedCount > 0
+      ? `🧩 ${progress.ownedCount}/5`
+      : "0/5"
+    return {
+     name: `[${tag}] ${card.name} (#${card.id})`,
+     value: String(card.id)
+    }
+   })
+   .filter((c) => c.name.toLowerCase().includes(focused) || c.value.includes(focused))
    .slice(0, 25)
 
   await interaction.respond(choices)
@@ -52,41 +89,53 @@ module.exports = {
   }
 
   const result = await craftFromFragments(interaction.user.id, card.id)
+  const user = getUser(interaction.user.id)
+
+  /* ---- Craft échoué ---- */
 
   if (!result.ok) {
-   const user = getUser(interaction.user.id)
    const progress = result.progress || getCardCraftProgress(user, card.id)
-   return interaction.editReply(
-`❌ Craft impossible.
+   const fragBar = buildFragBar(user, card.id)
 
-🧩 **${card.name}**
-${buildProgressBar(progress)} ${progress.ownedCount}/5
-Possedes : ${progress.numbers.join(", ") || "-"}
-Manquants : ${progress.missing.join(", ") || "-"}`
-   )
+   const embed = new EmbedBuilder()
+    .setTitle("❌ Craft impossible")
+    .setDescription(
+`**${card.name}**
+
+${fragBar}
+
+Il te manque les fragments : **${progress.missing.join(", ") || "-"}**`
+    )
+    .setColor("#e74c3c")
+    .setFooter({ text: `${progress.ownedCount}/5 fragments réunis` })
+
+   return interaction.editReply({ embeds: [embed] })
   }
 
-  const user = getUser(interaction.user.id)
+  /* ---- Craft réussi ---- */
+
   const progress = getCardCraftProgress(user, card.id)
   const unlocked = achievementCheck(user, "fragment")
   save(interaction.user.id)
 
   const embed = new EmbedBuilder()
-   .setTitle("✨ Craft reussi")
+   .setTitle("✨ Craft réussi !")
    .setDescription(
-`🧩 **${card.name}** a ete assemble a partir de ses fragments.
+`🌈 **${card.name}** a été assemblée depuis ses fragments.
 
-${buildProgressBar({ ownedCount: 5 })} 5/5 consommes
-🃏 La carte a ete ajoutee a ta collection.
-🎖️ Titre debloque : **${result.titleUnlocked}**
+🟩🟩🟩🟩🟩
+ 1   2   3   4   5
+
+🃏 Carte ajoutée à ta collection.
+🎖️ Titre débloqué : **${result.titleUnlocked}**
 ⭐ XP Battle Pass : **+500**`
    )
+   .setColor("#f1c40f")
    .setFooter({
     text: progress.ownedCount > 0
-     ? `Fragments restants pour cette carte : ${progress.ownedCount}/5`
-     : "Tous les fragments ont ete consommes"
+     ? `Tu possèdes encore ${progress.ownedCount} fragment(s) de cette carte`
+     : "Tous les fragments ont été consommés"
    })
-   .setColor("#f1c40f")
 
   await interaction.editReply({ embeds: [embed] })
 
