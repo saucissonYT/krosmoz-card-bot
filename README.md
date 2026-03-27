@@ -7,6 +7,7 @@ Les joueurs peuvent :
 - Ouvrir des packs et collectionner 1916 cartes
 - Compléter 6 sets (Incarnam, Astrub, Amakna, Sufokia, Kelba, Katrepat)
 - Fusionner des doublons pour monter en rareté
+- Collecter des **fragments** de cartes SSR et les assembler via `/craft`
 - Vendre et acheter sur le marché entre joueurs
 - Participer aux événements des 19 Dieux du Krosmoz
 - Acheter des cartes au KrosmoShop quotidien
@@ -14,7 +15,7 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 100 et débloquer des bonus permanents
-- Débloquer 501 succès, badges et titres exclusifs
+- Débloquer 509 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -47,6 +48,7 @@ krosmoz-card
 |   |-- seasonService.js     # saisons (rotation, templates, rewards)
 |   |-- guildSystem.js       # guildes (CRUD, XP, niveaux)
 |   |-- guildQuestSystem.js  # quêtes hebdo de guilde (scaling)
+|   |-- fragmentService.js   # logique fragments (drop, craft, index, progress)
 |   `-- ...                  # pack, market, user, progression, etc.
 |
 |-- config/
@@ -63,6 +65,7 @@ krosmoz-card
 |-- data/
 |   |-- users/
 |   |-- battlepass/          # current_season, seasons, progress, archive
+|   |-- fragments/           # craftable_ssrs.json + craft_logs/<userId>.json
 |   |-- guilds.json
 |   |-- market.json
 |   |-- krosmoshop.json
@@ -98,6 +101,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | eventSystem | Gestion du cycle de vie des events |
 | eventRegistry | Définition des 19 events |
 | eventHandlers/ | Logique RNG spécifique par Dieu |
+| fragmentService | Fragments SSR (drop, index craftable, craft, progress, sell) |
 | fusion | Fusion de doublons (critique, double, triple) + bonus |
 | questSystem | Quêtes journalières et hebdomadaires |
 
@@ -134,7 +138,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## ✅ Achievements
 
-395 succès automatiques répartis en 11 catégories actives :
+403 succès automatiques répartis en 12 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -147,6 +151,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
 
 Les succès débloquent des **badges**, des **titres** et des **récompenses** (kamas, XP, packs).
 
@@ -311,6 +316,69 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 ### ✨ SSR Shiny
 
 Les SSR ont 0.5% de chance d'être **Shiny** (+ bonus de niveau joueur) — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
+
+---
+
+## 🧩 Système de Fragments
+
+Les fragments sont un système permettant d'obtenir des cartes **SSR garanties** en collectant des pièces via les packs.
+
+### Principe
+
+- Chaque carte SSR craftable est divisée en **5 fragments** numérotés (1 à 5)
+- Les fragments tombent **aléatoirement** lors de l'ouverture de packs normaux et d'event packs
+- Une fois les **5 fragments d'une même carte** réunis, `/craft` les consomme et ajoute la carte à la collection
+
+### Drop
+
+- Les fragments droppent depuis le `packEngine` lors de chaque ouverture de pack
+- Le pool est indexé dynamiquement dans `data/fragments/craftable_ssrs.json`
+- L'index se reconstruit automatiquement au démarrage ou via `/fragments rebuild-index`
+
+### Craft
+
+- Commande `/craft` avec autocomplétion triée : **cartes craftables en premier**, puis par fragments possédés décroissant
+- Le craft vérifie que les 5 slots distincts sont présents (1 exemplaire suffit par slot)
+- Chaque craft débloque un **titre**, octroie **+500 XP Battle Pass** et incrémente `stats.fragmentsCrafted`
+- Les fragments consommés sont retirés de l'inventaire un par un (1 exemplaire par slot)
+- Un **craft lock par userId** évite les race conditions en cas de double-click
+
+### Inventaire fragments (`/inventaire mode:fragments`)
+
+- Affichage en jauge par slot exact : `🟩⬛🟩⬛🟩` avec compteur en dessous
+- Bouton **switch** depuis la vue cartes (ROW 2) et retour depuis la vue fragments
+- Filtre par **Set** (ROW 2 fragments) pour n'afficher qu'un set
+- Le tag ✅ apparaît sur les cartes craftables immédiatement
+
+### Vente de fragments
+
+- Les fragments peuvent être listés sur le `/market` via le bouton "Vendre fragment"
+- Chaque vente incrémente `stats.fragmentsSold`
+
+### 8 Achievements dédiés
+
+| Achievement | Condition |
+|------------|-----------|
+| 🧩 Première Brisure | Obtenir ton premier fragment |
+| 🧩 Collectionneur de Tessons | Posséder 10 combinaisons carte:slot distinctes |
+| 📦 Stock de Réserve | Posséder 3 fois le même fragment |
+| ✨ Premier Assemblage | Crafter 1 SSR via fragments |
+| ⚒️ Forge Active | Crafter 3 SSR via fragments |
+| 🏆 Maître Forgeron | Crafter 5 SSR via fragments |
+| 💰 Marchand de Tessons | Vendre 1 fragment |
+| 🕶️ Broker de l'Ombre | Vendre 10 fragments |
+
+### Stockage
+
+```txt
+data/fragments/
+  craftable_ssrs.json      # index des SSR craftables (cardId[])
+  craft_logs/
+    <userId>.json           # historique des crafts par joueur
+```
+
+Les fragments sont stockés dans `user.fragments[]` avec : `cardId`, `fragmentNumber`, `source`, `obtainedAt`.
+
 
 ---
 
@@ -609,7 +677,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Le jeu compte `420` succes classiques + `81` succes Battle Pass, soit `501` succes au total
+- Le jeu compte `428` succes classiques + `81` succes Battle Pass, soit `509` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -653,7 +721,8 @@ La commande **/quests** affiche une interface interactive avec :
 ### Collection
 | Commande | Description |
 |----------|-------------|
-| /inventaire | Voir ton inventaire (tri par nom, rareté, quantité, set + filtres) |
+| /inventaire | Voir ton inventaire cartes (tri, filtres rareté/set, doublons) ou fragments (jauge par slot, filtre set) |
+| /craft | Assembler une carte SSR depuis ses 5 fragments (autocomplete trié par fragments possédés) |
 | /carte | Afficher une carte par nom ou ID |
 | /listcards | Explorer les cartes par set |
 
@@ -740,12 +809,13 @@ La commande **/quests** affiche une interface interactive avec :
 | /collection | Voir la collection d'un joueur |
 | /devguild | Gerer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
 | /devbp | Outils dev Battle Pass (status, add-xp, force, reset, claim-all, dry-run) |
+| /fragments | Outils dev fragments (give, give-all, clear, list, rebuild-index, simulate-drop) |
 
 ---
 
 ## ✅ Achievements
 
-395 succès automatiques répartis en 11 catégories actives :
+403 succès automatiques répartis en 12 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -758,6 +828,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
 
 Les succès débloquent des **badges** et des **titres**.
 
@@ -772,15 +843,16 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 3. Compléter les quêtes journalières et hebdomadaires (/quests)
 4. Vendre les doublons (/sellduplicates, /market)
 5. Fusionner pour monter en rareté (/fusion)
-6. Compléter les sets
-7. Acheter au KrosmoShop quotidien
-8. Participer aux events des Dieux
-9. Donner des cartes à ses amis (/gift)
-10. Créer ou rejoindre une guilde (/guild)
-11. Compléter les quêtes de guilde pour faire monter la guilde en niveau
-12. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
-13. Débloquer des achievements et des titres
-14. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
+6. Collecter des fragments SSR dans les packs et les assembler via /craft
+7. Compléter les sets
+8. Acheter au KrosmoShop quotidien
+9. Participer aux events des Dieux
+10. Donner des cartes à ses amis (/gift)
+11. Créer ou rejoindre une guilde (/guild)
+12. Compléter les quêtes de guilde pour faire monter la guilde en niveau
+13. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
+14. Débloquer des achievements et des titres
+15. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
 
 ---
 
@@ -797,6 +869,8 @@ Command Handlers
       +--> eventPackEngine  |
       |                     +--> userSystem <--> progressionSystem
       +--> fusion ----------+          |               |
+      |                                |
+      +--> fragmentService ---------+
       |                                |               +--> playerBonuses
       +--> market ---------------------+ 
       |
@@ -846,7 +920,7 @@ Fichiers JSON individuels par joueur (dirty save system).
   cards.json
 ```
 
-Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes, guildId, progression Battle Pass.
+Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes, guildId, progression Battle Pass, **fragments**.
 
 Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, quêtes hebdo, stats.
 

@@ -59,9 +59,29 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Récompense de complétion de set**
   - Tous les sets donnent désormais **20 000 kamas** à 100%
 
+- **UX inventaire fragments** (`commands/joueur/inventaire.js`)
+  - Affichage remplacé par une jauge style `/pity` : `🟩⬛🟩⬛🟩` par slot exact (1→5)
+  - Ligne de compteurs sous la jauge : nombre d'exemplaires possédés par slot
+  - La jauge reflète les slots exacts possédés (plus de remplissage gauche-droite)
+  - Bouton **🧩 Fragments** ajouté en ROW 2 (tri) de la vue cartes pour basculer en vue fragments
+  - Bouton **🎴 Cartes** en ROW 1 de la vue fragments pour revenir
+  - Filtre par **Set** ajouté en ROW 2 de la vue fragments (même logique toggle que la vue cartes)
+  - Collector unifié entre les deux vues — retour cartes → fragments et vice-versa sans re-spawn
+  - Tag ✅ affiché inline sur les cartes craftables
+
+- **UX commande `/craft`** (`commands/joueur/craft.js`)
+  - Autocomplete trié : cartes **craftables en premier** (✅ CRAFTABLE), puis par **fragments possédés décroissants** (🧩 x/5)
+  - Embed d'échec remplacé par un embed structuré avec jauge par slot et fragments manquants en gras
+  - Embed de succès avec jauge 🟩×5 et numéros de slots consommés
+
 - **Documentation**
   - README mis à jour avec Katrepat, les nouveaux totaux de cartes / sets et le bloc succès Battle Pass
   - Le système fragments a été aligné sur l'architecture réelle du dépôt (`systems/`, inventaire joueur, marché, battle pass)
+  - Section `## 🧩 Système de Fragments` ajoutée au README (principe, drop, craft, UX, achievements, stockage)
+  - Commandes `/inventaire` et `/craft` mises à jour dans la table des commandes joueur
+  - Commande `/fragments` ajoutée dans les commandes dev
+  - `fragmentService` ajouté dans la table des systèmes Gameplay
+  - Compteurs de succès mis à jour : 403 classiques, 509 total
 
 ### Fixed
 
