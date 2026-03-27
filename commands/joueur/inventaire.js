@@ -99,8 +99,19 @@ module.exports = {
    const lines = slice.map((row) => {
     const name = row.card?.name || row.cardId
     const craftTag = row.canCraft ? " ✅" : ""
-    const bar = "🟩".repeat(row.ownedCount) + "⬛".repeat(5 - row.ownedCount)
-    return `**${name}**${craftTag}\n${bar}`
+
+    /* Compte par slot exact (fragment 1, 2, 3, 4, 5) */
+    const counts = [1, 2, 3, 4, 5].map(n =>
+     (user.fragments || []).filter(f =>
+      String(f.cardId) === String(row.cardId) &&
+      Number(f.fragmentNumber) === n
+     ).length
+    )
+
+    const bar  = counts.map(c => c > 0 ? "🟩" : "⬛").join("")
+    const nums = counts.map(c => ` ${c} `).join(" ")
+
+    return `**${name}**${craftTag}\n${bar}\n${nums}`
    })
 
    const craftableNow = allRows.filter((row) => row.canCraft).length
