@@ -21,6 +21,11 @@ async function routeSelectInteraction(interaction, client) {
   if (command?.select) return command.select(interaction)
  }
 
+ if (id === "ach_category") {
+  const command = client.commands.get("achievements")
+  if (command?.select) return command.select(interaction)
+ }
+
  const commandName = id.split("_")[0]
  const command = client.commands.get(commandName)
 

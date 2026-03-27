@@ -15,6 +15,23 @@ const GUILD_XP_PER_RARITY={
  C:1, U:1, R:3, SR:3, HR:4, UR:6, S:7, SSR:8
 }
 
+function getParisTimeParts(date = new Date()){
+ const parts = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: "Europe/Paris",
+  hour: "2-digit",
+  minute: "2-digit",
+  weekday: "short",
+  hourCycle: "h23"
+ }).formatToParts(date)
+
+ const map = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+ return {
+  hour: Number(map.hour || 0),
+  minute: Number(map.minute || 0),
+  weekday: String(map.weekday || "").toLowerCase()
+ }
+}
+
 /* ================= BONUS HELPERS ================= */
 
 function getBonuses(userId, user){
@@ -201,7 +218,7 @@ function openPack(user, setId, userId, options = {}){
  /* ---- Stats pack ---- */
  user.stats.packsOpened++
 
- const hour = new Date().getHours()
+ const parisNow = getParisTimeParts()
  const rarities = pack.map(c=>c?.rarity).filter(Boolean)
 
  const allC = pack.every(c=>c?.rarity==="C")
@@ -219,11 +236,10 @@ function openPack(user, setId, userId, options = {}){
   user.stats.dryStreak = 0
  }
 
- if(hour===0)
+ if(parisNow.hour === 0 && parisNow.minute === 0)
   user.stats.packAtMidnight = (user.stats.packAtMidnight||0)+1
 
- const day = new Date().getDay()
- if(day===1 && ssrCount>0)
+ if(parisNow.weekday.startsWith("lun") && ssrCount>0)
   user.stats.ssrOnMonday = (user.stats.ssrOnMonday||0)+1
 
  if(ssrCount>0 && pitySSRBefore>=49)

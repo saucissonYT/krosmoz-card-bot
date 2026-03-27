@@ -423,7 +423,7 @@ function rotateSeasonIfNeeded() {
  const cycle   = getSeasonCycle()
  const today   = toDateOnly(new Date())
 
- if (!current.forcedByDev && today <= current.endDate) return { rotated: false, current }
+ if (today <= current.endDate) return { rotated: false, current }
 
  const nextIndex  = (current.cycleIndex + 1) % cycle.length
  const nextSeason = cycle[nextIndex]
@@ -467,6 +467,7 @@ function getBattlePassAchievements(userId) {
   type:        a.type,
   target:      a.target,
   reward:      a.reward,
+  secret:      !!a.secret,
   seasonal:    false,
   unlocked:    unlocked.includes(a.id)
  })

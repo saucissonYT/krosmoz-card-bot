@@ -26,6 +26,16 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
+ if (id.startsWith("ach_")) {
+  const command = client.commands.get("achievements")
+  if (command?.button) return command.button(interaction)
+ }
+
+ if (id.startsWith("bp_")) {
+  const command = client.commands.get("battlepass")
+  if (command?.button) return command.button(interaction)
+ }
+
  console.warn(`[buttonRoutes] Unhandled button customId: ${id}`)
  return false
 }

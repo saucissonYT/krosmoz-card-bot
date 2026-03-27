@@ -4,8 +4,8 @@ Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes
 
 Les joueurs peuvent :
 
-- Ouvrir des packs et collectionner 1485 cartes
-- Compléter 5 sets (Incarnam, Astrub, Amakna, Sufokia, Kelba)
+- Ouvrir des packs et collectionner 1916 cartes
+- Compléter 6 sets (Incarnam, Astrub, Amakna, Sufokia, Kelba, Katrepat)
 - Fusionner des doublons pour monter en rareté
 - Vendre et acheter sur le marché entre joueurs
 - Participer aux événements des 19 Dieux du Krosmoz
@@ -14,7 +14,7 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 100 et débloquer des bonus permanents
-- Débloquer 395 succès et des titres exclusifs
+- Débloquer 501 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -190,7 +190,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 
 ## 🎴 Cartes
 
-1485 cartes réparties en 5 sets :
+1916 cartes réparties en 6 sets :
 
 | Set | Cartes |
 |-----|--------|
@@ -199,6 +199,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | 🌽 Amakna | 298 |
 | 🌊 Sufokia | 353 |
 | 📦 Kelba | 456 |
+| 🦇 Katrepat | 431 |
 
 ### ⭐ Raretés & Économie
 
@@ -214,6 +215,8 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | SSR | 🌈 | 2 000 | 5 000 | 12 000 |
 
 **Prix d'un pack : 800 kamas** (1 gratuit/heure, cooldown réduit par niveau)
+
+**Récompense de complétion d'un set : 20 000 kamas**
 
 ### Coûts de fusion
 
@@ -291,6 +294,19 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | UR | 16 | 3.51% |
 | S | 10 | 2.19% |
 | SSR | 5 | 1.10% |
+
+### 🦇 Distribution Katrepat
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 184 | 42.69% |
+| U | 101 | 23.43% |
+| R | 65 | 15.08% |
+| SR | 30 | 6.96% |
+| HR | 23 | 5.34% |
+| UR | 15 | 3.48% |
+| S | 8 | 1.86% |
+| SSR | 5 | 1.16% |
 
 ### ✨ SSR Shiny
 
@@ -587,11 +603,13 @@ La commande **/quests** affiche une interface interactive avec :
 
 ### Succes Battle Pass
 
-- Les succes Battle Pass sont geres **hors** `systems/achievementRegistry.js`
-- Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievements()`
-- Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere/maintenu par `seasonService`)
+- `61` succes globaux permanents lies a la progression Battle Pass
+- `20` succes saisonniers par saison, dont plusieurs succes caches et exclusifs au theme actif
+- Paliers dedies aux niveaux BP, packs, daily, fusions, events, sets completes, premium, kamas, titres et badges
+- Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
+- Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Les `395 succes` du README correspondent au registre principal; les succes Battle Pass sont un bloc separe
+- Le jeu compte `420` succes classiques + `81` succes Battle Pass, soit `501` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -828,9 +846,9 @@ Fichiers JSON individuels par joueur (dirty save system).
   cards.json
 ```
 
-Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, qu�tes, guildId, progression Battle Pass.
+Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes, guildId, progression Battle Pass.
 
-Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, qu�tes hebdo, stats.
+Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, quêtes hebdo, stats.
 
 Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée par userId.
 

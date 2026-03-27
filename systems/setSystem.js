@@ -1,11 +1,19 @@
 const { data } = require("./dataManager")
 const { addXP } = require("./progressionSystem")
 const { addBattlePassXP } = require("./battlePassService")
+const { loadSets } = require("./setSystemFile")
 
 const sets = data.sets || []
 const cardsData = data.cards || []
 
 const cards = Array.isArray(cardsData) ? cardsData : cardsData.cards || []
+const DEFAULT_SET_REWARD = 20000
+
+function getSetReward(setId){
+ const sets = loadSets()
+ const set = (Array.isArray(sets) ? sets : sets?.sets || []).find((entry) => entry.id === setId)
+ return Number(set?.reward) > 0 ? Number(set.reward) : DEFAULT_SET_REWARD
+}
 
 function getSetCards(setId){
 
@@ -85,6 +93,7 @@ function checkSetCompletion(user,setId){
    user.completedSets.push(setId)
 
    addXP(user,200)
+   user.kamas = (user.kamas || 0) + getSetReward(setId)
    if(user.id || user.userId){
     const uid = user.id || user.userId
     addBattlePassXP(uid, 480, "set_complete").catch(() => {})

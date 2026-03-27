@@ -244,6 +244,39 @@ function buildSeasonAchievements(seasonId) {
  ]
 }
 
+function buildSeasonAchievementsV3(seasonId) {
+ const theme = getSeasonTheme(seasonId)
+ const p = theme.prefix
+
+ const fixed = [
+  { id: `${p}_fixed_01`, name: "Eveil de saison", description: "Atteindre le niveau 5 du Battle Pass cette saison.", type: "season_level", target: 5, reward: { bpXp: 150, kamas: 300 } },
+  { id: `${p}_fixed_02`, name: "Premier cap", description: "Atteindre le niveau 10 du Battle Pass cette saison.", type: "season_level", target: 10, reward: { bpXp: 250, kamas: 500 } },
+  { id: `${p}_fixed_03`, name: "Montee reguliere", description: "Atteindre le niveau 20 du Battle Pass cette saison.", type: "season_level", target: 20, reward: { bpXp: 400, kamas: 900 } },
+  { id: `${p}_fixed_04`, name: "Ascension", description: "Atteindre le niveau 30 du Battle Pass cette saison.", type: "season_level", target: 30, reward: { bpXp: 700, kamas: 1400 } },
+  { id: `${p}_fixed_05`, name: "Sommet de saison", description: "Atteindre le niveau 40 du Battle Pass cette saison.", type: "season_level", target: 40, reward: { bpXp: 1200, kamas: 2500 }, secret: true },
+  { id: `${p}_fixed_06`, name: "Ouverture simple", description: "Ouvrir 10 packs /krosmoz cette saison.", type: "season_packs", target: 10, reward: { bpXp: 250, kamas: 400 } },
+  { id: `${p}_fixed_07`, name: "Ouverture soutenue", description: "Ouvrir 25 packs /krosmoz cette saison.", type: "season_packs", target: 25, reward: { bpXp: 500, kamas: 900 } },
+  { id: `${p}_fixed_08`, name: "Routine solide", description: "Reclamer le daily 7 fois cette saison.", type: "season_daily", target: 7, reward: { bpXp: 300, kamas: 500 } },
+  { id: `${p}_fixed_09`, name: "Main d'alchimiste", description: "Effectuer 10 fusions cette saison.", type: "season_fusions", target: 10, reward: { bpXp: 450, kamas: 700 } },
+  { id: `${p}_fixed_10`, name: "Set complet", description: "Completer 1 set entier cette saison.", type: "season_sets", target: 1, reward: { bpXp: 900, kamas: 2000 } }
+ ]
+
+ const themed = [
+  { id: `${p}_theme_01`, name: `${theme.name} - Eclaireur`, description: `Ouvrir 5 packs pendant ${theme.name}.`, type: "season_packs", target: 5, reward: { bpXp: 150, kamas: 250 } },
+  { id: `${p}_theme_02`, name: `${theme.name} - Habitude`, description: `Reclamer le daily 3 fois pendant ${theme.name}.`, type: "season_daily", target: 3, reward: { bpXp: 120, kamas: 200 } },
+  { id: `${p}_theme_03`, name: `${theme.name} - Artisan`, description: `Effectuer 3 fusions pendant ${theme.name}.`, type: "season_fusions", target: 3, reward: { bpXp: 150, kamas: 250 } },
+  { id: `${p}_theme_04`, name: `${theme.name} - Curieux`, description: `Ouvrir 1 pack d'event pendant ${theme.name}.`, type: "season_events", target: 1, reward: { bpXp: 180, kamas: 300 } },
+  { id: `${p}_theme_05`, name: `${theme.name} - Constance`, description: `Atteindre le niveau 15 pendant ${theme.name}.`, type: "season_level", target: 15, reward: { bpXp: 260, kamas: 450 } },
+  { id: `${p}_theme_06`, name: `${theme.name} - Marathon`, description: `Ouvrir 40 packs pendant ${theme.name}.`, type: "season_packs", target: 40, reward: { bpXp: 850, kamas: 1800 }, secret: true },
+  { id: `${p}_theme_07`, name: `${theme.name} - Fidelite`, description: `Reclamer le daily 14 fois pendant ${theme.name}.`, type: "season_daily", target: 14, reward: { bpXp: 650, kamas: 1200 } },
+  { id: `${p}_theme_08`, name: `${theme.name} - Technique`, description: `Effectuer 20 fusions pendant ${theme.name}.`, type: "season_fusions", target: 20, reward: { bpXp: 800, kamas: 1500 } },
+  { id: `${p}_theme_09`, name: `${theme.name} - Spectacle`, description: `Ouvrir 3 packs d'event pendant ${theme.name}.`, type: "season_events", target: 3, reward: { bpXp: 700, kamas: 1300 } },
+  { id: `${p}_theme_10`, name: `${theme.name} - Collection`, description: `Completer 2 sets entiers pendant ${theme.name}.`, type: "season_sets", target: 2, reward: { bpXp: 1200, kamas: 3000 }, secret: true }
+ ]
+
+ return [...fixed, ...themed]
+}
+
 /* ─── Season Template ────────────────────────────────────────────────────── */
 
 function buildSeasonTemplate(seasonId) {
@@ -253,7 +286,7 @@ function buildSeasonTemplate(seasonId) {
 
  return {
   schemaVersion:      1,
-  achievementsVersion: 2,
+  achievementsVersion: 4,
   seasonId,
   name:            theme.name,
   subtitle:        theme.subtitle,
@@ -265,7 +298,7 @@ function buildSeasonTemplate(seasonId) {
   passiveBonus:    theme.passiveBonus,
   freeRewards:     rewards.freeRewards,
   premiumRewards:  rewards.premiumRewards,
-  achievements:    buildSeasonAchievements(seasonId),
+  achievements:    buildSeasonAchievementsV3(seasonId),
   bonusVersion:    2,
   rewardsVersion:  6,
   premiumPrice:    12000
@@ -326,6 +359,70 @@ const GLOBAL_ACHIEVEMENTS_V2 = [
  { id: "global_badge_3",   name: "Arborant la Gloire",      description: "Posséder 3 badges (succès débloqués).", type: "badges_owned",  target: 3,      reward: { bpXp: 400 } }
 ]
 
+const GLOBAL_ACHIEVEMENTS_V3 = [
+ { id: "global_daily_1",    name: "Premier Lever",           description: "Reclamer le daily 1 fois.",             type: "daily_claims",   target: 1,      reward: { bpXp: 50 } },
+ { id: "global_daily_7",    name: "Regulier",                description: "Reclamer le daily 7 fois.",             type: "daily_claims",   target: 7,      reward: { bpXp: 300, kamas: 200 } },
+ { id: "global_daily_21",   name: "Discipline",              description: "Reclamer le daily 21 fois.",            type: "daily_claims",   target: 21,     reward: { bpXp: 800, kamas: 500 } },
+ { id: "global_daily_50",   name: "Rituel absolu",           description: "Reclamer le daily 50 fois.",            type: "daily_claims",   target: 50,     reward: { bpXp: 1400, kamas: 1200 } },
+ { id: "global_pack_1",     name: "Premier Pack",            description: "Ouvrir 1 pack via /krosmoz.",           type: "packs_opened",   target: 1,      reward: { bpXp: 100 } },
+ { id: "global_pack_10",    name: "Collectionneur",          description: "Ouvrir 10 packs via /krosmoz.",         type: "packs_opened",   target: 10,     reward: { bpXp: 400 } },
+ { id: "global_pack_50",    name: "Grand Collectionneur",    description: "Ouvrir 50 packs via /krosmoz.",         type: "packs_opened",   target: 50,     reward: { bpXp: 1000 } },
+ { id: "global_pack_100",   name: "Avaleur de packs",        description: "Ouvrir 100 packs via /krosmoz.",        type: "packs_opened",   target: 100,    reward: { bpXp: 1700, kamas: 1500 } },
+ { id: "global_pack_250",   name: "Archive vivante",         description: "Ouvrir 250 packs via /krosmoz.",        type: "packs_opened",   target: 250,    reward: { bpXp: 2600, kamas: 3000 }, secret: true },
+ { id: "global_ssr_1",      name: "L'Elu",                   description: "Obtenir 1 carte SSR.",                  type: "ssr_cards",      target: 1,      reward: { bpXp: 300 } },
+ { id: "global_ssr_5",      name: "Destine",                 description: "Obtenir 5 cartes SSR.",                 type: "ssr_cards",      target: 5,      reward: { bpXp: 800 } },
+ { id: "global_ssr_15",     name: "Aimant legendaire",       description: "Obtenir 15 cartes SSR.",                type: "ssr_cards",      target: 15,     reward: { bpXp: 1500, kamas: 1200 } },
+ { id: "global_ssr_30",     name: "Convergence doree",       description: "Obtenir 30 cartes SSR.",                type: "ssr_cards",      target: 30,     reward: { bpXp: 2400, kamas: 2200 } },
+ { id: "global_shiny_1",    name: "Rayon de lumiere",        description: "Obtenir 1 SSR Shiny.",                  type: "shiny_cards",    target: 1,      reward: { bpXp: 500 } },
+ { id: "global_shiny_3",    name: "Miroir du destin",        description: "Obtenir 3 SSR Shiny.",                  type: "shiny_cards",    target: 3,      reward: { bpXp: 1400, kamas: 1600 } },
+ { id: "global_rare_1",     name: "Chasse au tresor",        description: "Obtenir 1 carte rare (HR ou plus).",    type: "rare_cards",     target: 1,      reward: { bpXp: 150 } },
+ { id: "global_rare_10",    name: "Chasseur d'elites",       description: "Obtenir 10 cartes rares (HR ou plus).", type: "rare_cards",     target: 10,     reward: { bpXp: 500 } },
+ { id: "global_rare_25",    name: "Radar HR+",               description: "Obtenir 25 cartes rares (HR ou plus).", type: "rare_cards",     target: 25,     reward: { bpXp: 1000, kamas: 900 } },
+ { id: "global_rare_50",    name: "Collection premium",      description: "Obtenir 50 cartes rares (HR ou plus).", type: "rare_cards",     target: 50,     reward: { bpXp: 1800, kamas: 1800 } },
+ { id: "global_set_1",      name: "Architecte",              description: "Completer 1 set de cartes.",            type: "sets_completed", target: 1,      reward: { bpXp: 400 } },
+ { id: "global_set_3",      name: "Macon runique",           description: "Completer 3 sets de cartes.",           type: "sets_completed", target: 3,      reward: { bpXp: 700, kamas: 600 } },
+ { id: "global_set_5",      name: "Batisseur",               description: "Completer 5 sets de cartes.",           type: "sets_completed", target: 5,      reward: { bpXp: 900 } },
+ { id: "global_set_10",     name: "Maitre architecte",       description: "Completer 10 sets de cartes.",          type: "sets_completed", target: 10,     reward: { bpXp: 1500 } },
+ { id: "global_set_25",     name: "Cartographe total",       description: "Completer 25 sets de cartes.",          type: "sets_completed", target: 25,     reward: { bpXp: 2800, kamas: 2500 }, secret: true },
+ { id: "global_fusion_1",   name: "Alchimiste",              description: "Effectuer 1 fusion via /fusion.",       type: "fusions",        target: 1,      reward: { bpXp: 150 } },
+ { id: "global_fusion_10",  name: "Grand alchimiste",        description: "Effectuer 10 fusions.",                 type: "fusions",        target: 10,     reward: { bpXp: 600 } },
+ { id: "global_fusion_25",  name: "Maitre de la fusion",     description: "Effectuer 25 fusions.",                 type: "fusions",        target: 25,     reward: { bpXp: 1200 } },
+ { id: "global_fusion_50",  name: "Forge de saison",         description: "Effectuer 50 fusions.",                 type: "fusions",        target: 50,     reward: { bpXp: 1800, kamas: 1400 } },
+ { id: "global_fusion_100", name: "Transmutateur supreme",   description: "Effectuer 100 fusions.",                type: "fusions",        target: 100,    reward: { bpXp: 2600, kamas: 2400 } },
+ { id: "global_market_1",   name: "Marchand",                description: "Vendre 1 carte sur le marche.",         type: "market_sales",   target: 1,      reward: { bpXp: 100 } },
+ { id: "global_market_20",  name: "Negociant",               description: "Vendre 20 cartes sur le marche.",       type: "market_sales",   target: 20,     reward: { bpXp: 500 } },
+ { id: "global_market_50",  name: "Courtier",                description: "Vendre 50 cartes sur le marche.",       type: "market_sales",   target: 50,     reward: { bpXp: 900, kamas: 800 } },
+ { id: "global_market_100", name: "Salle des ventes",        description: "Vendre 100 cartes sur le marche.",      type: "market_sales",   target: 100,    reward: { bpXp: 1500, kamas: 1500 } },
+ { id: "global_event_1",    name: "Participant",             description: "Ouvrir 1 pack d'event.",                type: "events",         target: 1,      reward: { bpXp: 200 } },
+ { id: "global_event_5",    name: "Heros des evenements",    description: "Ouvrir 5 packs d'event.",               type: "events",         target: 5,      reward: { bpXp: 700 } },
+ { id: "global_event_10",   name: "Habitue des portails",    description: "Ouvrir 10 packs d'event.",              type: "events",         target: 10,     reward: { bpXp: 1200, kamas: 900 } },
+ { id: "global_event_25",   name: "Spectateur cosmique",     description: "Ouvrir 25 packs d'event.",              type: "events",         target: 25,     reward: { bpXp: 2200, kamas: 1800 } },
+ { id: "global_bp_10",      name: "Apprenti passeur",        description: "Atteindre le niveau 10 du Battle Pass.", type: "level",         target: 10,     reward: { bpXp: 200 } },
+ { id: "global_bp_20",      name: "Ascendant",               description: "Atteindre le niveau 20 du Battle Pass.", type: "level",         target: 20,     reward: { bpXp: 400 } },
+ { id: "global_bp_40",      name: "Transcendant",            description: "Atteindre le niveau 40 du Battle Pass.", type: "level",         target: 40,     reward: { bpXp: 1000 }, secret: true },
+ { id: "global_bp_60",      name: "Au-dela du pass",         description: "Atteindre le niveau 60 du Battle Pass.", type: "level",         target: 60,     reward: { bpXp: 1800, kamas: 1500 } },
+ { id: "global_bp_100",     name: "Infini en marche",        description: "Atteindre le niveau 100 du Battle Pass.", type: "level",        target: 100,    reward: { bpXp: 3000, kamas: 3000 }, secret: true },
+ { id: "global_bp_all6",    name: "Collectionneur des Dofus",description: "Completer les 6 saisons du cycle Battle Pass.", type: "all6",   target: 6,      reward: { bpXp: 2000 }, secret: true },
+ { id: "global_premium_1",  name: "Investissement",          description: "Acheter le Pass Premium une fois.",     type: "premium_buy",    target: 1,      reward: { bpXp: 300 } },
+ { id: "global_premium_3",  name: "Fidele premium",          description: "Acheter le Pass Premium 3 fois.",       type: "premium_buy",    target: 3,      reward: { bpXp: 1000, kamas: 1200 } },
+ { id: "global_premium_6",  name: "Pilier premium",          description: "Acheter le Pass Premium 6 fois.",       type: "premium_buy",    target: 6,      reward: { bpXp: 2200, kamas: 2600 } },
+ { id: "global_kamas_5k",   name: "Petite fortune",          description: "Gagner 5 000 kamas au total.",          type: "kamas_earned",   target: 5000,   reward: { bpXp: 200 } },
+ { id: "global_kamas_20k",  name: "Grande fortune",          description: "Gagner 20 000 kamas au total.",         type: "kamas_earned",   target: 20000,  reward: { bpXp: 600 } },
+ { id: "global_kamas_50k",  name: "Richesse legendaire",     description: "Gagner 50 000 kamas au total.",         type: "kamas_earned",   target: 50000,  reward: { bpXp: 1000 } },
+ { id: "global_kamas_100k", name: "Moteur economique",       description: "Gagner 100 000 kamas au total.",        type: "kamas_earned",   target: 100000, reward: { bpXp: 1800, kamas: 1600 } },
+ { id: "global_kamas_250k", name: "Banque du pass",          description: "Gagner 250 000 kamas au total.",        type: "kamas_earned",   target: 250000, reward: { bpXp: 2800, kamas: 3000 }, secret: true },
+ { id: "global_title_5",    name: "Porte-voix",              description: "Posseder 5 titres debloques.",          type: "titles_owned",   target: 5,      reward: { bpXp: 300 } },
+ { id: "global_title_10",   name: "Collection de noms",      description: "Posseder 10 titres debloques.",         type: "titles_owned",   target: 10,     reward: { bpXp: 700, kamas: 700 } },
+ { id: "global_title_25",   name: "Galerie d'identites",     description: "Posseder 25 titres debloques.",         type: "titles_owned",   target: 25,     reward: { bpXp: 1400, kamas: 1500 } },
+ { id: "global_title_50",   name: "Bibliotheque de titres",  description: "Posseder 50 titres debloques.",         type: "titles_owned",   target: 50,     reward: { bpXp: 2400, kamas: 2600 } },
+ { id: "global_title_100",  name: "Couronne des noms",       description: "Posseder 100 titres debloques.",        type: "titles_owned",   target: 100,    reward: { bpXp: 4000, kamas: 4000 }, secret: true },
+ { id: "global_badge_5",    name: "Arborant la gloire",      description: "Posseder 5 badges debloques.",          type: "badges_owned",   target: 5,      reward: { bpXp: 500 } },
+ { id: "global_badge_10",   name: "Mur de medailles",        description: "Posseder 10 badges debloques.",         type: "badges_owned",   target: 10,     reward: { bpXp: 900, kamas: 800 } },
+ { id: "global_badge_25",   name: "Vitrine complete",        description: "Posseder 25 badges debloques.",         type: "badges_owned",   target: 25,     reward: { bpXp: 1800, kamas: 1600 } },
+ { id: "global_badge_50",   name: "Parade d'honneur",        description: "Posseder 50 badges debloques.",         type: "badges_owned",   target: 50,     reward: { bpXp: 2800, kamas: 2800 } },
+ { id: "global_badge_100",  name: "Hall of fame",            description: "Posseder 100 badges debloques.",        type: "badges_owned",   target: 100,    reward: { bpXp: 4500, kamas: 4500 }, secret: true }
+]
+
 function ensureSeasonFiles() {
  const paths = getBattlePassPaths()
 
@@ -351,12 +448,12 @@ function ensureSeasonFiles() {
  const needsRegen = !globalExists || (() => {
   try {
    const existing = JSON.parse(fs.readFileSync(globalPath, "utf8"))
-   return (existing.schemaVersion || 1) < 2
+   return (existing.schemaVersion || 1) < 4
   } catch (_) { return true }
  })()
 
  if (needsRegen) {
-  writeAtomic(globalPath, { schemaVersion: 2, achievements: GLOBAL_ACHIEVEMENTS_V2 })
+  writeAtomic(globalPath, { schemaVersion: 4, achievements: GLOBAL_ACHIEVEMENTS_V3 })
  }
 }
 
@@ -387,6 +484,14 @@ function ensureCurrentSeason() {
 
  if (current.schemaVersion !== 1) { current.schemaVersion = 1; changed = true }
  if (!Array.isArray(current.previousSeasons)) { current.previousSeasons = []; changed = true }
+ if (!current.activeSeason || !CYCLE.includes(current.activeSeason)) { current.activeSeason = CYCLE[0]; changed = true }
+ if (!Number.isInteger(current.cycleIndex) || current.cycleIndex < 0 || current.cycleIndex >= CYCLE.length) {
+  current.cycleIndex = CYCLE.indexOf(current.activeSeason)
+  if (current.cycleIndex < 0) current.cycleIndex = 0
+  changed = true
+ }
+ if (!current.startDate) { current.startDate = today; changed = true }
+ if (!current.endDate) { current.endDate = addDaysDateOnly(current.startDate, DEFAULT_DURATION_DAYS); changed = true }
  if (current.forcedByDev === undefined) { current.forcedByDev = false; changed = true }
 
  if (changed) writeAtomic(paths.currentSeason, current)
@@ -416,9 +521,9 @@ function getSeasonTemplate(seasonId) {
   merged.premiumRewards = fallback.premiumRewards; changed = true
  }
  /* Régénérer les achievements si version < 2 */
- if (!Array.isArray(data.achievements) || data.achievements.length < 5 || (data.achievementsVersion || 1) < 2) {
+if (!Array.isArray(data.achievements) || data.achievements.length < 20 || (data.achievementsVersion || 1) < 4) {
   merged.achievements        = fallback.achievements
-  merged.achievementsVersion = 2
+  merged.achievementsVersion = 4
   changed = true
  }
  if (!merged.passiveBonus) { merged.passiveBonus = fallback.passiveBonus; changed = true }

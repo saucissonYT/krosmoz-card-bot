@@ -93,7 +93,7 @@ module.exports={
   let nextId=getNextCardId()
 
   const cardLookup=new Set(
-   cards.map(c=>`${c.name.toLowerCase()}_${c.set}`)
+   cards.map(c=>`${c.name.toLowerCase()}_${c.set}_${c.rarity}`)
   )
 
   for(const file of files){
@@ -131,7 +131,7 @@ module.exports={
 
    }
 
-   const duplicateKey=`${name.toLowerCase()}_${set}`
+   const duplicateKey=`${name.toLowerCase()}_${set}_${rarity}`
 
    if(cardLookup.has(duplicateKey)){
     skip(file,`Doublon carte : ${name} (${set})`)

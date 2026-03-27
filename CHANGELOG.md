@@ -10,15 +10,45 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.34.0] - 2026-03-26
 
-###
+### Added
 
-- **Nouveau set 🦇 Katrepat ** — 431 cartes
+- **Nouveau set 🦇 Katrepat** - 431 cartes
   - Distribution : 184 C, 101 U, 65 R, 30 SR, 23 HR, 15 UR, 8 S, 5 SSR
-  - Pyramide de raretés C > U > R > SR > HR > UR > S > SSR respectée
-  - Images importées et validées via le script d'import
-  - Set ajouté dans `cards/sets.json`
-  - Pity indépendant pour Kelba (comme les autres sets)
+  - Ajout du set dans `cards/sets.json`
+  - Pity indépendante pour Katrepat, comme pour les autres sets
+  - Import local des cartes Katrepat et correction du dedupe d'import sur `nom + set + rarete`
 
+- **Refonte des succès Battle Pass**
+  - 61 succès globaux permanents
+  - 20 succès saisonniers par saison
+  - Nouveaux paliers pour les titres possédés : 5 / 10 / 25 / 50 / 100
+  - Nouveaux paliers pour les badges possédés : 5 / 10 / 25 / 50 / 100
+  - Ajout de succès cachés Battle Pass côté global et saisonnier
+
+### Changed
+
+- **Récompense de complétion de set**
+  - Tous les sets donnent désormais **20 000 kamas** à 100%
+
+- **Documentation**
+  - README mis à jour avec Katrepat, les nouveaux totaux de cartes / sets et le bloc succès Battle Pass
+
+### Fixed
+
+- **/achievement**
+  - Routage réparé pour `ach_category` et `ach_next`
+  - Navigation persistante rétablie dans l'interface des succès
+
+- **Battle Pass**
+  - Routage réparé pour `bp_claim`
+  - La saison active ne repart plus sur un mauvais reset au restart
+  - Les succès cachés Battle Pass restent masqués tant qu'ils ne sont pas débloqués
+
+- **Succès "Minuit au Krosmoz"**
+  - Validation corrigée : il faut maintenant ouvrir un pack à **00:00 exact heure de Paris**
+
+- **Katrepat / import**
+  - Correction d'un conflit d'import sur deux cartes partageant le même nom mais pas la même rareté
 ## [0.33.0] - 2026-03-23
 
 ### Added

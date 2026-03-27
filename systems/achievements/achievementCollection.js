@@ -120,10 +120,10 @@ unique600:{
 unique674:{
  name:"Collection Totale",
  badge:"💎",
- description:"Posséder les 674 cartes uniques.",
+ description:"Poss?der les 1916 cartes uniques.",
  title:"Collectionneur Absolu",
  trigger:"collection",
- condition:u=>Object.keys(u.cards||{}).length>=674
+ condition:u=>Object.keys(u.cards||{}).length>=1916
 },
 
 /* ================= SETS ================= */

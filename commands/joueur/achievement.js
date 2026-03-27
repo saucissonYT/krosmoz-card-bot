@@ -93,6 +93,134 @@ function bpRewardText(reward){
  return parts.length ? ` — ${parts.join(" • ")}` : ""
 }
 
+function loadBpAchievements(userId){
+ let bpData = { entries: [], unlocked: [], total: 0 }
+ try {
+  const { getBattlePassAchievements } = require("../../systems/battlePassService")
+  bpData = getBattlePassAchievements(userId)
+ } catch (_) {}
+ return bpData
+}
+
+function getPageFromMessage(message){
+ const text = message?.embeds?.[0]?.footer?.text || ""
+ const match = text.match(/Page\s+(\d+)\//i)
+ return match ? Number(match[1]) : 1
+}
+
+function getCategoryFromMessage(message){
+ for (const row of message?.components || []) {
+  for (const component of row.components || []) {
+   if (component.customId !== "ach_category") continue
+   for (const option of component.options || []) {
+    if (option.default || option.data?.default) return option.value
+   }
+  }
+ }
+ return "all"
+}
+
+function buildAchievementResponse(userId, categoryId = "all", page = 1){
+ const user = getUser(userId)
+ const allList = Object.entries(achievements)
+ const bpData = loadBpAchievements(userId)
+ const perPage = 8
+
+ function getFiltered(){
+  if(categoryId === "battlepass"){
+   return (bpData.entries || []).map((entry) => [entry.id, {
+    name: entry.name,
+    badge: entry.seasonal ? "ðŸŒ¸" : "ðŸŽ–ï¸",
+    description: bpDescription(entry.type, entry.target, entry.seasonal) + bpRewardText(entry.reward),
+    trigger: "battlepass",
+    secret: !!entry.secret,
+    _bp: true,
+    _unlocked: entry.unlocked
+   }])
+  }
+  if(categoryId === "all") return allList
+  if(categoryId === "secret") return allList.filter(([, data]) => data.secret === true)
+  return allList.filter(([, data]) => data.trigger === categoryId && !data.secret)
+ }
+
+ const filtered = getFiltered()
+ const maxPage = Math.max(1, Math.ceil(filtered.length / perPage))
+ const safePage = Math.max(1, Math.min(page, maxPage))
+ const start = (safePage - 1) * perPage
+ const slice = filtered.slice(start, start + perPage)
+
+ const unlockedCount = user.achievements?.length || 0
+ const totalMain = allList.length
+ const bpUnlocked = bpData.unlocked?.length || 0
+ const bpTotal = bpData.total || 0
+ const totalAll = totalMain + bpTotal
+ const unlockedAll = unlockedCount + bpUnlocked
+
+ const catUnlocked = categoryId === "battlepass"
+  ? bpUnlocked
+  : filtered.filter(([id, data]) => data._bp ? data._unlocked : user.achievements?.includes(id)).length
+ const catTotal = categoryId === "battlepass" ? bpTotal : filtered.length
+
+ const lines = slice.map(([id, data]) => {
+  const unlocked = data._bp ? data._unlocked : user.achievements?.includes(id)
+  if(data.secret && !unlocked) return `ðŸ”’ **SuccÃ¨s secret** â€” ???`
+
+  const titleTag = data.title ? ` â€¢ ðŸ‘‘ ${data.title}` : ""
+  const status = unlocked ? "âœ…" : "ðŸ”’"
+  const descLine = data.description ? `\nã€€${data.description}` : ""
+  return `${status} ${data.badge} **${data.name}**${titleTag}${descLine}`
+ })
+
+ const cat = CATEGORIES.find((entry) => entry.id === categoryId) || CATEGORIES[0]
+ const embed = new EmbedBuilder()
+  .setTitle(`${cat.emoji} SuccÃ¨s â€” ${cat.label}`)
+  .setDescription(lines.join("\n\n") || "Aucun succÃ¨s dans cette catÃ©gorie.")
+  .setFooter({
+   text: `${catUnlocked}/${catTotal} dÃ©bloquÃ©s ici â€¢ ${unlockedAll}/${totalAll} au total â€¢ Page ${safePage}/${maxPage}`
+  })
+  .setColor(CATEGORY_COLORS[categoryId] || "#f1c40f")
+
+ const navRow = new ActionRowBuilder().addComponents(
+  new ButtonBuilder().setCustomId("ach_prev").setLabel("â¬…ï¸").setStyle(ButtonStyle.Primary).setDisabled(safePage <= 1),
+  new ButtonBuilder().setCustomId("ach_page").setLabel(`${safePage}/${maxPage}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+  new ButtonBuilder().setCustomId("ach_next").setLabel("âž¡ï¸").setStyle(ButtonStyle.Primary).setDisabled(safePage >= maxPage),
+  new ButtonBuilder().setCustomId("ach_reset").setLabel("Tout afficher").setStyle(categoryId === "all" ? ButtonStyle.Success : ButtonStyle.Danger).setDisabled(categoryId === "all")
+ )
+
+ const selectMenu = new StringSelectMenuBuilder()
+  .setCustomId("ach_category")
+  .setPlaceholder(`ðŸ“‚ CatÃ©gorie : ${cat.label}`)
+  .addOptions(CATEGORIES.map((entry) => {
+   let catLen = 0
+   let catCount = 0
+
+   if(entry.id === "battlepass"){
+    catLen = bpTotal
+    catCount = bpUnlocked
+   } else if(entry.id === "all"){
+    catLen = allList.length
+    catCount = allList.filter(([id]) => user.achievements?.includes(id)).length
+   } else if(entry.id === "secret"){
+    const secretList = allList.filter(([, data]) => data.secret === true)
+    catLen = secretList.length
+    catCount = secretList.filter(([id]) => user.achievements?.includes(id)).length
+   } else {
+    const triggerList = allList.filter(([, data]) => data.trigger === entry.id && !data.secret)
+    catLen = triggerList.length
+    catCount = triggerList.filter(([id]) => user.achievements?.includes(id)).length
+   }
+
+   return new StringSelectMenuOptionBuilder()
+    .setLabel(`${entry.label} (${catCount}/${catLen})`)
+    .setValue(entry.id)
+    .setEmoji(entry.emoji)
+    .setDefault(entry.id === categoryId)
+  }))
+
+ const selectRow = new ActionRowBuilder().addComponents(selectMenu)
+ return { embed, components: [navRow, selectRow] }
+}
+
 module.exports = {
 
  name: "achievements",
@@ -133,6 +261,7 @@ module.exports = {
      badge:    e.seasonal ? "🌸" : "🎖️",
      description: bpDescription(e.type, e.target, e.seasonal) + bpRewardText(e.reward),
      trigger:  "battlepass",
+     secret:   !!e.secret,
      _bp:      true,
      _unlocked: e.unlocked
     }])
@@ -281,6 +410,28 @@ module.exports = {
 
   })
 
+  },
+
+ async button(interaction){
+  const currentCategory = getCategoryFromMessage(interaction.message)
+  let nextCategory = currentCategory
+  let page = getPageFromMessage(interaction.message)
+
+  if(interaction.customId === "ach_next") page++
+  if(interaction.customId === "ach_prev") page--
+  if(interaction.customId === "ach_reset"){
+   nextCategory = "all"
+   page = 1
+  }
+
+  const response = buildAchievementResponse(interaction.user.id, nextCategory, page)
+  return interaction.update({ embeds:[response.embed], components:response.components })
+ },
+
+ async select(interaction){
+  const nextCategory = interaction.values?.[0] || "all"
+  const response = buildAchievementResponse(interaction.user.id, nextCategory, 1)
+  return interaction.update({ embeds:[response.embed], components:response.components })
  }
 
 }
