@@ -7,6 +7,18 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Fixed → corrections de bugs
 - Improved → améliorations internes
 
+
+## [0.34.0] - 2026-03-26
+
+###
+
+- **Nouveau set 🦇 Katrepat ** — 431 cartes
+  - Distribution : 184 C, 101 U, 65 R, 30 SR, 23 HR, 15 UR, 8 S, 5 SSR
+  - Pyramide de raretés C > U > R > SR > HR > UR > S > SSR respectée
+  - Images importées et validées via le script d'import
+  - Set ajouté dans `cards/sets.json`
+  - Pity indépendant pour Kelba (comme les autres sets)
+
 ## [0.33.0] - 2026-03-23
 
 ### Added
