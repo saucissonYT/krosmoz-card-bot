@@ -104,7 +104,7 @@ function bpDescription(type, target, seasonal) {
 function bpRewardText(reward) {
  if (!reward) return ""
  const parts = []
- if (reward.bpXp) parts.push(`+${reward.bpXp} XP BP`)
+ if (reward.bpXp)  parts.push(`+${reward.bpXp} XP BP`)
  if (reward.kamas) parts.push(`+${reward.kamas} kamas`)
  if (reward.packs) parts.push(`+${reward.packs} pack${reward.packs > 1 ? "s" : ""}`)
  return parts.length ? ` - ${parts.join(" * ")}` : ""
@@ -114,14 +114,14 @@ function loadBpAchievements(userId) {
  try {
   const { getBattlePassAchievements } = require("../../systems/battlePassService")
   const raw = getBattlePassAchievements(userId) || {}
-  const globals = raw.globals || []
+  const globals  = raw.globals  || []
   const seasonal = raw.seasonal || []
   return {
-   entries: [...seasonal, ...globals],
+   entries:  [...seasonal, ...globals],
    globals,
    seasonal,
    unlocked: raw.unlocked || [],
-   total: raw.total || globals.length + seasonal.length
+   total:    raw.total || globals.length + seasonal.length
   }
  } catch (_) {
   return { entries: [], globals: [], seasonal: [], unlocked: [], total: 0 }
@@ -129,7 +129,7 @@ function loadBpAchievements(userId) {
 }
 
 function getPageFromMessage(message) {
- const text = message?.embeds?.[0]?.footer?.text || ""
+ const text  = message?.embeds?.[0]?.footer?.text || ""
  const match = text.match(/Page\s+(\d+)\//i)
  return match ? Number(match[1]) : 1
 }
@@ -146,22 +146,28 @@ function getCategoryFromMessage(message) {
  return "all"
 }
 
+/* FIX : lit l'état du filtre "non validés" depuis le footer */
+function getOnlyLockedFromMessage(message) {
+ const text = message?.embeds?.[0]?.footer?.text || ""
+ return text.includes("filtre:locked")
+}
+
 function getFilteredAchievements(user, categoryId, bpData) {
  const allList = Object.entries(achievements)
 
  if (categoryId === "battlepass") {
   return bpData.entries.map((entry) => [entry.id, {
-   name: entry.name,
-   badge: entry.seasonal ? EMOJI.flower : EMOJI.medal,
+   name:        entry.name,
+   badge:       entry.seasonal ? EMOJI.flower : EMOJI.medal,
    description: bpDescription(entry.type, entry.target, entry.seasonal) + bpRewardText(entry.reward),
-   trigger: "battlepass",
-   secret: !!entry.secret,
-   _bp: true,
-   _unlocked: !!entry.unlocked
+   trigger:     "battlepass",
+   secret:      !!entry.secret,
+   _bp:         true,
+   _unlocked:   !!entry.unlocked
   }])
  }
 
- if (categoryId === "all") return allList
+ if (categoryId === "all")    return allList
  if (categoryId === "secret") return allList.filter(([, data]) => data.secret === true)
  return allList.filter(([, data]) => data.trigger === categoryId && !data.secret)
 }
@@ -170,34 +176,45 @@ function getCategoryStats(user, categoryId, filtered, bpData) {
  if (categoryId === "battlepass") {
   return {
    unlocked: bpData.entries.filter((entry) => entry.unlocked).length,
-   total: bpData.entries.length
+   total:    bpData.entries.length
   }
  }
 
  return {
   unlocked: filtered.filter(([id, data]) => data._bp ? data._unlocked : user.achievements?.includes(id)).length,
-  total: filtered.length
+  total:    filtered.length
  }
 }
 
-function buildAchievementResponse(userId, categoryId = "all", page = 1) {
- const user = getUser(userId)
+function buildAchievementResponse(userId, categoryId = "all", page = 1, onlyLocked = false) {
+ const user    = getUser(userId)
  const allList = Object.entries(achievements)
- const bpData = loadBpAchievements(userId)
- const filtered = getFilteredAchievements(user, categoryId, bpData)
+ const bpData  = loadBpAchievements(userId)
 
- const maxPage = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+ /* Liste de base selon la catégorie */
+ const baseFiltered = getFilteredAchievements(user, categoryId, bpData)
+
+ /* FIX : filtre "non validés" appliqué après la sélection de catégorie */
+ const filtered = onlyLocked
+  ? baseFiltered.filter(([id, data]) => {
+   if (data._bp) return !data._unlocked
+   return !user.achievements?.includes(id)
+  })
+  : baseFiltered
+
+ const maxPage  = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
  const safePage = Math.max(1, Math.min(page, maxPage))
- const start = (safePage - 1) * PER_PAGE
- const slice = filtered.slice(start, start + PER_PAGE)
+ const start    = (safePage - 1) * PER_PAGE
+ const slice    = filtered.slice(start, start + PER_PAGE)
 
  const mainUnlocked = user.achievements?.length || 0
- const totalMain = allList.length
- const bpUnlocked = bpData.entries.filter((entry) => entry.unlocked).length
- const totalAll = totalMain + bpData.total
- const unlockedAll = mainUnlocked + bpUnlocked
+ const totalMain    = allList.length
+ const bpUnlocked   = bpData.entries.filter((entry) => entry.unlocked).length
+ const totalAll     = totalMain + bpData.total
+ const unlockedAll  = mainUnlocked + bpUnlocked
 
- const categoryStats = getCategoryStats(user, categoryId, filtered, bpData)
+ /* FIX : stats toujours calculées sur la liste non-filtrée par onlyLocked */
+ const categoryStats = getCategoryStats(user, categoryId, baseFiltered, bpData)
 
  const lines = slice.map(([id, data]) => {
   const unlocked = data._bp ? data._unlocked : user.achievements?.includes(id)
@@ -206,31 +223,55 @@ function buildAchievementResponse(userId, categoryId = "all", page = 1) {
    return `${EMOJI.lock} **Succes secret** - ???`
   }
 
-  const titleTag = data.title ? ` * ${EMOJI.crown} ${data.title}` : ""
-  const status = unlocked ? EMOJI.check : EMOJI.lock
-  const descLine = data.description ? `\n${data.description}` : ""
+  const titleTag  = data.title       ? ` * ${EMOJI.crown} ${data.title}` : ""
+  const status    = unlocked         ? EMOJI.check : EMOJI.lock
+  const descLine  = data.description ? `\n${data.description}` : ""
   return `${status} ${data.badge} **${data.name}**${titleTag}${descLine}`
  })
 
  const category = CATEGORIES.find((entry) => entry.id === categoryId) || CATEGORIES[0]
 
+ /* Footer : inclut le marqueur du filtre si actif */
+ const filterInfo = onlyLocked
+  ? `${filtered.length} restant${filtered.length > 1 ? "s" : ""} a debloquer`
+  : `${categoryStats.unlocked}/${categoryStats.total} debloques ici`
+
  const embed = new EmbedBuilder()
-  .setTitle(`${category.emoji} Succes - ${category.label}`)
+  .setTitle(`${category.emoji} Succes - ${category.label}${onlyLocked ? " — Non valides" : ""}`)
   .setDescription(lines.join("\n\n") || "Aucun succes dans cette categorie.")
   .setFooter({
-   text: `${categoryStats.unlocked}/${categoryStats.total} debloques ici * ${unlockedAll}/${totalAll} au total * Page ${safePage}/${maxPage}`
+   text: `${filterInfo} * ${unlockedAll}/${totalAll} au total * Page ${safePage}/${maxPage}${onlyLocked ? " * filtre:locked" : ""}`
   })
   .setColor(CATEGORY_COLORS[categoryId] || "#f1c40f")
 
+ /* FIX : 5e bouton ajouté — toggle "Non validés" */
+ const isDefault = categoryId === "all" && !onlyLocked
+
  const navRow = new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("ach_prev").setLabel(EMOJI.left).setStyle(ButtonStyle.Primary).setDisabled(safePage <= 1),
-  new ButtonBuilder().setCustomId("ach_page").setLabel(`${safePage}/${maxPage}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
-  new ButtonBuilder().setCustomId("ach_next").setLabel(EMOJI.right).setStyle(ButtonStyle.Primary).setDisabled(safePage >= maxPage),
+  new ButtonBuilder()
+   .setCustomId("ach_prev")
+   .setLabel(EMOJI.left)
+   .setStyle(ButtonStyle.Primary)
+   .setDisabled(safePage <= 1),
+  new ButtonBuilder()
+   .setCustomId("ach_page")
+   .setLabel(`${safePage}/${maxPage}`)
+   .setStyle(ButtonStyle.Secondary)
+   .setDisabled(true),
+  new ButtonBuilder()
+   .setCustomId("ach_next")
+   .setLabel(EMOJI.right)
+   .setStyle(ButtonStyle.Primary)
+   .setDisabled(safePage >= maxPage),
   new ButtonBuilder()
    .setCustomId("ach_reset")
    .setLabel("Tout afficher")
-   .setStyle(categoryId === "all" ? ButtonStyle.Success : ButtonStyle.Danger)
-   .setDisabled(categoryId === "all")
+   .setStyle(isDefault ? ButtonStyle.Success : ButtonStyle.Danger)
+   .setDisabled(isDefault),
+  new ButtonBuilder()
+   .setCustomId("ach_only_locked")
+   .setLabel("🔒 Non valides")
+   .setStyle(onlyLocked ? ButtonStyle.Success : ButtonStyle.Secondary)
  )
 
  const selectMenu = new StringSelectMenuBuilder()
@@ -238,7 +279,7 @@ function buildAchievementResponse(userId, categoryId = "all", page = 1) {
   .setPlaceholder(`Categorie : ${category.label}`)
   .addOptions(CATEGORIES.map((entry) => {
    const entryFiltered = getFilteredAchievements(user, entry.id, bpData)
-   const stats = getCategoryStats(user, entry.id, entryFiltered, bpData)
+   const stats         = getCategoryStats(user, entry.id, entryFiltered, bpData)
    return new StringSelectMenuOptionBuilder()
     .setLabel(`${entry.label} (${stats.unlocked}/${stats.total})`)
     .setValue(entry.id)
@@ -252,57 +293,54 @@ function buildAchievementResponse(userId, categoryId = "all", page = 1) {
 }
 
 module.exports = {
- name: "achievements",
+ name:        "achievements",
  description: "Voir les succes",
 
  async execute(interaction) {
   await interaction.deferReply()
-  const response = buildAchievementResponse(interaction.user.id, "all", 1)
-  const message = await interaction.editReply({ embeds: [response.embed], components: response.components })
 
-  const collector = message.createMessageComponentCollector({ time: 180000 })
-  collector.on("collect", async (component) => {
-   if (component.user.id !== interaction.user.id) {
-    return component.reply({ content: "Pas tes succes.", flags: 64 })
-   }
-
-   let page = getPageFromMessage(component.message)
-   let categoryId = getCategoryFromMessage(component.message)
-
-   if (component.customId === "ach_next") page++
-   if (component.customId === "ach_prev") page--
-   if (component.customId === "ach_reset") {
-    categoryId = "all"
-    page = 1
-   }
-   if (component.customId === "ach_category") {
-    categoryId = component.values[0]
-    page = 1
-   }
-
-   const next = buildAchievementResponse(interaction.user.id, categoryId, page)
-   await component.update({ embeds: [next.embed], components: next.components })
-  })
+  /*
+   * FIX : le collector a été supprimé.
+   * Il entrait en conflit avec les handlers globaux button() / select()
+   * routés dans buttonRoutes.js et selectRoutes.js.
+   * Les deux appelaient interaction.update() simultanément
+   * → "Interaction already acknowledged" (crash).
+   * button() et select() gèrent tout désormais.
+   */
+  const response = buildAchievementResponse(interaction.user.id, "all", 1, false)
+  await interaction.editReply({ embeds: [response.embed], components: response.components })
  },
 
  async button(interaction) {
-  let page = getPageFromMessage(interaction.message)
+  let page       = getPageFromMessage(interaction.message)
   let categoryId = getCategoryFromMessage(interaction.message)
+  let onlyLocked = getOnlyLockedFromMessage(interaction.message)
 
   if (interaction.customId === "ach_next") page++
   if (interaction.customId === "ach_prev") page--
+
   if (interaction.customId === "ach_reset") {
+   /* FIX : reset remet aussi onlyLocked à false */
    categoryId = "all"
-   page = 1
+   page       = 1
+   onlyLocked = false
   }
 
-  const response = buildAchievementResponse(interaction.user.id, categoryId, page)
+  if (interaction.customId === "ach_only_locked") {
+   /* FIX : toggle du filtre non validés */
+   onlyLocked = !onlyLocked
+   page       = 1
+  }
+
+  const response = buildAchievementResponse(interaction.user.id, categoryId, page, onlyLocked)
   return interaction.update({ embeds: [response.embed], components: response.components })
  },
 
  async select(interaction) {
   const categoryId = interaction.values?.[0] || "all"
-  const response = buildAchievementResponse(interaction.user.id, categoryId, 1)
+  /* FIX : conserver l'état onlyLocked lors du changement de catégorie */
+  const onlyLocked = getOnlyLockedFromMessage(interaction.message)
+  const response   = buildAchievementResponse(interaction.user.id, categoryId, 1, onlyLocked)
   return interaction.update({ embeds: [response.embed], components: response.components })
  }
 }
