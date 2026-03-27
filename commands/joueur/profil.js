@@ -19,8 +19,8 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
  */
 const { getCards } = require("../../systems/cardRegistry")
 
-function rand(min,max){
- return Math.floor(Math.random()*(max-min+1))+min
+function rand(min, max) {
+ return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 /*
@@ -33,58 +33,36 @@ function rand(min,max){
  * Fix : clamp percent entre 0 et 1, et gérer max=0 (niveau max)
  */
 
-function buildXPBar(current,max){
-
+function buildXPBar(current, max) {
  const size = 12
-
- if(max <= 0) return "🟩".repeat(size) + " MAX"
-
+ if (max <= 0) return "🟩".repeat(size) + " MAX"
  const percent = Math.min(1, Math.max(0, current / max))
-
- const filled = Math.round(size * percent)
- const empty = size - filled
-
- const bar =
-  "🟩".repeat(filled) +
-  "⬜".repeat(empty)
-
- const percentText = Math.floor(percent * 100)
-
- return `${bar} ${percentText}%`
+ const filled  = Math.round(size * percent)
+ const empty   = size - filled
+ return "🟩".repeat(filled) + "⬜".repeat(empty) + ` ${Math.floor(percent * 100)}%`
 }
 
-function buildCollectionBar(current,max){
-
+function buildCollectionBar(current, max) {
  const size = 10
-
- if(max <= 0) return "🟩".repeat(size) + " 100%"
-
+ if (max <= 0) return "🟩".repeat(size) + " 100%"
  const percent = Math.min(1, Math.max(0, current / max))
-
- const filled = Math.round(size * percent)
- const empty = size - filled
-
- const bar =
-  "🟩".repeat(filled) +
-  "⬜".repeat(empty)
-
- const percentText = Math.floor(percent * 100)
-
- return `${bar} ${percentText}%`
+ const filled  = Math.round(size * percent)
+ const empty   = size - filled
+ return "🟩".repeat(filled) + "⬜".repeat(empty) + ` ${Math.floor(percent * 100)}%`
 }
 
-function fakeOptions(){
+function fakeOptions() {
  return {
-  getString: () => null,
+  getString:  () => null,
   getInteger: () => null,
   getBoolean: () => null,
-  getUser: () => null
+  getUser:    () => null
  }
 }
 
 module.exports = {
 
- data:new SlashCommandBuilder()
+ data: new SlashCommandBuilder()
   .setName("profil")
   .setDescription("Voir un profil joueur")
   .addUserOption(option =>
@@ -94,127 +72,102 @@ module.exports = {
     .setRequired(false)
   ),
 
- async execute(interaction){
+ async execute(interaction) {
 
   /* Lecture dynamique des cartes */
   const cards = getCards()
 
-  const target = interaction.options?.getUser("joueur") || interaction.user
-  const isSelf = target.id === interaction.user.id
+  const target       = interaction.options?.getUser("joueur") || interaction.user
+  const isSelf       = target.id === interaction.user.id
   const isBotProfile = target.id === interaction.client.user.id
 
   /* ---------------- PROFIL BOT RNG ---------------- */
 
-  if(isBotProfile){
+  if (isBotProfile) {
 
-   const totalCards = cards.length
-
+   const totalCards       = cards.length
    const fakeAchievements = Object.keys(achievements)
-   const badgeCount = rand(10,40)
+   const badgeCount       = rand(10, 40)
+   const randomBadges     = []
 
-   const randomBadges=[]
-
-   for(let i=0;i<badgeCount;i++){
-
-    const id=fakeAchievements[rand(0,fakeAchievements.length-1)]
-
-    if(achievements[id]?.badge)
-     randomBadges.push(achievements[id].badge)
-
+   for (let i = 0; i < badgeCount; i++) {
+    const id = fakeAchievements[rand(0, fakeAchievements.length - 1)]
+    if (achievements[id]?.badge) randomBadges.push(achievements[id].badge)
    }
 
-   const ownedCards = rand(Math.floor(totalCards*0.5),totalCards)
+   const ownedCards  = rand(Math.floor(totalCards * 0.5), totalCards)
+   const progression = { level: rand(50, 100), xp: rand(100, 900), required: 1000 }
 
-   const progression={
-    level:rand(50,100),
-    xp:rand(100,900),
-    required:1000
-   }
-
-   const xpBar = buildXPBar(progression.xp,progression.required)
-   const collectionBar = buildCollectionBar(ownedCards,totalCards)
+   const xpBar         = buildXPBar(progression.xp, progression.required)
+   const collectionBar = buildCollectionBar(ownedCards, totalCards)
 
    const embed = new EmbedBuilder()
-
     .setTitle(`👤 ${target.username}`)
-    .setThumbnail(target.displayAvatarURL({size:256}))
-
+    .setThumbnail(target.displayAvatarURL({ size: 256 }))
     .addFields(
+     { name: "🏅 Rang",   value: "🌌 Entité Cosmique", inline: true },
+     { name: "👑 Titre",  value: ["Architecte RNG", "Dieu du Krosmoz", "Gardien des Sets"][rand(0, 2)], inline: true },
+     { name: "🏆 Succès", value: String(rand(200, 999)), inline: true },
 
-     {name:"🏅 Rang",value:"🌌 Entité Cosmique",inline:true},
-     {name:"👑 Titre",value:["Architecte RNG","Dieu du Krosmoz","Gardien des Sets"][rand(0,2)],inline:true},
-     {name:"🏆 Succès",value:String(rand(200,999)),inline:true},
+     { name: "⭐ Niveau", value: String(progression.level), inline: true },
+     { name: "📈 XP",     value: `${progression.xp} / ${progression.required}`, inline: true },
+     { name: "🏰 Guilde", value: "🌌 Guilde Cosmique (Niv. 100)", inline: true },
 
-     {name:"⭐ Niveau",value:String(progression.level),inline:true},
-     {name:"📈 XP",value:`${progression.xp} / ${progression.required}`,inline:true},
+     { name: "📊 Progression XP", value: xpBar },
 
-     {name:"📊 Progression XP",value:xpBar},
+     { name: "💰 Kamas",  value: String(rand(100000, 99999999)), inline: true },
+     { name: "📦 Cartes", value: `${ownedCards}/${totalCards}`, inline: true },
 
-     {name:"💰 Kamas",value:String(rand(100000,99999999)),inline:true},
-     {name:"📦 Cartes",value:`${ownedCards}/${totalCards}`,inline:true},
-
-     {name:"📊 Collection",value:collectionBar},
+     { name: "📊 Collection", value: collectionBar },
 
      {
-      name:"📊 Statistiques",
+      name: "📊 Statistiques",
       value:
-`📦 Packs ouverts : ${rand(1000,50000)}
-📦 eventPack ouverts : ${rand(10,500)}
-🌈 SSR obtenues : ${rand(100,5000)}
-🔧 Fusions : ${rand(200,10000)}
-📅 Daily claims : ${rand(200,5000)}`
+`📦 Packs ouverts : ${rand(1000, 50000)}
+📦 eventPack ouverts : ${rand(10, 500)}
+🌈 SSR obtenues : ${rand(100, 5000)}
+🔧 Fusions : ${rand(200, 10000)}
+📅 Daily claims : ${rand(200, 5000)}`
      },
 
-     {name:"🎖 Badges",value:randomBadges.join(" ") || "Aucun"}
-
+     { name: "🎖 Badges", value: randomBadges.join(" ") || "Aucun" }
     )
-
     .setColor("#8e44ad")
 
-   return interaction.reply({embeds:[embed]})
+   return interaction.reply({ embeds: [embed] })
   }
 
   /* ---------------- PROFIL NORMAL ---------------- */
 
   const user = getUser(target.id)
 
-  let unlocked=[]
+  let unlocked = []
 
-  if(isSelf){
-   if(!user.stats) user.stats={}
-   user.stats.profileViews=(user.stats.profileViews||0)+1
-   unlocked = achievementCheck(user,"social")
+  if (isSelf) {
+   if (!user.stats) user.stats = {}
+   user.stats.profileViews = (user.stats.profileViews || 0) + 1
+   unlocked = achievementCheck(user, "social")
   }
 
   const totalCards = cards.length
 
   let ownedCards = 0
-
-  for(const id in user.cards)
-   if(user.cards[id] > 0)
-    ownedCards++
+  for (const id in user.cards)
+   if (user.cards[id] > 0) ownedCards++
 
   const maxBadges = 40
-
   let badges = "Aucun"
 
-  if(user.achievements?.length){
-
+  if (user.achievements?.length) {
    const reversed = [...user.achievements].reverse()
-   const visible = reversed.slice(0,maxBadges)
-
-   badges = visible
-    .map(a => achievements[a]?.badge || "")
-    .join(" ")
-
-   if(user.achievements.length > maxBadges){
-    const extra = user.achievements.length - maxBadges
-    badges += ` +${extra}`
+   const visible  = reversed.slice(0, maxBadges)
+   badges = visible.map(a => achievements[a]?.badge || "").join(" ")
+   if (user.achievements.length > maxBadges) {
+    badges += ` +${user.achievements.length - maxBadges}`
    }
-
   }
 
-  const rank = getRank(user)
+  const rank        = getRank(user)
   const progression = getProgression(user)
 
   const xpText = progression.isMaxLevel
@@ -226,41 +179,37 @@ module.exports = {
    : buildXPBar(progression.xp, progression.required)
 
   const collectionBar = buildCollectionBar(ownedCards, totalCards)
-
-  const stats = user.stats || {}
+  const stats         = user.stats || {}
 
   /* ---- Guilde ---- */
   let guildLine = "Aucune"
-  try{
+  try {
    const { getUserGuild } = require("../../systems/guildSystem")
    const guild = getUserGuild(target.id)
-   if(guild) guildLine = `${guild.emoji} ${guild.name} (Niv. ${guild.level})`
-  }catch(e){}
+   if (guild) guildLine = `${guild.emoji} ${guild.name} (Niv. ${guild.level})`
+  } catch (e) {}
 
   const embed = new EmbedBuilder()
-
    .setTitle(`👤 ${target.username}`)
-   .setThumbnail(target.displayAvatarURL({size:256}))
-
+   .setThumbnail(target.displayAvatarURL({ size: 256 }))
    .addFields(
+    { name: "🏅 Rang",   value: `${rank.emoji} ${rank.name}`, inline: true },
+    { name: "👑 Titre",  value: user.title || "Nouveau",       inline: true },
+    { name: "🏆 Succès", value: String(user.achievements?.length || 0), inline: true },
 
-    {name:"🏅 Rang",value:`${rank.emoji} ${rank.name}`,inline:true},
-    {name:"👑 Titre",value:user.title || "Nouveau",inline:true},
-    {name:"🏆 Succès",value:String(user.achievements?.length || 0),inline:true},
+    { name: "⭐ Niveau", value: `${progression.level}`, inline: true },
+    { name: "📈 XP",     value: xpText,                 inline: true },
+    { name: "🏰 Guilde", value: guildLine,               inline: true },
 
-    {name:"⭐ Niveau",value:`${progression.level}`,inline:true},
-    {name:"📈 XP",value:xpText,inline:true},
-    {name:"🏰 Guilde",value:guildLine,inline:true},
+    { name: "📊 Progression XP", value: xpBar },
 
-    {name:"📊 Progression XP",value:xpBar},
+    { name: "💰 Kamas",  value: String(user.kamas || 0),      inline: true },
+    { name: "📦 Cartes", value: `${ownedCards}/${totalCards}`, inline: true },
 
-    {name:"💰 Kamas",value:String(user.kamas || 0),inline:true},
-    {name:"📦 Cartes",value:`${ownedCards}/${totalCards}`,inline:true},
-
-    {name:"📊 Collection",value:collectionBar},
+    { name: "📊 Collection", value: collectionBar },
 
     {
-     name:"📊 Statistiques",
+     name: "📊 Statistiques",
      value:
 `📦 Packs ouverts : ${stats.packsOpened || 0}
 📦 eventPack ouverts : ${stats.eventPacksOpened || 0}
@@ -269,14 +218,12 @@ module.exports = {
 📅 Daily claims : ${stats.dailyClaims || 0}`
     },
 
-    {name:"🎖 Badges",value:badges}
-
+    { name: "🎖 Badges", value: badges }
    )
-
    .setColor("#8e44ad")
 
-  if(!isSelf)
-   return interaction.reply({embeds:[embed]})
+  if (!isSelf)
+   return interaction.reply({ embeds: [embed] })
 
   const row = new ActionRowBuilder().addComponents(
 
@@ -301,20 +248,20 @@ module.exports = {
   )
 
   const msg = await interaction.reply({
-   embeds:[embed],
-   components:[row],
-   fetchReply:true
+   embeds: [embed],
+   components: [row],
+   fetchReply: true
   })
 
-  if(unlocked.length)
-   await notifyAchievements(interaction,unlocked)
+  if (unlocked.length)
+   await notifyAchievements(interaction, unlocked)
 
-  const collector = msg.createMessageComponentCollector({time:120000})
+  const collector = msg.createMessageComponentCollector({ time: 120000 })
 
   collector.on("collect", async i => {
 
-   if(i.user.id !== interaction.user.id)
-    return i.reply({content:"Ce n'est pas ton profil.",flags:64})
+   if (i.user.id !== interaction.user.id)
+    return i.reply({ content: "Ce n'est pas ton profil.", flags: 64 })
 
    /*
     * FIX: Les boutons appelaient command.execute(i) directement.
@@ -326,12 +273,11 @@ module.exports = {
     * Solution :
     * 1. On deferReply() le bouton ici (crée une nouvelle réponse)
     * 2. On patch i.deferReply en no-op pour que la commande cible
-    *    ne re-defer pas (sinon = double defer = crash)
+    *    ne re-defer pas
     * 3. La commande cible peut ensuite faire editReply() normalement
-    *    car l'interaction est déjà deferred
     */
 
-   try{
+   try {
 
     await i.deferReply()
 
@@ -341,31 +287,31 @@ module.exports = {
     /* Patch : fakeOptions pour que getString/getInteger ne crash pas */
     i.options = fakeOptions()
 
-    if(i.customId === "profil_inventory"){
+    if (i.customId === "profil_inventory") {
      const command = interaction.client.commands.get("inventaire")
-     if(command) return await command.execute(i)
+     if (command) return await command.execute(i)
     }
 
-    if(i.customId === "profil_sets"){
+    if (i.customId === "profil_sets") {
      const command = interaction.client.commands.get("listcards")
-     if(command) return await command.execute(i)
+     if (command) return await command.execute(i)
     }
 
-    if(i.customId === "profil_achievements"){
+    if (i.customId === "profil_achievements") {
      const command = interaction.client.commands.get("achievements")
-     if(command) return await command.execute(i)
+     if (command) return await command.execute(i)
     }
 
-   }catch(err){
+   } catch (err) {
 
     console.error("Erreur bouton profil :", err)
 
-    try{
-     if(!i.replied && !i.deferred)
-      await i.reply({content:"❌ Une erreur est survenue.",flags:64})
+    try {
+     if (!i.replied && !i.deferred)
+      await i.reply({ content: "❌ Une erreur est survenue.", flags: 64 })
      else
-      await i.followUp({content:"❌ Une erreur est survenue.",flags:64})
-    }catch(e){
+      await i.followUp({ content: "❌ Une erreur est survenue.", flags: 64 })
+    } catch (e) {
      /* interaction expirée, rien à faire */
     }
 
@@ -373,6 +319,22 @@ module.exports = {
 
   })
 
+  /* FIX : retire les boutons quand le collector expire (120s) */
+  collector.on("end", () => {
+   msg.edit({ components: [] }).catch(() => {})
+  })
+
+ },
+
+ /*
+  * FIX : handler global pour les boutons profil_* après expiration
+  * du collector ou restart du bot. Routé via buttonRoutes.js.
+  */
+ async button(interaction) {
+  return interaction.reply({
+   content: "⏳ Ce profil a expiré. Utilise `/profil` pour en ouvrir un nouveau.",
+   flags: 64
+  })
  }
 
 }

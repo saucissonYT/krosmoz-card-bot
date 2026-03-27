@@ -36,6 +36,26 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
+ /* FIX : boutons profil — après expiration collector (120s) ou restart bot */
+ if (id.startsWith("profil_")) {
+  const command = client.commands.get("profil")
+  if (command?.button) return command.button(interaction)
+  return interaction.reply({
+   content: "⏳ Ce profil a expiré. Utilise `/profil` pour en ouvrir un nouveau.",
+   flags: 64
+  })
+ }
+
+ /* FIX : boutons mystats — après expiration collector (180s) ou restart bot */
+ if (id.startsWith("mystats_")) {
+  const command = client.commands.get("mystats")
+  if (command?.button) return command.button(interaction)
+  return interaction.reply({
+   content: "⏳ Cette page a expiré. Utilise `/mystats` pour en ouvrir une nouvelle.",
+   flags: 64
+  })
+ }
+
  console.warn(`[buttonRoutes] Unhandled button customId: ${id}`)
  return false
 }

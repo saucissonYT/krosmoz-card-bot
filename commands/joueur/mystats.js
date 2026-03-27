@@ -15,72 +15,74 @@ const TOTAL_ACHIEVEMENTS = Object.keys(achievements).length
 
 /* ================= HELPERS ================= */
 
-function bar(value, max, size=10){
- if(max <= 0) return "⬛".repeat(size)
+function bar(value, max, size = 10) {
+ if (max <= 0) return "⬛".repeat(size)
  const filled = Math.min(size, Math.round((value / max) * size))
  return "🟩".repeat(filled) + "⬛".repeat(size - filled)
 }
 
-function pct(value, total){
- if(total <= 0) return "0%"
+function pct(value, total) {
+ if (total <= 0) return "0%"
  return ((value / total) * 100).toFixed(1) + "%"
 }
 
-function timeSince(timestamp){
- if(!timestamp) return "Inconnu"
+function timeSince(timestamp) {
+ if (!timestamp) return "Inconnu"
  const days = Math.floor((Date.now() - timestamp) / 86400000)
- if(days === 0) return "Aujourd'hui"
- if(days === 1) return "Hier"
+ if (days === 0) return "Aujourd'hui"
+ if (days === 1) return "Hier"
  return `${days} jours`
 }
 
-function formatNumber(n){
- if(n >= 1000000) return (n/1000000).toFixed(1) + "M"
- if(n >= 1000) return (n/1000).toFixed(1) + "K"
+function formatNumber(n) {
+ if (n >= 1000000) return (n / 1000000).toFixed(1) + "M"
+ if (n >= 1000)    return (n / 1000).toFixed(1) + "K"
  return String(n || 0)
 }
 
 /* ================= PAGES ================= */
 
 const PAGES = [
- { id:"general",    emoji:"📊", label:"Général" },
- { id:"collection", emoji:"📚", label:"Collection" },
- { id:"rng",        emoji:"🎲", label:"Packs & RNG" },
- { id:"economy",    emoji:"💰", label:"Économie" },
- { id:"events",     emoji:"🎪", label:"Events" },
- { id:"social",     emoji:"💬", label:"Social" }
+ { id: "general",    emoji: "📊", label: "Général" },
+ { id: "collection", emoji: "📚", label: "Collection" },
+ { id: "rng",        emoji: "🎲", label: "Packs & RNG" },
+ { id: "economy",    emoji: "💰", label: "Économie" },
+ { id: "events",     emoji: "🎪", label: "Events" },
+ { id: "social",     emoji: "💬", label: "Social" }
 ]
 
-function buildPage(pageId, user, interaction){
+/* ================= BUILD PAGE ================= */
 
- const s = user.stats || {}
- const cards = getCards()
- const totalCards = cards.length
+function buildPage(pageId, user, interaction) {
+
+ const s           = user.stats || {}
+ const cards       = getCards()
+ const totalCards  = cards.length
 
  const ownedUnique = Object.keys(user.cards || {}).length
- const ownedTotal  = Object.values(user.cards || {}).reduce((a,b)=>a+b, 0)
+ const ownedTotal  = Object.values(user.cards || {}).reduce((a, b) => a + b, 0)
  const shinyUnique = Object.keys(user.shinyCards || {}).length
- const shinyTotal  = Object.values(user.shinyCards || {}).reduce((a,b)=>a+b, 0)
+ const shinyTotal  = Object.values(user.shinyCards || {}).reduce((a, b) => a + b, 0)
  const achievementCount = user.achievements?.length || 0
 
- /* ---- Achievements Battle Pass (séparés du registry principal) ---- */
+ /* ---- Achievements Battle Pass ---- */
  let bpAchievementCount = 0
  let bpAchievementTotal = 0
  try {
   const { getBattlePassAchievements } = require("../../systems/battlePassService")
-  const bpData = getBattlePassAchievements(user.id || interaction.user.id)
+  const bpData       = getBattlePassAchievements(user.id || interaction.user.id)
   bpAchievementCount = bpData.unlocked?.length || 0
   bpAchievementTotal = bpData.total || 0
- } catch(e) { /* ignore si battle pass non dispo */ }
+ } catch (e) { /* ignore si battle pass non dispo */ }
 
  const totalAchWithBP    = TOTAL_ACHIEVEMENTS + bpAchievementTotal
  const unlockedAchWithBP = achievementCount + bpAchievementCount
 
  /* ===== GÉNÉRAL ===== */
 
- if(pageId === "general"){
+ if (pageId === "general") {
 
-  const level  = user.progression?.level  || 1
+  const level   = user.progression?.level  || 1
   const totalXp = user.progression?.totalXp || 0
 
   return new EmbedBuilder()
@@ -108,23 +110,23 @@ ${bar(unlockedAchWithBP, totalAchWithBP, 12)} ${pct(unlockedAchWithBP, totalAchW
 📅 Inscrit depuis : **${timeSince(s.createdAt)}**
 🔥 Activité : **${s.activityStreak || 0}** jours consécutifs`
    )
-   .setThumbnail(interaction.user.displayAvatarURL({size:128}))
+   .setThumbnail(interaction.user.displayAvatarURL({ size: 128 }))
  }
 
  /* ===== COLLECTION ===== */
 
- if(pageId === "collection"){
+ if (pageId === "collection") {
 
   const byRarity = {}
-  for(const r of RARITY_ORDER) byRarity[r] = { owned:0, total:0 }
+  for (const r of RARITY_ORDER) byRarity[r] = { owned: 0, total: 0 }
 
-  for(const card of cards){
-   if(byRarity[card.rarity]) byRarity[card.rarity].total++
+  for (const card of cards) {
+   if (byRarity[card.rarity]) byRarity[card.rarity].total++
   }
 
-  for(const id in (user.cards || {})){
+  for (const id in (user.cards || {})) {
    const card = cards.find(c => String(c.id) === String(id))
-   if(card && byRarity[card.rarity]) byRarity[card.rarity].owned++
+   if (card && byRarity[card.rarity]) byRarity[card.rarity].owned++
   }
 
   const rarityLines = RARITY_ORDER.map(r => {
@@ -132,19 +134,19 @@ ${bar(unlockedAchWithBP, totalAchWithBP, 12)} ${pct(unlockedAchWithBP, totalAchW
    return `${RARITY_EMOJI[r]} **${r}** : ${d.owned}/${d.total} ${bar(d.owned, d.total, 8)}`
   })
 
-  const sets = [...new Set(cards.map(c=>c.set))]
+  const sets     = [...new Set(cards.map(c => c.set))]
   const setLines = sets.map(setId => {
-   const setCards = cards.filter(c=>c.set===setId)
-   const owned    = setCards.filter(c=>user.cards?.[c.id]).length
+   const setCards = cards.filter(c => c.set === setId)
+   const owned    = setCards.filter(c => user.cards?.[c.id]).length
    return `📦 **${setId}** : ${owned}/${setCards.length} ${bar(owned, setCards.length, 8)}`
   })
 
   const maxDupes    = Math.max(0, ...Object.values(user.cards || {}))
-  const maxDupeCard = Object.entries(user.cards || {}).find(([,v])=>v===maxDupes)
-  let maxDupeName = "—"
-  if(maxDupeCard){
-   const c = cards.find(c=>String(c.id)===maxDupeCard[0])
-   if(c) maxDupeName = `${RARITY_EMOJI[c.rarity]} ${c.name} (×${maxDupes})`
+  const maxDupeCard = Object.entries(user.cards || {}).find(([, v]) => v === maxDupes)
+  let maxDupeName   = "—"
+  if (maxDupeCard) {
+   const c = cards.find(c => String(c.id) === maxDupeCard[0])
+   if (c) maxDupeName = `${RARITY_EMOJI[c.rarity]} ${c.name} (×${maxDupes})`
   }
 
   return new EmbedBuilder()
@@ -164,7 +166,7 @@ ${setLines.join("\n")}
 
  /* ===== PACKS & RNG ===== */
 
- if(pageId === "rng"){
+ if (pageId === "rng") {
 
   const ssrRate = s.packsOpened > 0
    ? ((s.ssrPulled || 0) / s.packsOpened * 100).toFixed(2) + "%"
@@ -204,7 +206,7 @@ ${setLines.join("\n")}
 
  /* ===== ÉCONOMIE ===== */
 
- if(pageId === "economy"){
+ if (pageId === "economy") {
 
   const ks = user.krosmoshopStats || {}
 
@@ -243,22 +245,22 @@ ${setLines.join("\n")}
 
  /* ===== EVENTS ===== */
 
- if(pageId === "events"){
+ if (pageId === "events") {
 
-  const participated  = s.eventsParticipated || []
-  const ssrByClass    = s.ssrByClass || {}
-  const packsByClass  = s.eventPacksByClass || {}
+  const participated = s.eventsParticipated || []
+  const ssrByClass   = s.ssrByClass         || {}
+  const packsByClass = s.eventPacksByClass   || {}
 
   const classRanking = Object.entries(packsByClass)
-   .sort((a,b)=>b[1]-a[1])
+   .sort((a, b) => b[1] - a[1])
    .slice(0, 5)
 
   const classLines = classRanking.length
-   ? classRanking.map(([k,v],i) => `${i+1}. **${k}** — ${v} packs`).join("\n")
+   ? classRanking.map(([k, v], i) => `${i + 1}. **${k}** — ${v} packs`).join("\n")
    : "Aucun event joué"
 
   const ssrClasses = Object.entries(ssrByClass)
-   .filter(([,v])=>v>=1)
+   .filter(([, v]) => v >= 1)
    .length
 
   return new EmbedBuilder()
@@ -288,7 +290,7 @@ ${classLines}`
 
  /* ===== SOCIAL ===== */
 
- if(pageId === "social"){
+ if (pageId === "social") {
 
   const tradePartners = Object.keys(s.tradePartners || {}).length
 
@@ -324,7 +326,7 @@ ${classLines}`
 
 /* ================= NAVIGATION ================= */
 
-function buildNav(currentIndex){
+function buildNav(currentIndex) {
 
  const row1 = new ActionRowBuilder()
  const row2 = new ActionRowBuilder()
@@ -337,8 +339,8 @@ function buildNav(currentIndex){
    .setEmoji(page.emoji)
    .setStyle(i === currentIndex ? ButtonStyle.Success : ButtonStyle.Secondary)
 
-  if(i < 4) row1.addComponents(btn)
-  else row2.addComponents(btn)
+  if (i < 4) row1.addComponents(btn)
+  else       row2.addComponents(btn)
 
  })
 
@@ -353,7 +355,7 @@ module.exports = {
   .setName("mystats")
   .setDescription("Voir tes statistiques détaillées"),
 
- async execute(interaction){
+ async execute(interaction) {
 
   const user = getUser(interaction.user.id)
 
@@ -361,22 +363,22 @@ module.exports = {
   const components = buildNav(0)
 
   const msg = await interaction.reply({
-   embeds:[embed],
+   embeds: [embed],
    components,
-   fetchReply:true
+   fetchReply: true
   })
 
-  const collector = msg.createMessageComponentCollector({ time:180000 })
+  const collector = msg.createMessageComponentCollector({ time: 180000 })
 
   collector.on("collect", async i => {
 
-   if(i.user.id !== interaction.user.id)
-    return i.reply({ content:"Pas tes stats.", flags:64 })
+   if (i.user.id !== interaction.user.id)
+    return i.reply({ content: "Pas tes stats.", flags: 64 })
 
-   const pageId    = i.customId.replace("mystats_","")
+   const pageId    = i.customId.replace("mystats_", "")
    const pageIndex = PAGES.findIndex(p => p.id === pageId)
 
-   if(pageIndex === -1) return
+   if (pageIndex === -1) return
 
    /* Relecture du user pour données fraîches */
    const freshUser = getUser(interaction.user.id)
@@ -385,12 +387,28 @@ module.exports = {
    const newComponents = buildNav(pageIndex)
 
    await i.update({
-    embeds:[newEmbed],
-    components:newComponents
+    embeds: [newEmbed],
+    components: newComponents
    })
 
   })
 
+  /* FIX : retire les boutons quand le collector expire (180s) */
+  collector.on("end", () => {
+   msg.edit({ components: [] }).catch(() => {})
+  })
+
+ },
+
+ /*
+  * FIX : handler global pour les boutons mystats_* après expiration
+  * du collector ou restart du bot. Routé via buttonRoutes.js.
+  */
+ async button(interaction) {
+  return interaction.reply({
+   content: "⏳ Cette page a expiré. Utilise `/mystats` pour en ouvrir une nouvelle.",
+   flags: 64
+  })
  }
 
 }

@@ -155,10 +155,10 @@ module.exports={
     if(!user.stats) user.stats={}
     user.stats.cardsSold=(user.stats.cardsSold||0)+1
 
-    save()
+    /* FIX : save ciblé par userId au lieu de save() global */
+    save(interaction.user.id)
 
-    return i.reply(`💰 Carte vendue : **${card.name}**  
-Gain : **${price} kamas**`)
+    return i.reply(`💰 Carte vendue : **${card.name}**\nGain : **${price} kamas**`)
    }
 
    /* ---------------- MARKET BUTTON ---------------- */
@@ -188,6 +188,10 @@ Gain : **${price} kamas**`)
 
    }
 
+  })
+
+  collector.on("end", () => {
+   msg.edit({ components: [] }).catch(() => {})
   })
 
  },
@@ -228,7 +232,8 @@ Gain : **${price} kamas**`)
     flags:64
    })
 
-  save()
+  /* FIX : save ciblé par userId au lieu de save() global */
+  save(interaction.user.id)
 
   return interaction.reply({
    content:`🛒 Carte mise en vente pour **${price} kamas**.`,
