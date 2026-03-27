@@ -18,16 +18,48 @@ const {
 const REWARDS_PER_PAGE = 8
 const ACH_PER_PAGE = 10
 
+const EMOJI = {
+ money: "\u{1F4B0}",
+ star: "\u{2B50}",
+ pack: "\u{1F4E6}",
+ scroll: "\u{1F4DC}",
+ badge: "\u{1F3C5}",
+ card: "\u{1F0CF}",
+ rainbow: "\u{1F308}",
+ green: "\u{1F7E9}",
+ black: "\u{2B1B}",
+ free: "\u{1F193}",
+ calendar: "\u{1F4C5}",
+ bolt: "\u{26A1}",
+ slider: "\u{1F39A}\u{FE0F}",
+ gift: "\u{1F381}",
+ right: "\u{27A1}\u{FE0F}",
+ left: "\u{2B05}\u{FE0F}",
+ finish: "\u{1F3C1}",
+ diamond: "\u{1F48E}",
+ sparkle: "\u{2728}",
+ trophy: "\u{1F3C6}",
+ globe: "\u{1F310}",
+ flower: "\u{1F338}",
+ lock: "\u{1F512}",
+ medal: "\u{1F396}\u{FE0F}",
+ party: "\u{1F389}",
+ check: "\u{2705}",
+ cross: "\u{274C}",
+ prev: "\u{25C0}",
+ next: "\u{25B6}"
+}
+
 function rewardLabel(reward) {
  if (!reward) return "-"
- if (reward.type === "kamas") return `💰 ${reward.value} kamas`
- if (reward.type === "player_xp") return `⭐ ${reward.value} XP joueur`
- if (reward.type === "pack" || reward.type === "pack_premium") return `📦 ${reward.value || 1} pack`
- if (reward.type === "title") return `📜 ${reward.value}`
- if (reward.type === "badge") return `🏅 ${reward.value}`
- if (reward.type === "card_random_rare") return "🃏 Carte rare aleatoire"
- if (reward.type === "card_random_ssr") return "🌈 Carte SSR aleatoire"
- if (reward.type === "card") return `🃏 ${reward.cardId}`
+ if (reward.type === "kamas") return `${EMOJI.money} ${reward.value} kamas`
+ if (reward.type === "player_xp") return `${EMOJI.star} ${reward.value} XP joueur`
+ if (reward.type === "pack" || reward.type === "pack_premium") return `${EMOJI.pack} ${reward.value || 1} pack`
+ if (reward.type === "title") return `${EMOJI.scroll} ${reward.value}`
+ if (reward.type === "badge") return `${EMOJI.badge} ${reward.value}`
+ if (reward.type === "card_random_rare") return `${EMOJI.card} Carte rare aleatoire`
+ if (reward.type === "card_random_ssr") return `${EMOJI.rainbow} Carte SSR aleatoire`
+ if (reward.type === "card") return `${EMOJI.card} ${reward.cardId}`
  return String(reward.type || "reward")
 }
 
@@ -39,7 +71,7 @@ function rewardsLabels(rewards, fallback = "-") {
 function bar(percent) {
  const width = 12
  const filled = Math.max(0, Math.min(width, Math.round(percent * width)))
- return "🟩".repeat(filled) + "⬛".repeat(width - filled)
+ return EMOJI.green.repeat(filled) + EMOJI.black.repeat(width - filled)
 }
 
 function getMessagePage(message) {
@@ -81,22 +113,22 @@ function buildMainEmbed(userId) {
  const keyLevels = [20, 25, 30, 35, 40]
  const keyNext = keyLevels.find((level) => level > progress.currentLevel)
  const levelLabel = isEndless
-  ? `Niveau ${progress.currentLevel} (Suite) ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
-  : `Niveau ${progress.currentLevel}/${maxSeasonLevel} ${progress.hasPremium ? "💎 Premium" : "🆓 Gratuit"}`
+  ? `Niveau ${progress.currentLevel} (Suite) ${progress.hasPremium ? `${EMOJI.diamond} Premium` : `${EMOJI.free} Gratuit`}`
+  : `Niveau ${progress.currentLevel}/${maxSeasonLevel} ${progress.hasPremium ? `${EMOJI.diamond} Premium` : `${EMOJI.free} Gratuit`}`
 
  const embed = new EmbedBuilder()
-  .setTitle(`${season.emoji || "✨"} BATTLE PASS - ${season.name}`)
+  .setTitle(`${season.emoji || EMOJI.sparkle} BATTLE PASS - ${season.name}`)
   .setDescription(
    `*${season.subtitle || "La saison est en marche."}*\n\n` +
-   `📅 **Cloture de saison :** ${data.season.endDate}\n` +
-   `⚡ **Aura active :** ${season.passiveBonus?.description || "-"}\n\n` +
-   `🎚️ **Progression :** ${levelLabel}\n` +
-   `⭐ **XP du palier :** ${xpLevel}/${xpNeed}\n` +
+   `${EMOJI.calendar} **Cloture de saison :** ${data.season.endDate}\n` +
+   `${EMOJI.bolt} **Aura active :** ${season.passiveBonus?.description || "-"}\n\n` +
+   `${EMOJI.slider} **Progression :** ${levelLabel}\n` +
+   `${EMOJI.star} **XP du palier :** ${xpLevel}/${xpNeed}\n` +
    `${bar(ratio)} ${pct}%\n\n` +
-   `🎁 **A recuperer maintenant :** ${data.claimableCount}\n` +
-   `➡️ **Prochaine recompense :** ${nextRewardText}\n` +
-   `🏁 **Prochain palier legendaire :** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
-   `💎 **Prix Premium :** ${season.premiumPrice || 8000} kamas`
+   `${EMOJI.gift} **A recuperer maintenant :** ${data.claimableCount}\n` +
+   `${EMOJI.right} **Prochaine recompense :** ${nextRewardText}\n` +
+   `${EMOJI.finish} **Prochain palier legendaire :** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
+   `${EMOJI.diamond} **Prix Premium :** ${season.premiumPrice || 8000} kamas`
   )
   .setColor(season.color || "#1B6B3A")
 
@@ -106,11 +138,11 @@ function buildMainEmbed(userId) {
 function buildActionRow(data) {
  const premiumPrice = data.seasonTemplate?.premiumPrice || 8000
  return new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("bp_claim").setLabel("🎁 Reclamer").setStyle(ButtonStyle.Success).setDisabled(data.claimableCount <= 0),
-  new ButtonBuilder().setCustomId("bp_rewards").setLabel("📜 Rewards").setStyle(ButtonStyle.Primary),
-  new ButtonBuilder().setCustomId(`bp_buy`).setLabel(`💎 Premium (${premiumPrice})`).setStyle(ButtonStyle.Secondary).setDisabled(data.progress.hasPremium),
-  new ButtonBuilder().setCustomId("bp_ach").setLabel("🏆 Succes").setStyle(ButtonStyle.Secondary),
-  new ButtonBuilder().setCustomId("bp_season").setLabel("📅 Saison").setStyle(ButtonStyle.Secondary)
+  new ButtonBuilder().setCustomId("bp_claim").setLabel(`${EMOJI.gift} Reclamer`).setStyle(ButtonStyle.Success).setDisabled(data.claimableCount <= 0),
+  new ButtonBuilder().setCustomId("bp_rewards").setLabel(`${EMOJI.scroll} Rewards`).setStyle(ButtonStyle.Primary),
+  new ButtonBuilder().setCustomId("bp_buy").setLabel(`${EMOJI.diamond} Premium (${premiumPrice})`).setStyle(ButtonStyle.Secondary).setDisabled(data.progress.hasPremium),
+  new ButtonBuilder().setCustomId("bp_ach").setLabel(`${EMOJI.trophy} Succes`).setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder().setCustomId("bp_season").setLabel(`${EMOJI.calendar} Saison`).setStyle(ButtonStyle.Secondary)
  )
 }
 
@@ -124,21 +156,21 @@ function buildBuyConfirmRow() {
 function buildRewardsPage(userId, page = 1) {
  const view = getBattlePassRewardsView(userId, page, REWARDS_PER_PAGE)
  const lines = view.rows.map((row) => {
-  const freeState = row.claimedFree ? "✅" : "🎁"
-  const premiumState = row.claimedPremium ? "✅" : "⭐"
+  const freeState = row.claimedFree ? EMOJI.check : EMOJI.gift
+  const premiumState = row.claimedPremium ? EMOJI.check : EMOJI.star
   return `**Palier ${row.level}**\n${freeState} **Gratuit :** ${rewardsLabels(row.freeRewards)}\n${premiumState} **Premium :** ${rewardsLabels(row.premiumRewards, "Aucune reward premium sur ce palier")}`
  })
 
  const embed = new EmbedBuilder()
-  .setTitle("📜 Grimoire des recompenses")
+  .setTitle(`${EMOJI.scroll} Grimoire des recompenses`)
   .setDescription(lines.join("\n\n") || "Aucune recompense.")
-  .setFooter({ text: `Page ${view.page}/${view.maxPage} • 40 paliers` })
+  .setFooter({ text: `Page ${view.page}/${view.maxPage} - 40 paliers` })
   .setColor("#1B6B3A")
 
  const row = new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("bp_rewards_prev").setLabel("⬅️").setStyle(ButtonStyle.Secondary).setDisabled(view.page <= 1),
+  new ButtonBuilder().setCustomId("bp_rewards_prev").setLabel(EMOJI.left).setStyle(ButtonStyle.Secondary).setDisabled(view.page <= 1),
   new ButtonBuilder().setCustomId("bp_rewards_page").setLabel(`${view.page}/${view.maxPage}`).setStyle(ButtonStyle.Primary).setDisabled(true),
-  new ButtonBuilder().setCustomId("bp_rewards_next").setLabel("➡️").setStyle(ButtonStyle.Secondary).setDisabled(view.page >= view.maxPage)
+  new ButtonBuilder().setCustomId("bp_rewards_next").setLabel(EMOJI.right).setStyle(ButtonStyle.Secondary).setDisabled(view.page >= view.maxPage)
  )
 
  return { embed, row }
@@ -153,24 +185,24 @@ function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
 
  const done = list.filter((entry) => entry.unlocked).length
  const header = tab === "global"
-  ? `🌐 **Succes permanents** - ${done}/${data.globals.length} debloques`
-  : `🌸 **Succes saisonniers** (${data.seasonEmoji} ${data.seasonName}) - ${done}/${data.seasonal.length} debloques`
+  ? `${EMOJI.globe} **Succes permanents** - ${done}/${data.globals.length} debloques`
+  : `${EMOJI.flower} **Succes saisonniers** (${data.seasonEmoji} ${data.seasonName}) - ${done}/${data.seasonal.length} debloques`
 
  const lines = slice.map((entry) => {
-  const icon = entry.unlocked ? "✅" : "🔒"
+  const icon = entry.unlocked ? EMOJI.check : EMOJI.lock
   if (entry.secret && !entry.unlocked) {
    return `${icon} **Succes secret**\n???`
   }
   const rewardText = entry.reward
-   ? ` - 🎖️ +${entry.reward.bpXp || 0} XP BP${entry.reward.kamas ? ` · 💰 ${entry.reward.kamas}` : ""}`
+   ? ` - ${EMOJI.medal} +${entry.reward.bpXp || 0} XP BP${entry.reward.kamas ? ` - ${EMOJI.money} ${entry.reward.kamas}` : ""}`
    : ""
   return `${icon} **${entry.name}**\n${entry.description || ""}${rewardText}`
  })
 
  const embed = new EmbedBuilder()
-  .setTitle("🏆 Codex des succes Battle Pass")
+  .setTitle(`${EMOJI.trophy} Codex des succes Battle Pass`)
   .setDescription(`${header}\n${bar(list.length ? done / list.length : 0)} ${done}/${list.length}\n\n${lines.join("\n\n") || "Aucun succes."}`)
-  .setFooter({ text: `Page ${safePage}/${totalPages} • Total : ${data.total} succes BP` })
+  .setFooter({ text: `Page ${safePage}/${totalPages} - Total : ${data.total} succes BP` })
   .setColor(tab === "global" ? "#f39c12" : "#8e44ad")
 
  const tabRow = new ActionRowBuilder().addComponents(
@@ -179,9 +211,9 @@ function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
  )
 
  const pageRow = new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("bp_ach_prev").setLabel("◀").setStyle(ButtonStyle.Secondary).setDisabled(safePage <= 1),
+  new ButtonBuilder().setCustomId("bp_ach_prev").setLabel(EMOJI.prev).setStyle(ButtonStyle.Secondary).setDisabled(safePage <= 1),
   new ButtonBuilder().setCustomId("bp_ach_page").setLabel(`${safePage}/${totalPages}`).setStyle(ButtonStyle.Primary).setDisabled(true),
-  new ButtonBuilder().setCustomId("bp_ach_next").setLabel("▶").setStyle(ButtonStyle.Secondary).setDisabled(safePage >= totalPages)
+  new ButtonBuilder().setCustomId("bp_ach_next").setLabel(EMOJI.next).setStyle(ButtonStyle.Secondary).setDisabled(safePage >= totalPages)
  )
 
  return { embed, rows: [tabRow, pageRow] }
@@ -190,7 +222,7 @@ function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
 function buildClaimSummaryEmbed(result) {
  const preview = (result.claimedRewards || []).slice(0, 10)
  const lines = preview.map((reward) => {
-  const track = reward.track === "premium" ? "⭐" : "🎁"
+  const track = reward.track === "premium" ? EMOJI.star : EMOJI.gift
   return `${track} **Niv.${reward.level}** - ${reward.text}`
  })
 
@@ -199,12 +231,12 @@ function buildClaimSummaryEmbed(result) {
  }
 
  return new EmbedBuilder()
-  .setTitle("🎉 Recompenses recuperees")
+  .setTitle(`${EMOJI.party} Recompenses recuperees`)
   .setDescription(lines.join("\n") || "Aucune recompense.")
   .addFields(
    { name: "Total", value: `${result.total || 0}`, inline: true },
-   { name: "💰 Kamas", value: `+${result.totals?.kamas || 0}`, inline: true },
-   { name: "📦 Packs", value: `+${result.totals?.packs || 0}`, inline: true }
+   { name: `${EMOJI.money} Kamas`, value: `+${result.totals?.kamas || 0}`, inline: true },
+   { name: `${EMOJI.pack} Packs`, value: `+${result.totals?.packs || 0}`, inline: true }
   )
   .setColor("#2ecc71")
 }
@@ -224,7 +256,7 @@ async function sendSeason(interaction, userId) {
  const season = data.seasonTemplate
 
  const embed = new EmbedBuilder()
-  .setTitle(`${season.emoji || "✨"} ${season.name} - Dossier de saison`)
+  .setTitle(`${season.emoji || EMOJI.sparkle} ${season.name} - Dossier de saison`)
   .setDescription(
    `${season.subtitle || ""}\n\n` +
    `**Bonus actif :** ${season.passiveBonus?.description || "-"}\n` +
@@ -266,14 +298,14 @@ module.exports = {
 
   if (action === "claim") {
    const result = await claimAllBattlePassRewards(userId)
-   if (!result.ok) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
+   if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
    return interaction.reply({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
   }
 
   if (action === "buy") {
    const result = await buyPremium(userId)
-   if (!result.ok) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
-   return interaction.reply({ content: `✅ Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
+   if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
+   return interaction.reply({ content: `${EMOJI.check} Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
   }
 
   if (action === "rewards") return sendRewards(interaction, userId, page)
@@ -289,7 +321,7 @@ module.exports = {
 
   if (interaction.customId === "bp_claim") {
    const result = await claimAllBattlePassRewards(userId)
-   if (!result.ok) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
+   if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
    const refreshed = buildMainEmbed(userId)
    await interaction.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
    return interaction.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
@@ -306,10 +338,10 @@ module.exports = {
 
   if (interaction.customId === "bp_buy_confirm") {
    const result = await buyPremium(userId)
-   if (!result.ok) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
+   if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
    const refreshed = buildMainEmbed(userId)
    await interaction.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
-   return interaction.followUp({ content: `✅ Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
+   return interaction.followUp({ content: `${EMOJI.check} Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
   }
 
   if (interaction.customId === "bp_buy_cancel") {
