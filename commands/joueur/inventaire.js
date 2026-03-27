@@ -22,61 +22,6 @@ const rarityOrderMap = Object.fromEntries(
  RARITY_ORDER.map((r, i) => [r, i + 1])
 )
 
-async function renderFragmentInventory(interaction, user) {
- const perPage = 10
- let page = 1
-
- function build() {
-  const rows = getFragmentInventoryRows(user)
-  const totalPages = Math.max(1, Math.ceil(rows.length / perPage))
-  page = Math.max(1, Math.min(page, totalPages))
-  const slice = rows.slice((page - 1) * perPage, page * perPage)
-
-  const lines = slice.map((row) => {
-   const craftTag = row.canCraft ? " [Crafter]" : ""
-   const owned = row.numbers.length ? row.numbers.join(", ") : "-"
-   const missing = row.missing.length ? row.missing.join(", ") : "-"
-   return `${row.card?.name || row.cardId} (${row.ownedCount}/5) • stock:${row.totalCount}${craftTag}
-Possedes: ${owned}
-Manquants: ${missing}`
-  })
-
-  const craftableNow = rows.filter((row) => row.canCraft).length
-  const totalFragments = (user.fragments || []).length
-
-  const embed = new EmbedBuilder()
-   .setTitle(`🧩 Fragments de ${interaction.user.username}`)
-   .setDescription(lines.join("\n") || "Aucun fragment.")
-   .setFooter({ text: `Page ${page}/${totalPages} • ${totalFragments} fragments • ${craftableNow} craftable(s)` })
-
-  const nav = new ActionRowBuilder().addComponents(
-   new ButtonBuilder().setCustomId("frag_prev").setEmoji("⬅").setStyle(ButtonStyle.Secondary).setDisabled(page === 1),
-   new ButtonBuilder().setCustomId("frag_page").setLabel(`${page}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
-   new ButtonBuilder().setCustomId("frag_next").setEmoji("➡").setStyle(ButtonStyle.Secondary).setDisabled(page === totalPages)
-  )
-
-  return { embed, components: [nav] }
- }
-
- const built = build()
- await interaction.editReply({ embeds: [built.embed], components: built.components })
-
- const msg = await interaction.fetchReply()
- const collector = msg.createMessageComponentCollector({ time: 120000 })
-
- collector.on("collect", async (i) => {
-  if (i.user.id !== interaction.user.id) {
-   return i.reply({ content: "Pas ton inventaire.", flags: 64 })
-  }
-
-  if (i.customId === "frag_next") page++
-  if (i.customId === "frag_prev") page--
-
-  const rebuilt = build()
-  await i.update({ embeds: [rebuilt.embed], components: rebuilt.components })
- })
-}
-
 module.exports = {
 
  data: new SlashCommandBuilder()
@@ -117,24 +62,104 @@ module.exports = {
   if(!user.cards) user.cards = {}
   if(!user.stats) user.stats = {}
 
-  const mode = interaction.options.getString("mode") || "cartes"
-  if(mode === "fragments"){
-   return renderFragmentInventory(interaction, user)
+  /* ---- Mode actif (cartes ou fragments) ---- */
+
+  let currentMode = interaction.options.getString("mode") || "cartes"
+
+  /* ---- Chargement dynamique des sets ---- */
+
+  const rawSets = loadSets()
+  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
+
+  const setOrderMap = Object.fromEntries(
+   sets.map((s, i) => [s.id, i])
+  )
+
+  /* ====================================================
+   * ÉTAT VUE FRAGMENTS
+   * ==================================================== */
+
+  let fragSetFilter = null
+  let fragPage = 1
+  const fragPerPage = 10
+
+  function buildFragments(){
+
+   const allRows = getFragmentInventoryRows(user)
+
+   /* Filtre par set si actif */
+   const rows = fragSetFilter
+    ? allRows.filter(row => row.card?.set === fragSetFilter)
+    : allRows
+
+   const totalPages = Math.max(1, Math.ceil(rows.length / fragPerPage))
+   fragPage = Math.max(1, Math.min(fragPage, totalPages))
+   const slice = rows.slice((fragPage - 1) * fragPerPage, fragPage * fragPerPage)
+
+   const lines = slice.map((row) => {
+    const craftTag = row.canCraft ? " [Crafter]" : ""
+    const owned = row.numbers.length ? row.numbers.join(", ") : "-"
+    const missing = row.missing.length ? row.missing.join(", ") : "-"
+    return `${row.card?.name || row.cardId} (${row.ownedCount}/5) • stock:${row.totalCount}${craftTag}
+Possedes: ${owned}
+Manquants: ${missing}`
+   })
+
+   const craftableNow = allRows.filter((row) => row.canCraft).length
+   const totalFragments = (user.fragments || []).length
+   const activeSetName = fragSetFilter ? sets.find(s => s.id === fragSetFilter)?.name : null
+
+   const footerParts = [
+    `Page ${fragPage}/${totalPages}`,
+    `${totalFragments} fragments`,
+    `${craftableNow} craftable(s)`
+   ]
+   if(activeSetName) footerParts.push(`🗂️ ${activeSetName}`)
+
+   const embed = new EmbedBuilder()
+    .setTitle(`🧩 Fragments de ${interaction.user.username}`)
+    .setDescription(lines.join("\n") || "Aucun fragment.")
+    .setFooter({ text: footerParts.join(" • ") })
+
+   /* ---- ROW 1 : Navigation + Reset + Switch Cartes ---- */
+
+   const nav = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId("frag_prev").setEmoji("⬅").setStyle(ButtonStyle.Secondary).setDisabled(fragPage === 1),
+    new ButtonBuilder().setCustomId("frag_page").setLabel(`${fragPage}/${totalPages}`).setStyle(ButtonStyle.Secondary).setDisabled(true),
+    new ButtonBuilder().setCustomId("frag_next").setEmoji("➡").setStyle(ButtonStyle.Secondary).setDisabled(fragPage === totalPages),
+    new ButtonBuilder().setCustomId("frag_reset").setLabel("Reset").setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId("switch_cartes").setLabel("Cartes").setEmoji("🎴").setStyle(ButtonStyle.Primary)
+   )
+
+   /* ---- ROW 2 : Filtres par Set (dynamique) ---- */
+
+   const components = [nav]
+
+   const displaySets = sets.slice(0, 5)
+   if(displaySets.length > 0){
+    const setRow = new ActionRowBuilder()
+    displaySets.forEach(s => {
+     setRow.addComponents(
+      new ButtonBuilder()
+       .setCustomId(`fragset_${s.id}`)
+       .setLabel(s.name)
+       .setStyle(fragSetFilter === s.id ? ButtonStyle.Success : ButtonStyle.Secondary)
+     )
+    })
+    components.push(setRow)
+   }
+
+   return { embed, components }
+
   }
+
+  /* ====================================================
+   * ÉTAT VUE CARTES
+   * ==================================================== */
 
   user.stats.inventoryOpen = (user.stats.inventoryOpen || 0) + 1
 
   const unlocked = achievementCheck(user, "inventory")
-
-  if(Object.keys(user.cards).length === 0){
-
-   await interaction.editReply("📦 Inventaire vide.")
-
-   if(unlocked.length)
-    await notifyAchievements(interaction, unlocked)
-
-   return
-  }
 
   const rarityFilter = interaction.options.getString("rarete")
 
@@ -162,25 +187,6 @@ module.exports = {
 
   if(rarityFilter)
    inventory = inventory.filter(e => e.card.rarity === rarityFilter)
-
-  if(inventory.length === 0){
-
-   await interaction.editReply("❌ Aucune carte trouvée.")
-
-   if(unlocked.length)
-    await notifyAchievements(interaction, unlocked)
-
-   return
-  }
-
-  /* ---- Chargement dynamique des sets ---- */
-
-  const rawSets = loadSets()
-  const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
-
-  const setOrderMap = Object.fromEntries(
-   sets.map((s, i) => [s.id, i])
-  )
 
   /* ---- État des filtres et tri ---- */
 
@@ -246,7 +252,16 @@ module.exports = {
 
   /* ---- Construction de l'embed et des boutons ---- */
 
-  function build(){
+  function buildCartes(){
+
+   if(inventory.length === 0){
+    return {
+     embed: new EmbedBuilder()
+      .setTitle(`🎴 Inventaire de ${interaction.user.username}`)
+      .setDescription("📦 Inventaire vide."),
+     components: []
+    }
+   }
 
    const data = applyFilters()
 
@@ -331,7 +346,7 @@ module.exports = {
 
    )
 
-   /* ---- ROW 2 : Tri (Nom, Rareté, Quantité, Set) ---- */
+   /* ---- ROW 2 : Tri (Nom, Rareté, Quantité, Set) + Switch Fragments ---- */
 
    const sortRow = new ActionRowBuilder().addComponents(
 
@@ -353,7 +368,13 @@ module.exports = {
     new ButtonBuilder()
      .setCustomId("sort_set")
      .setLabel("Set")
-     .setStyle(sort === "set" ? ButtonStyle.Success : ButtonStyle.Primary)
+     .setStyle(sort === "set" ? ButtonStyle.Success : ButtonStyle.Primary),
+
+    new ButtonBuilder()
+     .setCustomId("switch_fragments")
+     .setLabel("Fragments")
+     .setEmoji("🧩")
+     .setStyle(ButtonStyle.Secondary)
 
    )
 
@@ -406,6 +427,14 @@ module.exports = {
 
   }
 
+  /* ====================================================
+   * DISPATCH
+   * ==================================================== */
+
+  function build(){
+   return currentMode === "fragments" ? buildFragments() : buildCartes()
+  }
+
   /* ---- Envoi initial ---- */
 
   const built = build()
@@ -434,38 +463,56 @@ module.exports = {
      flags: 64
     })
 
-   /* Navigation */
-   if(i.customId === "next") page++
-   if(i.customId === "prev") page--
+   /* ---- Switch de mode ---- */
 
-   /* Tri */
-   if(i.customId === "sort_name") sort = "name"
-   if(i.customId === "sort_rarity") sort = "rarity"
-   if(i.customId === "sort_count") sort = "count"
-   if(i.customId === "sort_set") sort = "set"
+   if(i.customId === "switch_fragments"){
+    currentMode = "fragments"
+    fragPage = 1
+   }
 
-   /* Filtre rareté (toggle : reclique = désactive) */
-   if(i.customId.startsWith("filter_") && i.customId !== "filter_clear"){
+   else if(i.customId === "switch_cartes"){
+    currentMode = "cartes"
+    page = 1
+   }
+
+   /* ---- Navigation cartes ---- */
+
+   else if(i.customId === "next") page++
+   else if(i.customId === "prev") page--
+
+   /* ---- Tri ---- */
+
+   else if(i.customId === "sort_name") sort = "name"
+   else if(i.customId === "sort_rarity") sort = "rarity"
+   else if(i.customId === "sort_count") sort = "count"
+   else if(i.customId === "sort_set") sort = "set"
+
+   /* ---- Filtre rareté (toggle : reclique = désactive) ---- */
+
+   else if(i.customId.startsWith("filter_") && i.customId !== "filter_clear"){
     const r = i.customId.split("_")[1]
     filter = (filter === r) ? null : r
     page = 1
    }
 
-   /* Filtre set (toggle : reclique = désactive) */
-   if(i.customId.startsWith("setfilter_")){
+   /* ---- Filtre set cartes (toggle : reclique = désactive) ---- */
+
+   else if(i.customId.startsWith("setfilter_")){
     const s = i.customId.replace("setfilter_", "")
     setFilter = (setFilter === s) ? null : s
     page = 1
    }
 
-   /* Toggle doublons */
-   if(i.customId === "toggle_doublons"){
+   /* ---- Toggle doublons ---- */
+
+   else if(i.customId === "toggle_doublons"){
     doublonsOnly = !doublonsOnly
     page = 1
    }
 
-   /* Reset tout */
-   if(i.customId === "filter_clear"){
+   /* ---- Reset cartes ---- */
+
+   else if(i.customId === "filter_clear"){
     filter = null
     setFilter = null
     doublonsOnly = false
@@ -473,11 +520,31 @@ module.exports = {
     page = 1
    }
 
-   const built = build()
+   /* ---- Navigation fragments ---- */
+
+   else if(i.customId === "frag_next") fragPage++
+   else if(i.customId === "frag_prev") fragPage--
+
+   /* ---- Filtre set fragments (toggle) ---- */
+
+   else if(i.customId.startsWith("fragset_")){
+    const s = i.customId.replace("fragset_", "")
+    fragSetFilter = (fragSetFilter === s) ? null : s
+    fragPage = 1
+   }
+
+   /* ---- Reset fragments ---- */
+
+   else if(i.customId === "frag_reset"){
+    fragSetFilter = null
+    fragPage = 1
+   }
+
+   const rebuilt = build()
 
    await i.update({
-    embeds: [built.embed],
-    components: built.components
+    embeds: [rebuilt.embed],
+    components: rebuilt.components
    })
 
   })

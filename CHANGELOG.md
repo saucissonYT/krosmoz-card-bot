@@ -25,6 +25,35 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Nouveaux paliers pour les badges possédés : 5 / 10 / 25 / 50 / 100
   - Ajout de succès cachés Battle Pass côté global et saisonnier
 
+- **Système de fragments SSR**
+  - Ajout d'un système de fragments en bonus sur les ouvertures de packs normaux et event packs
+  - Chaque SSR craftable peut être assemblée via **5 fragments distincts**
+  - Les fragments utilisent **5 visuels partagés** (`fragment_1` à `fragment_5`)
+  - Génération automatique d'un index des SSR craftables au démarrage
+  - Ajout d'une commande `/craft` pour assembler une SSR à partir de ses fragments
+  - Ajout de commandes dev `/fragments` pour donner, lister, vider et reconstruire l'index
+
+- **Inventaire fragments**
+  - Ajout d'un mode `fragments` dans `/inventaire`
+  - Pagination dédiée pour les fragments
+  - Affichage de la progression par SSR en `x/5`
+  - Affichage des numéros **possédés**, **manquants** et du **stock total**
+
+- **Fragments au marché**
+  - Les fragments peuvent maintenant être mis en vente au marché
+  - Nouveau type d'annonce `fragment`
+  - Prix minimum appliqué aux fragments avec affichage du minimum côté interface
+  - Achat, retrait et historique compatibles avec les annonces fragments
+
+- **Battle Pass / fragments**
+  - Ajout du type de récompense `fragment_random`
+  - Intégration des fragments dans l'affichage des récompenses Battle Pass
+  - Premiers paliers fragments ajoutés aux rewards de saison
+
+- **Succès fragments**
+  - Ajout d'une première série de succès globaux liés aux fragments
+  - Déblocages liés au premier fragment, au craft et aux ventes de fragments
+
 ### Changed
 
 - **Récompense de complétion de set**
@@ -32,6 +61,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **Documentation**
   - README mis à jour avec Katrepat, les nouveaux totaux de cartes / sets et le bloc succès Battle Pass
+  - Le système fragments a été aligné sur l'architecture réelle du dépôt (`systems/`, inventaire joueur, marché, battle pass)
 
 ### Fixed
 
@@ -49,6 +79,10 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **Katrepat / import**
   - Correction d'un conflit d'import sur deux cartes partageant le même nom mais pas la même rareté
+
+- **UX fragments**
+  - La multi-ouverture `/krosmoz` agrège correctement les fragments gagnés dans le récapitulatif final
+  - Le marché distingue désormais correctement les annonces cartes et fragments
   
 ## [0.33.0] - 2026-03-23
 
