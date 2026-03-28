@@ -105,6 +105,16 @@ const WEEKLY_QUEST_POOL = [
 
 ]
 
+/* ================= ROULETTE QUESTS ================= */
+
+DAILY_QUEST_POOL.push(
+ { id:"gqd_roulette6", emoji:"🎡", name:"Tours collectifs", desc:"Jouer {goal} fois a la roulette", stat:"rouletteSpins", baseGoal:6, xp:280 }
+)
+
+WEEKLY_QUEST_POOL.push(
+ { id:"gq_roulette36", emoji:"🎡", name:"Festival d'Ecaflip", desc:"Jouer {goal} fois a la roulette", stat:"rouletteSpins", baseGoal:36, xp:900 }
+)
+
 /* ================= SCALING ================= */
 
 function getEffectiveMembers(memberCount){

@@ -37,6 +37,7 @@ function getXpConfig() {
    fusion:      120,
    market_sell: 20,
    event_pack:  240,
+   roulette_spin: 90,
    manual:      0
   }
  }
@@ -112,7 +113,8 @@ function createDefaultProgress(userId, seasonId) {
    marketSales:  0,
    events:       0,
    setsCompleted: 0,
-   rareCards:    0
+   rareCards:    0,
+   rouletteSpins: 0
   },
   lastUpdated: new Date().toISOString()
  }
@@ -140,7 +142,7 @@ function getUserProgress(userId, seasonId) {
  if (!progress.schemaVersion) { progress.schemaVersion = 1; changed = true }
  if (!progress.stats) { progress.stats = fallback.stats; changed = true }
  /* Init des nouveaux champs stats si absents */
- const statDefaults = { events: 0, setsCompleted: 0, rareCards: 0 }
+ const statDefaults = { events: 0, setsCompleted: 0, rareCards: 0, rouletteSpins: 0 }
  for (const [k, v] of Object.entries(statDefaults)) {
   if (progress.stats[k] === undefined) { progress.stats[k] = v; changed = true }
  }
@@ -348,6 +350,7 @@ function checkAndUnlockAchievements(progress, season) {
   if (type === "fusions")       return progress.stats.fusions      || 0
   if (type === "market_sales")  return progress.stats.marketSales  || 0
   if (type === "events")        return progress.stats.events       || 0
+  if (type === "roulette_spins")return progress.stats.rouletteSpins || 0
   if (type === "rare_cards")    return user.stats?.rarePulled      || 0
   if (type === "ssr_cards")     return user.stats?.ssrPulled       || 0
   if (type === "shiny_cards")   return user.stats?.shinySSR        || 0
@@ -379,6 +382,7 @@ function checkAndUnlockAchievements(progress, season) {
   if (achievement.type === "season_fusions") value = progress.stats.fusions      || 0
   if (achievement.type === "season_events")  value = progress.stats.events       || 0
   if (achievement.type === "season_sets")    value = progress.stats.setsCompleted || 0
+  if (achievement.type === "season_roulette")value = progress.stats.rouletteSpins || 0
   if (value >= (achievement.target || 1)) unlock(achievement.id)
  }
 
@@ -394,6 +398,7 @@ function updateActivityStat(progress, source) {
  if (source === "market_sell") progress.stats.marketSales  = (progress.stats.marketSales  || 0) + 1
  if (source === "event_pack")  progress.stats.events       = (progress.stats.events       || 0) + 1
  if (source === "set_complete")progress.stats.setsCompleted = (progress.stats.setsCompleted || 0) + 1
+ if (source === "roulette_spin")progress.stats.rouletteSpins = (progress.stats.rouletteSpins || 0) + 1
 }
 
 function getSeasonBonusMultiplier(season) {
@@ -526,6 +531,7 @@ function buildDescription(a) {
   season_daily:  `Réclamer le daily ${t} fois cette saison.`,
   season_fusions:`Effectuer ${t} fusion(s) cette saison.`,
   season_events: `Ouvrir ${t} pack(s) d'event cette saison.`,
+  season_roulette:`Jouer ${t} fois a la roulette cette saison.`,
   season_sets:   `Compléter ${t} set(s) entier cette saison.`,
  }
  return map[a.type] || a.name

@@ -262,7 +262,9 @@ function buildSeasonAchievementsV3(seasonId) {
   { id: `${p}_fixed_07`, name: "Ouverture soutenue", description: "Ouvrir 25 packs /krosmoz cette saison.", type: "season_packs", target: 25, reward: { bpXp: 500, kamas: 900 } },
   { id: `${p}_fixed_08`, name: "Routine solide", description: "Reclamer le daily 7 fois cette saison.", type: "season_daily", target: 7, reward: { bpXp: 300, kamas: 500 } },
   { id: `${p}_fixed_09`, name: "Main d'alchimiste", description: "Effectuer 10 fusions cette saison.", type: "season_fusions", target: 10, reward: { bpXp: 450, kamas: 700 } },
-  { id: `${p}_fixed_10`, name: "Set complet", description: "Completer 1 set entier cette saison.", type: "season_sets", target: 1, reward: { bpXp: 900, kamas: 2000 } }
+  { id: `${p}_fixed_10`, name: "Set complet", description: "Completer 1 set entier cette saison.", type: "season_sets", target: 1, reward: { bpXp: 900, kamas: 2000 } },
+  { id: `${p}_fixed_11`, name: "Ecaflip prudent", description: "Jouer 10 fois a la roulette cette saison.", type: "season_roulette", target: 10, reward: { bpXp: 350, kamas: 600 } },
+  { id: `${p}_fixed_12`, name: "Ecaflip dechaine", description: "Jouer 30 fois a la roulette cette saison.", type: "season_roulette", target: 30, reward: { bpXp: 900, kamas: 1600 }, secret: true }
  ]
 
  const themed = [
@@ -290,7 +292,7 @@ function buildSeasonTemplate(seasonId) {
 
  return {
   schemaVersion:      1,
-  achievementsVersion: 4,
+  achievementsVersion: 5,
   seasonId,
   name:            theme.name,
   subtitle:        theme.subtitle,
@@ -401,6 +403,9 @@ const GLOBAL_ACHIEVEMENTS_V3 = [
  { id: "global_event_5",    name: "Heros des evenements",    description: "Ouvrir 5 packs d'event.",               type: "events",         target: 5,      reward: { bpXp: 700 } },
  { id: "global_event_10",   name: "Habitue des portails",    description: "Ouvrir 10 packs d'event.",              type: "events",         target: 10,     reward: { bpXp: 1200, kamas: 900 } },
  { id: "global_event_25",   name: "Spectateur cosmique",     description: "Ouvrir 25 packs d'event.",              type: "events",         target: 25,     reward: { bpXp: 2200, kamas: 1800 } },
+ { id: "global_roulette_5",  name: "Main d'Ecaflip",          description: "Jouer 5 fois a la roulette.",           type: "roulette_spins", target: 5,      reward: { bpXp: 250, kamas: 300 } },
+ { id: "global_roulette_25", name: "Table chaude",            description: "Jouer 25 fois a la roulette.",          type: "roulette_spins", target: 25,     reward: { bpXp: 900, kamas: 900 } },
+ { id: "global_roulette_75", name: "Roi des tours",           description: "Jouer 75 fois a la roulette.",          type: "roulette_spins", target: 75,     reward: { bpXp: 2000, kamas: 2200 }, secret: true },
  { id: "global_bp_10",      name: "Apprenti passeur",        description: "Atteindre le niveau 10 du Battle Pass.", type: "level",         target: 10,     reward: { bpXp: 200 } },
  { id: "global_bp_20",      name: "Ascendant",               description: "Atteindre le niveau 20 du Battle Pass.", type: "level",         target: 20,     reward: { bpXp: 400 } },
  { id: "global_bp_40",      name: "Transcendant",            description: "Atteindre le niveau 40 du Battle Pass.", type: "level",         target: 40,     reward: { bpXp: 1000 }, secret: true },
@@ -452,12 +457,12 @@ function ensureSeasonFiles() {
  const needsRegen = !globalExists || (() => {
   try {
    const existing = JSON.parse(fs.readFileSync(globalPath, "utf8"))
-   return (existing.schemaVersion || 1) < 4
+   return (existing.schemaVersion || 1) < 5
   } catch (_) { return true }
  })()
 
  if (needsRegen) {
-  writeAtomic(globalPath, { schemaVersion: 4, achievements: GLOBAL_ACHIEVEMENTS_V3 })
+  writeAtomic(globalPath, { schemaVersion: 5, achievements: GLOBAL_ACHIEVEMENTS_V3 })
  }
 }
 
@@ -525,9 +530,9 @@ function getSeasonTemplate(seasonId) {
   merged.premiumRewards = fallback.premiumRewards; changed = true
  }
  /* Régénérer les achievements si version < 2 */
-if (!Array.isArray(data.achievements) || data.achievements.length < 20 || (data.achievementsVersion || 1) < 4) {
+if (!Array.isArray(data.achievements) || data.achievements.length < 20 || (data.achievementsVersion || 1) < 5) {
   merged.achievements        = fallback.achievements
-  merged.achievementsVersion = 4
+  merged.achievementsVersion = 5
   changed = true
  }
  if (!merged.passiveBonus) { merged.passiveBonus = fallback.passiveBonus; changed = true }

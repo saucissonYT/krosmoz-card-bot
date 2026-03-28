@@ -98,6 +98,16 @@ const WEEKLY_POOL = [
 
 ]
 
+/* ================= ROULETTE QUESTS ================= */
+
+DAILY_POOL.push(
+ { id:"d_roulette4",  name:"Tour de Chance",      desc:"Jouer 4 fois a la roulette",   stat:"rouletteSpins", goal:4,  reward:{ kamas:450, xp:70 }, emoji:"🎡" }
+)
+
+WEEKLY_POOL.push(
+ { id:"w_roulette20", name:"Ecaflip en Folie",    desc:"Jouer 20 fois a la roulette",  stat:"rouletteSpins", goal:20, reward:{ kamas:2200, xp:320, packs:1 }, emoji:"🎡" }
+)
+
 /* ================= BONUS COMPLETION ================= */
 
 const DAILY_BONUS  = { kamas:500,  xp:100 }
