@@ -4,7 +4,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { getUser, markDirty }               = require('../../systems/userSystem');
 const { addXP }                            = require('../../systems/progressionSystem');
-const { rewardKamas }                      = require('../../systems/economy');
 const { addBattlePassXP }                  = require('../../systems/battlePassService');
 const { achievementCheck }                 = require('../../systems/achievementCheck');
 const { giveCard }                         = require('../../systems/cardRegistry');
@@ -15,8 +14,8 @@ const COOLDOWN_MS = 60 * 60 * 1000; // 1 heure
 
 // Salons autorisés pour /roulette — ajouter les IDs ici
 const ALLOWED_CHANNELS = [
-  '1487121269018329178', // ← remplacer
-  '1487121289393995776', // ← remplacer
+  'ID_SALON_1', // ← remplacer
+  'ID_SALON_2', // ← remplacer
 ];
 
 // ─── Table des lots ───────────────────────────────────────────────────────────
@@ -161,9 +160,16 @@ function updateRouletteStats(user, lot, now) {
 async function applyReward(interaction, user, lot) {
   const r = lot.reward;
 
-  if (r.kamas)      await rewardKamas(interaction.user.id, r.kamas);
+  // Kamas : ajout direct sur l'objet user (rewardKamas attend une rareté, pas un montant fixe)
+  if (r.kamas) {
+    user.kamas = (user.kamas || 0) + r.kamas;
+    if (!user.stats) user.stats = {};
+    user.stats.kamasEarned      = (user.stats.kamasEarned      || 0) + r.kamas;
+    user.stats.totalKamasEarned = (user.stats.totalKamasEarned || 0) + r.kamas;
+  }
+
   if (r.xp)         await addXP(interaction.user.id, r.xp);
-  if (r.packs)      user.packs = (user.packs || 0) + r.packs; // stocké, distribué via packEngine si besoin
+  if (r.packs)      user.packs = (user.packs || 0) + r.packs;
   if (r.fragments)  await giveFragment(interaction.user.id, r.fragments);
   if (r.cardRarity) await giveCard(interaction.user.id, r.cardRarity);
   if (r.cardShiny)  await giveCard(interaction.user.id, 'SSR', { shiny: true });
