@@ -165,6 +165,53 @@ const MANUAL_OVERRIDES = {
  packStock200: 6,
  packStock500: 7,
 
+ /* ---- ROULETTE D'ECAFLIP ---- */
+ roulette1:          1,
+ roulette10:         2,
+ roulette100:        4,
+ roulette1000:       6,
+
+ rouletteKamas5k:    2,
+ rouletteKamas25k:   3,
+ rouletteKamas100k:  5,
+ rouletteKamas500k:  7,
+
+ roulettePack1:      1,
+ roulettePack10:     3,
+ roulettePack50:     5,
+ roulettePack150:    7,
+
+ rouletteSSR1:       4,
+ rouletteSSR3:       6,
+
+ rouletteC10:        1,
+ rouletteC25:        2,
+ rouletteC50:        3,
+ rouletteC100:       4,
+
+ roulettePc10:       2,
+ roulettePc25:       3,
+ roulettePc50:       4,
+ roulettePc100:      5,
+
+ rouletteR5:         3,
+ rouletteR20:        4,
+ rouletteR40:        5,
+ rouletteR70:        6,
+
+ rouletteTr3:        4,
+ rouletteTr10:       5,
+ rouletteTr20:       6,
+ rouletteTr40:       7,
+
+ rouletteJ1:         7,
+ rouletteJ3:         8,
+ rouletteJ5:         8,
+ rouletteJ10:        8,
+
+ rouletteNuit:       3, // secret (+50% kamas auto)
+ rouletteMidi:       2, // secret (+50% kamas auto)
+
 }
 
 /* ================= AUTO-DÉTECTION DU TIER ================= */

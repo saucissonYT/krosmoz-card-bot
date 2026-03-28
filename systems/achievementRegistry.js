@@ -15,4 +15,5 @@ module.exports = {
  ...require("./achievements/achievementGift"),
  ...require("./achievements/achievementGuild"),
  ...require("./achievements/achievementFragments"),
+ ...require("./achievements/achievementRoulette"),
 }
