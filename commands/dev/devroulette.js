@@ -1,15 +1,15 @@
 // commands/dev/devroulette.js
 // Commande dev — Roulette sans cooldown, avec option de forcer un lot
-// Accessible uniquement aux IDs listés dans data/devs.json
+// Accès contrôlé via devSystem.js (isDev)
 
 const { SlashCommandBuilder } = require('discord.js');
 const { getUser, markDirty }  = require('../../systems/userSystem');
+const { isDev }               = require('../../systems/devSystem');
 const {
   LOTS,
   pickLot,
   applyReward,
   buildResultEmbed,
-  updateRouletteStats,
 } = require('../joueur/roulette');
 
 module.exports = {
@@ -25,14 +25,7 @@ module.exports = {
 
   async execute(interaction) {
     // ─── Vérification accès dev ───────────────────────────────────────────────
-    let devs;
-    try {
-      devs = require('../../data/devs.json');
-    } catch {
-      return interaction.reply({ content: '❌ Impossible de charger data/devs.json.', flags: 64 });
-    }
-
-    if (!devs.includes(interaction.user.id)) {
+    if (!isDev(interaction.user.id)) {
       return interaction.reply({ content: '❌ Accès refusé.', flags: 64 });
     }
 
