@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
   "sources": {
-    "daily_claim": 40,
-    "pack_open": 60,
-    "fusion": 120,
-    "market_sell": 20,
-    "event_pack": 240,
-    "roulette_spin": 90,
-    "manual": 0
+    "daily_claim":        40,
+    "pack_open":          60,
+    "fusion":             120,
+    "market_sell":        20,
+    "event_pack":         240,
+    "roulette_spin":      90,
+    "manual":             0,
+    "quest_daily_claim":  80,
+    "quest_weekly_claim": 250,
+    "quest_daily_bonus":  120,
+    "quest_weekly_bonus": 400
   }
 }

@@ -6,7 +6,8 @@ const {
  ButtonStyle
 } = require("discord.js")
 
-const { getUser, save } = require("../../systems/userSystem")
+const { getUser, save }         = require("../../systems/userSystem")
+const { addBattlePassXP }       = require("../../systems/battlePassService")
 const {
  getAllProgress,
  claimAll,
@@ -27,7 +28,7 @@ function progressBar(current, goal, size=10){
 function rewardText(reward){
  const parts = []
  if(reward.kamas) parts.push(`💰${reward.kamas}`)
- if(reward.xp) parts.push(`⭐${reward.xp}`)
+ if(reward.xp)    parts.push(`⭐${reward.xp}`)
  if(reward.packs) parts.push(`📦${reward.packs}`)
  return parts.join(" ")
 }
@@ -35,7 +36,7 @@ function rewardText(reward){
 function bonusText(bonus){
  const parts = []
  if(bonus.kamas) parts.push(`💰 ${bonus.kamas} kamas`)
- if(bonus.xp) parts.push(`⭐ ${bonus.xp} XP`)
+ if(bonus.xp)    parts.push(`⭐ ${bonus.xp} XP`)
  if(bonus.packs) parts.push(`📦 ${bonus.packs} packs`)
  return parts.join(" + ")
 }
@@ -44,20 +45,17 @@ function bonusText(bonus){
 
 function buildDailyEmbed(user, interaction){
 
- const progress = getAllProgress(user, "daily")
+ const progress  = getAllProgress(user, "daily")
  const completed = progress.filter(q => q.done).length
- const claimed = progress.filter(q => q.claimed).length
- const total = progress.length
+ const claimed   = progress.filter(q => q.claimed).length
+ const total     = progress.length
  const allClaimed = claimed >= total
 
  const lines = progress.map(q => {
-
-  const status = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
-  const bar = progressBar(q.current, q.goal, 8)
+  const status  = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
+  const bar     = progressBar(q.current, q.goal, 8)
   const pctText = q.done ? "**OK**" : `${q.current}/${q.goal}`
-
   return `${status} ${q.emoji} **${q.name}** — ${pctText}\n${bar} *${q.desc}* → ${rewardText(q.reward)}`
-
  })
 
  const header = progressBar(completed, total, 12)
@@ -85,20 +83,17 @@ ${lines.join("\n\n")}`
 
 function buildWeeklyEmbed(user, interaction){
 
- const progress = getAllProgress(user, "weekly")
+ const progress  = getAllProgress(user, "weekly")
  const completed = progress.filter(q => q.done).length
- const claimed = progress.filter(q => q.claimed).length
- const total = progress.length
+ const claimed   = progress.filter(q => q.claimed).length
+ const total     = progress.length
  const allClaimed = claimed >= total
 
  const lines = progress.map(q => {
-
-  const status = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
-  const bar = progressBar(q.current, q.goal, 8)
+  const status  = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
+  const bar     = progressBar(q.current, q.goal, 8)
   const pctText = q.done ? "**OK**" : `${q.current}/${q.goal}`
-
   return `${status} ${q.emoji} **${q.name}** — ${pctText}\n${bar} *${q.desc}* → ${rewardText(q.reward)}`
-
  })
 
  const header = progressBar(completed, total, 12)
@@ -128,7 +123,7 @@ ${lines.join("\n\n")}`
 
 function buildButtons(user, tab){
 
- const progress = getAllProgress(user, tab)
+ const progress     = getAllProgress(user, tab)
  const hasClaimable = progress.some(q => q.done && !q.claimed)
 
  const row1 = new ActionRowBuilder().addComponents(
@@ -181,7 +176,7 @@ module.exports = {
 
   let tab = "daily"
 
-  const embed = buildDailyEmbed(user, interaction)
+  const embed      = buildDailyEmbed(user, interaction)
   const components = buildButtons(user, tab)
 
   const msg = await interaction.reply({
@@ -203,7 +198,7 @@ module.exports = {
 
     tab = i.customId === "quest_tab_daily" ? "daily" : "weekly"
     const freshUser = getUser(interaction.user.id)
-    const newEmbed = tab === "daily"
+    const newEmbed  = tab === "daily"
      ? buildDailyEmbed(freshUser, interaction)
      : buildWeeklyEmbed(freshUser, interaction)
 
@@ -218,7 +213,7 @@ module.exports = {
 
    if(i.customId.startsWith("quest_claim_")){
 
-    const claimType = i.customId.replace("quest_claim_","")
+    const claimType = i.customId.replace("quest_claim_", "")
     const freshUser = getUser(interaction.user.id)
 
     const result = claimAll(freshUser, claimType)
@@ -230,14 +225,45 @@ module.exports = {
      return
     }
 
+    /* ================================================================
+       XP BATTLE PASS — Quêtes réclamées
+       
+       On donne de l'XP BP en deux temps :
+       1. Par quête réclamée  (quest_daily_claim / quest_weekly_claim)
+       2. Bonus si toutes terminées (quest_daily_bonus / quest_weekly_bonus)
+       
+       Les valeurs viennent de config/battlepassXP.json pour rester
+       facilement ajustables sans toucher au code.
+    ================================================================ */
+
+    const bpSource      = claimType === "daily" ? "quest_daily_claim"  : "quest_weekly_claim"
+    const bpBonusSource = claimType === "daily" ? "quest_daily_bonus"  : "quest_weekly_bonus"
+
+    let totalBpXp = 0
+
+    /* XP par quête réclamée */
+    for(let n = 0; n < result.claimedCount; n++){
+     const bpResult = await addBattlePassXP(interaction.user.id, bpSource)
+     totalBpXp += bpResult.addedXP || 0
+    }
+
+    /* Bonus de complétion totale */
+    if(result.completionBonus){
+     const bpBonus = await addBattlePassXP(interaction.user.id, bpBonusSource)
+     totalBpXp += bpBonus.addedXP || 0
+    }
+
+    /* ---- Message de retour ---- */
+
     let text = `🎁 **${result.claimedCount} quête(s) récupérée(s) !**\n`
-    if(result.totalKamas > 0) text += `💰 +${result.totalKamas} kamas\n`
-    if(result.totalXp > 0) text += `⭐ +${result.totalXp} XP\n`
-    if(result.totalPacks > 0) text += `📦 +${result.totalPacks} pack(s)\n`
+    if(result.totalKamas > 0)  text += `💰 +${result.totalKamas} kamas\n`
+    if(result.totalXp > 0)     text += `⭐ +${result.totalXp} XP joueur\n`
+    if(result.totalPacks > 0)  text += `📦 +${result.totalPacks} pack(s)\n`
+    if(totalBpXp > 0)          text += `✨ +${totalBpXp} XP Battle Pass\n`
 
     if(result.completionBonus){
      const bonusName = claimType === "daily" ? "JOURNALIER" : "HEBDOMADAIRE"
-     text += `\n🏆 **BONUS ${bonusName} !**`
+     text += `\n🏆 **BONUS ${bonusName} !** ${bonusText(claimType === "daily" ? DAILY_BONUS : WEEKLY_BONUS)}`
     }
 
     await i.reply({ content:text, flags:64 })
@@ -259,7 +285,7 @@ module.exports = {
    if(i.customId.startsWith("quest_refresh_")){
 
     const freshUser = getUser(interaction.user.id)
-    const newEmbed = tab === "daily"
+    const newEmbed  = tab === "daily"
      ? buildDailyEmbed(freshUser, interaction)
      : buildWeeklyEmbed(freshUser, interaction)
 
@@ -270,6 +296,10 @@ module.exports = {
     return
    }
 
+  })
+
+  collector.on("end", () => {
+   msg.edit({ components:[] }).catch(() => {})
   })
 
  }
