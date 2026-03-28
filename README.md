@@ -9,13 +9,14 @@ Les joueurs peuvent :
 - Fusionner des doublons pour monter en rareté
 - Collecter des **fragments** de cartes SSR et les assembler via `/craft`
 - Vendre et acheter sur le marché entre joueurs
+- Tenter sa chance à la **Roulette d'Ecaflip** une fois par heure (31 lots, jackpot secret)
 - Participer aux événements des 19 Dieux du Krosmoz
 - Acheter des cartes au KrosmoShop quotidien
 - Compléter des quêtes journalières et hebdomadaires
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 100 et débloquer des bonus permanents
-- Débloquer 509 succès, badges et titres exclusifs
+- Débloquer 555 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -37,9 +38,9 @@ Les joueurs peuvent :
 krosmoz-card
 |
 |-- commands/
-|   |-- joueur/              # commandes joueur (krosmoz, fusion, market, battlepass...)
+|   |-- joueur/              # commandes joueur (krosmoz, fusion, market, battlepass, roulette...)
 |   |-- admin/               # commandes admin
-|   `-- dev/                 # commandes dev (devbp, devguild, simpack...)
+|   `-- dev/                 # commandes dev (devbp, devguild, simpack, devroulette...)
 |
 |-- systems/
 |   |-- achievements/        # modules de succès
@@ -129,7 +130,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | progressionSystem | XP et level-up (cap 100), milestones, bonus XP intégré |
 | playerBonuses | 9 bonus progressifs par niveau du joueur |
 | rankSystem | Rangs basés sur les achievements |
-| achievementRegistry | Agrégateur des 11 modules de succès actifs |
+| achievementRegistry | Agrégateur des 12 modules de succès actifs |
 | achievementEngine | Détection avec lecture dynamique des cartes |
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succes debloques |
@@ -138,7 +139,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## ✅ Achievements
 
-403 succès automatiques répartis en 12 catégories actives :
+403 succès automatiques répartis en 13 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -152,8 +153,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
-
-Les succès débloquent des **badges**, des **titres** et des **récompenses** (kamas, XP, packs).
+- **Roulette** — 46 achievements (tours, kamas, packs, SSR, lots par rareté, jackpots, secrets horaires)
 
 Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte et donnent **+50% de kamas** bonus.
 
@@ -316,6 +316,47 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 ### ✨ SSR Shiny
 
 Les SSR ont 0.5% de chance d'être **Shiny** (+ bonus de niveau joueur) — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
+
+---
+
+## 🎡 Roulette d'Ecaflip
+
+La Roulette d'Ecaflip est une récompense passive disponible une fois par heure, sans mise ni condition. Elle distribue 31 lots pondérés allant de kamas communs à des cartes SSR garanties, avec un jackpot secret ultra-rare.
+
+### Commande
+
+- `/roulette` — Faire tourner la roulette (cooldown 1h, salons dédiés uniquement)
+- `/devroulette` — Version dev sans cooldown, avec option pour forcer un lot 1–31
+
+### Les 31 lots
+
+| Rareté | Lots | Exemple |
+|--------|------|---------|
+| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, 100 XP |
+| 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, fragments |
+| 🟦 Rare | 21–26 | 5 000–7 500 kamas, 8–10 packs, carte HR garantie |
+| 🟥 Très rare | 27–30 | 15 000 kamas, 15 packs, carte UR/SSR garantie |
+| 🌟 Secret | 31 | **JACKPOT** — 1 SSR Shiny + 10 000 kamas + 5 packs (~1/2120) |
+
+Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît jamais dans la liste des récompenses visibles.
+
+### Stats suivies dans `user.stats`
+
+`rouletteSpins` · `rouletteLastSpin` · `rouletteConsecDays` · `rouletteLastDay` · `rouletteWinKamas` · `rouletteWinPacks` · `rouletteWinSSR` · `rouletteWinShiny` · `rouletteJackpot` · `rouletteLotCommun` · `rouletteLotPeuCommun` · `rouletteLotRare` · `rouletteLotTresRare` · `rouletteNightSpin` · `rouletteLunchSpin`
+
+Aucune migration requise — tous les champs sont lus avec fallback `|| 0`.
+
+### 46 succès dédiés
+
+| Catégorie | Succès | Paliers |
+|-----------|--------|---------|
+| 🎡 Tours | 4 | 1 · 10 · 100 · 1 000 |
+| 💰 Kamas | 4 | 5k · 25k · 100k · 500k |
+| 📦 Packs | 4 | 1 · 10 · 50 · 150 |
+| 🌈 SSR | 2 | 1 · 3 |
+| ⬜🟩🟦🟥 Lots par rareté | 16 | 4 paliers × 4 raretés |
+| 🎰 Jackpots | 4 | 1 · 3 · 5 · 10 |
+| 🔒 Secrets | 2 | Jouer entre 2h–5h · entre 13h–14h (heure FR) |
 
 ---
 
@@ -677,7 +718,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Le jeu compte `428` succes classiques + `81` succes Battle Pass, soit `509` succes au total
+- Le jeu compte `474` succes classiques + `81` succes Battle Pass, soit `555` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -740,6 +781,7 @@ La commande **/quests** affiche une interface interactive avec :
 |----------|-------------|
 | /daily | Récompense quotidienne (streak 7 = SSR, bonus par niveau) |
 | /fusion | Fusionner des doublons (bonus crit par niveau/guilde) |
+| /roulette | Roulette d'Ecaflip — 31 lots pondérés, 1 fois par heure |
 | /trade | Échanger avec un joueur |
 | /gift | Donner une carte à un joueur (3/jour) |
 | /quests | Quetes journalieres et hebdomadaires |
@@ -809,13 +851,14 @@ La commande **/quests** affiche une interface interactive avec :
 | /collection | Voir la collection d'un joueur |
 | /devguild | Gerer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
 | /devbp | Outils dev Battle Pass (status, add-xp, force, reset, claim-all, dry-run) |
+| /devroulette | Roulette sans cooldown, option forcer un lot 1–31 |
 | /fragments | Outils dev fragments (give, give-all, clear, list, rebuild-index, simulate-drop) |
 
 ---
 
 ## ✅ Achievements
 
-403 succès automatiques répartis en 12 catégories actives :
+403 succès automatiques répartis en 13 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -829,6 +872,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
+- **Roulette** — 46 achievements (tours, kamas, packs, SSR, lots par rareté, jackpots, secrets horaires)
 
 Les succès débloquent des **badges** et des **titres**.
 
@@ -847,12 +891,13 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 7. Compléter les sets
 8. Acheter au KrosmoShop quotidien
 9. Participer aux events des Dieux
-10. Donner des cartes à ses amis (/gift)
-11. Créer ou rejoindre une guilde (/guild)
-12. Compléter les quêtes de guilde pour faire monter la guilde en niveau
-13. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
-14. Débloquer des achievements et des titres
-15. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
+10. Tenter sa chance à la Roulette d'Ecaflip (/roulette)
+11. Donner des cartes à ses amis (/gift)
+12. Créer ou rejoindre une guilde (/guild)
+13. Compléter les quêtes de guilde pour faire monter la guilde en niveau
+14. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
+15. Débloquer des achievements et des titres
+16. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
 
 ---
 

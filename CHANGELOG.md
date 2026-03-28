@@ -9,6 +9,20 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.35.0] - 2026-03-27
 
+### Added 
+- Commande /roulette
+  - 31  lots pondérés · cooldown 1 heure · disponible dans les salons dédiés uniquement
+- Jackpot Krosmique secret
+  - Lot 31 — SSR Shiny + 10 000 kamas + 5 packs · poids 0.1 (~1/2120) · annonce publique dans le salon
+- 46 succès dédiés à la roulette
+  - Tours · Kamas · Packs · SSR · Lots par rareté (16) · Jackpots · 2 secrets horaires
+- Succès secrets rouletteNuit et rouletteMidi
+    - Jouer entre 2h–5h ou 13h–14h (heure France) · affichés comme ??? jusqu'au déclenchement
+- Commande dev /devroulette
+  - Sans cooldown · option pour forcer un lot précis (1–31) · accès via devSystem.isDev()
+- Streak de jours consécutifs
+  - Suivi dans user.stats.rouletteConsecDays · remise à zéro si jour manqué
+
 ### Changed
 
 - Refonte UX vente de fragments sur /market (commands/joueur/market.js)
@@ -16,6 +30,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Nouveau flow : bouton → StringSelectMenu listant tous les fragments possédés du joueur (nom de la carte, slot X/5, stock, prix minimum) → sélection → modal avec uniquement le prix, pré-rempli avec le minimum en placeholder
   - Le cardId et le fragmentNumber sont mémorisés dans le state entre les deux étapes — le joueur ne tape plus jamais d'ID à la main
   - Nouveau customId du modal prix : marketFragmentPriceModal (remplace marketSellFragmentModal)
+- achievementRegistry.js — ajout du module roulette
+  - achievementRoulette spreadé dans l'agrégateur · aucune rupture des modules existants
+- achievementRewards.js — 46 overrides de tier
+  - T1 à T8 selon difficulté · bonus +50% kamas automatique pour les succès secrets
+- Annonce jackpot déplacée dans le salon de jeu
+  - Utilise interaction.channel directement — suppression de JACKPOT_CHANNEL_ID
+- Nouveau champ dans user.stats
+  - 16 nouvelles propriétés roulette · lecture avec fallback || 0 · aucune migration requise
+
 
 
 
@@ -36,6 +59,14 @@ Bug commands/joueur/mystats.js : même problème que profil.js (collector 180s s
 Bug commands/joueur/carte.js : save() appelé sans userId dans le handler sell_ (vente directe) et dans le modal() (mise au market) → sauvegarde de tous les users en mémoire à chaque vente, surcharge disque inutile
   - Fix : save() → save(interaction.user.id) dans les deux endroits + ajout de collector.on("end") pour désactiver les boutons après 60s
 
+- Crash TypeError: kamasEarned — rewardKamas attendait une rareté, pas un montant fixe
+- Crash MODULE_NOT_FOUND sur devs.json dans /devroulette — remplacé par devSystem.isDev()
+
+### Improved
+
+- devroulette importe depuis roulette.js — zéro duplication de logique
+- Embed jackpot distinct — couleur or, majuscules, citation d'Ecaflip
+- Tableau ALLOWED_CHANNELS pour restreindre les salons autorisés
 
 
 ## [0.34.0] - 2026-03-26
