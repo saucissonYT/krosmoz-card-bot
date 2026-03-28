@@ -15,6 +15,17 @@ const {
  getBattlePassRewardsView
 } = require("../../systems/battlePassService")
 
+/* ---- imports pour l'affichage des quêtes journalières dans le battlepass ---- */
+const {
+ getAllProgress,
+ ensureUserQuests,
+ getNextDailyReset,
+ DAILY_BONUS,
+ DAILY_COUNT
+} = require("../../systems/questSystem")
+
+const { getUser, save } = require("../../systems/userSystem")
+
 const REWARDS_PER_PAGE = 8
 const ACH_PER_PAGE = 10
 
@@ -47,7 +58,8 @@ const EMOJI = {
  check: "\u{2705}",
  cross: "\u{274C}",
  prev: "\u{25C0}",
- next: "\u{25B6}"
+ next: "\u{25B6}",
+ sun: "\u{2600}\u{FE0F}"
 }
 
 function rewardLabel(reward) {
@@ -90,6 +102,8 @@ function getAchievementsTabFromMessage(message) {
  }
  return "seasonal"
 }
+
+/* ================= MAIN EMBED ================= */
 
 function buildMainEmbed(userId) {
  const data = getBattlePassOverview(userId)
@@ -136,15 +150,51 @@ function buildMainEmbed(userId) {
  return { embed, data }
 }
 
-function buildActionRow(data) {
+/* ================= ACTION ROWS ================= */
+/*
+ * On passe de 1 à 2 ActionRows :
+ * - Row 1 : actions principales (Réclamer, Rewards, Premium)
+ * - Row 2 : navigation/info (Succès, Saison, Quêtes du jour)
+ *
+ * Raison : Discord limite à 5 boutons par ActionRow. Avec 5 boutons
+ * dans une seule row, il n'y avait plus de place pour le bouton quêtes.
+ */
+function buildActionRows(data) {
  const premiumPrice = data.seasonTemplate?.premiumPrice || 8000
- return new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("bp_claim").setLabel(`${EMOJI.gift} Reclamer`).setStyle(ButtonStyle.Success).setDisabled(data.claimableCount <= 0),
-  new ButtonBuilder().setCustomId("bp_rewards").setLabel(`${EMOJI.scroll} Rewards`).setStyle(ButtonStyle.Primary),
-  new ButtonBuilder().setCustomId("bp_buy").setLabel(`${EMOJI.diamond} Premium (${premiumPrice})`).setStyle(ButtonStyle.Secondary).setDisabled(data.progress.hasPremium),
-  new ButtonBuilder().setCustomId("bp_ach").setLabel(`${EMOJI.trophy} Succes`).setStyle(ButtonStyle.Secondary),
-  new ButtonBuilder().setCustomId("bp_season").setLabel(`${EMOJI.calendar} Saison`).setStyle(ButtonStyle.Secondary)
+
+ const row1 = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setCustomId("bp_claim")
+   .setLabel(`${EMOJI.gift} Reclamer`)
+   .setStyle(ButtonStyle.Success)
+   .setDisabled(data.claimableCount <= 0),
+  new ButtonBuilder()
+   .setCustomId("bp_rewards")
+   .setLabel(`${EMOJI.scroll} Rewards`)
+   .setStyle(ButtonStyle.Primary),
+  new ButtonBuilder()
+   .setCustomId("bp_buy")
+   .setLabel(`${EMOJI.diamond} Premium (${premiumPrice})`)
+   .setStyle(ButtonStyle.Secondary)
+   .setDisabled(data.progress.hasPremium)
  )
+
+ const row2 = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setCustomId("bp_ach")
+   .setLabel(`${EMOJI.trophy} Succes`)
+   .setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder()
+   .setCustomId("bp_season")
+   .setLabel(`${EMOJI.calendar} Saison`)
+   .setStyle(ButtonStyle.Secondary),
+  new ButtonBuilder()
+   .setCustomId("bp_quests")
+   .setLabel(`${EMOJI.sun} Quetes du jour`)
+   .setStyle(ButtonStyle.Secondary)
+ )
+
+ return [row1, row2]
 }
 
 function buildBuyConfirmRow() {
@@ -153,6 +203,63 @@ function buildBuyConfirmRow() {
   new ButtonBuilder().setCustomId("bp_buy_cancel").setLabel("Retour").setStyle(ButtonStyle.Secondary)
  )
 }
+
+/* ================= QUÊTES JOURNALIÈRES EMBED ================= */
+/*
+ * Affiche la progression des quêtes journalières du joueur directement
+ * depuis le battlepass. Appelle ensureUserQuests() + save() pour
+ * garantir que le snapshot est bien initialisé avant l'affichage.
+ */
+function buildDailyQuestsEmbed(userId) {
+ const user = getUser(userId)
+
+ /* Init le snapshot si pas encore fait aujourd'hui */
+ ensureUserQuests(user)
+ save()
+
+ const progress = getAllProgress(user, "daily")
+ const completed = progress.filter(q => q.done).length
+ const allClaimed = progress.every(q => q.claimed)
+ const hasClaimable = progress.some(q => q.done && !q.claimed)
+ const total = progress.length
+
+ const lines = progress.map(q => {
+  const status = q.claimed ? "✅" : q.done ? "🎁" : "⬜"
+  const pctText = q.done ? "**OK**" : `${q.current}/${q.goal}`
+  const rewardParts = []
+  if (q.reward?.kamas) rewardParts.push(`${EMOJI.money} ${q.reward.kamas}`)
+  if (q.reward?.packs) rewardParts.push(`${EMOJI.pack} ${q.reward.packs} pack(s)`)
+  if (q.reward?.xp)    rewardParts.push(`${EMOJI.star} ${q.reward.xp} XP`)
+  return `${status} **${q.name}** — ${pctText}\n*${q.desc}* → ${rewardParts.join(" | ") || "-"}`
+ })
+
+ let bonusLine = ""
+ const bonusParts = []
+ if (DAILY_BONUS?.kamas) bonusParts.push(`${EMOJI.money} ${DAILY_BONUS.kamas}`)
+ if (DAILY_BONUS?.packs) bonusParts.push(`${EMOJI.pack} ${DAILY_BONUS.packs} pack(s)`)
+ if (DAILY_BONUS?.xp)    bonusParts.push(`${EMOJI.star} ${DAILY_BONUS.xp} XP`)
+ const bonusStr = bonusParts.join(" | ")
+
+ if (allClaimed) {
+  bonusLine = `\n${EMOJI.trophy} **BONUS JOURNALIER RÉCUPÉRÉ !** ${bonusStr ? `(${bonusStr})` : ""}`
+ } else if (completed >= total && hasClaimable) {
+  bonusLine = `\n${EMOJI.gift} **Toutes terminées !** Réclame via **/quests** → Bonus : ${bonusStr}`
+ } else if (completed >= total) {
+  bonusLine = `\n${EMOJI.trophy} **Toutes terminées et récupérées !**`
+ }
+
+ return new EmbedBuilder()
+  .setTitle(`${EMOJI.sun} Quêtes Journalières`)
+  .setColor(allClaimed ? "#f1c40f" : completed >= total ? "#2ecc71" : "#3498db")
+  .setDescription(
+   `Reset dans **${getNextDailyReset()}**\n\n` +
+   `${bar(total ? completed / total : 0)} **${completed}/${total}** terminées${bonusLine}\n\n` +
+   lines.join("\n\n")
+  )
+  .setFooter({ text: `Utilise /quests pour réclamer tes récompenses journalières` })
+}
+
+/* ================= REWARDS PAGE ================= */
 
 function buildRewardsPage(userId, page = 1) {
  const view = getBattlePassRewardsView(userId, page, REWARDS_PER_PAGE)
@@ -176,6 +283,8 @@ function buildRewardsPage(userId, page = 1) {
 
  return { embed, row }
 }
+
+/* ================= ACHIEVEMENTS EMBED ================= */
 
 function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
  const data = getBattlePassAchievements(userId)
@@ -207,8 +316,14 @@ function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
   .setColor(tab === "global" ? "#f39c12" : "#8e44ad")
 
  const tabRow = new ActionRowBuilder().addComponents(
-  new ButtonBuilder().setCustomId("bp_ach_seasonal").setLabel(`Saisonniers (${data.seasonal.filter((entry) => entry.unlocked).length}/${data.seasonal.length})`).setStyle(tab === "seasonal" ? ButtonStyle.Success : ButtonStyle.Secondary),
-  new ButtonBuilder().setCustomId("bp_ach_global").setLabel(`Permanents (${data.globals.filter((entry) => entry.unlocked).length}/${data.globals.length})`).setStyle(tab === "global" ? ButtonStyle.Success : ButtonStyle.Secondary)
+  new ButtonBuilder()
+   .setCustomId("bp_ach_seasonal")
+   .setLabel(`Saisonniers (${data.seasonal.filter((entry) => entry.unlocked).length}/${data.seasonal.length})`)
+   .setStyle(tab === "seasonal" ? ButtonStyle.Success : ButtonStyle.Secondary),
+  new ButtonBuilder()
+   .setCustomId("bp_ach_global")
+   .setLabel(`Permanents (${data.globals.filter((entry) => entry.unlocked).length}/${data.globals.length})`)
+   .setStyle(tab === "global" ? ButtonStyle.Success : ButtonStyle.Secondary)
  )
 
  const pageRow = new ActionRowBuilder().addComponents(
@@ -219,6 +334,8 @@ function buildAchievementsEmbed(userId, tab = "seasonal", page = 1) {
 
  return { embed, rows: [tabRow, pageRow] }
 }
+
+/* ================= CLAIM SUMMARY EMBED ================= */
 
 function buildClaimSummaryEmbed(result) {
  const preview = (result.claimedRewards || []).slice(0, 10)
@@ -242,6 +359,8 @@ function buildClaimSummaryEmbed(result) {
   .setColor("#2ecc71")
 }
 
+/* ================= SEND HELPERS ================= */
+
 async function sendRewards(interaction, userId, page = 1) {
  const response = buildRewardsPage(userId, page)
  return interaction.reply({ embeds: [response.embed], components: [response.row], flags: 64 })
@@ -252,26 +371,52 @@ async function sendAchievements(interaction, userId, tab = "seasonal", page = 1)
  return interaction.reply({ embeds: [response.embed], components: response.rows, flags: 64 })
 }
 
+/*
+ * sendSeason : wrappé dans try/catch.
+ * Sans ça, si getBattlePassOverview() throw (fichier manquant, saison
+ * non init...), l'interaction n'est jamais acknowledged → timeout Discord.
+ */
 async function sendSeason(interaction, userId) {
- const data = getBattlePassOverview(userId)
- const season = data.seasonTemplate
+ try {
+  const data = getBattlePassOverview(userId)
+  const season = data.seasonTemplate
 
- const embed = new EmbedBuilder()
-  .setTitle(`${season.emoji || EMOJI.sparkle} ${season.name} - Dossier de saison`)
-  .setDescription(
-   `${season.subtitle || ""}\n\n` +
-   `**Bonus actif :** ${season.passiveBonus?.description || "-"}\n` +
-   `**Cycle :** Emeraude -> Pourpre -> Turquoise -> Ocre -> Ivoire -> Ebene`
-  )
-  .addFields(
-   { name: "Debut", value: data.season.startDate, inline: true },
-   { name: "Fin", value: data.season.endDate, inline: true },
-   { name: "Prix Premium", value: `${season.premiumPrice || 8000} kamas`, inline: true }
-  )
-  .setColor(season.color || "#1B6B3A")
+  const embed = new EmbedBuilder()
+   .setTitle(`${season.emoji || EMOJI.sparkle} ${season.name} - Dossier de saison`)
+   .setDescription(
+    `${season.subtitle || ""}\n\n` +
+    `**Bonus actif :** ${season.passiveBonus?.description || "-"}\n` +
+    `**Cycle :** Emeraude -> Pourpre -> Turquoise -> Ocre -> Ivoire -> Ebene`
+   )
+   .addFields(
+    { name: "Debut", value: data.season.startDate, inline: true },
+    { name: "Fin", value: data.season.endDate, inline: true },
+    { name: "Prix Premium", value: `${season.premiumPrice || 8000} kamas`, inline: true }
+   )
+   .setColor(season.color || "#1B6B3A")
 
- return interaction.reply({ embeds: [embed], flags: 64 })
+  return interaction.reply({ embeds: [embed], flags: 64 })
+ } catch (err) {
+  console.error("[battlepass] sendSeason error:", err)
+  return interaction.reply({ content: `${EMOJI.cross} Impossible d'afficher les infos de la saison. Réessaie.`, flags: 64 })
+ }
 }
+
+/*
+ * sendDailyQuests : affiche les quêtes journalières du joueur.
+ * Nouveau bouton "Quêtes du jour" dans la 2ème ActionRow.
+ */
+async function sendDailyQuests(interaction, userId) {
+ try {
+  const embed = buildDailyQuestsEmbed(userId)
+  return interaction.reply({ embeds: [embed], flags: 64 })
+ } catch (err) {
+  console.error("[battlepass] sendDailyQuests error:", err)
+  return interaction.reply({ content: `${EMOJI.cross} Impossible d'afficher les quêtes. Réessaie.`, flags: 64 })
+ }
+}
+
+/* ================= MODULE EXPORT ================= */
 
 module.exports = {
  data: new SlashCommandBuilder()
@@ -285,7 +430,8 @@ module.exports = {
      { name: "Rewards", value: "rewards" },
      { name: "Buy", value: "buy" },
      { name: "Achievements", value: "achievements" },
-     { name: "Season", value: "season" }
+     { name: "Season", value: "season" },
+     { name: "Quêtes", value: "quests" }
     )
   )
   .addIntegerOption((option) =>
@@ -306,28 +452,32 @@ module.exports = {
   if (action === "buy") {
    const result = await buyPremium(userId)
    if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
-   return interaction.reply({ content: `${EMOJI.check} Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
+   return interaction.reply({ content: `${EMOJI.check} Pass Premium active. Retroactif distribue.`, flags: 64 })
   }
 
   if (action === "rewards") return sendRewards(interaction, userId, page)
   if (action === "achievements") return sendAchievements(interaction, userId)
   if (action === "season") return sendSeason(interaction, userId)
+  if (action === "quests") return sendDailyQuests(interaction, userId)
 
   const main = buildMainEmbed(userId)
-  return interaction.reply({ embeds: [main.embed], components: [buildActionRow(main.data)], flags: 64 })
+  /* buildActionRows retourne un tableau de 2 ActionRows */
+  return interaction.reply({ embeds: [main.embed], components: buildActionRows(main.data), flags: 64 })
  },
 
  async button(interaction) {
   const userId = interaction.user.id
 
+  /* ---- CLAIM ---- */
   if (interaction.customId === "bp_claim") {
    const result = await claimAllBattlePassRewards(userId)
    if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
    const refreshed = buildMainEmbed(userId)
-   await interaction.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+   await interaction.update({ embeds: [refreshed.embed], components: buildActionRows(refreshed.data) })
    return interaction.followUp({ embeds: [buildClaimSummaryEmbed(result)], flags: 64 })
   }
 
+  /* ---- ACHETER PREMIUM ---- */
   if (interaction.customId === "bp_buy") {
    const refreshed = buildMainEmbed(userId)
    const confirmEmbed = new EmbedBuilder(refreshed.embed.data).addFields({
@@ -341,19 +491,22 @@ module.exports = {
    const result = await buyPremium(userId)
    if (!result.ok) return interaction.reply({ content: `${EMOJI.cross} ${result.error}`, flags: 64 })
    const refreshed = buildMainEmbed(userId)
-   await interaction.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+   await interaction.update({ embeds: [refreshed.embed], components: buildActionRows(refreshed.data) })
    return interaction.followUp({ content: `${EMOJI.check} Pass Premium active. Retroactif : ${result.retroCount} paliers.`, flags: 64 })
   }
 
   if (interaction.customId === "bp_buy_cancel") {
    const refreshed = buildMainEmbed(userId)
-   return interaction.update({ embeds: [refreshed.embed], components: [buildActionRow(refreshed.data)] })
+   return interaction.update({ embeds: [refreshed.embed], components: buildActionRows(refreshed.data) })
   }
 
+  /* ---- NAVIGATION ---- */
   if (interaction.customId === "bp_rewards") return sendRewards(interaction, userId, 1)
   if (interaction.customId === "bp_ach") return sendAchievements(interaction, userId)
   if (interaction.customId === "bp_season") return sendSeason(interaction, userId)
+  if (interaction.customId === "bp_quests") return sendDailyQuests(interaction, userId)
 
+  /* ---- PAGINATION REWARDS ---- */
   if (interaction.customId === "bp_rewards_next" || interaction.customId === "bp_rewards_prev") {
    let page = getMessagePage(interaction.message)
    if (interaction.customId === "bp_rewards_next") page++
@@ -362,6 +515,7 @@ module.exports = {
    return interaction.update({ embeds: [response.embed], components: [response.row] })
   }
 
+  /* ---- PAGINATION ACHIEVEMENTS ---- */
   if (interaction.customId.startsWith("bp_ach_")) {
    let tab = getAchievementsTabFromMessage(interaction.message)
    let page = getMessagePage(interaction.message)

@@ -9,6 +9,11 @@ const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 
+/* ---- FIX SNAPSHOT LAZY : imports pour init les snapshots AVANT toute action ---- */
+const { ensureUserQuests } = require("../../systems/questSystem")
+const { getUserGuild } = require("../../systems/guildSystem")
+const { ensureSnapshot } = require("../../systems/guildQuestSystem")
+
 module.exports={
 
  name:"daily",
@@ -21,9 +26,32 @@ module.exports={
 
   const user=getUser(interaction.user.id)
 
+  /* ================================================================
+     INIT SNAPSHOTS QUÊTES — DOIT ÊTRE AVANT TOUTE MODIFICATION STATS
+     
+     Raison : ensureUserQuests() / ensureSnapshot() créent le snapshot
+     (état de référence) au premier appel du jour. Si des actions
+     (daily, packs...) ont déjà modifié les stats avant cet appel,
+     elles ne seront pas comptées dans la progression des quêtes.
+     
+     En appelant ici, AVANT claimDaily(), on garantit que :
+     - le daily lui-même compte pour les quêtes "faire X daily"
+     - les quêtes de guilde snapshotent bien avant contribution
+  ================================================================ */
+
+  ensureUserQuests(user)
+
+  try {
+   const guild = getUserGuild(interaction.user.id)
+   if (guild) ensureSnapshot(guild)
+  } catch(_) { /* guilde non dispo, pas bloquant */ }
+
   /* ---------------- COOLDOWN ---------------- */
 
   if(!canClaim(user)){
+
+   /* Sauvegarde si le snapshot vient d'être initialisé (nouveau jour) */
+   save()
 
    const now=Date.now()
    const cooldown=24*60*60*1000

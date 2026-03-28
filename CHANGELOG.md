@@ -23,6 +23,14 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Streak de jours consécutifs
   - Suivi dans user.stats.rouletteConsecDays · remise à zéro si jour manqué
 
+- Quetes roulette integrees
+  - Quetes joueur : daily 4 tours et weekly 20 tours (`rouletteSpins`)
+  - Quetes de guilde : objectifs roulette daily/weekly avec scaling dynamique
+- Battle Pass : progression roulette
+  - Nouvelle source XP `roulette_spin` (+90 XP BP)
+  - Nouveaux achievements globaux roulette (5 / 25 / 75 tours)
+  - Nouveaux achievements saisonniers roulette (10 / 30 tours)
+
 ### Changed
 
 - Refonte UX vente de fragments sur /market (commands/joueur/market.js)
@@ -41,6 +49,9 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 
 
+
+- Roulette : gestion des salons autorises assouplie
+  - Si `ALLOWED_CHANNELS` ne contient que des placeholders, la commande n'est plus bloquee partout
 
 ### Fixed
 
@@ -62,12 +73,23 @@ Bug commands/joueur/carte.js : save() appelé sans userId dans le handler sell_ 
 - Crash TypeError: kamasEarned — rewardKamas attendait une rareté, pas un montant fixe
 - Crash MODULE_NOT_FOUND sur devs.json dans /devroulette — remplacé par devSystem.isDev()
 
+- Fix critique /roulette
+  - Suppression des imports inexistants (`giveCard`, `giveFragment`)
+  - Correction de `addXP` applique sur l'objet user (et non sur un userId string)
+  - Attribution des cartes/fragments reliee au systeme reel d'inventaire
+  - Notification des succes roulette reactivee (`notifyAchievements`)
+- Fix Battle Pass roulette
+  - `roulette_spin` ajoute a la config XP et au tracking des stats BP
+
 ### Improved
 
 - devroulette importe depuis roulette.js — zéro duplication de logique
 - Embed jackpot distinct — couleur or, majuscules, citation d'Ecaflip
 - Tableau ALLOWED_CHANNELS pour restreindre les salons autorisés
 
+
+- Protection anti double-spin
+  - Lock par utilisateur pour eviter les doubles executions concurrentes de /roulette
 
 ## [0.34.0] - 2026-03-26
 

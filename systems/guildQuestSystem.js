@@ -358,6 +358,7 @@ module.exports = {
  getGuildQuestProgress,
  claimGuildQuests,
  getNextGuildQuestReset,
+ ensureSnapshot,          /* Exporté pour init le snapshot depuis daily.js AVANT toute action */
  getEffectiveMembers,
  getScaledGoal,
  DAILY_QUEST_POOL,
