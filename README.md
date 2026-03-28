@@ -984,9 +984,9 @@ Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée pa
   <img src="screenshots/daily.PNG" width="30%"/>
   <img src="screenshots/event1.PNG" width="30%"/>
   <img src="screenshots/event2.PNG" width="30%"/>
-  <img src="screenshots/battlepass.PNG" width="30%"/>
-  <img src="screenshots/battlepass2.PNG" width="30%"/>
-  <img src="screenshots/bonusguilde.PNG" width="30%"/>
+  <img src="screenshots/battlepass.png" width="30%"/>
+  <img src="screenshots/battlepass2.png" width="30%"/>
+  <img src="screenshots/bonusguilde.png" width="30%"/>
 </p>
 
 ---

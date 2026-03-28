@@ -15,8 +15,9 @@ const spinLocks = new Set()
 
 // Salons autorises pour /roulette - ajouter les IDs ici
 const ALLOWED_CHANNELS = [
- "ID_SALON_1",
- "ID_SALON_2"
+ "1487121269018329178",
+ "1487121289393995776",
+ "1487545856738590911"
 ]
 
 const LOTS = [
