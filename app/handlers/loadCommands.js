@@ -33,6 +33,7 @@ function loadCommands(client, commandsPath) {
     const command = require(filePath)
 
     if (command.data) {
+     command._folder = folder
      client.commands.set(command.data.name, command)
      console.log(`OK ${command.data.name}`)
      loaded++
@@ -45,6 +46,7 @@ function loadCommands(client, commandsPath) {
       .setDescription(command.description || "commande")
 
      command.data = builder
+     command._folder = folder
      client.commands.set(command.name, command)
      console.log(`-> ${command.name}`)
      loaded++
