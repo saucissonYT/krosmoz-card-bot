@@ -111,7 +111,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | Système | Rôle |
 |---------|------|
 | guildSystem | CRUD guildes, XP, niveaux 1→100, hiérarchie (meneur/officier/membre), max 10 membres |
-| guildBonuses | Calcul des 9 bonus progressifs par niveau de guilde |
+| guildBonuses | Calcul des 10 bonus progressifs par niveau de guilde |
 | guildQuestSystem | 3 quêtes hebdo de guilde, scaling dynamique par nombre de membres, pool de 25 quêtes |
 
 ### 💰 Économie
@@ -317,6 +317,33 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 
 Les SSR ont 0.5% de chance d'être **Shiny** (+ bonus de niveau joueur) — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
 
+### 🔒 Déblocage des sets par niveau
+
+Les sets se débloquent progressivement au fil de la progression du joueur. Chaque set se déverrouille en atteignant le **niveau requis** ou en complétant le **set précédent à 70%** (filet de sécurité si la courbe d'XP ne suit pas).
+
+| Set | Niveau requis | Condition alternative |
+|-----|---------------|-----------------------|
+| ☁️ Incarnam | 1 | — (toujours disponible) |
+| 🌾 Astrub | 11 | Incarnam ≥ 70% |
+| 🌽 Amakna | 36 | Astrub ≥ 70% |
+| 🌊 Sufokia | 51 | Amakna ≥ 70% |
+| 📦 Kelba | 66 | Sufokia ≥ 70% |
+| 🦇 Katrepat | 81 | Kelba ≥ 70% |
+
+Les sets verrouillés apparaissent avec 🔒 dans `/krosmoz`, `/fusion` et `/listcards`. Le message de blocage indique la condition manquante et la progression actuelle du joueur. Le mode **🎲 Random** de `/krosmoz` ne pioche que dans les sets débloqués. Le `krosmoshop` et les `eventpack` ignorent ce système.
+
+### 🏆 Milestones de complétion des sets
+
+Chaque set récompense les joueurs aux paliers suivants :
+
+| Palier | XP joueur | Bonus |
+|--------|-----------|-------|
+| 25% | +100 XP | — |
+| 50% | +300 XP | +500 kamas |
+| 70% | +600 XP | +1 pack |
+| 90% | +1 000 XP | — |
+| 100% | +500 XP | Récompense kamas du set + XP Battle Pass |
+
 ---
 
 ## 🎡 Roulette d'Ecaflip
@@ -332,11 +359,13 @@ La Roulette d'Ecaflip est une récompense passive disponible une fois par heure,
 
 | Rareté | Lots | Exemple |
 |--------|------|---------|
-| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, 100 XP |
-| 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, fragments |
-| 🟦 Rare | 21–26 | 5 000–7 500 kamas, 8–10 packs, carte HR garantie |
-| 🟥 Très rare | 27–30 | 15 000 kamas, 15 packs, carte UR/SSR garantie |
+| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, **200 XP** |
+| 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, **500–1 000 XP**, fragments |
+| 🟦 Rare | 21–26 | 5 000–7 500 kamas **+400–600 XP**, 8–10 packs, carte HR garantie |
+| 🟥 Très rare | 27–30 | 15 000 kamas **+1 500 XP**, 15 packs, carte UR/SSR garantie |
 | 🌟 Secret | 31 | **JACKPOT** — 1 SSR Shiny + 10 000 kamas + 5 packs (~1/2120) |
+
+Les lots XP donnent de l'**XP joueur** (pas de l'XP Battle Pass). Les lots kamas des raretés Rare et Très rare incluent désormais un bonus XP secondaire.
 
 Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît jamais dans la liste des récompenses visibles.
 
@@ -513,7 +542,7 @@ Les bonus se **cumulent** avec les bonus de guilde.
 | 75 | 3 850 | ~150 000 |
 | 100 | 5 100 | ~262 500 |
 
-### 9 Bonus progressifs de guilde
+### 10 Bonus progressifs de guilde
 
 | Bonus | Progression | Max (niv.100) |
 |-------|------------|---------------|
@@ -522,7 +551,8 @@ Les bonus se **cumulent** avec les bonus de guilde.
 | ✨ Chance de fusion double | +0.5% / 15 niv. | +3% |
 | 🌈 Chance de fusion triple | +0.25% / 25 niv. | +1% |
 | 🍀 Chance de lucky pack | +1% / 10 niv. | +10% |
-| ⭐ XP bonus | +5% / 20 niv. | +25% |
+| ⭐ XP Battle Pass | +5% / 20 niv. | +25% |
+| 📈 XP joueur | +2% / 10 niv. | +20% |
 | 📉 Réduction KrosmoShop | +2% / 25 niv. | +8% |
 | 📦 Packs daily bonus | +1 / 50 niv. | +2 |
 | 🧧 Chance de double daily | +1% / 20 niv. | +5% |
@@ -895,16 +925,17 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 4. Vendre les doublons (/sellduplicates, /market)
 5. Fusionner pour monter en rareté (/fusion)
 6. Collecter des fragments SSR dans les packs et les assembler via /craft
-7. Compléter les sets
-8. Acheter au KrosmoShop quotidien
-9. Participer aux events des Dieux
-10. Tenter sa chance à la Roulette d'Ecaflip (/roulette)
-11. Donner des cartes à ses amis (/gift)
-12. Créer ou rejoindre une guilde (/guild)
-13. Compléter les quêtes de guilde pour faire monter la guilde en niveau
-14. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
-15. Débloquer des achievements et des titres
-16. Monter en niveau jusqu'au cap 200 et maximiser ses bonus
+7. Progresser pour débloquer les sets suivants (niveau OU 70% du set actuel)
+8. Atteindre les paliers de complétion des sets (25/50/70/90/100%) pour des bursts d'XP
+9. Acheter au KrosmoShop quotidien
+10. Participer aux events des Dieux
+11. Tenter sa chance à la Roulette d'Ecaflip (/roulette)
+12. Donner des cartes à ses amis (/gift)
+13. Créer ou rejoindre une guilde (/guild)
+14. Compléter les quêtes de guilde pour faire monter la guilde en niveau
+15. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP joueur, XP BP, shiny, cooldown...)
+16. Débloquer des achievements et des titres
+17. Monter en niveau jusqu'au cap 200 et maximiser ses bonus
 
 ---
 

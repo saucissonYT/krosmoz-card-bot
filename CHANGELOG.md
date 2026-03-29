@@ -26,6 +26,33 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Le message "déjà récupéré" affiche désormais `Dans Xh Ym (à minuit heure Paris)`
   - Le calcul du streak break utilise également les jours calendaires Paris
 
+- **Système de déblocage des sets par niveau et complétion** (`systems/setunlockSystem.js`)
+  - Nouveau fichier centralisant toutes les règles de déblocage des sets
+  - Chaque set se débloque en atteignant le **niveau requis** OU en complétant le **set précédent à 70%**
+  - Table de déblocage : Incarnam (niv.1) → Astrub (niv.11) → Amakna (niv.36) → Sufokia (niv.51) → Kelba (niv.66) → Katrepat (niv.81)
+  - Le seuil de 70% sert de filet de sécurité pour les joueurs dont la courbe d'XP ne suit pas
+  - Les sets verrouillés apparaissent avec 🔒 dans `/krosmoz`, `/fusion` et `/listcards` — visibles mais non jouables
+  - Le message de blocage précise les **deux conditions** avec les valeurs actuelles du joueur (ex: "niveau 51 (tu es niveau 43) OU amakna à 70% (tu es à 59%)")
+  - `krosmoshop` et `eventpack` ignorent ce système : les cartes de sets verrouillés peuvent être obtenues en dehors
+  - Le mode **🎲 Random** de `/krosmoz` pioche uniquement dans les sets débloqués par le joueur
+
+- **Bursts d'XP joueur aux paliers de complétion des sets** (`systems/setSystem.js`)
+  - Remplacement du système de milestones existant par 4 paliers XP progressifs
+  - 25% → **+100 XP**
+  - 50% → **+300 XP** + 500 kamas (kamas conservés)
+  - 70% → **+600 XP** + 1 pack (ancien palier 75% déplacé à 70% pour correspondre au seuil de déblocage)
+  - 90% → **+1 000 XP** (nouveau palier)
+  - 100% → +500 XP + récompense kamas du set + XP Battle Pass (inchangé)
+
+- **XP joueur sur les lots kamas de la roulette** (`commands/joueur/roulette.js`)
+  - Les lots XP purs sont boostés : lot 8 (100 → **200 XP**), lot 13 (250 → **500 XP**), lot 19 (500 → **1 000 XP**)
+  - XP secondaire ajoutée sur les lots purement kamas de haute valeur : lot 21 (**+400 XP**), lot 25 (**+600 XP**), lot 27 (**+1 500 XP**)
+
+- **Bonus XP joueur dans les bonus de guilde** (`systems/guildBonuses.js`)
+  - Nouveau bonus `playerXpBonus` : +2% XP joueur tous les 10 niveaux → **+20% au niveau 100**
+  - Distinct du `xpBonus` existant qui s'applique au Battle Pass uniquement
+  - Le bonus est appliqué dans `progressionSystem.addXP()` en plus du bonus joueur existant
+
 ### Changed
 
 - **Progression joueur étendue jusqu'au niveau 200**
@@ -39,8 +66,11 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Milestones de niveau enrichis au-delà de 100**
   - Ajout des paliers 125, 150, 175 et 200 avec récompenses dédiées (kamas + packs)
 
-- **README mis à jour sur la progression**
+- **README mis à jour sur la progression, les sets et la roulette**
   - Documentation alignée avec le cap 200, la nouvelle formule XP, les nouveaux paliers et les bonus max
+  - Section sets : ajout du tableau de déblocage par niveau et des nouveaux milestones XP
+  - Section roulette : mise à jour des lots avec les XP boostés et secondaires
+  - Section guildes : ajout du bonus `playerXpBonus` dans le tableau des 10 bonus
 
 ### Fixed
 
@@ -58,6 +88,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 ### Improved
 
 - 3 nouvelles stats user sans migration requise (lecture `|| 0`) : `ssrFromDaily`, `ssrFromFragments`, `ssrFromBattlePass`
+- `progressionSystem.addXP()` intègre désormais le `playerXpBonus` de guilde directement dans le calcul du montant final d'XP — fix du userId lookup (`user.id || user.userId` au lieu de `user.odemonId`)
 
 ---
 
