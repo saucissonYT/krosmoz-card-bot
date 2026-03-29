@@ -234,8 +234,10 @@ function buyFromShop(userId,cardId){
  if(!user.stats) user.stats = {}
  user.stats.shopBought = (user.stats.shopBought || 0) + 1
 
- if(entry.rarity==="SSR")
+ if(entry.rarity==="SSR"){
   user.krosmoshopStats.ssrBought++
+  user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
+ }
 
  if(entry.rarity==="S")
   user.krosmoshopStats.sBought = (user.krosmoshopStats.sBought||0)+1

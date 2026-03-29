@@ -81,6 +81,11 @@ function giveSSR(user){
 
  user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
+ /* ---- Comptabilisation SSR ---- */
+ if(!user.stats) user.stats = {}
+ user.stats.ssrPulled    = (user.stats.ssrPulled    || 0) + 1
+ user.stats.ssrFromDaily = (user.stats.ssrFromDaily || 0) + 1
+
  return card
 }
 

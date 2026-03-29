@@ -284,6 +284,10 @@ async function craftFromFragments(userId, cardId) {
    if (!user.cards) user.cards = {}
    user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
+   /* ---- Comptabilisation SSR ---- */
+   user.stats.ssrPulled       = (user.stats.ssrPulled       || 0) + 1
+   user.stats.ssrFromFragments = (user.stats.ssrFromFragments || 0) + 1
+
    ensureFragmentStats(user)
    user.stats.fragmentsCrafted++
    if (!user.stats.fragmentsCraftedCards.includes(safeCardId)) {

@@ -7,6 +7,44 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Fixed → corrections de bugs
 - Improved → améliorations internes
 
+## [0.36.0] - 2026-03-29
+
+### Added
+
+- **`/fusion` — Refonte UX interactive**
+  - Nouveau flow en 3 étapes via select menus et boutons (plus d'options slash fixes)
+  - Étape 1 — Select menu des sets : chaque option affiche les fusions complètes disponibles par rareté (`⚪×3 · 🟢×1`) ou `❌ Aucune fusion disponible`
+  - Étape 2 — Select menu des raretés : uniquement les raretés avec ≥1 fusion possible, avec coût et dups dispo en description
+  - Étape 3 — Embed de confirmation : rareté cible, coût, fusions possibles, chances avec bonus → bouton Fusionner
+  - Navigation retour à tout moment (← Retour aux sets / ← Retour aux raretés)
+  - Toute la logique existante conservée : RNG, critiques, doubles, triples, achievements, BP XP
+
+- **Reset `/daily` à minuit heure Paris**
+  - Ancien comportement : cooldown glissant de 24h depuis le dernier claim
+  - Nouveau comportement : reset calendaire à 00:00 Europe/Paris — le daily est disponible dès minuit
+  - Ajout de `getParisDay(ts)` et `getNextMidnightParisMs()` dans `dailySystem.js`
+  - Le message "déjà récupéré" affiche désormais `Dans Xh Ym (à minuit heure Paris)`
+  - Le calcul du streak break utilise également les jours calendaires Paris
+
+### Fixed
+
+- **Comptabilisation manquante des SSR toutes sources** — `user.stats.ssrPulled` n'était pas incrémenté par plusieurs sources, rendant les achievements SSR globaux (`firstSSR`, `ssr5`…) non déclenchables depuis ces sources
+  - `dailySystem.js` — `giveSSR()` : ajout de `ssrPulled++` + nouvelle stat `ssrFromDaily`
+  - `fragmentService.js` — `craftFromFragments()` : ajout de `ssrPulled++` + nouvelle stat `ssrFromFragments`
+  - `krosmoshop.js` — `buyFromShop()` : ajout de `ssrPulled++` lors d'un achat SSR
+  - `fusion.js` — résultat SSR : ajout de `ssrPulled += quantity` (corrige aussi le cas double fusion) + `fusionSSRResult += quantity` au lieu de +1
+  - `battlePassService.js` — récompense `card_random_ssr` : remplace `ssrFromEvent` (faux positif) par `ssrFromBattlePass`
+
+- **`fusion_*` boutons expiraient immédiatement**
+  - Cause : un fallback `fusion_*` dans `buttonRoutes.js` acknowledgeait l'interaction avant le collector interne → double acknowledge → crash
+  - Fix : suppression du fallback (même pattern que `profil_*` et `mystats_*`)
+
+### Improved
+
+- 3 nouvelles stats user sans migration requise (lecture `|| 0`) : `ssrFromDaily`, `ssrFromFragments`, `ssrFromBattlePass`
+
+---
+
 ## [0.35.0] - 2026-03-27
 
 ### Added 

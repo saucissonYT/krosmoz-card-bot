@@ -274,8 +274,8 @@ function awardReward(userId, reward) {
    user.cards[card.id] = (user.cards[card.id] || 0) + 1
    names.push(card.name || card.id)
    user.stats = user.stats || {}
-   user.stats.ssrPulled   = (user.stats.ssrPulled   || 0) + 1
-   user.stats.ssrFromEvent = (user.stats.ssrFromEvent || 0) + 1
+   user.stats.ssrPulled        = (user.stats.ssrPulled        || 0) + 1
+   user.stats.ssrFromBattlePass = (user.stats.ssrFromBattlePass || 0) + 1
   }
   result.text = names.length ? `🌈 SSR x${names.length}: ${names.slice(0, 2).join(", ")}` : "🌈 Carte SSR"
  }

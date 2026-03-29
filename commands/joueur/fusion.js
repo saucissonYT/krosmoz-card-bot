@@ -322,8 +322,10 @@ async function runFusion(i, msg, userId, setId, rarity){
   user.cards[card.id] = (user.cards[card.id] || 0) + 1
  }
 
- if(targetRarity === "SSR")
-  user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + 1
+ if(targetRarity === "SSR"){
+  user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + quantity
+  user.stats.ssrPulled       = (user.stats.ssrPulled       || 0) + quantity
+ }
 
  addXP(user, xpGain)
  await addBattlePassXP(userId, "fusion")
