@@ -8,22 +8,27 @@ const {
 } = require("discord.js")
 
 const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
-const { getCards } = require("../../systems/cardRegistry")
-const { openPack } = require("../../systems/packEngine")
+const { getCards }                    = require("../../systems/cardRegistry")
+const { openPack }                    = require("../../systems/packEngine")
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
-const { addBattlePassXP } = require("../../systems/battlePassService")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
-const { loadSets } = require("../../systems/setSystemFile")
+const { addBattlePassXP }             = require("../../systems/battlePassService")
+const { achievementCheck }            = require("../../systems/achievementCheck")
+const { notifyAchievements }          = require("../../systems/achievementNotifier")
+const { loadSets }                    = require("../../systems/setSystemFile")
 const {
  getFragmentDisplayName,
  getCardCraftProgress,
  buildProgressBar
 } = require("../../systems/fragmentService")
+const {
+ isSetUnlocked,
+ getUnlockMessage,
+ splitSetsByUnlock
+} = require("../../systems/setUnlockSystem")
 const cooldownDev = require("../dev/cooldown")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-const MAX_BATCH = 25
+const MAX_BATCH    = 25
 
 function sleep(ms) {
  return new Promise((resolve) => setTimeout(resolve, ms))
@@ -55,12 +60,12 @@ function getCooldownMs(user) {
 }
 
 function getCooldownText(user) {
- const now = Date.now()
+ const now      = Date.now()
  const cooldown = getCooldownMs(user)
  if (!user.lastPack) return "🎁 Pack gratuit : **disponible**"
  const remain = cooldown - (now - user.lastPack)
  if (remain <= 0) return "🎁 Pack gratuit : **disponible**"
- const minutes = Math.ceil(remain / 60000)
+ const minutes      = Math.ceil(remain / 60000)
  const totalMinutes = Math.round(cooldown / 60000)
  return `⏳ Pack gratuit : **${minutes} min** (cooldown ${totalMinutes} min)`
 }
@@ -77,7 +82,7 @@ function getSetCompletion(user, setId) {
  return { owned, total: setCards.length }
 }
 
-/* ─── Sets jouables ──────────────────────────────────────────────────────── */
+/* ─── Sets jouables (ont des cartes) ────────────────────────────────────── */
 
 function getPlayableSets(rawSets) {
  const sets  = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
@@ -110,21 +115,30 @@ function aggregateCards(results) {
 }
 
 /* ─── Options du select menu sets ────────────────────────────────────────── */
+/*
+ * Les sets débloqués sont sélectionnables normalement.
+ * Les sets verrouillés apparaissent avec 🔒 pour que le joueur
+ * sache qu'ils existent — si sélectionnés, un message d'erreur s'affiche.
+ */
 
 function buildSetOptions(user) {
- const rawSets = loadSets()
- const sets    = getPlayableSets(rawSets)
+ const rawSets      = loadSets()
+ const playable     = getPlayableSets(rawSets)
+ const allCards     = getCards()
 
  if (!user.pity)  user.pity  = {}
  if (!user.stats) user.stats = {}
 
+ const { unlocked, locked } = splitSetsByUnlock(playable, user, allCards)
+
  const options = [{
   label:       "🎲 Random",
   value:       "random",
-  description: "Packs répartis aléatoirement entre tous les sets"
+  description: "Packs répartis aléatoirement dans tes sets débloqués"
  }]
 
- for (const set of sets.slice(0, 24)) {
+ /* Sets débloqués */
+ for (const set of unlocked.slice(0, 20)) {
   if (!user.pity[set.id]) user.pity[set.id] = { SSR: 0, S: 0, UR: 0 }
   const { owned, total } = getSetCompletion(user, set.id)
   const pct = total > 0 ? Math.floor(owned / total * 100) : 0
@@ -133,6 +147,17 @@ function buildSetOptions(user) {
    label:       `${set.name} (${owned}/${total})`,
    value:        set.id,
    description: `${pct}% complété · SSR pity : ${ssr}/50`
+  })
+ }
+
+ /* Sets verrouillés — visibles mais bloqués */
+ for (const set of locked.slice(0, 24 - unlocked.length)) {
+  const { owned, total } = getSetCompletion(user, set.id)
+  const pct = total > 0 ? Math.floor(owned / total * 100) : 0
+  options.push({
+   label:       `🔒 ${set.name}`,
+   value:        set.id,
+   description: `Verrouillé · ${pct}% complété`
   })
  }
 
@@ -171,17 +196,31 @@ function buildQuantityRow(user, hasFree) {
 /* ─── Ouverture des packs ────────────────────────────────────────────────── */
 
 async function openPacksBatch(interaction, setId, requestedCount) {
- const packCount = Math.max(1, Math.min(MAX_BATCH, requestedCount || 1))
- const user      = getUser(interaction.user.id)
- const rawSets   = loadSets()
+ const packCount    = Math.max(1, Math.min(MAX_BATCH, requestedCount || 1))
+ const user         = getUser(interaction.user.id)
+ const allCards     = getCards()
+ const rawSets      = loadSets()
  const playableSets = getPlayableSets(rawSets)
- const playableIds  = playableSets.map((s) => s.id)
  const isRandom     = setId === "random"
 
- if (playableIds.length === 0)
-  return interaction.editReply("Aucun set jouable disponible actuellement.")
+ /* ── Vérification déblocage ────────────────────────────────────────────── */
 
- if (!isRandom && !playableIds.includes(setId))
+ if (!isRandom) {
+  if (!isSetUnlocked(user, setId, allCards)) {
+   const msg = getUnlockMessage(user, setId, allCards)
+   return interaction.editReply(msg || "🔒 Ce set est verrouillé.")
+  }
+ }
+
+ /* Sets jouables + débloqués pour ce joueur */
+ const unlockedIds = playableSets
+  .map((s) => s.id)
+  .filter((id) => isSetUnlocked(user, id, allCards))
+
+ if (unlockedIds.length === 0)
+  return interaction.editReply("Aucun set débloqué disponible.")
+
+ if (!isRandom && !unlockedIds.includes(setId))
   return interaction.editReply("Ce set n'est pas disponible actuellement.")
 
  const setCache = getSetCache()
@@ -190,7 +229,7 @@ async function openPacksBatch(interaction, setId, requestedCount) {
 
  /* Snapshot de complétion avant ouverture */
  const beforeCompletionBySet = {}
- for (const sid of (isRandom ? playableIds : [setId])) {
+ for (const sid of (isRandom ? unlockedIds : [setId])) {
   beforeCompletionBySet[sid] = getSetCompletion(user, sid)
  }
 
@@ -232,8 +271,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   return interaction.editReply(msg)
  }
 
- if (freePacks > 0) user.lastPack = now
- if (paidNeeded > 0) user.packs = ownedPacks - paidNeeded
+ if (freePacks > 0)  user.lastPack = now
+ if (paidNeeded > 0) user.packs    = ownedPacks - paidNeeded
 
  user.stats.packsOpened   = (user.stats.packsOpened   || 0) + packCount
  user.stats.krosmozOpened = (user.stats.krosmozOpened || 0) + packCount
@@ -242,7 +281,11 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  updateActivityStreak(user)
 
- await interaction.editReply(`🎴 Ouverture de **${packCount}** pack(s) sur **${isRandom ? "random" : setId}**...`)
+ const randomLabel = isRandom
+  ? `random (${unlockedIds.length} set${unlockedIds.length > 1 ? "s" : ""} débloqué${unlockedIds.length > 1 ? "s" : ""})`
+  : setId
+
+ await interaction.editReply(`🎴 Ouverture de **${packCount}** pack(s) sur **${randomLabel}**...`)
 
  const results      = []
  const setOpenCount = {}
@@ -252,8 +295,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  const cardsSnapshot = { ...user.cards }
 
  for (let i = 0; i < packCount; i++) {
+  /* ── Pour RANDOM : piocher uniquement dans les sets débloqués ── */
   const chosenSetId = isRandom
-   ? playableIds[Math.floor(Math.random() * playableIds.length)]
+   ? unlockedIds[Math.floor(Math.random() * unlockedIds.length)]
    : setId
 
   setOpenCount[chosenSetId] = (setOpenCount[chosenSetId] || 0) + 1
@@ -272,77 +316,81 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    const top = Object.entries(setOpenCount)
     .sort((a, b) => b[1] - a[1]).slice(0, 3)
     .map(([sid, qty]) => `${sid}:${qty}`).join(" | ")
-   await interaction.editReply(`🎴 Ouverture en cours... **${i + 1}/${packCount}**${top ? `\n🎲 ${top}` : ""}`)
+   await interaction.editReply(
+    `🎴 Ouverture en cours... **${i + 1}/${packCount}**${top ? ` — ${top}` : ""}`
+   )
   }
  }
 
- /* Set completions */
- for (const sid of Object.keys(setOpenCount)) {
-  const bc = beforeCompletionBySet[sid] || { owned: 0, total: 0 }
-  const ac = getSetCompletion(user, sid)
-  if (bc.total > 0 && bc.owned < bc.total && ac.owned === ac.total) {
-   await addBattlePassXP(interaction.user.id, 480, "set_complete")
-  }
+ save()
+
+ /* ── Totaux ──────────────────────────────────────────────────────────────── */
+ const totals = {
+  kamas:     0,
+  xp:        0,
+  lucky:     0,
+  fragments: [],
  }
 
- const unlocked = []
- unlocked.push(...achievementCheck(user, "pack"))
- unlocked.push(...achievementCheck(user, "collection"))
- unlocked.push(...achievementCheck(user, "economy"))
- unlocked.push(...achievementCheck(user, "fragment"))
- unlocked.push(...achievementCheck(user, "rng"))
- const uniqueUnlocked = [...new Set(unlocked)]
- save(interaction.user.id)
+ for (const result of results) {
+  totals.kamas += result.kamasGain || 0
+  totals.xp    += result.xpGain    || 0
+  if (result.luckyPack) totals.lucky++
+  if (result.fragment)  totals.fragments.push(result.fragment)
+ }
 
- /* ── Cartes nouvelles (absentes du snapshot AVANT) ───────────────────────── */
+ /* ── Meilleures cartes & nouvelles ──────────────────────────────────────── */
+ const aggregated = aggregateCards(results)
+ const best       = aggregated[0]?.card || null
+
  const newCardIds = new Set()
- for (const r of results) {
-  for (const card of r.pack || []) {
-   if (card && card.id !== undefined && !cardsSnapshot[card.id]) {
-    newCardIds.add(String(card.id))
-    cardsSnapshot[card.id] = 1 /* marquer pour éviter doublons dans la même session */
-   }
+ for (const result of results) {
+  for (const card of result.pack || []) {
+   if (!cardsSnapshot[card.id]) newCardIds.add(String(card.id))
   }
  }
 
- /* ── Aggregation + lignes ────────────────────────────────────────────────── */
- const grouped   = aggregateCards(results)
- const displayed = grouped.slice(0, 45)
- const hidden    = Math.max(0, grouped.length - displayed.length)
-
- const lines = displayed.map(({ card, qty }) => {
-  const isNew   = newCardIds.has(String(card.id))
-  const qtyText = qty > 1 ? ` (x${qty})` : ""
-  const newTag  = isNew ? " 🆕" : ""
-  return `${RARITY_EMOJI[card.rarity]} **${card.name}${card.shiny ? " ✨" : ""}**${newTag} \`${card.rarity}\`${qtyText}`
- })
- if (hidden > 0) lines.push(`... +${hidden} carte(s) unique(s) supplémentaire(s)`)
-
- const totals = results.reduce((acc, r) => {
-  acc.kamas += r.kamasGain || 0
-  acc.xp    += r.xpGain    || 0
-  if (r.luckyPack) acc.lucky++
-  if (r.fragment) acc.fragments.push(r.fragment)
-  return acc
- }, { kamas: 0, xp: 0, lucky: 0, fragments: [] })
-
- let best = null
- for (const r of results) {
-  if (!r.best) continue
-  if (!best || rarityRank(r.best.rarity) > rarityRank(best.rarity)) best = r.best
+ /* ── Achievements ────────────────────────────────────────────────────────── */
+ const allUnlocked = []
+ for (const result of results) {
+  for (const id of result.discovered || []) {
+   if (!allUnlocked.includes(id)) allUnlocked.push(id)
+  }
  }
+ const uniqueUnlocked = [...new Set(allUnlocked)]
 
- /* ── Défilement rapide ───────────────────────────────────────────────────── */
- const scrollPreview = lines.slice(0, 18)
- if (scrollPreview.length > 0) {
-  const step  = packCount >= 10 ? 6 : 4
+ /* ── Affichage (scroll ou direct) ───────────────────────────────────────── */
+ const lines = aggregated.map(({ card, qty }) => {
+  const emoji  = RARITY_EMOJI[card.rarity] || ""
+  const shiny  = card.shiny ? " ✨ SHINY" : ""
+  const qtyStr = qty > 1 ? ` x${qty}` : ""
+  return `${emoji} **${card.name}**${shiny}${qtyStr}`
+ })
+
+ if (packCount === 1) {
+  const scrollPreview = lines
+  const delay = lines.length <= 5 ? 600 : lines.length <= 10 ? 400 : 250
+  const step  = lines.length <= 5 ? 1 : lines.length <= 10 ? 2 : 3
+
+  for (let i = step; i <= scrollPreview.length; i += step) {
+   const chunk = scrollPreview.slice(0, i).join("\n")
+   await interaction.editReply({
+    embeds: [new EmbedBuilder()
+     .setTitle("🎴 Pack en cours...")
+     .setDescription(`${chunk}${i < scrollPreview.length ? "\n\n..." : ""}`)
+     .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")]
+   })
+   await sleep(delay)
+  }
+ } else if (packCount >= 5) {
+  const scrollPreview = lines
   const delay = packCount >= 10 ? 180 : 240
 
   for (let i = step; i <= scrollPreview.length; i += step) {
    const chunk = scrollPreview.slice(0, i).join("\n")
    await interaction.editReply({
     embeds: [new EmbedBuilder()
-     .setTitle(packCount === 1 ? "🎴 Pack en cours..." : `🎴 Giga Pack x${packCount} — Défilement`)
+     .setTitle(`🎴 Giga Pack x${packCount} — Défilement`)
      .setDescription(`${chunk}${i < scrollPreview.length ? "\n\n..." : ""}`)
      .setColor(RARITY_COLOR[best?.rarity] || "#f1c40f")]
    })
@@ -357,8 +405,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   .setTitle(title)
   .setDescription(lines.join("\n") || "Aucune carte.")
   .addFields(
-   { name: "💰 Kamas gagnés",   value: `+${totals.kamas}`, inline: true },
-   { name: "⭐ XP gagnée",       value: `+${totals.xp}`,   inline: true },
+   { name: "💰 Kamas gagnés",   value: `+${totals.kamas}`,  inline: true },
+   { name: "⭐ XP gagnée",       value: `+${totals.xp}`,    inline: true },
    { name: "📦 Packs consommés", value: `${packCount} (${freePacks} gratuit + ${paidNeeded} payants)`, inline: true },
    { name: "🌈 SSR Pity", value: isRandom ? "Par set (random)" : `${user.pity?.[setId]?.SSR ?? 0}/50`, inline: true },
    { name: "✨ S Pity",   value: isRandom ? "Par set (random)" : `${user.pity?.[setId]?.S   ?? 0}/30`, inline: true },
@@ -377,16 +425,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    const progress = getCardCraftProgress(user, fragment.cardId)
    return `• ${getFragmentDisplayName(fragment.cardId, fragment.fragmentNumber)} - ${buildProgressBar(progress)} ${progress.ownedCount}/5`
   })
-
-  if (totals.fragments.length > fragmentLines.length) {
+  if (totals.fragments.length > fragmentLines.length)
    fragmentLines.push(`... +${totals.fragments.length - fragmentLines.length} autre(s)`)
-  }
-
-  embed.addFields({
-   name: "🧩 Fragments gagnes",
-   value: fragmentLines.join("\n"),
-   inline: false
-  })
+  embed.addFields({ name: "🧩 Fragments gagnés", value: fragmentLines.join("\n"), inline: false })
  }
 
  if (isRandom) {
@@ -413,13 +454,13 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    .filter(Boolean)
    .slice(0, 20)
 
-  const more = newCardIds.size > newNames.length ? `\n... +${newCardIds.size - newNames.length}` : ""
+  const more = newCardIds.size > newNames.length
+   ? `\n... +${newCardIds.size - newNames.length}` : ""
   await interaction.followUp({ content: `Nouvelle découverte !\n${newNames.join("\n")}${more}`, flags: 64 })
  }
 
- if (uniqueUnlocked.length) {
+ if (uniqueUnlocked.length)
   await notifyAchievements(interaction, uniqueUnlocked)
- }
 }
 
 /* ─── Exports ────────────────────────────────────────────────────────────── */
@@ -449,21 +490,25 @@ module.exports = {
   const focused      = interaction.options.getFocused().toLowerCase()
   const rawSets      = loadSets()
   const playableSets = getPlayableSets(rawSets)
+  const allCards     = getCards()
 
   let user = null
   try { user = getUser(interaction.user.id) } catch (_) {}
 
-  const choices = [{ name: "🎲 Random — tous les sets", value: "random" }]
+  const choices = [{ name: "🎲 Random — sets débloqués uniquement", value: "random" }]
 
   for (const set of playableSets.slice(0, 24)) {
-   let label = set.name
+   const unlocked = user ? isSetUnlocked(user, set.id, allCards) : true
+   let label = unlocked ? set.name : `🔒 ${set.name}`
    if (user) {
     const { owned, total } = getSetCompletion(user, set.id)
     const pct = total > 0 ? Math.floor(owned / total * 100) : 0
-    if (!user.pity)        user.pity = {}
+    if (!user.pity)         user.pity = {}
     if (!user.pity[set.id]) user.pity[set.id] = { SSR: 0, S: 0, UR: 0 }
     const ssr = user.pity[set.id].SSR ?? 0
-    label = `${set.name} (${owned}/${total}) — ${pct}% · SSR pity : ${ssr}/50`
+    label = unlocked
+     ? `${set.name} (${owned}/${total}) — ${pct}% · SSR pity : ${ssr}/50`
+     : `🔒 ${set.name} — verrouillé`
    }
    choices.push({ name: label, value: set.id })
   }
@@ -521,16 +566,25 @@ ${getCooldownText(user)}`,
 
   const setId    = interaction.values[0]
   const user     = getUser(interaction.user.id)
+  const allCards = getCards()
   const isRandom = setId === "random"
 
+  /* ── Vérification déblocage ────────────────────────────────────────────── */
+  if (!isRandom && !isSetUnlocked(user, setId, allCards)) {
+   const msg = getUnlockMessage(user, setId, allCards)
+   return interaction.reply({ content: msg || "🔒 Ce set est verrouillé.", flags: 64 })
+  }
+
   if (!user.pity)        user.pity  = {}
-  if (!user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
+  if (!isRandom && !user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
   if (!user.stats)       user.stats = {}
 
-  const pity = user.pity[setId]
-  if (pity.S   === undefined) pity.S   = 0
-  if (pity.UR  === undefined) pity.UR  = 0
-  if (pity.SSR === undefined) pity.SSR = 0
+  if (!isRandom) {
+   const pity = user.pity[setId]
+   if (pity.S   === undefined) pity.S   = 0
+   if (pity.UR  === undefined) pity.UR  = 0
+   if (pity.SSR === undefined) pity.SSR = 0
+  }
 
   const now      = Date.now()
   const cooldown = getCooldownMs(user)
@@ -544,10 +598,12 @@ ${getCooldownText(user)}`,
    completionLine = `📚 Complétion : **${owned}/${total}** (${pct}%)\n`
   }
 
+  const pity = isRandom ? null : user.pity[setId]
+
   const content =
-`🎴 **${isRandom ? "🎲 Random — tous les sets" : setId}**
+`🎴 **${isRandom ? "🎲 Random — sets débloqués uniquement" : setId}**
 ${completionLine}📦 Packs en stock : **${user.packs || 0}**
-${getCooldownText(user)}${!isRandom ? `\n🌈 SSR Pity : **${pity.SSR}/50** · ✨ S : **${pity.S}/30** · 🟡 UR : **${pity.UR}/10**` : ""}
+${getCooldownText(user)}${!isRandom && pity ? `\n🌈 SSR Pity : **${pity.SSR}/50** · ✨ S : **${pity.S}/30** · 🟡 UR : **${pity.UR}/10**` : ""}
 
 **Combien de packs ouvrir ?**`
 
