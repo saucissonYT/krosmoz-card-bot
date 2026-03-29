@@ -36,16 +36,19 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
- /* Fallback fusion — collector expiré */
- if (id.startsWith("fusion_")) {
-  return interaction.reply({
-   content: "⏳ Ce menu de fusion a expiré. Utilise `/fusion` pour en ouvrir un nouveau.",
-   flags: 64
-  })
- }
-
  /*
-  * NE PAS router profil_* ni mystats_* ici.
+  * NE PAS router fusion_* ici.
+  *
+  * Les boutons fusion_ (fusion_confirm, fusion_back_sets, fusion_back_rarity)
+  * sont gérés par le collector interne dans fusion.js.
+  * Si on les routait ici, le handler global acknowledgerait l'interaction
+  * AVANT le collector → double acknowledge → crash + message "expiré"
+  * affiché immédiatement même pendant la fenêtre active.
+  *
+  * Le collector retire les composants à l'expiration (msg.edit({ components: [] }))
+  * donc il n'y a plus de boutons cliquables après timeout — pas besoin de fallback.
+  *
+  * NE PAS router profil_* ni mystats_* ici pour la même raison.
   *
   * Ces boutons sont gérés par des collectors internes dans profil.js
   * et mystats.js. Si on les routait vers command.button() ici, le
