@@ -1,7 +1,7 @@
 /* ===============================================
    PROGRESSION SYSTEM — XP & Level
    
-   v0.29 — Refonte complète
+   v0.31 — Tracking nightLevelUp pour achievement secret
    
    - Level cap : 200
    - Formule XP : 100 + level × 35 (un peu plus longue, reste fluide)
@@ -171,6 +171,13 @@ function addXP(user, amount){
 
   user.kamas += reward.kamas
   user.packs += reward.packs
+
+  /* Tracking level-up nocturne (minuit → 6h) pour achievement secret */
+  const hour = new Date().getHours()
+  if(hour >= 0 && hour < 6){
+   if(!user.stats) user.stats = {}
+   user.stats.nightLevelUp = (user.stats.nightLevelUp || 0) + 1
+  }
 
   levelUps.push({
    level: lvl,
