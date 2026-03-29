@@ -987,6 +987,7 @@ Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée pa
   <img src="screenshots/battlepass.png" width="30%"/>
   <img src="screenshots/battlepass2.png" width="30%"/>
   <img src="screenshots/bonusguilde.png" width="30%"/>
+  <img src="screenshots/roulette.png.png" width="30%"/>
 </p>
 
 ---

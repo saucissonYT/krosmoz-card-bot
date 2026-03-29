@@ -12,6 +12,8 @@ const { deployCommands } = require("./deployCommands")
 const { registerMessageCreateHandler } = require("./handlers/messageCreate")
 const { registerInteractionCreateHandler } = require("./handlers/interactionCreate")
 
+const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
+
 function initializeSystems() {
  dataManager.loadAll()
  loadGuilds()
@@ -41,6 +43,19 @@ async function bootstrap() {
    }
   } catch (error) {
    console.error("Erreur deploy commands :", error)
+  }
+
+  try {
+   const channel = await client.channels.fetch(ONLINE_RP_CHANNEL_ID)
+   if (channel && channel.isTextBased()) {
+    await channel.send(
+     "Les runes vibrent, les cartes s'eveillent. Krosmoz Card est a nouveau operationnel."
+    )
+   } else {
+    console.warn(`[ready-rp] Salon non textuel : ${ONLINE_RP_CHANNEL_ID}`)
+   }
+  } catch (error) {
+   console.error(`[ready-rp] Impossible d'envoyer le message de demarrage (${ONLINE_RP_CHANNEL_ID}) :`, error.message)
   }
  })
 
