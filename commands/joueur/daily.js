@@ -4,7 +4,7 @@ const {
 } = require("discord.js")
 
 const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
-const { claimDaily, canClaim } = require("../../systems/dailySystem")
+const { claimDaily, canClaim, getNextMidnightParisMs } = require("../../systems/dailySystem")
 const { addBattlePassXP } = require("../../systems/battlePassService")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
@@ -53,22 +53,12 @@ module.exports={
    /* Sauvegarde si le snapshot vient d'être initialisé (nouveau jour) */
    save()
 
-   const now=Date.now()
-   const cooldown=24*60*60*1000
+   const now          = Date.now()
+   const nextMidnight = getNextMidnightParisMs()
+   const remaining    = Math.max(0, nextMidnight - now)
 
-   const lastClaim=user.daily?.lastDaily||0
-   const next=lastClaim+cooldown
-   const remaining=Math.max(0,next-now)
-
-   const hours=Math.floor(remaining/(1000*60*60))
-   const minutes=Math.floor((remaining%(1000*60*60))/(1000*60))
-
-   const nextDate=new Date(next)
-
-   const nextTime=nextDate.toLocaleTimeString("fr-FR",{
-    hour:"2-digit",
-    minute:"2-digit"
-   })
+   const hours   = Math.floor(remaining / (1000 * 60 * 60))
+   const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
 
    const embed=new EmbedBuilder()
     .setTitle("⏳ Daily déjà récupéré")
@@ -76,7 +66,7 @@ module.exports={
     .setDescription("Tu as déjà récupéré ta récompense aujourd'hui.")
     .addFields({
      name:"⏳ Prochaine daily",
-     value:`Dans **${hours}h ${minutes}m**\n(à **${nextTime}**)`
+     value:`Dans **${hours}h ${minutes}m**\n(à **minuit** heure Paris)`
     })
 
    return interaction.reply({ embeds:[embed], flags:64 })
@@ -179,31 +169,32 @@ module.exports={
   if(result.doubleReward){
    embed.addFields({
     name:"🎉 DOUBLE DAILY !",
-    value:"Tes récompenses ont été **doublées** 🍀",
-    inline:false
+    value:`Récompense doublée ! (${Math.round(result.doubleDailyChance*100)}% de chance)`
    })
-  } else {
-   embed.addFields({ name:"🍀 Chance de double", value:"10%", inline:false })
   }
 
-  /* ---------------- ACHIEVEMENTS ---------------- */
+  if(result.bonusPacksGiven > 0){
+   embed.addFields({
+    name:"🏰 Bonus de guilde",
+    value:`+${result.bonusPacksGiven} pack(s) offert(s) par ta guilde !`
+   })
+  }
 
-  let unlocked=[]
+  if(result.bonusKamas > 0 && result.reward.type==="kamas"){
+   embed.addFields({
+    name:"⬆️ Bonus kamas",
+    value:`+${result.bonusKamas} kamas de bonus joueur`
+   })
+  }
 
-  unlocked.push(...achievementCheck(user,"daily"))
-  unlocked.push(...achievementCheck(user,"pack"))
+  save(interaction.user.id)
 
-  if(result.reward.type==="kamas")
-   unlocked.push(...achievementCheck(user,"economy"))
+  await interaction.reply({ embeds:[embed] })
 
-  if(result.reward.type==="ssr")
-   unlocked.push(...achievementCheck(user,"collection"))
-
-  save()
-
-  /* ---------------- PUBLIC MESSAGE ---------------- */
-
-  await interaction.reply({embeds:[embed]})
+  const unlocked=[
+   ...achievementCheck(user,"daily"),
+   ...achievementCheck(user,"economy")
+  ]
 
   if(unlocked.length)
    await notifyAchievements(interaction,unlocked)

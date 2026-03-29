@@ -10,6 +10,33 @@ function getRandom(arr){
  return arr[Math.floor(Math.random()*arr.length)]
 }
 
+/* ---- Helpers Paris timezone ---- */
+
+/**
+ * Retourne la date Paris au format "YYYY-MM-DD" pour un timestamp donné.
+ * Utilisé pour comparer les jours calendaires (reset à minuit Paris).
+ */
+function getParisDay(ts){
+ return new Intl.DateTimeFormat("en-CA", { timeZone:"Europe/Paris" }).format(new Date(ts))
+}
+
+/**
+ * Retourne le timestamp UTC de la prochaine minuit Paris (00:00 Europe/Paris).
+ * Utilisé pour afficher le temps restant avant le prochain daily.
+ */
+function getNextMidnightParisMs(){
+ const now = new Date()
+ /* "Virtual" Paris time : traite l'heure Paris comme si c'était UTC */
+ const parisVirtual = new Date(now.toLocaleString("en-US", { timeZone:"Europe/Paris" }))
+ /* Prochaine minuit dans ce temps virtuel */
+ const nextMidnight = new Date(parisVirtual)
+ nextMidnight.setHours(0, 0, 0, 0)
+ nextMidnight.setDate(nextMidnight.getDate() + 1)
+ /* Offset entre UTC réel et temps virtuel Paris → donne le vrai timestamp UTC de minuit Paris */
+ const offset = now.getTime() - parisVirtual.getTime()
+ return nextMidnight.getTime() + offset
+}
+
 /* ---- Bonus helpers ---- */
 
 function getDailyBonuses(userId, user){
@@ -59,15 +86,21 @@ function giveSSR(user){
 
 /* ---------------- CAN CLAIM ---------------- */
 
+/**
+ * Retourne true si le joueur peut claim son daily.
+ * Reset à minuit Paris (00:00 Europe/Paris), pas 24h glissantes.
+ */
 function canClaim(user){
-
- const now = Date.now()
 
  if(!user.daily)
   user.daily = { streak:0, lastDaily:0 }
 
- return now - user.daily.lastDaily >= 86400000
+ if(!user.daily.lastDaily) return true
 
+ const todayParis = getParisDay(Date.now())
+ const lastParis  = getParisDay(user.daily.lastDaily)
+
+ return todayParis !== lastParis
 }
 
 /* ---------------- CLAIM DAILY ---------------- */
@@ -87,10 +120,15 @@ async function claimDaily(interaction, user, userId){
  if(user.stats.dailyClaims === undefined)
   user.stats.dailyClaims = 0
 
- /* reset streak si >48h */
+ /* ---- Reset streak si le joueur a sauté au moins un jour (calendaire Paris) ---- */
 
- if(now - user.daily.lastDaily > 172800000)
-  user.daily.streak = 0
+ if(user.daily.lastDaily > 0){
+  const lastParis      = getParisDay(user.daily.lastDaily)
+  const yesterdayParis = getParisDay(now - 86400000)
+  if(lastParis !== yesterdayParis){
+   user.daily.streak = 0
+  }
+ }
 
  user.daily.lastDaily = now
  user.daily.streak++
@@ -192,5 +230,7 @@ async function claimDaily(interaction, user, userId){
 module.exports={
  canClaim,
  claimDaily,
- giveSSR
+ giveSSR,
+ getParisDay,
+ getNextMidnightParisMs
 }
