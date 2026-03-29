@@ -73,7 +73,7 @@ const RARITY_COLOR = {
 const PACK_PRICE = 2500
 
 /* ---- Niveau max joueur ---- */
-const MAX_PLAYER_LEVEL = 100
+const MAX_PLAYER_LEVEL = 200
 
 module.exports = {
  RARITY_EMOJI,

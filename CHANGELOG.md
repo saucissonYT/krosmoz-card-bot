@@ -26,6 +26,22 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Le message "déjà récupéré" affiche désormais `Dans Xh Ym (à minuit heure Paris)`
   - Le calcul du streak break utilise également les jours calendaires Paris
 
+### Changed
+
+- **Progression joueur étendue jusqu'au niveau 200**
+  - `MAX_PLAYER_LEVEL` passe de 100 à 200
+  - La progression XP n'est plus bloquée au niveau 100
+
+- **Courbe d'XP joueur réajustée (un peu plus longue, sans devenir lente)**
+  - Formule passée à `100 + niveau × 35` par niveau
+  - Progression plus régulière sur le mid/end-game
+
+- **Milestones de niveau enrichis au-delà de 100**
+  - Ajout des paliers 125, 150, 175 et 200 avec récompenses dédiées (kamas + packs)
+
+- **README mis à jour sur la progression**
+  - Documentation alignée avec le cap 200, la nouvelle formule XP, les nouveaux paliers et les bonus max
+
 ### Fixed
 
 - **Comptabilisation manquante des SSR toutes sources** — `user.stats.ssrPulled` n'était pas incrémenté par plusieurs sources, rendant les achievements SSR globaux (`firstSSR`, `ssr5`…) non déclenchables depuis ces sources

@@ -15,7 +15,7 @@ Les joueurs peuvent :
 - Compléter des quêtes journalières et hebdomadaires
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
-- Progresser jusqu'au niveau 100 et débloquer des bonus permanents
+- Progresser jusqu'au niveau 200 et débloquer des bonus permanents
 - Débloquer 555 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
@@ -127,7 +127,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 | Système | Rôle |
 |---------|------|
-| progressionSystem | XP et level-up (cap 100), milestones, bonus XP intégré |
+| progressionSystem | XP et level-up (cap 200), milestones, bonus XP intégré |
 | playerBonuses | 9 bonus progressifs par niveau du joueur |
 | rankSystem | Rangs basés sur les achievements |
 | achievementRegistry | Agrégateur des 12 modules de succès actifs |
@@ -439,17 +439,20 @@ Chaque set possède son propre compteur de pity indépendant.
 
 ### Progression joueur
 
-- **Niveau max : 100**
-- Formule XP : `80 + niveau × 30` par niveau (progressive, jamais brutale)
-- XP total pour atteindre le niveau 100 : ~160 000
+- **Niveau max : 200**
+- Formule XP : `100 + niveau × 35` par niveau (progressive, un peu plus longue mais fluide)
+- XP total pour atteindre le niveau 100 : ~183 000
+- XP total pour atteindre le niveau 200 : ~716 000
 
 | Niveau | XP requis | XP total cumulé |
 |--------|-----------|-----------------|
-| 10 | 380 | ~2 300 |
-| 25 | 830 | ~11 500 |
-| 50 | 1 580 | ~42 000 |
-| 75 | 2 330 | ~92 000 |
-| 100 | 3 080 | ~160 000 |
+| 10 | 450 | ~2 900 |
+| 25 | 975 | ~14 400 |
+| 50 | 1 850 | ~47 200 |
+| 75 | 2 725 | ~101 900 |
+| 100 | 3 600 | ~178 700 |
+| 150 | 5 350 | ~401 200 |
+| 200 | 7 100 | ~716 400 |
 
 ### Milestones
 
@@ -460,21 +463,25 @@ Chaque set possède son propre compteur de pity indépendant.
 | 50 | +5 000 | +5 |
 | 75 | +10 000 | +5 |
 | 100 | +25 000 | +10 |
+| 125 | +15 000 | +6 |
+| 150 | +25 000 | +8 |
+| 175 | +40 000 | +10 |
+| 200 | +60 000 | +15 |
 
 ### 9 Bonus par niveau du joueur
 
 Les bonus se **cumulent** avec les bonus de guilde.
 
-| Bonus | Progression | Max (niv.100) |
+| Bonus | Progression | Max (niv.200) |
 |-------|------------|---------------|
-| 💰 Kamas bonus | +1% / 4 niv. | +25% |
-| 🔥 Fusion critique | +0.5% / 8 niv. | +6% |
-| 🍀 Lucky pack | +1% / 10 niv. | +10% |
-| ⭐ XP bonus | +5% / 20 niv. | +25% |
-| 🏪 Réduction KrosmoShop | +1% / 15 niv. | +6% |
-| 🎁 Kamas daily bonus | +50 / 10 niv. | +500 |
-| 🎲 Double daily | +2% / 25 niv. | +8% |
-| ✨ Chance shiny | +1% / 50 niv. | +2% |
+| 💰 Kamas bonus | +1% / 4 niv. | +50% |
+| 🔥 Fusion critique | +0.5% / 8 niv. | +12.5% |
+| 🍀 Lucky pack | +1% / 10 niv. | +20% |
+| ⭐ XP bonus | +5% / 20 niv. | +50% |
+| 🏪 Réduction KrosmoShop | +1% / 15 niv. | +13% |
+| 🎁 Kamas daily bonus | +50 / 10 niv. | +1000 |
+| 🎲 Double daily | +2% / 25 niv. | +16% |
+| ✨ Chance shiny | +1% / 50 niv. | +4% |
 | ⏱️ Réduction cooldown pack | -5 min / 20 niv. | -25 min (35 min min.) |
 
 ---
@@ -897,7 +904,7 @@ Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte.
 13. Compléter les quêtes de guilde pour faire monter la guilde en niveau
 14. Profiter des bonus de guilde + bonus de niveau (kamas, fusion, lucky pack, XP, shiny, cooldown...)
 15. Débloquer des achievements et des titres
-16. Monter en niveau jusqu'au cap 100 et maximiser ses bonus
+16. Monter en niveau jusqu'au cap 200 et maximiser ses bonus
 
 ---
 

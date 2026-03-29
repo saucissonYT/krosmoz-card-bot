@@ -3,9 +3,10 @@
    
    v0.29 — Refonte complète
    
-   - Level cap : 100
-   - Formule XP : 80 + level × 30 (progressive, jamais brutale)
-   - XP total pour level 100 : ~160 000
+   - Level cap : 200
+   - Formule XP : 100 + level × 35 (un peu plus longue, reste fluide)
+   - XP total pour level 100 : ~183 000
+   - XP total pour level 200 : ~716 000
    - Récompenses par level améliorées avec milestones
    - Bonus de niveau appliqués via playerBonuses.js
 =============================================== */
@@ -18,7 +19,7 @@ function getXPRequired(level){
 
  if(level >= MAX_PLAYER_LEVEL) return Infinity
 
- return 80 + level * 30
+ return 100 + level * 35
 }
 
 /* ================= LEVEL REWARDS ================= */
@@ -77,6 +78,34 @@ function getLevelReward(level){
   reward.kamas += 25000
   reward.packs += 10
   reward.milestoneText = "👑 NIVEAU 100 ! +25000 kamas +10 packs !"
+ }
+
+ if(level === 125){
+  reward.milestone = true
+  reward.kamas += 15000
+  reward.packs += 6
+  reward.milestoneText = "🏛️ Niveau 125 ! +15000 kamas +6 packs"
+ }
+
+ if(level === 150){
+  reward.milestone = true
+  reward.kamas += 25000
+  reward.packs += 8
+  reward.milestoneText = "⚡ Niveau 150 ! +25000 kamas +8 packs"
+ }
+
+ if(level === 175){
+  reward.milestone = true
+  reward.kamas += 40000
+  reward.packs += 10
+  reward.milestoneText = "🌠 Niveau 175 ! +40000 kamas +10 packs"
+ }
+
+ if(level === 200){
+  reward.milestone = true
+  reward.kamas += 60000
+  reward.packs += 15
+  reward.milestoneText = "🪽 NIVEAU 200 ! +60000 kamas +15 packs !"
  }
 
  return reward

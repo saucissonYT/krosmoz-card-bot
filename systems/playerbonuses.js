@@ -13,6 +13,7 @@
 =============================================== */
 
 const { getProgression } = require("./progressionSystem")
+const { MAX_PLAYER_LEVEL } = require("./constants")
 
 /* ================= CALCUL DES BONUS ================= */
 
@@ -22,32 +23,32 @@ function getPlayerBonuses(level){
 
  return {
 
-  /* +1% kamas tous les 4 niveaux → +25% au niveau 100 */
+  /* +1% kamas tous les 4 niveaux → +50% au niveau 200 */
   kamasBonus: Math.floor(level / 4),
 
-  /* +0.5% fusion crit tous les 8 niveaux → +6% au niveau 100 (arrondi) */
+  /* +0.5% fusion crit tous les 8 niveaux → +12.5% au niveau 200 */
   fusionCritBonus: Math.floor(level / 8) * 0.5,
 
-  /* +1% lucky pack tous les 10 niveaux → +10% au niveau 100 */
+  /* +1% lucky pack tous les 10 niveaux → +20% au niveau 200 */
   luckyPackBonus: Math.floor(level / 10),
 
-  /* +5% XP bonus tous les 20 niveaux → +25% au niveau 100 */
+  /* +5% XP bonus tous les 20 niveaux → +50% au niveau 200 */
   xpBonus: Math.floor(level / 20) * 5,
 
-  /* +1% réduction shop tous les 15 niveaux → +6% au niveau 100 */
+  /* +1% réduction shop tous les 15 niveaux → +13% au niveau 200 */
   shopDiscount: Math.floor(level / 15),
 
-  /* +50 kamas daily tous les 10 niveaux → +500 au niveau 100 */
+  /* +50 kamas daily tous les 10 niveaux → +1000 au niveau 200 */
   dailyKamasBonus: Math.floor(level / 10) * 50,
 
-  /* +2% chance de double daily tous les 25 niveaux → +8% au niveau 100 */
+  /* +2% chance de double daily tous les 25 niveaux → +16% au niveau 200 */
   doubleDailyBonus: Math.floor(level / 25) * 2,
 
-  /* +1% chance de shiny tous les 50 niveaux → +2% au niveau 100
-     (s'ajoute au 0.5% de base → 2.5% max) */
+  /* +1% chance de shiny tous les 50 niveaux → +4% au niveau 200
+     (s'ajoute au 0.5% de base → 4.5% max theorique) */
   shinyBonus: Math.floor(level / 50),
 
-  /* Réduction cooldown pack (en minutes) tous les 20 niveaux → -25 min au niveau 100
+  /* Réduction cooldown pack (en minutes) tous les 20 niveaux
      (sur 60 min de base → 35 min minimum) */
   cooldownReduction: Math.floor(level / 20) * 5
 
@@ -100,7 +101,7 @@ function formatNextPlayerUnlocks(level){
  const lines = []
  const next = level + 1
 
- for(let l = next; l <= Math.min(level + 15, 100); l++){
+ for(let l = next; l <= Math.min(level + 15, MAX_PLAYER_LEVEL); l++){
 
   const before = getPlayerBonuses(l - 1)
   const after = getPlayerBonuses(l)
