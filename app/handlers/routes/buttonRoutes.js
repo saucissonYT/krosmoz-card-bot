@@ -36,6 +36,14 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
+ /* Fallback fusion — collector expiré */
+ if (id.startsWith("fusion_")) {
+  return interaction.reply({
+   content: "⏳ Ce menu de fusion a expiré. Utilise `/fusion` pour en ouvrir un nouveau.",
+   flags: 64
+  })
+ }
+
  /*
   * NE PAS router profil_* ni mystats_* ici.
   *

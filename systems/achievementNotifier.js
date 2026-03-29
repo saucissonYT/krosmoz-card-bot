@@ -16,7 +16,7 @@ const { getAchievementReward, formatReward } = require("./achievementRewards")
    Sinon, recalcule via getAchievementReward().
 =============================================== */
 
-async function notifyAchievements(interaction, list, user){
+async function notifyWithSender(sendFn, list, user){
 
  for(const id of list){
 
@@ -56,10 +56,7 @@ async function notifyAchievements(interaction, list, user){
   if(a.secret)
    embed.setFooter({ text:"🔒 Succès secret !" })
 
-  await interaction.followUp({
-   embeds:[embed],
-   flags:64
-  })
+  await sendFn(embed)
 
  }
 
@@ -70,6 +67,30 @@ async function notifyAchievements(interaction, list, user){
 
 }
 
+async function notifyAchievements(interaction, list, user){
+ return notifyWithSender(
+  async (embed) => {
+   await interaction.followUp({
+    embeds:[embed],
+    flags:64
+   })
+  },
+  list,
+  user
+ )
+}
+
+async function notifyAchievementsMessage(message, list, user){
+ return notifyWithSender(
+  async (embed) => {
+   await message.reply({ embeds:[embed] })
+  },
+  list,
+  user
+ )
+}
+
 module.exports = {
- notifyAchievements
+ notifyAchievements,
+ notifyAchievementsMessage
 }
