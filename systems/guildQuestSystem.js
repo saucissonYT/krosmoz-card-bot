@@ -180,6 +180,21 @@ function getWeeklyGuildQuests(){
 
 /* ================= STATS COMBINÉES ================= */
 
+/*
+ RÈGLE : on utilise UNIQUEMENT user.stats pour les compteurs cumulatifs.
+
+ - totalKamasEarned : compteur cumulatif dans user.stats, incrémenté à chaque
+   gain de kamas dans les commandes (daily, roulette, quêtes, ventes...).
+   Le delta snapshot→now donne les kamas gagnés sur la période sans être
+   affecté par les dépenses. → PASSE dans la boucle générale, pas de cas
+   particulier. On NE lit PLUS user.kamas (solde ≠ compteur).
+
+ - shopBought : EXCLU de la boucle car présent à la fois dans user.stats
+   ET user.krosmoshopStats. Source de vérité unique = krosmoshopStats.cardsBought.
+*/
+
+const STATS_EXCLUDED_FROM_LOOP = new Set(["shopBought"])
+
 function getCombinedStats(memberIds){
  const combined = {}
 
@@ -188,13 +203,13 @@ function getCombinedStats(memberIds){
   const stats = user.stats || {}
 
   for(const key of Object.keys(stats)){
+   if(STATS_EXCLUDED_FROM_LOOP.has(key)) continue
    if(typeof stats[key] === "number"){
     combined[key] = (combined[key] || 0) + stats[key]
    }
   }
 
-  combined.totalKamasEarned = (combined.totalKamasEarned || 0) + (user.kamas || 0)
-
+  /* shopBought : source de vérité unique = krosmoshopStats.cardsBought */
   if(user.krosmoshopStats?.cardsBought){
    combined.shopBought = (combined.shopBought || 0) + user.krosmoshopStats.cardsBought
   }
@@ -358,12 +373,11 @@ module.exports = {
  getGuildQuestProgress,
  claimGuildQuests,
  getNextGuildQuestReset,
- ensureSnapshot,          /* Exporté pour init le snapshot depuis daily.js AVANT toute action */
+ ensureSnapshot,
  getEffectiveMembers,
  getScaledGoal,
  DAILY_QUEST_POOL,
  WEEKLY_QUEST_POOL,
- /* Compat avec ancien nom utilisé dans guild.js */
  getWeeklyQuests: getWeeklyGuildQuests,
  BASE_CALIBRATION
 }

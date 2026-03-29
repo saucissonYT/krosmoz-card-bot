@@ -1,98 +1,75 @@
-/*
- * FIX: const cards = data.cards || [] au top-level créait un snapshot statique.
- * Remplacé par getCards() depuis cardRegistry, appelé dynamiquement dans giveSSR().
- */
+/* ================================================================
+   DAILY SYSTEM
+   Reset à minuit Paris (00:00 Europe/Paris), pas 24h glissantes.
+================================================================ */
+
+const { getUser, save } = require("./userSystem")
 const { getCards } = require("./cardRegistry")
 
-const { save } = require("./userSystem")
-
-function getRandom(arr){
- return arr[Math.floor(Math.random()*arr.length)]
-}
-
-/* ---- Helpers Paris timezone ---- */
-
-/**
- * Retourne la date Paris au format "YYYY-MM-DD" pour un timestamp donné.
- * Utilisé pour comparer les jours calendaires (reset à minuit Paris).
- */
-function getParisDay(ts){
- return new Intl.DateTimeFormat("en-CA", { timeZone:"Europe/Paris" }).format(new Date(ts))
-}
-
-/**
- * Retourne le timestamp UTC de la prochaine minuit Paris (00:00 Europe/Paris).
- * Utilisé pour afficher le temps restant avant le prochain daily.
- */
-function getNextMidnightParisMs(){
- const now = new Date()
- /* "Virtual" Paris time : traite l'heure Paris comme si c'était UTC */
- const parisVirtual = new Date(now.toLocaleString("en-US", { timeZone:"Europe/Paris" }))
- /* Prochaine minuit dans ce temps virtuel */
- const nextMidnight = new Date(parisVirtual)
- nextMidnight.setHours(0, 0, 0, 0)
- nextMidnight.setDate(nextMidnight.getDate() + 1)
- /* Offset entre UTC réel et temps virtuel Paris → donne le vrai timestamp UTC de minuit Paris */
- const offset = now.getTime() - parisVirtual.getTime()
- return nextMidnight.getTime() + offset
-}
-
 /* ---- Bonus helpers ---- */
-
 function getDailyBonuses(userId, user){
- let gKamas = 0, gPacks = 0, gDouble = 0
- let pKamas = 0, pDouble = 0
+ let bonusPacks = 0
+ let bonusKamas = 0
+ let doubleDailyBonus = 0
 
  try{
   const { getUserGuildBonuses } = require("./guildBonuses")
   const gb = getUserGuildBonuses(userId)
-  gPacks = gb.dailyBonusPacks || 0
-  gDouble = gb.doubleDailyBonus || 0
+  bonusPacks        += gb.dailyBonusPacks  || 0
+  doubleDailyBonus  += gb.doubleDailyBonus || 0
  }catch(e){}
 
  try{
   const { getPlayerBonuses } = require("./playerBonuses")
   const pb = getPlayerBonuses(user.progression?.level || 1)
-  pKamas = pb.dailyKamasBonus || 0
-  pDouble = pb.doubleDailyBonus || 0
+  bonusKamas        += pb.kamasBonus       || 0
+  doubleDailyBonus  += pb.doubleDailyBonus || 0
  }catch(e){}
 
- return {
-  bonusKamas: pKamas,
-  bonusPacks: gPacks,
-  doubleDailyBonus: gDouble + pDouble
- }
+ return { bonusPacks, bonusKamas, doubleDailyBonus }
 }
 
-/* ---------------- GIVE SSR ---------------- */
+/* ---- Paris timezone helpers ---- */
+function getParisDay(ts){
+ return new Intl.DateTimeFormat("fr-FR", {
+  timeZone:"Europe/Paris",
+  year:"numeric", month:"2-digit", day:"2-digit"
+ }).format(new Date(ts))
+}
 
+function getNextMidnightParisMs(){
+ const now   = new Date()
+ const paris = new Intl.DateTimeFormat("fr-FR", {
+  timeZone:"Europe/Paris",
+  year:"numeric", month:"2-digit", day:"2-digit",
+  hour:"2-digit", minute:"2-digit", second:"2-digit",
+  hourCycle:"h23"
+ }).formatToParts(now)
+
+ const p = Object.fromEntries(paris.map(x => [x.type, x.value]))
+ const nextMidnight = new Date(
+  `${p.year}-${p.month}-${p.day}T00:00:00`
+ )
+ nextMidnight.setDate(nextMidnight.getDate() + 1)
+
+ const offset = now.getTime() - new Date(now.toLocaleString("en-US", { timeZone:"Europe/Paris" })).getTime()
+ return nextMidnight.getTime() + offset
+}
+
+/* ---- Give SSR ---- */
 function giveSSR(user){
-
- if(!user.cards) user.cards={}
-
- /* Lecture dynamique */
- const cards = getCards()
-
- const ssrCards = cards.filter(c => c.rarity === "SSR")
-
- if(!ssrCards.length) return null
-
- const card = getRandom(ssrCards)
-
+ const cards = getCards().filter(c => c.rarity === "SSR")
+ if(!cards.length) return null
+ const card = cards[Math.floor(Math.random() * cards.length)]
+ if(!user.cards) user.cards = {}
  user.cards[card.id] = (user.cards[card.id] || 0) + 1
-
- /* ---- Comptabilisation SSR ---- */
  if(!user.stats) user.stats = {}
- user.stats.ssrPulled    = (user.stats.ssrPulled    || 0) + 1
- user.stats.ssrFromDaily = (user.stats.ssrFromDaily || 0) + 1
-
+ user.stats.ssrPulled = (user.stats.ssrPulled || 0) + 1
  return card
 }
 
-/* ---------------- CAN CLAIM ---------------- */
-
-/**
- * Retourne true si le joueur peut claim son daily.
+/* ---- Can claim ? ---- */
+/*
  * Reset à minuit Paris (00:00 Europe/Paris), pas 24h glissantes.
  */
 function canClaim(user){
@@ -108,7 +85,7 @@ function canClaim(user){
  return todayParis !== lastParis
 }
 
-/* ---------------- CLAIM DAILY ---------------- */
+/* ---- Claim daily ---- */
 
 async function claimDaily(interaction, user, userId){
 
@@ -144,7 +121,7 @@ async function claimDaily(interaction, user, userId){
 
  const bonuses = getDailyBonuses(userId || interaction?.user?.id || "", user)
 
- /* ---------------- DOUBLE DAILY (base 10% + bonus) ---------------- */
+ /* ---- DOUBLE DAILY (base 10% + bonus) ---- */
 
  const isStreakSSR = user.daily.streak >= 7
  const doubleDailyChance = 0.10 + (bonuses.doubleDailyBonus / 100)
@@ -153,7 +130,7 @@ async function claimDaily(interaction, user, userId){
  let reward = null
  let bonusPacksGiven = 0
 
- /* ---------------- SSR STREAK ---------------- */
+ /* ---- SSR STREAK ---- */
 
  if(isStreakSSR){
 
@@ -168,7 +145,7 @@ async function claimDaily(interaction, user, userId){
 
  }
 
- /* ---------------- RANDOM REWARD ---------------- */
+ /* ---- RANDOM REWARD ---- */
 
  else{
 
@@ -193,6 +170,13 @@ async function claimDaily(interaction, user, userId){
 
    user.kamas = (user.kamas || 0) + kamas
 
+   /*
+    FIX : tracker les kamas gagnés dans user.stats.totalKamasEarned.
+    Ce compteur cumulatif est utilisé par les quêtes de guilde "Gagner X kamas".
+    Sans cette ligne, les kamas du daily n'étaient pas comptés pour la quête.
+   */
+   user.stats.totalKamasEarned = (user.stats.totalKamasEarned || 0) + kamas
+
    reward={
     type:"kamas",
     value:kamas
@@ -209,7 +193,7 @@ async function claimDaily(interaction, user, userId){
   bonusPacksGiven = bonuses.bonusPacks
  }
 
- /* ---------------- STREAK BAR ---------------- */
+ /* ---- STREAK BAR ---- */
 
  const streak = Math.max(0, Math.min(user.daily.streak, 7))
 
