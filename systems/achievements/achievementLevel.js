@@ -134,10 +134,46 @@ level95:{
 level100:{
  name:"Niveau 100 !",
  badge:"👑",
- description:"Atteindre le niveau maximum !",
+ description:"Atteindre le niveau 100.",
  title:"Divinité du Krosmoz",
  trigger:"pack",
  condition:u=>(u.progression?.level||1)>=100
+},
+
+level125:{
+ name:"Niveau 125 !",
+ badge:"🏛️",
+ description:"Atteindre le niveau 125.",
+ title:"Gardien du Krosmoz",
+ trigger:"pack",
+ condition:u=>(u.progression?.level||1)>=125
+},
+
+level150:{
+ name:"Niveau 150 !",
+ badge:"🌋",
+ description:"Atteindre le niveau 150.",
+ title:"Héros du Krosmoz",
+ trigger:"pack",
+ condition:u=>(u.progression?.level||1)>=150
+},
+
+level175:{
+ name:"Niveau 175 !",
+ badge:"🌠",
+ description:"Atteindre le niveau 175.",
+ title:"Élu du Krosmoz",
+ trigger:"pack",
+ condition:u=>(u.progression?.level||1)>=175
+},
+
+level200:{
+ name:"Niveau 200 !!",
+ badge:"🪽",
+ description:"Atteindre le niveau maximum absolu.",
+ title:"Incarnation du Krosmoz",
+ trigger:"pack",
+ condition:u=>(u.progression?.level||1)>=200
 },
 
 /* ================= XP TOTAL ================= */
