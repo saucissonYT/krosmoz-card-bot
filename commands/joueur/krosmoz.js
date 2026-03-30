@@ -7,14 +7,14 @@ const {
  EmbedBuilder
 } = require("discord.js")
 
-const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
-const { getCards }                    = require("../../systems/cardRegistry")
-const { openPack }                    = require("../../systems/packEngine")
-const { getUser, save, updateActivityStreak } = require("../../systems/userSystem")
-const { addBattlePassXP }             = require("../../systems/battlePassService")
-const { achievementCheck }            = require("../../systems/achievementCheck")
-const { notifyAchievements }          = require("../../systems/achievementNotifier")
-const { loadSets }                    = require("../../systems/setSystemFile")
+const { RARITY_EMOJI, RARITY_COLOR }                = require("../../systems/constants")
+const { getCards }                                   = require("../../systems/cardRegistry")
+const { openPack }                                   = require("../../systems/packEngine")
+const { getUser, save, updateActivityStreak }        = require("../../systems/userSystem")
+const { addBattlePassXP }                            = require("../../systems/battlePassService")
+const { achievementCheck }                           = require("../../systems/achievementCheck")
+const { notifyAchievements }                         = require("../../systems/achievementNotifier")
+const { loadSets }                                   = require("../../systems/setSystemFile")
 const {
  getFragmentDisplayName,
  getCardCraftProgress,
@@ -27,8 +27,11 @@ const {
 } = require("../../systems/setUnlockSystem")
 const cooldownDev = require("../dev/cooldown")
 
-const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-const MAX_BATCH    = 25
+const RARITY_ORDER  = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+const MAX_BATCH     = 25
+
+/* Nombre max de lignes affichées dans les embeds (scroll + final) */
+const DISPLAY_LIMIT = 25
 
 function sleep(ms) {
  return new Promise((resolve) => setTimeout(resolve, ms))
@@ -115,11 +118,6 @@ function aggregateCards(results) {
 }
 
 /* ─── Options du select menu sets ────────────────────────────────────────── */
-/*
- * Les sets débloqués sont sélectionnables normalement.
- * Les sets verrouillés apparaissent avec 🔒 pour que le joueur
- * sache qu'ils existent — si sélectionnés, un message d'erreur s'affiche.
- */
 
 function buildSetOptions(user) {
  const rawSets      = loadSets()
@@ -137,7 +135,6 @@ function buildSetOptions(user) {
   description: "Packs répartis aléatoirement dans tes sets débloqués"
  }]
 
- /* Sets débloqués */
  for (const set of unlocked.slice(0, 20)) {
   if (!user.pity[set.id]) user.pity[set.id] = { SSR: 0, S: 0, UR: 0 }
   const { owned, total } = getSetCompletion(user, set.id)
@@ -150,7 +147,6 @@ function buildSetOptions(user) {
   })
  }
 
- /* Sets verrouillés — visibles mais bloqués */
  for (const set of locked.slice(0, 24 - unlocked.length)) {
   const { owned, total } = getSetCompletion(user, set.id)
   const pct = total > 0 ? Math.floor(owned / total * 100) : 0
@@ -203,8 +199,6 @@ async function openPacksBatch(interaction, setId, requestedCount) {
  const playableSets = getPlayableSets(rawSets)
  const isRandom     = setId === "random"
 
- /* ── Vérification déblocage ────────────────────────────────────────────── */
-
  if (!isRandom) {
   if (!isSetUnlocked(user, setId, allCards)) {
    const msg = getUnlockMessage(user, setId, allCards)
@@ -212,7 +206,6 @@ async function openPacksBatch(interaction, setId, requestedCount) {
   }
  }
 
- /* Sets jouables + débloqués pour ce joueur */
  const unlockedIds = playableSets
   .map((s) => s.id)
   .filter((id) => isSetUnlocked(user, id, allCards))
@@ -227,7 +220,6 @@ async function openPacksBatch(interaction, setId, requestedCount) {
  if (!isRandom && (setCache[setId] || []).length === 0)
   return interaction.editReply("Ce set ne contient aucune carte jouable actuellement.")
 
- /* Snapshot de complétion avant ouverture */
  const beforeCompletionBySet = {}
  for (const sid of (isRandom ? unlockedIds : [setId])) {
   beforeCompletionBySet[sid] = getSetCompletion(user, sid)
@@ -291,11 +283,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  const setOpenCount = {}
  const progressStep = packCount >= 10 ? 3 : 2
 
- /* Snapshot des cartes AVANT pour savoir ce qui est nouveau */
  const cardsSnapshot = { ...user.cards }
 
  for (let i = 0; i < packCount; i++) {
-  /* ── Pour RANDOM : piocher uniquement dans les sets débloqués ── */
   const chosenSetId = isRandom
    ? unlockedIds[Math.floor(Math.random() * unlockedIds.length)]
    : setId
@@ -325,12 +315,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  save()
 
  /* ── Totaux ──────────────────────────────────────────────────────────────── */
- const totals = {
-  kamas:     0,
-  xp:        0,
-  lucky:     0,
-  fragments: [],
- }
+
+ const totals = { kamas: 0, xp: 0, lucky: 0, fragments: [] }
 
  for (const result of results) {
   totals.kamas += result.kamasGain || 0
@@ -340,6 +326,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  }
 
  /* ── Meilleures cartes & nouvelles ──────────────────────────────────────── */
+
  const aggregated = aggregateCards(results)
  const best       = aggregated[0]?.card || null
 
@@ -351,18 +338,15 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  }
 
  /* ── Achievements ────────────────────────────────────────────────────────── */
- /*
-  * FIX : l'ancien code itérait sur result.discovered (= objets carte)
-  * en croyant avoir des IDs d'achievements → achievementCheck n'était
-  * JAMAIS appelé → pack1, pack10, bulkOpen, krosmoz42... ne se validaient pas.
-  */
+
  const uniqueUnlocked = [
   ...achievementCheck(user, "pack"),
   ...achievementCheck(user, "collection"),
   ...achievementCheck(user, "economy"),
  ].filter((id, idx, self) => self.indexOf(id) === idx)
 
- /* ── Affichage (scroll ou direct) ───────────────────────────────────────── */
+ /* ── Construction des lignes ─────────────────────────────────────────────── */
+
  const lines = aggregated.map(({ card, qty }) => {
   const emoji  = RARITY_EMOJI[card.rarity] || ""
   const shiny  = card.shiny ? " ✨ SHINY" : ""
@@ -371,17 +355,25 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   return `${emoji} **${card.name}**${shiny}${qtyStr}${isNew}`
  })
 
- /* ─── FIX : step défini dans les deux blocs ───────────────────────────────
-  * AVANT : step n'était défini que dans if (packCount === 1).
-  *         Le bloc else if (packCount >= 5) utilisait step sans le définir
-  *         → ReferenceError: step is not defined → crash après débit des packs.
-  * APRÈS : chaque bloc définit son propre step localement.
-  * ─────────────────────────────────────────────────────────────────────────*/
+ /* ── FIX DISPLAY_LIMIT : cap à 25 lignes pour éviter le crash embed ──────── */
+
+ const displayedLines = lines.slice(0, DISPLAY_LIMIT)
+ const hiddenCount    = lines.length - DISPLAY_LIMIT
+ const hiddenNew      = hiddenCount > 0
+  ? lines.slice(DISPLAY_LIMIT).filter(l => l.includes("🆕")).length
+  : 0
+ const hiddenText = hiddenCount > 0
+  ? hiddenNew > 0
+   ? `\n... +${hiddenCount} carte(s) supplémentaire(s) dont **${hiddenNew}** unique(s) 🆕`
+   : `\n... +${hiddenCount} carte(s) supplémentaire(s)`
+  : ""
+
+ /* ── Affichage scroll animé ──────────────────────────────────────────────── */
 
  if (packCount === 1) {
-  const scrollPreview = lines
-  const delay = lines.length <= 5 ? 600 : lines.length <= 10 ? 400 : 250
-  const step  = lines.length <= 5 ? 1 : lines.length <= 10 ? 2 : 3   // ← défini ICI
+  const scrollPreview = displayedLines
+  const delay = scrollPreview.length <= 5 ? 600 : scrollPreview.length <= 10 ? 400 : 250
+  const step  = scrollPreview.length <= 5 ? 1 : scrollPreview.length <= 10 ? 2 : 3
 
   for (let i = step; i <= scrollPreview.length; i += step) {
    const chunk = scrollPreview.slice(0, i).join("\n")
@@ -394,9 +386,9 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    await sleep(delay)
   }
  } else if (packCount >= 5) {
-  const scrollPreview = lines
+  const scrollPreview = displayedLines
   const delay = packCount >= 10 ? 180 : 240
-  const step  = lines.length <= 10 ? 2 : lines.length <= 20 ? 4 : 6  // ← FIX : défini ICI aussi
+  const step  = scrollPreview.length <= 10 ? 2 : scrollPreview.length <= 20 ? 4 : 6
 
   for (let i = step; i <= scrollPreview.length; i += step) {
    const chunk = scrollPreview.slice(0, i).join("\n")
@@ -411,11 +403,12 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  }
 
  /* ── Embed final ─────────────────────────────────────────────────────────── */
+
  const title = packCount === 1 ? "🎴 Pack ouvert !" : `🎴 Giga Pack ouvert x${packCount}`
 
  const embed = new EmbedBuilder()
   .setTitle(title)
-  .setDescription(lines.join("\n") || "Aucune carte.")
+  .setDescription((displayedLines.join("\n") + hiddenText) || "Aucune carte.")
   .addFields(
    { name: "💰 Kamas gagnés",   value: `+${totals.kamas}`,  inline: true },
    { name: "⭐ XP gagnée",       value: `+${totals.xp}`,    inline: true },
@@ -452,7 +445,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  await interaction.editReply({ embeds: [embed] })
 
- /* Nouvelle découverte (message privé conservé) */
+ /* ── Nouvelles découvertes (message privé) ───────────────────────────────── */
+
  if (newCardIds.size > 0) {
   const newNames = Array.from(newCardIds)
    .map((id) => {
@@ -468,6 +462,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
   const more = newCardIds.size > newNames.length
    ? `\n... +${newCardIds.size - newNames.length}` : ""
+
   await interaction.followUp({ content: `Nouvelle découverte !\n${newNames.join("\n")}${more}`, flags: 64 })
  }
 
@@ -538,18 +533,18 @@ module.exports = {
   const quickSet   = interaction.options.getString("set")
   const quickCount = interaction.options.getInteger("packs") || 1
 
-  /* Ouverture directe via paramètre set */
   if (quickSet) {
    await interaction.deferReply()
    return openPacksBatch(interaction, quickSet, quickCount)
   }
 
-  /* Menu interactif */
   const rawSets = loadSets()
   const sets    = getPlayableSets(rawSets)
 
   if (!sets || sets.length === 0)
    return interaction.reply({ content: "❌ Aucun set disponible.", flags: 64 })
+
+  if (!user.stats) user.stats = {}
 
   const options = buildSetOptions(user)
 
@@ -581,15 +576,14 @@ ${getCooldownText(user)}`,
   const allCards = getCards()
   const isRandom = setId === "random"
 
-  /* ── Vérification déblocage ────────────────────────────────────────────── */
   if (!isRandom && !isSetUnlocked(user, setId, allCards)) {
    const msg = getUnlockMessage(user, setId, allCards)
    return interaction.reply({ content: msg || "🔒 Ce set est verrouillé.", flags: 64 })
   }
 
-  if (!user.pity)        user.pity  = {}
-  if (!isRandom && !user.pity[setId]) user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
-  if (!user.stats)       user.stats = {}
+  if (!user.pity)                      user.pity  = {}
+  if (!isRandom && !user.pity[setId])  user.pity[setId] = { SSR: 0, S: 0, UR: 0 }
+  if (!user.stats)                     user.stats = {}
 
   if (!isRandom) {
    const pity = user.pity[setId]
@@ -602,7 +596,6 @@ ${getCooldownText(user)}`,
   const cooldown = getCooldownMs(user)
   const hasFree  = cooldownDev.cooldownDisabled() || !user.lastPack || now - user.lastPack >= cooldown
 
-  /* Complétion du set */
   let completionLine = ""
   if (!isRandom) {
    const { owned, total } = getSetCompletion(user, setId)
@@ -631,7 +624,6 @@ ${getCooldownText(user)}${!isRandom && pity ? `\n🌈 SSR Pity : **${pity.SSR}/5
 
   collector.on("collect", async i => {
 
-   /* ← Retour au menu sets */
    if (i.customId === "krosmoz_back") {
     const freshUser = getUser(interaction.user.id)
     const opts      = buildSetOptions(freshUser)
@@ -655,7 +647,6 @@ ${getCooldownText(freshUser)}`,
     })
    }
 
-   /* Ouverture x1/5/10/25 */
    if (i.customId.startsWith("krosmoz_qty_")) {
     const count = parseInt(i.customId.replace("krosmoz_qty_", ""))
     collector.stop("open")
@@ -675,12 +666,9 @@ ${getCooldownText(freshUser)}`,
   * ── Button (fallback global) ────────────────────────────────────────────────
   * FIX : quand le bot redémarre ou que le collector expire (60s), les boutons
   * krosmoz_qty_* et krosmoz_back arrivent dans buttonRoutes sans être routés.
-  * Ce handler attrape ces cas et affiche un message d'expiration propre
-  * au lieu d'un crash "[buttonRoutes] Unhandled button customId: krosmoz_qty_X".
   */
  async button(interaction) {
   const id = interaction.customId
-
   if (id.startsWith("krosmoz_qty_") || id === "krosmoz_back") {
    return interaction.reply({
     content: "⏱️ Ce menu a expiré. Utilise `/krosmoz` pour ouvrir un nouveau pack.",

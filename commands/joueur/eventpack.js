@@ -11,12 +11,12 @@ const {
  claimFirstPack
 } = require("../../systems/eventSystem")
 
-const { generateEventPack } = require("../../systems/eventPackEngine")
-const { getUser, save } = require("../../systems/userSystem")
-const { addBattlePassXP } = require("../../systems/battlePassService")
-const { applyEventRewards } = require("../../systems/rewardSystem")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
+const { generateEventPack }  = require("../../systems/eventPackEngine")
+const { getUser, save }       = require("../../systems/userSystem")
+const { addBattlePassXP }     = require("../../systems/battlePassService")
+const { applyEventRewards }   = require("../../systems/rewardSystem")
+const { achievementCheck }    = require("../../systems/achievementCheck")
+const { notifyAchievements }  = require("../../systems/achievementNotifier")
 const {
  rollFragmentForEvent,
  grantRolledFragment,
@@ -26,12 +26,15 @@ const {
 } = require("../../systems/fragmentService")
 
 function sleep(ms){
- return new Promise(r=>setTimeout(r,ms))
+ return new Promise(r => setTimeout(r, ms))
 }
+
+/* Nombre max de lignes affichées dans l'embed reveal */
+const DISPLAY_LIMIT = 25
 
 module.exports = {
 
- name:"eventpack",
+ name: "eventpack",
 
  async execute(interaction){
 
@@ -86,15 +89,13 @@ module.exports = {
 
    /* ================= PACK ================= */
 
-   let pack=[], meta={}
+   let pack = [], meta = {}
    let fragment = null
 
    try {
     const result = generateEventPack(user, event)
-
     pack = result?.pack || []
     meta = result?.meta || {}
-
    } catch(e){
     console.error("PACK ERROR:", e)
     return interaction.editReply("❌ Erreur génération pack.")
@@ -106,15 +107,13 @@ module.exports = {
 
    /* ================= REWARDS ================= */
 
-   let kamas=0, xp=0, jackpotMessage=null
+   let kamas = 0, xp = 0, jackpotMessage = null
 
    try {
     const r = applyEventRewards(user, pack, event, meta)
-
-    kamas=r?.kamas||0
-    xp=r?.xp||0
-    jackpotMessage=r?.jackpotMessage
-
+    kamas          = r?.kamas          || 0
+    xp             = r?.xp             || 0
+    jackpotMessage = r?.jackpotMessage  || null
    } catch(e){
     console.error("REWARD ERROR:", e)
    }
@@ -129,11 +128,11 @@ module.exports = {
 
    try {
     const rolledFragment = rollFragmentForEvent(0.55)
-    if (rolledFragment) {
-      grantRolledFragment(interaction.user.id, rolledFragment, "event")
-      fragment = rolledFragment
+    if(rolledFragment){
+     grantRolledFragment(interaction.user.id, rolledFragment, "event")
+     fragment = rolledFragment
     }
-   } catch (error) {
+   } catch(error){
     console.error("EVENT FRAGMENT ERROR:", error)
    }
 
@@ -187,9 +186,8 @@ module.exports = {
 
    /* ================= DISCOVERED TRACKING ================= */
    /*
-    * On prend un snapshot AVANT d'ajouter les cartes
-    * pour savoir lesquelles sont vraiment nouvelles.
-    * Le 🆕 sera affiché sur ces cartes dans le reveal.
+    * Snapshot AVANT d'ajouter les cartes pour savoir
+    * lesquelles sont vraiment nouvelles (badge 🆕).
     */
 
    const discoveredIds = new Set()
@@ -205,18 +203,16 @@ module.exports = {
 
    if(event.key === "sram"){
 
-    /* Ajouter les cartes à l'inventaire pour Sram */
+    /* Ajouter toutes les cartes à l'inventaire */
     for(const card of pack){
      if(!card?.id) continue
      user.cards[card.id] = (user.cards[card.id] || 0) + 1
     }
 
-    let revealed=[]
+    let revealed = []
 
-    for(let i=0;i<pack.length;i++){
-
+    for(let i = 0; i < Math.min(pack.length, DISPLAY_LIMIT); i++){
      revealed.push("❓ ???")
-
      await message.edit({
       embeds:[
        new EmbedBuilder()
@@ -227,22 +223,30 @@ module.exports = {
         )
       ]
      })
-
      await sleep(450)
+    }
+
+    const hiddenSram = pack.length - DISPLAY_LIMIT
+    let sramDesc = "❓ Les cartes restent inconnues..."
+    if(hiddenSram > 0){
+     sramDesc += `\n... +${hiddenSram} carte(s) supplémentaire(s)`
     }
 
     await message.edit({
      embeds:[
       new EmbedBuilder()
        .setTitle(`🕶️ ${event.name}`)
-       .setDescription("❓ Les cartes restent inconnues...")
+       .setDescription(sramDesc)
      ]
     })
 
+    /* FIX : ajout de "rarity" pour déclencher firstSSR, ssr5, etc. */
     const unlocked = [
      ...achievementCheck(user, "event"),
+     ...achievementCheck(user, "rarity"),
      ...achievementCheck(user, "fragment")
     ]
+
     save(interaction.user.id)
 
     /* Nouvelles découvertes même pour Sram */
@@ -266,15 +270,19 @@ module.exports = {
 
    /* ================= REVEAL ================= */
 
-   let revealed=[]
+   let revealed = []
 
    for(const card of pack){
 
     if(!card || !card.id) continue
 
-    user.cards[card.id]=(user.cards[card.id]||0)+1
+    /* Toujours ajouter à l'inventaire, même si on n'affiche plus */
+    user.cards[card.id] = (user.cards[card.id] || 0) + 1
 
-    let line = `${RARITY_EMOJI[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+    /* Au-delà de DISPLAY_LIMIT, on skip l'affichage animé */
+    if(revealed.length >= DISPLAY_LIMIT) continue
+
+    let line = `${RARITY_EMOJI[card.rarity] || "❓"} **${card.name}** \`${card.rarity}\``
 
     /* ── Emojis événements ── */
 
@@ -288,11 +296,11 @@ module.exports = {
      if(isCopy) line += " 🌿"
     }
 
-    if(meta.mutations?.some(m=>m.includes(card.name))){
+    if(meta.mutations?.some(m => m.includes(card.name))){
      line += " 💀"
     }
 
-    if(meta.upgrades?.some(u=>u.includes(card.name))){
+    if(meta.upgrades?.some(u => u.includes(card.name))){
      line += " 🎭"
     }
 
@@ -301,11 +309,11 @@ module.exports = {
      if(isAdded) line += " ⏳"
     }
 
-    if(meta.downgrades?.some(d=>d.includes(card.name))){
+    if(meta.downgrades?.some(d => d.includes(card.name))){
      line += " 🐺"
     }
 
-    /* ── 🆕 Nouvelle carte ── */
+    /* ── Nouvelle carte ── */
     if(discoveredIds.has(String(card.id))) line += " 🆕"
 
     revealed.push(line)
@@ -323,6 +331,22 @@ module.exports = {
     })
 
     await sleep(420)
+   }
+
+   /* ================= RÉSUMÉ CARTES CACHÉES ================= */
+
+   const hiddenCount = pack.length - DISPLAY_LIMIT
+   let hiddenText = ""
+
+   if(hiddenCount > 0){
+    const hiddenNew = pack
+     .slice(DISPLAY_LIMIT)
+     .filter(c => c?.id && discoveredIds.has(String(c.id)))
+     .length
+
+    hiddenText = hiddenNew > 0
+     ? `\n... +${hiddenCount} carte(s) supplémentaire(s) dont **${hiddenNew}** unique(s) 🆕`
+     : `\n... +${hiddenCount} carte(s) supplémentaire(s)`
    }
 
    /* ================= RP ================= */
@@ -370,11 +394,12 @@ module.exports = {
    const description = (
     "✨ Une énergie étrange se dissipe...\n\n" +
     revealed.join("\n") +
+    hiddenText +
     (rp || "")
    ).trim() || "❌ Aucune carte"
 
    let fragmentText = ""
-   if (fragment) {
+   if(fragment){
     const progress = getCardCraftProgress(user, fragment.cardId)
     fragmentText =
 `\n\n━━━━━━━━━━━━━━━━
@@ -389,9 +414,9 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
       .setTitle(`🎁 ${event.name}${meta.ux?.[0] ? " • " + meta.ux[0] : ""}`)
       .setDescription(`${description}${fragmentText}`)
       .addFields(
-       {name:"💰 Kamas",value:`+${kamas}`,inline:true},
-       {name:"⭐ XP",value:`+${xp}`,inline:true},
-       {name:"🎟️ Tickets",value:`${user.event.tickets-user.event.used}/${user.event.tickets}`,inline:true}
+       { name:"💰 Kamas",   value:`+${kamas}`,                                          inline:true },
+       { name:"⭐ XP",      value:`+${xp}`,                                             inline:true },
+       { name:"🎟️ Tickets", value:`${user.event.tickets - user.event.used}/${user.event.tickets}`, inline:true }
       )
       .setColor("#f1c40f")
     ]
@@ -403,18 +428,13 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
    const hasS   = pack.some(c => c.rarity === "S")
 
    let rarity = null
-
-   if(hasSSR) rarity = "SSR"
-   else if(hasS) rarity = "S"
+   if(hasSSR)      rarity = "SSR"
+   else if(hasS)   rarity = "S"
 
    if(rarity){
-
     const voicePool = event.voiceLines?.[rarity]
-
     if(Array.isArray(voicePool) && voicePool.length){
-
      const line = voicePool[Math.floor(Math.random() * voicePool.length)]
-
      await channel.send(
       `## ${event.name}\n> ***${line.trim().toUpperCase()}***`
      )
@@ -436,9 +456,11 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
    }
 
    /* ================= ACHIEVEMENTS ================= */
+   /* FIX : ajout de "rarity" pour déclencher firstSSR, ssr5, ssr10, etc. */
 
    const unlocked = [
     ...achievementCheck(user, "event"),
+    ...achievementCheck(user, "rarity"),
     ...achievementCheck(user, "fragment")
    ]
 
