@@ -1,216 +1,164 @@
 /* ===============================================
-   PROGRESSION SYSTEM — XP & Level
+   GUILD BONUSES — Bonus par niveau de guilde
 
-   v0.32 — Ajout du bonus XP joueur de guilde dans addXP
+   Fonctions exportées :
+   - getGuildBonuses(level)       → calcule les bonus bruts pour un niveau donné
+   - getUserGuildBonuses(userId)  → retourne les bonus de la guilde du joueur
+   - formatBonuses(level)         → string affichable des bonus actifs
+   - formatNextUnlocks(level)     → string affichable des prochains bonus
 
-   - Level cap : 200
-   - Formule XP : 100 + level × 35
-   - XP total pour level 100 : ~183 000
-   - XP total pour level 200 : ~716 000
-   - Récompenses par level avec milestones
-   - Bonus de niveau (playerBonuses) + bonus guilde (playerXpBonus)
+   Bonus de guilde (10 au total) :
+   💰 kamasBonus         +1% / 5 niv.   → +20% max (niv. 100)
+   🔥 fusionCritBonus    +0.5% / 10 niv. → +5% max  (niv. 100)
+   ✨ fusionDoubleBonus  +0.5% / 15 niv. → +3% max  (niv. 45 → 3.5 arrondi à 3)
+   🌈 fusionTripleBonus  +0.25% / 25 niv.→ +1% max  (niv. 100)
+   🍀 luckyPackBonus     +1% / 10 niv.  → +10% max  (niv. 100)
+   ⭐ xpBonus            +5% / 20 niv.  → +25% max  (niv. 100)
+   📈 playerXpBonus      +2% / 10 niv.  → +20% max  (niv. 100)
+   📉 shopDiscount       +2% / 25 niv.  → +8% max   (niv. 100)
+   📦 dailyBonusPacks    +1 / 50 niv.   → +2 max    (niv. 100)
+   🧧 doubleDailyBonus   +1% / 20 niv.  → +5% max   (niv. 100)
 =============================================== */
 
-const { MAX_PLAYER_LEVEL } = require("./constants")
+/* ================= CALCUL DES BONUS ================= */
 
-/* ================= XP REQUIRED ================= */
+function getGuildBonuses(level){
 
-function getXPRequired(level){
+ if(!level || level < 1) level = 1
 
- if(level >= MAX_PLAYER_LEVEL) return Infinity
+ return {
 
- return 100 + level * 35
+  /* +1% kamas tous les 5 niveaux → +20% max au niveau 100 */
+  kamasBonus: Math.floor(level / 5),
+
+  /* +0.5% fusion critique tous les 10 niveaux → +5% max */
+  fusionCritBonus: Math.floor(level / 10) * 0.5,
+
+  /* +0.5% fusion double tous les 15 niveaux → +3% max */
+  fusionDoubleBonus: Math.floor(level / 15) * 0.5,
+
+  /* +0.25% fusion triple tous les 25 niveaux → +1% max */
+  fusionTripleBonus: Math.floor(level / 25) * 0.25,
+
+  /* +1% lucky pack tous les 10 niveaux → +10% max */
+  luckyPackBonus: Math.floor(level / 10),
+
+  /* +5% XP Battle Pass tous les 20 niveaux → +25% max */
+  xpBonus: Math.floor(level / 20) * 5,
+
+  /* +2% XP joueur tous les 10 niveaux → +20% max */
+  playerXpBonus: Math.floor(level / 10) * 2,
+
+  /* +2% réduction KrosmoShop tous les 25 niveaux → +8% max */
+  shopDiscount: Math.floor(level / 25) * 2,
+
+  /* +1 pack daily tous les 50 niveaux → +2 max */
+  dailyBonusPacks: Math.floor(level / 50),
+
+  /* +1% chance double daily tous les 20 niveaux → +5% max */
+  doubleDailyBonus: Math.floor(level / 20)
+
+ }
 }
 
-/* ================= LEVEL REWARDS ================= */
+/* ================= WRAPPER PAR USER ================= */
 
-function getLevelReward(level){
+function getUserGuildBonuses(userId){
 
- const reward = {
-  kamas:         150 + (level * 25),
-  packs:         0,
-  milestone:     false,
-  milestoneText: null
- }
-
- if(level % 5  === 0) reward.packs = 1
- if(level % 10 === 0) reward.packs = 2
- if(level % 25 === 0) reward.packs = 3
-
- if(level === 10){
-  reward.milestone     = true
-  reward.kamas        += 500
-  reward.milestoneText = "🎉 Niveau 10 ! +500 kamas bonus"
- }
- if(level === 25){
-  reward.milestone     = true
-  reward.kamas        += 1500
-  reward.packs        += 2
-  reward.milestoneText = "🎉 Niveau 25 ! +1500 kamas +2 packs"
- }
- if(level === 50){
-  reward.milestone     = true
-  reward.kamas        += 5000
-  reward.packs        += 5
-  reward.milestoneText = "🏆 Niveau 50 ! +5000 kamas +5 packs"
- }
- if(level === 75){
-  reward.milestone     = true
-  reward.kamas        += 10000
-  reward.packs        += 5
-  reward.milestoneText = "🔥 Niveau 75 ! +10000 kamas +5 packs"
- }
- if(level === 100){
-  reward.milestone     = true
-  reward.kamas        += 25000
-  reward.packs        += 10
-  reward.milestoneText = "👑 NIVEAU 100 ! +25000 kamas +10 packs !"
- }
- if(level === 125){
-  reward.milestone     = true
-  reward.kamas        += 15000
-  reward.packs        += 6
-  reward.milestoneText = "🏛️ Niveau 125 ! +15000 kamas +6 packs"
- }
- if(level === 150){
-  reward.milestone     = true
-  reward.kamas        += 25000
-  reward.packs        += 8
-  reward.milestoneText = "⚡ Niveau 150 ! +25000 kamas +8 packs"
- }
- if(level === 175){
-  reward.milestone     = true
-  reward.kamas        += 40000
-  reward.packs        += 10
-  reward.milestoneText = "🌠 Niveau 175 ! +40000 kamas +10 packs"
- }
- if(level === 200){
-  reward.milestone     = true
-  reward.kamas        += 60000
-  reward.packs        += 15
-  reward.milestoneText = "🪽 NIVEAU 200 ! +60000 kamas +15 packs !"
+ const empty = {
+  kamasBonus:       0,
+  fusionCritBonus:  0,
+  fusionDoubleBonus:0,
+  fusionTripleBonus:0,
+  luckyPackBonus:   0,
+  xpBonus:          0,
+  playerXpBonus:    0,
+  shopDiscount:     0,
+  dailyBonusPacks:  0,
+  doubleDailyBonus: 0
  }
 
- return reward
-}
-
-/* ================= ADD XP ================= */
-
-function addXP(user, amount){
-
- if(!user.progression){
-  user.progression = { level: 1, xp: 0, totalXp: 0 }
- }
-
- /* Déjà au max : rien à faire */
- if(user.progression.level >= MAX_PLAYER_LEVEL){
-  user.progression.level = MAX_PLAYER_LEVEL
-  user.progression.xp    = 0
-  return []
- }
-
- let bonusPercent = 0
-
- /* Bonus XP de niveau joueur */
  try{
-  const { getPlayerBonuses } = require("./playerBonuses")
-  const pb = getPlayerBonuses(user.progression.level)
-  bonusPercent += pb.xpBonus || 0
- }catch(e){}
+  const { getUser }    = require("./userSystem")
+  const { getGuild }   = require("./guildSystem")
 
- /* Bonus XP de guilde (playerXpBonus — distinct du xpBonus BP) */
- try{
-  const { getUserGuildBonuses } = require("./guildBonuses")
-  const userId = user.id || user.userId || ""
-  if(userId){
-   const gb = getUserGuildBonuses(userId)
-   bonusPercent += gb.playerXpBonus || 0
-  }
- }catch(e){}
+  const user  = getUser(userId)
+  if(!user?.guildId) return empty
 
- const finalAmount = Math.floor(amount * (1 + bonusPercent / 100))
+  const guild = getGuild(user.guildId)
+  if(!guild) return empty
 
- user.progression.xp     += finalAmount
- user.progression.totalXp = (user.progression.totalXp || 0) + finalAmount
+  return getGuildBonuses(guild.level || 1)
 
- const levelUps = []
-
- while(
-  user.progression.level < MAX_PLAYER_LEVEL &&
-  user.progression.xp >= getXPRequired(user.progression.level)
- ){
-
-  user.progression.xp    -= getXPRequired(user.progression.level)
-  user.progression.level ++
-
-  const lvl    = user.progression.level
-  const reward = getLevelReward(lvl)
-
-  if(!user.kamas) user.kamas = 0
-  if(!user.packs) user.packs = 0
-
-  user.kamas += reward.kamas
-  user.packs += reward.packs
-
-  /* Tracking level-up nocturne pour achievement secret */
-  const hour = new Date().getHours()
-  if(hour >= 0 && hour < 6){
-   if(!user.stats) user.stats = {}
-   user.stats.nightLevelUp = (user.stats.nightLevelUp || 0) + 1
-  }
-
-  levelUps.push({
-   level:         lvl,
-   kamas:         reward.kamas,
-   packs:         reward.packs,
-   milestone:     reward.milestone,
-   milestoneText: reward.milestoneText
-  })
+ }catch(e){
+  return empty
  }
-
- if(user.progression.level >= MAX_PLAYER_LEVEL){
-  user.progression.level = MAX_PLAYER_LEVEL
-  user.progression.xp    = 0
- }
-
- return levelUps
 }
 
-/* ================= PROGRESSION INFO ================= */
+/* ================= DESCRIPTIONS POUR AFFICHAGE ================= */
 
-function getProgression(user){
+const BONUS_LIST = [
+ { key:"kamasBonus",        emoji:"💰", name:"Kamas bonus",          unit:"%",  per:"tous les 5 niv."  },
+ { key:"fusionCritBonus",   emoji:"🔥", name:"Fusion critique",      unit:"%",  per:"tous les 10 niv." },
+ { key:"fusionDoubleBonus", emoji:"✨", name:"Fusion double",        unit:"%",  per:"tous les 15 niv." },
+ { key:"fusionTripleBonus", emoji:"🌈", name:"Fusion triple",        unit:"%",  per:"tous les 25 niv." },
+ { key:"luckyPackBonus",    emoji:"🍀", name:"Lucky pack",           unit:"%",  per:"tous les 10 niv." },
+ { key:"xpBonus",           emoji:"⭐", name:"XP Battle Pass",       unit:"%",  per:"tous les 20 niv." },
+ { key:"playerXpBonus",     emoji:"📈", name:"XP joueur",            unit:"%",  per:"tous les 10 niv." },
+ { key:"shopDiscount",      emoji:"📉", name:"Réduction KrosmoShop", unit:"%",  per:"tous les 25 niv." },
+ { key:"dailyBonusPacks",   emoji:"📦", name:"Packs daily bonus",    unit:"",   per:"tous les 50 niv." },
+ { key:"doubleDailyBonus",  emoji:"🧧", name:"Chance double daily",  unit:"%",  per:"tous les 20 niv." }
+]
 
- if(!user.progression){
-  user.progression = { level: 1, xp: 0, totalXp: 0 }
- }
+function formatBonuses(level){
 
- const level    = user.progression.level
- const xp       = user.progression.xp
- const required = level >= MAX_PLAYER_LEVEL ? 0 : getXPRequired(level)
- const isMaxLevel = level >= MAX_PLAYER_LEVEL
+ const bonuses = getGuildBonuses(level)
 
- return { level, xp, required, isMaxLevel }
+ return BONUS_LIST.map(b => {
+
+  const val = bonuses[b.key]
+
+  if(val <= 0) return `${b.emoji} ${b.name} : —`
+
+  const display = Number.isInteger(val) ? val : val.toFixed(1)
+  const prefix  = "+"
+
+  return `${b.emoji} ${b.name} : **${prefix}${display}${b.unit}**`
+
+ }).join("\n")
 }
 
-/* ================= TOTAL XP FOR LEVEL ================= */
+function formatNextUnlocks(level){
 
-function getTotalXPForLevel(targetLevel){
+ const lines = []
+ const maxLevel = 100
 
- let total = 0
+ for(let l = level + 1; l <= Math.min(level + 20, maxLevel); l++){
 
- for(let i = 1; i < targetLevel; i++){
-  total += getXPRequired(i)
+  const before = getGuildBonuses(l - 1)
+  const after  = getGuildBonuses(l)
+
+  for(const b of BONUS_LIST){
+
+   if(after[b.key] > before[b.key]){
+
+    const diff    = after[b.key] - before[b.key]
+    const display = Number.isInteger(diff) ? diff : diff.toFixed(1)
+
+    lines.push(`Niv. ${l} → ${b.emoji} +${display}${b.unit} ${b.name}`)
+   }
+  }
  }
 
- return total
+ return lines.slice(0, 6).join("\n") || "Aucun nouveau bonus proche."
 }
 
 /* ================= EXPORT ================= */
 
 module.exports = {
- addXP,
- getXPRequired,
- getProgression,
- getLevelReward,
- getTotalXPForLevel
+ getGuildBonuses,
+ getUserGuildBonuses,
+ formatBonuses,
+ formatNextUnlocks,
+ BONUS_LIST
 }
