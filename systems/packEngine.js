@@ -119,9 +119,15 @@ function giveAchievement(user,id){
 
 /* ================= PALINDROME ================= */
 
+/*
+ * FIX : les chiffres à 1 digit (1–9) sont mathématiquement des palindromes
+ * ("5" retourné = "5"), ce qui déclenchait le succès dès les premières cartes.
+ * On exige au moins 2 digits — premier palindrome atteignable : 11 cartes.
+ * Cohérent avec levelPalindrome dans achievementLevel.js.
+ */
 function isPalindrome(n){
  const s = String(n)
- return s === s.split("").reverse().join("")
+ return s.length >= 2 && s === s.split("").reverse().join("")
 }
 
 /* ================= NOLUCK HELPER ================= */
@@ -135,11 +141,11 @@ function applyNoLuck(pack, setId){
  try{
   const setCards = getCardsBySet(setId)
   const cPool = setCards.filter(c => c.rarity === "C")
-  const pool  = cPool.length > 0 ? cPool : setCards  // fallback si pas de C
+  const pool  = cPool.length > 0 ? cPool : setCards
 
   return pack.map(() => {
    const card = pool[Math.floor(Math.random() * pool.length)]
-   return card ? { ...card } : pack[0]   // sécurité
+   return card ? { ...card } : pack[0]
   })
  }catch(err){
   console.error("[NO_LUCK] Erreur applyNoLuck :", err)
@@ -185,7 +191,7 @@ function openPack(user, setId, userId, options = {}){
    const { hasNoLuck } = require("./moderationSystem")
    if(hasNoLuck(userId)){
     pack     = applyNoLuck(pack, setId)
-    luckyPack = false   // pas de lucky pack non plus
+    luckyPack = false
    }
   }catch(err){
    console.error("[NO_LUCK] Erreur vérification malchance :", err)
@@ -210,7 +216,7 @@ function openPack(user, setId, userId, options = {}){
  if(!user.stats) user.stats={}
  if(!user.cards) user.cards={}
 
- if(user.stats.ssrPulled===undefined) user.stats.ssrPulled=0
+ if(user.stats.ssrPulled===undefined)   user.stats.ssrPulled=0
  /*
   * FIX : packsOpened n'est plus incrémenté ici.
   * Il est incrémenté par l'appelant (krosmoz.js, eventpack.js…)
@@ -219,10 +225,10 @@ function openPack(user, setId, userId, options = {}){
   *   - packEngine  : packsOpened++              (× packCount dans la boucle)
   *   = 2 × packCount au lieu de packCount
   */
- if(user.stats.packsOpened===undefined) user.stats.packsOpened=0
- if(user.stats.shinySSR===undefined) user.stats.shinySSR=0
- if(user.stats.lastSSR===undefined) user.stats.lastSSR=false
- if(user.stats.ssrStreak===undefined) user.stats.ssrStreak=0
+ if(user.stats.packsOpened===undefined)  user.stats.packsOpened=0
+ if(user.stats.shinySSR===undefined)     user.stats.shinySSR=0
+ if(user.stats.lastSSR===undefined)      user.stats.lastSSR=false
+ if(user.stats.ssrStreak===undefined)    user.stats.ssrStreak=0
 
  if(!user.shinyCards) user.shinyCards={}
 
