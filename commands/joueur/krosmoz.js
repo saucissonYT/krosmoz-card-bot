@@ -367,10 +367,17 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   return `${emoji} **${card.name}**${shiny}${qtyStr}`
  })
 
+ /* ─── FIX : step défini dans les deux blocs ───────────────────────────────
+  * AVANT : step n'était défini que dans if (packCount === 1).
+  *         Le bloc else if (packCount >= 5) utilisait step sans le définir
+  *         → ReferenceError: step is not defined → crash après débit des packs.
+  * APRÈS : chaque bloc définit son propre step localement.
+  * ─────────────────────────────────────────────────────────────────────────*/
+
  if (packCount === 1) {
   const scrollPreview = lines
   const delay = lines.length <= 5 ? 600 : lines.length <= 10 ? 400 : 250
-  const step  = lines.length <= 5 ? 1 : lines.length <= 10 ? 2 : 3
+  const step  = lines.length <= 5 ? 1 : lines.length <= 10 ? 2 : 3   // ← défini ICI
 
   for (let i = step; i <= scrollPreview.length; i += step) {
    const chunk = scrollPreview.slice(0, i).join("\n")
@@ -385,6 +392,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  } else if (packCount >= 5) {
   const scrollPreview = lines
   const delay = packCount >= 10 ? 180 : 240
+  const step  = lines.length <= 10 ? 2 : lines.length <= 20 ? 4 : 6  // ← FIX : défini ICI aussi
 
   for (let i = step; i <= scrollPreview.length; i += step) {
    const chunk = scrollPreview.slice(0, i).join("\n")
@@ -657,5 +665,23 @@ ${getCooldownText(freshUser)}`,
     msg.edit({ content: "⏱️ Menu expiré.", components: [], embeds: [] }).catch(() => {})
    }
   })
+ },
+
+ /*
+  * ── Button (fallback global) ────────────────────────────────────────────────
+  * FIX : quand le bot redémarre ou que le collector expire (60s), les boutons
+  * krosmoz_qty_* et krosmoz_back arrivent dans buttonRoutes sans être routés.
+  * Ce handler attrape ces cas et affiche un message d'expiration propre
+  * au lieu d'un crash "[buttonRoutes] Unhandled button customId: krosmoz_qty_X".
+  */
+ async button(interaction) {
+  const id = interaction.customId
+
+  if (id.startsWith("krosmoz_qty_") || id === "krosmoz_back") {
+   return interaction.reply({
+    content: "⏱️ Ce menu a expiré. Utilise `/krosmoz` pour ouvrir un nouveau pack.",
+    flags: 64
+   })
+  }
  }
 }

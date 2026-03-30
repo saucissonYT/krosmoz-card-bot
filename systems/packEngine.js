@@ -1,5 +1,5 @@
 ﻿const { generatePack: coreGeneratePack } = require("./pack")
-const { getCards } = require("./cardRegistry")
+const { getCards, getCardsBySet } = require("./cardRegistry")
 const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
 const achievements = require("./achievementRegistry")
@@ -124,6 +124,29 @@ function isPalindrome(n){
  return s === s.split("").reverse().join("")
 }
 
+/* ================= NOLUCK HELPER ================= */
+
+/**
+ * Remplace toutes les cartes du pack par des cartes C (blanches).
+ * Appelé si le joueur est sous malchance.
+ * On garde la même taille de pack et le même set.
+ */
+function applyNoLuck(pack, setId){
+ try{
+  const setCards = getCardsBySet(setId)
+  const cPool = setCards.filter(c => c.rarity === "C")
+  const pool  = cPool.length > 0 ? cPool : setCards  // fallback si pas de C
+
+  return pack.map(() => {
+   const card = pool[Math.floor(Math.random() * pool.length)]
+   return card ? { ...card } : pack[0]   // sécurité
+  })
+ }catch(err){
+  console.error("[NO_LUCK] Erreur applyNoLuck :", err)
+  return pack
+ }
+}
+
 /* ================= OPEN PACK ================= */
 
 function openPack(user, setId, userId, options = {}){
@@ -138,7 +161,7 @@ function openPack(user, setId, userId, options = {}){
 
  const result = coreGeneratePack(user, setId, { pityKey })
 
- const pack = result?.pack || []
+ let pack = result?.pack || []
  let luckyPack = result?.luckyPack || false
  let fragment = null
 
@@ -156,12 +179,24 @@ function openPack(user, setId, userId, options = {}){
   }
  }
 
+ /* ---- MALCHANCE : remplace toutes les cartes par des C ---- */
+ if(userId){
+  try{
+   const { hasNoLuck } = require("./moderationSystem")
+   if(hasNoLuck(userId)){
+    pack     = applyNoLuck(pack, setId)
+    luckyPack = false   // pas de lucky pack non plus
+   }
+  }catch(err){
+   console.error("[NO_LUCK] Erreur vérification malchance :", err)
+  }
+ }
+
  /* ---- Lucky pack bonus (guilde + joueur) ---- */
  if(!luckyPack && bonuses.luckyPackBonus > 0){
   const extraChance = bonuses.luckyPackBonus / 100
   if(Math.random() < extraChance){
    luckyPack = true
-   const { getCardsBySet } = require("./cardRegistry")
    const setCards = getCardsBySet(setId)
    if(setCards.length > 0){
     pack.push(setCards[Math.floor(Math.random() * setCards.length)])
