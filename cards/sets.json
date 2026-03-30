@@ -4,5 +4,6 @@
  { "id":"amakna","name":"Amakna","reward":20000},
  { "id":"sufokia","name":"Sufokia","reward":20000},
  { "id":"kelba","name":"Kelba","reward":20000},
- { "id":"katrepat","name":"Katrepat","reward":20000}
+ { "id":"katrepat","name":"Katrepat","reward":20000},
+ { "id":"sberg","name":"Sberg","reward":20000}
 ]
