@@ -11,6 +11,7 @@ const { loadCommands } = require("./handlers/loadCommands")
 const { deployCommands } = require("./deployCommands")
 const { registerMessageCreateHandler } = require("./handlers/messageCreate")
 const { registerInteractionCreateHandler } = require("./handlers/interactionCreate")
+const { registerReactionRolesHandler } = require("./handlers/reactionRoles") /* ← reaction roles */
 
 const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
 
@@ -61,6 +62,7 @@ async function bootstrap() {
 
  registerMessageCreateHandler(client)
  registerInteractionCreateHandler(client)
+ registerReactionRolesHandler(client) /* ← enregistrement du handler reaction roles */
 
  await client.login(process.env.TOKEN)
  return client

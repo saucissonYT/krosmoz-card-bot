@@ -5,7 +5,9 @@ function createClient() {
   intents: [
    GatewayIntentBits.Guilds,
    GatewayIntentBits.GuildMessages,
-   GatewayIntentBits.MessageContent
+   GatewayIntentBits.MessageContent,
+   GatewayIntentBits.GuildMessageReactions, /* ← nécessaire pour détecter les réactions */
+   GatewayIntentBits.GuildMembers           /* ← nécessaire pour fetch les membres et modifier les rôles */
   ]
  })
 }
