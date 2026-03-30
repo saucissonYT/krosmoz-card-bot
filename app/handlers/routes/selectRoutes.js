@@ -26,6 +26,22 @@ async function routeSelectInteraction(interaction, client) {
   if (command?.select) return command.select(interaction)
  }
 
+ /*
+  * NE PAS router fusion_set ni fusion_rarity ici — retour silencieux.
+  *
+  * Ces selects sont gérés par le collector interne dans fusion.js.
+  * La route générique ci-dessous tente client.commands.get("fusion")?.select
+  * qui est undefined (fusion n'exporte pas de handler select) → warn parasite.
+  * On les intercepte explicitement et on retourne false sans loguer.
+  *
+  * Si le collector est expiré (timeout ou redémarrage), Discord affiche
+  * "Interaction Failed" — c'est acceptable et préférable à un double
+  * acknowledge qui crasherait les sessions actives.
+  */
+ if (id === "fusion_set" || id === "fusion_rarity") {
+  return false
+ }
+
  const commandName = id.split("_")[0]
  const command = client.commands.get(commandName)
 

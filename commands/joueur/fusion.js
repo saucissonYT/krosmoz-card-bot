@@ -176,9 +176,16 @@ function buildConfirmEmbed(setId, rarity, dups, counts, bonuses){
 
 /* ================================================================
    EXÉCUTION DE LA FUSION
+   FIX : msg.edit() ne fonctionnait pas sur les messages éphémères
+   (DiscordAPIError[10008]: Unknown Message). Les messages éphémères
+   ne peuvent être modifiés QUE via le token webhook de l'interaction
+   slash originale (originalInteraction.editReply()), pas via l'API
+   REST classique (GuildMessageManager.edit / msg.edit).
+   On passe donc originalInteraction à runFusion et on remplace
+   tous les msg.edit() par originalInteraction.editReply().
 ================================================================ */
 
-async function runFusion(i, msg, userId, setId, rarity){
+async function runFusion(i, originalInteraction, userId, setId, rarity){
 
  const cards = getCards()
  const user  = getUser(userId)
@@ -189,7 +196,7 @@ async function runFusion(i, msg, userId, setId, rarity){
  const pool = cards.filter(c => c.set === setId && c.rarity === rarity)
 
  if(pool.length === 0){
-  return msg.edit({ content: "❌ Aucune carte trouvée pour ce set/rareté.", embeds: [], components: [] })
+  return i.update({ content: "❌ Aucune carte trouvée pour ce set/rareté.", embeds: [], components: [] })
  }
 
  let available = 0
@@ -199,7 +206,7 @@ async function runFusion(i, msg, userId, setId, rarity){
  }
 
  if(available < cost){
-  return msg.edit({
+  return i.update({
    content: `❌ Plus assez de doublons (${available}/${cost}). Un autre joueur a peut-être fusionné entre temps.`,
    embeds:  [],
    components: []
@@ -277,29 +284,25 @@ async function runFusion(i, msg, userId, setId, rarity){
  else if(roll < dblChance && ["C","U","R","SR"].includes(rarity)){
   quantity = 2
   message  = "✨ Fusion double !"
-  xpGain   = 25
+  xpGain   = 20
   user.stats.fusionDouble = (user.stats.fusionDouble || 0) + 1
  }
+ else{
+  message = "✅ Fusion réussie."
+ }
 
- /* ---- Type fusion ---- */
+ /* ---- Pool de récompenses ---- */
 
- if(rarity === "C")  user.stats.fusionCU    = true
- if(rarity === "U")  user.stats.fusionUR    = true
- if(rarity === "R")  user.stats.fusionRSR   = true
- if(rarity === "SR") user.stats.fusionSRHR  = true
- if(rarity === "HR") user.stats.fusionHRUR  = true
- if(rarity === "UR") user.stats.fusionURS   = true
-
- let targetIndex = index + rarityGain
- const maxIndex  = RARITY_ORDER.indexOf("SSR")
- if(targetIndex > maxIndex) targetIndex = maxIndex
-
- const targetRarity = RARITY_ORDER[targetIndex]
-
- const rewardPool = cards.filter(c => c.set === setId && c.rarity === targetRarity)
+ const targetIdx    = Math.min(index + rarityGain, RARITY_ORDER.indexOf("SSR"))
+ const targetRarity = RARITY_ORDER[targetIdx]
+ const rewardPool   = cards.filter(c => c.set === setId && c.rarity === targetRarity)
 
  if(rewardPool.length === 0){
-  return msg.edit({ content: "❌ Erreur de pool de récompense.", embeds: [], components: [] })
+  return originalInteraction.editReply({
+   content: `❌ Aucune carte ${targetRarity} dans ce set.`,
+   embeds:  [],
+   components: []
+  })
  }
 
  /* ---- Animation intermédiaire ---- */
@@ -311,7 +314,7 @@ async function runFusion(i, msg, userId, setId, rarity){
   .setDescription(`\n${RARITY_EMOJI[rarity]}\n⬇\n${RARITY_EMOJI[targetRarity]}\n`)
   .setColor("#9b59b6")
 
- await msg.edit({ embeds: [transEmbed], components: [] })
+ await originalInteraction.editReply({ embeds: [transEmbed], components: [] })
  await sleep(900)
 
  /* ---- Résultat ---- */
@@ -372,7 +375,7 @@ ${rewardLines.join("\n")}
 ${fusionStats}`
   )
 
- await msg.edit({ embeds: [resultEmbed], components: [] })
+ await originalInteraction.editReply({ embeds: [resultEmbed], components: [] })
 
  const unlocked = [
   ...achievementCheck(user, "fusion"),
@@ -486,7 +489,15 @@ module.exports = {
      .setColor("#9b59b6")
      .setDescription("Choisis la rareté à fusionner.")
 
-    return i.update({ embeds: [setEmbed], components: [rarityRow, backRow] })
+    return i.update({
+     embeds: [setEmbed],
+     components: [
+      new ActionRowBuilder().addComponents(rarityMenu),
+      new ActionRowBuilder().addComponents(
+       new ButtonBuilder().setCustomId("fusion_back_sets").setLabel("← Retour aux sets").setStyle(ButtonStyle.Secondary)
+      )
+     ]
+    })
    }
 
    /* ──────────────────────────────────────────
@@ -571,18 +582,22 @@ module.exports = {
 
    /* ──────────────────────────────────────────
       ÉTAPE 3 : Confirmation → exécution
+      FIX : on passe `interaction` (slash command original) à runFusion
+      au lieu de `msg`, pour pouvoir utiliser interaction.editReply()
+      sur le message éphémère (msg.edit() ne fonctionne pas sur les
+      messages éphémères → DiscordAPIError[10008]).
    ────────────────────────────────────────── */
 
    if(i.customId === "fusion_confirm"){
     collector.stop("done")
-    await runFusion(i, msg, interaction.user.id, selectedSet, selectedRarity)
+    await runFusion(i, interaction, interaction.user.id, selectedSet, selectedRarity)
    }
 
   })
 
   collector.on("end", (_, reason) => {
    if(reason === "time")
-    msg.edit({ components: [] }).catch(() => {})
+    interaction.editReply({ components: [] }).catch(() => {})
   })
 
  }
