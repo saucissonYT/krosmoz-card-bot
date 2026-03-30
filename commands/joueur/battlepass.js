@@ -135,7 +135,7 @@ function buildMainEmbed(userId) {
   .setTitle(`${season.emoji || EMOJI.sparkle} BATTLE PASS - ${season.name}`)
   .setDescription(
    `*${season.subtitle || "La saison est en marche."}*\n\n` +
-   `${EMOJI.calendar} **Cloture de saison :** ${data.season.endDate}\n` +
+   `${EMOJI.calendar} **Cloture de saison :** ${data.currentSeason?.endDate || "-"}\n` +
    `${EMOJI.bolt} **Aura active :** ${season.passiveBonus?.description || "-"}\n\n` +
    `${EMOJI.slider} **Progression :** ${levelLabel}\n` +
    `${EMOJI.star} **XP du palier :** ${xpLevel}/${xpNeed}\n` +
@@ -389,8 +389,8 @@ async function sendSeason(interaction, userId) {
     `**Cycle :** Emeraude -> Pourpre -> Turquoise -> Ocre -> Ivoire -> Ebene`
    )
    .addFields(
-    { name: "Debut", value: data.season.startDate, inline: true },
-    { name: "Fin", value: data.season.endDate, inline: true },
+    { name: "Debut", value: data.currentSeason?.startDate || "-", inline: true },
+    { name: "Fin", value: data.currentSeason?.endDate || "-", inline: true },
     { name: "Prix Premium", value: `${season.premiumPrice || 8000} kamas`, inline: true }
    )
    .setColor(season.color || "#1B6B3A")

@@ -556,6 +556,7 @@ function getBattlePassOverview(userId) {
  return {
   season,
   seasonTemplate: season,
+  currentSeason:  current,   /* ← état courant de la saison (startDate, endDate...) */
   progress,
   xpInLevel:     Math.max(0, progress.totalXP - prevCap),
   xpToNextLevel: Math.max(0, nextCap - progress.totalXP),
