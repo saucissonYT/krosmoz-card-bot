@@ -4,8 +4,8 @@ Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes
 
 Les joueurs peuvent :
 
-- Ouvrir des packs et collectionner 1916 cartes
-- Compléter 6 sets (Incarnam, Astrub, Amakna, Sufokia, Kelba, Katrepat)
+- Ouvrir des packs et collectionner 2349 cartes
+- Compléter 7 sets (Incarnam, Astrub, Amakna, Sufokia, Kelba, Katrepat, Sberg)
 - Fusionner des doublons pour monter en rareté
 - Collecter des **fragments** de cartes SSR et les assembler via `/craft`
 - Vendre et acheter sur le marché entre joueurs
@@ -195,7 +195,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 
 ## 🎴 Cartes
 
-1916 cartes réparties en 6 sets :
+2349 cartes réparties en 7 sets :
 
 | Set | Cartes |
 |-----|--------|
@@ -205,6 +205,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | 🌊 Sufokia | 353 |
 | 📦 Kelba | 456 |
 | 🦇 Katrepat | 431 |
+| 🧊 Sberg | 433 |
 
 ### ⭐ Raretés & Économie
 
@@ -313,6 +314,19 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | S | 8 | 1.86% |
 | SSR | 5 | 1.16% |
 
+### 🧊 Distribution Sberg
+
+| Rareté | Cartes | Taux |
+|--------|--------|------|
+| C | 157 | 36.26% |
+| U | 109 | 25.17% |
+| R | 66 | 15.24% |
+| SR | 37 | 8.55% |
+| HR | 28 | 6.47% |
+| UR | 18 | 4.16% |
+| S | 11 | 2.54% |
+| SSR | 7 | 1.62% |
+
 ### ✨ SSR Shiny
 
 Les SSR ont 0.5% de chance d'être **Shiny** (+ bonus de niveau joueur) — variante cosmétique rare avec un affichage doré et un tracking persistant dans l'inventaire.
@@ -329,6 +343,7 @@ Les sets se débloquent progressivement au fil de la progression du joueur. Chaq
 | 🌊 Sufokia | 51 | Amakna ≥ 70% |
 | 📦 Kelba | 66 | Sufokia ≥ 70% |
 | 🦇 Katrepat | 81 | Kelba ≥ 70% |
+| 🧊 Sberg | 96 | Katrepat ≥ 70% |
 
 Les sets verrouillés apparaissent avec 🔒 dans `/krosmoz`, `/fusion` et `/listcards`. Le message de blocage indique la condition manquante et la progression actuelle du joueur. Le mode **🎲 Random** de `/krosmoz` ne pioche que dans les sets débloqués. Le `krosmoshop` et les `eventpack` ignorent ce système.
 
@@ -837,7 +852,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 395 succès |
+| /achievements | Voir les 403 succès |
 | /krosmohelp | Aide du bot |
 
 ---
@@ -1033,6 +1048,7 @@ Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée pa
 ## 📰 Changelog
 
 [Voir le changelog complet](CHANGELOG.md)
+[Voir le changelog complet](CHANGELOG_2.md)
 
 ---
 
