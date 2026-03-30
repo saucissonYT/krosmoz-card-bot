@@ -79,17 +79,10 @@ function getFusionCounts(dups){
    BUILDERS DES MENUS
 ================================================================ */
 
-/**
- * Construit les options du select menu des sets.
- * - Sets débloqués : affichés normalement avec ⚗️ ou ❌
- * - Sets verrouillés : affichés avec 🔒 (bloqués à la sélection)
- */
 function buildSetSelectOptions(user, cards, sets){
- const allCards = cards
-
  return sets.slice(0, 25).map(set => {
 
-  const unlocked = isSetUnlocked(user, set.id, allCards)
+  const unlocked = isSetUnlocked(user, set.id, cards)
 
   if(!unlocked){
    return {
@@ -163,7 +156,7 @@ function buildConfirmEmbed(setId, rarity, dups, counts, bonuses){
   .setDescription(`Set : **${setId}**`)
   .addFields(
    { name: "🎯 Rareté fusionnée",     value: `${RARITY_EMOJI[rarity]} **${rarity}** → ${RARITY_EMOJI[targetRarity]} **${targetRarity}**`, inline: true },
-   { name: "💸 Coût",                 value: `${cost} doublons`,  inline: true },
+   { name: "💸 Coût",                 value: `${cost} doublons par fusion`,  inline: true },
    { name: "📦 Doublons disponibles", value: `${available}`,       inline: true },
    { name: "🔄 Fusions possibles",    value: `**${fusionsPoss}×**`, inline: true },
    {
@@ -175,54 +168,94 @@ function buildConfirmEmbed(setId, rarity, dups, counts, bonuses){
 }
 
 /* ================================================================
-   EXÉCUTION DE LA FUSION
-   FIX : msg.edit() ne fonctionnait pas sur les messages éphémères
-   (DiscordAPIError[10008]: Unknown Message). Les messages éphémères
-   ne peuvent être modifiés QUE via le token webhook de l'interaction
-   slash originale (originalInteraction.editReply()), pas via l'API
-   REST classique (GuildMessageManager.edit / msg.edit).
-   On passe donc originalInteraction à runFusion et on remplace
-   tous les msg.edit() par originalInteraction.editReply().
+   ROWS DE CONFIRMATION
+   - Si fusionsPoss > 1 : bouton "1×" + bouton "Max (Nx)" + retour
+   - Si fusionsPoss === 1 : bouton normal + retour
 ================================================================ */
 
-async function runFusion(i, originalInteraction, userId, setId, rarity){
-
- const cards = getCards()
- const user  = getUser(userId)
-
- const index = RARITY_ORDER.indexOf(rarity)
- const cost  = FUSION_COST[rarity]
-
- const pool = cards.filter(c => c.set === setId && c.rarity === rarity)
-
- if(pool.length === 0){
-  return i.update({ content: "❌ Aucune carte trouvée pour ce set/rareté.", embeds: [], components: [] })
+function buildConfirmRow(fusionsPoss){
+ if(fusionsPoss > 1){
+  return new ActionRowBuilder().addComponents(
+   new ButtonBuilder()
+    .setCustomId("fusion_confirm")
+    .setLabel("⚗️ Fusionner (1×)")
+    .setStyle(ButtonStyle.Success),
+   new ButtonBuilder()
+    .setCustomId("fusion_max")
+    .setLabel(`⚡ Tout fusionner (${fusionsPoss}×)`)
+    .setStyle(ButtonStyle.Primary),
+   new ButtonBuilder()
+    .setCustomId("fusion_back_rarity")
+    .setLabel("← Retour")
+    .setStyle(ButtonStyle.Secondary)
+  )
  }
 
+ return new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setCustomId("fusion_confirm")
+   .setLabel("⚗️ Fusionner")
+   .setStyle(ButtonStyle.Success),
+  new ButtonBuilder()
+   .setCustomId("fusion_back_rarity")
+   .setLabel("← Retour")
+   .setStyle(ButtonStyle.Secondary)
+ )
+}
+
+/* ================================================================
+   COEUR RNG : un seul tirage (retourne les données, ne modifie rien)
+   Utilisé par runFusion ET runFusionMax pour éviter la duplication.
+================================================================ */
+
+function rollFusion(rarity, user, bonuses){
+ const critChance = 0.10 + bonuses.critBonus   / 100
+ const dblChance  = 0.10 + bonuses.doubleBonus / 100
+ const triChance  = 0.005 + bonuses.tripleBonus / 100
+
+ const roll = Math.random()
+
+ let rarityGain = 1
+ let quantity   = 1
+ let type       = "normal"
+ let xpGain     = 15
+
+ if(roll < triChance && (user.stats.tripleFusionToday || 0) < 1){
+  rarityGain = 3
+  type       = "triple"
+  xpGain     = 50
+ }
+ else if(roll < critChance){
+  rarityGain = 2
+  type       = "crit"
+  xpGain     = 25
+ }
+ else if(roll < dblChance && ["C","U","R","SR"].includes(rarity)){
+  quantity   = 2
+  type       = "double"
+  xpGain     = 20
+ }
+
+ const index      = RARITY_ORDER.indexOf(rarity)
+ const targetIdx  = Math.min(index + rarityGain, RARITY_ORDER.indexOf("SSR"))
+ const targetRarity = RARITY_ORDER[targetIdx]
+
+ return { rarityGain, quantity, type, xpGain, targetRarity }
+}
+
+/* ================================================================
+   CONSOMMER les doublons d'un set/rareté (une seule fusion)
+   Retourne false si pas assez de doublons.
+================================================================ */
+
+function consumeDuplicates(user, pool, cost){
  let available = 0
  for(const card of pool){
   const count = user.cards?.[card.id] || 0
   if(count > 1) available += (count - 1)
  }
 
- if(available < cost){
-  return i.update({
-   content: `❌ Plus assez de doublons (${available}/${cost}). Un autre joueur a peut-être fusionné entre temps.`,
-   embeds:  [],
-   components: []
-  })
- }
-
- /* ---- Embed "en cours" ---- */
-
- const loadingEmbed = new EmbedBuilder()
-  .setTitle("⚗️ Fusion en cours...")
-  .setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nSet : **${setId}**`)
-  .setColor("#9b59b6")
-
- await i.update({ embeds: [loadingEmbed], components: [] })
-
- /* ---- Consommation des cartes ---- */
+ if(available < cost) return null
 
  let remaining = cost
  const usedCards = {}
@@ -241,8 +274,45 @@ async function runFusion(i, originalInteraction, userId, setId, rarity){
   if(remaining <= 0) break
  }
 
- /* ---- Stats ---- */
+ return { usedCards, available }
+}
 
+/* ================================================================
+   EXÉCUTION — FUSION SIMPLE (1×)
+   FIX : msg.edit() ne fonctionne pas sur les messages éphémères.
+   On utilise originalInteraction.editReply() (token webhook slash).
+================================================================ */
+
+async function runFusion(i, originalInteraction, userId, setId, rarity){
+
+ const cards = getCards()
+ const user  = getUser(userId)
+ const cost  = FUSION_COST[rarity]
+ const pool  = cards.filter(c => c.set === setId && c.rarity === rarity)
+
+ if(pool.length === 0){
+  return i.update({ content: "❌ Aucune carte trouvée pour ce set/rareté.", embeds: [], components: [] })
+ }
+
+ const consumed = consumeDuplicates(user, pool, cost)
+ if(!consumed){
+  return i.update({
+   content: `❌ Plus assez de doublons. Un autre joueur a peut-être fusionné entre temps.`,
+   embeds: [], components: []
+  })
+ }
+
+ const { usedCards, available } = consumed
+
+ /* ---- Embed "en cours" ---- */
+ const loadingEmbed = new EmbedBuilder()
+  .setTitle("⚗️ Fusion en cours...")
+  .setDescription(`Fusion de **${cost} doublons ${RARITY_EMOJI[rarity]}**\n\nSet : **${setId}**`)
+  .setColor("#9b59b6")
+
+ await i.update({ embeds: [loadingEmbed], components: [] })
+
+ /* ---- Stats init ---- */
  if(!user.stats) user.stats = {}
  user.stats.fusions = (user.stats.fusions || 0) + 1
 
@@ -252,73 +322,41 @@ async function runFusion(i, originalInteraction, userId, setId, rarity){
   user.stats.lastTripleReset   = now
  }
 
- /* ---- Bonus ---- */
-
- const bonuses    = getFusionBonuses(userId, user)
- const critChance = 0.10 + bonuses.critBonus   / 100
- const dblChance  = 0.10 + bonuses.doubleBonus / 100
- const triChance  = 0.005 + bonuses.tripleBonus / 100
-
  /* ---- RNG ---- */
+ const bonuses = getFusionBonuses(userId, user)
+ const { quantity, type, xpGain, targetRarity } = rollFusion(rarity, user, bonuses)
 
- const roll = Math.random()
-
- let rarityGain = 1
- let quantity   = 1
- let message    = ""
- let xpGain     = 15
-
- if(roll < triChance && user.stats.tripleFusionToday < 1){
-  rarityGain = 3
-  message    = "🌈 TRIPLE FUSION !!!"
-  xpGain     = 50
+ if(type === "triple"){
   user.stats.tripleFusionToday++
   user.stats.tripleFusion = (user.stats.tripleFusion || 0) + 1
  }
- else if(roll < critChance){
-  rarityGain = 2
-  message    = "🔥 Fusion critique !"
-  xpGain     = 25
-  user.stats.fusionCrit = (user.stats.fusionCrit || 0) + 1
- }
- else if(roll < dblChance && ["C","U","R","SR"].includes(rarity)){
-  quantity = 2
-  message  = "✨ Fusion double !"
-  xpGain   = 20
-  user.stats.fusionDouble = (user.stats.fusionDouble || 0) + 1
- }
- else{
-  message = "✅ Fusion réussie."
- }
+ if(type === "crit")   user.stats.fusionCrit   = (user.stats.fusionCrit   || 0) + 1
+ if(type === "double") user.stats.fusionDouble  = (user.stats.fusionDouble || 0) + 1
 
- /* ---- Pool de récompenses ---- */
+ /* ---- Marqueur de type fusion ---- */
+ if(rarity === "C")  user.stats.fusionCU   = true
+ if(rarity === "U")  user.stats.fusionUR   = true
+ if(rarity === "R")  user.stats.fusionRSR  = true
+ if(rarity === "SR") user.stats.fusionSRHR = true
+ if(rarity === "HR") user.stats.fusionHRUR = true
+ if(rarity === "UR") user.stats.fusionURS  = true
 
- const targetIdx    = Math.min(index + rarityGain, RARITY_ORDER.indexOf("SSR"))
- const targetRarity = RARITY_ORDER[targetIdx]
- const rewardPool   = cards.filter(c => c.set === setId && c.rarity === targetRarity)
-
+ /* ---- Pool récompenses ---- */
+ const rewardPool = cards.filter(c => c.set === setId && c.rarity === targetRarity)
  if(rewardPool.length === 0){
-  return originalInteraction.editReply({
-   content: `❌ Aucune carte ${targetRarity} dans ce set.`,
-   embeds:  [],
-   components: []
-  })
+  return originalInteraction.editReply({ content: `❌ Aucune carte ${targetRarity} dans ce set.`, embeds: [], components: [] })
  }
 
- /* ---- Animation intermédiaire ---- */
-
+ /* ---- Animation ---- */
  await sleep(900)
-
  const transEmbed = new EmbedBuilder()
   .setTitle("⚗️ Fusion...")
   .setDescription(`\n${RARITY_EMOJI[rarity]}\n⬇\n${RARITY_EMOJI[targetRarity]}\n`)
   .setColor("#9b59b6")
-
  await originalInteraction.editReply({ embeds: [transEmbed], components: [] })
  await sleep(900)
 
- /* ---- Résultat ---- */
-
+ /* ---- Tirage ---- */
  const rewards = []
  for(let k = 0; k < quantity; k++){
   const card = rewardPool[Math.floor(Math.random() * rewardPool.length)]
@@ -335,27 +373,32 @@ async function runFusion(i, originalInteraction, userId, setId, rarity){
  await addBattlePassXP(userId, "fusion")
  save(userId)
 
- /* ---- Affichage ---- */
+ /* ---- Labels ---- */
+ const typeLabel = {
+  triple: "🌈 TRIPLE FUSION !!!",
+  crit:   "🔥 Fusion critique !",
+  double: "✨ Fusion double !",
+  normal: "✅ Fusion réussie."
+ }[type]
 
- const usedLines = Object.entries(usedCards).map(([id, q]) => {
+ const usedLines   = Object.entries(usedCards).map(([id, q]) => {
   const card = cards.find(c => c.id == id)
   return `${RARITY_EMOJI[card?.rarity || rarity]} ${card?.name || id} ×${q}`
  })
+ const rewardLines = rewards.map(c => `${RARITY_EMOJI[c.rarity]} ${c.name}`)
+ const remainingDup = available - cost
 
- const rewardLines   = rewards.map(c => `${RARITY_EMOJI[c.rarity]} ${c.name}`)
- const remainingDup  = available - cost
-
- const critPct   = (critChance * 100).toFixed(1)
- const doublePct = (dblChance  * 100).toFixed(1)
- const triplePct = (triChance  * 100).toFixed(2)
-
+ const bonuses2    = getFusionBonuses(userId, user)
+ const critPct   = ((0.10 + bonuses2.critBonus   / 100) * 100).toFixed(1)
+ const doublePct = ((0.10 + bonuses2.doubleBonus / 100) * 100).toFixed(1)
+ const triplePct = ((0.005 + bonuses2.tripleBonus / 100) * 100).toFixed(2)
  const fusionStats = `Fusions : **${user.stats.fusions || 0}** · 🔥 Crit : **${user.stats.fusionCrit || 0}** · ✨ Double : **${user.stats.fusionDouble || 0}** · 🌈 Triple : **${user.stats.tripleFusion || 0}**`
 
  const resultEmbed = new EmbedBuilder()
   .setTitle("⚗️ Fusion terminée")
   .setColor("#9b59b6")
   .setDescription(
-`${message}
+`${typeLabel}
 
 **Cartes utilisées**
 ${usedLines.join("\n")}
@@ -382,10 +425,189 @@ ${fusionStats}`
   ...achievementCheck(user, "collection"),
   ...achievementCheck(user, "pack")
  ]
+ if(unlocked.length) await notifyAchievements(i, unlocked)
+}
 
- if(unlocked.length)
-  await notifyAchievements(i, unlocked)
+/* ================================================================
+   EXÉCUTION — FUSION MAX (toutes les fusions d'un coup)
+   Boucle sur toutes les fusions disponibles, agrège les résultats,
+   affiche un seul embed résumé.
+================================================================ */
 
+async function runFusionMax(i, originalInteraction, userId, setId, rarity, totalFusions){
+
+ const cards = getCards()
+ const user  = getUser(userId)
+ const cost  = FUSION_COST[rarity]
+ const pool  = cards.filter(c => c.set === setId && c.rarity === rarity)
+
+ if(pool.length === 0){
+  return i.update({ content: "❌ Aucune carte trouvée pour ce set/rareté.", embeds: [], components: [] })
+ }
+
+ /* ---- Embed "en cours" ---- */
+ const loadingEmbed = new EmbedBuilder()
+  .setTitle("⚡ Fusion max en cours...")
+  .setDescription(`**${totalFusions}** fusions de **${RARITY_EMOJI[rarity]} ${rarity}** sur le set **${setId}**...\n\n⏳ Calcul en cours`)
+  .setColor("#9b59b6")
+
+ await i.update({ embeds: [loadingEmbed], components: [] })
+
+ /* ---- Stats init ---- */
+ if(!user.stats) user.stats = {}
+
+ const now = Date.now()
+ if(!user.stats.lastTripleReset || now - user.stats.lastTripleReset > 86400000){
+  user.stats.tripleFusionToday = 0
+  user.stats.lastTripleReset   = now
+ }
+
+ /* ---- Marqueur type fusion (une seule fois) ---- */
+ if(rarity === "C")  user.stats.fusionCU   = true
+ if(rarity === "U")  user.stats.fusionUR   = true
+ if(rarity === "R")  user.stats.fusionRSR  = true
+ if(rarity === "SR") user.stats.fusionSRHR = true
+ if(rarity === "HR") user.stats.fusionHRUR = true
+ if(rarity === "UR") user.stats.fusionURS  = true
+
+ const bonuses = getFusionBonuses(userId, user)
+
+ /* ---- Agrégats ---- */
+ let totalXP         = 0
+ let fusionsDone     = 0
+ let countNormal     = 0
+ let countCrit       = 0
+ let countDouble     = 0
+ let countTriple     = 0
+ let totalConsumed   = 0
+ const allRewards    = {}   // { cardId: count }
+ const rewardsByRarity = {} // pour le résumé par rareté
+
+ /* ---- Boucle de fusion ---- */
+ for(let n = 0; n < totalFusions; n++){
+
+  /* Recalcul des doublons restants à chaque itération */
+  const consumed = consumeDuplicates(user, pool, cost)
+  if(!consumed) break   // plus assez de doublons (cas edge)
+
+  totalConsumed += cost
+  fusionsDone++
+  user.stats.fusions = (user.stats.fusions || 0) + 1
+
+  const { quantity, type, xpGain, targetRarity } = rollFusion(rarity, user, bonuses)
+
+  /* Stats par type */
+  if(type === "triple"){
+   user.stats.tripleFusionToday++
+   user.stats.tripleFusion = (user.stats.tripleFusion || 0) + 1
+   countTriple++
+  }
+  if(type === "crit")   { user.stats.fusionCrit   = (user.stats.fusionCrit   || 0) + 1; countCrit++ }
+  if(type === "double") { user.stats.fusionDouble  = (user.stats.fusionDouble || 0) + 1; countDouble++ }
+  if(type === "normal") countNormal++
+
+  /* Pool de récompenses */
+  const rewardPool = cards.filter(c => c.set === setId && c.rarity === targetRarity)
+  if(rewardPool.length === 0) continue
+
+  for(let k = 0; k < quantity; k++){
+   const card = rewardPool[Math.floor(Math.random() * rewardPool.length)]
+   user.cards[card.id] = (user.cards[card.id] || 0) + 1
+   allRewards[card.id]     = (allRewards[card.id] || 0) + 1
+   rewardsByRarity[targetRarity] = (rewardsByRarity[targetRarity] || 0) + quantity
+  }
+
+  if(targetRarity === "SSR"){
+   user.stats.fusionSSRResult = (user.stats.fusionSSRResult || 0) + quantity
+   user.stats.ssrPulled       = (user.stats.ssrPulled       || 0) + quantity
+  }
+
+  totalXP += xpGain
+ }
+
+ addXP(user, totalXP)
+ await addBattlePassXP(userId, "fusion")
+ save(userId)
+
+ /* ---- Construction de l'embed résumé ---- */
+
+ /* Résumé des résultats par rareté */
+ const rarityOrder = ["SSR","S","UR","HR","SR","R","U","C"]
+ const rewardSummaryLines = rarityOrder
+  .filter(r => rewardsByRarity[r])
+  .map(r => `${RARITY_EMOJI[r]} **${r}** : ${rewardsByRarity[r]} carte${rewardsByRarity[r] > 1 ? "s" : ""}`)
+
+ /* Top 10 des cartes obtenues (triées par count desc) */
+ const topCards = Object.entries(allRewards)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 10)
+  .map(([id, count]) => {
+   const card = cards.find(c => c.id == id)
+   return `${RARITY_EMOJI[card?.rarity || "?"]} ${card?.name || id}${count > 1 ? ` ×${count}` : ""}`
+  })
+
+ /* Ligne de stats des types */
+ const typeLine = [
+  countNormal  > 0 ? `✅ Normales : **${countNormal}**` : null,
+  countCrit    > 0 ? `🔥 Critiques : **${countCrit}**`  : null,
+  countDouble  > 0 ? `✨ Doubles : **${countDouble}**`  : null,
+  countTriple  > 0 ? `🌈 Triples : **${countTriple}**`  : null
+ ].filter(Boolean).join(" · ")
+
+ const fusionStats = `Fusions : **${user.stats.fusions || 0}** · 🔥 Crit : **${user.stats.fusionCrit || 0}** · ✨ Double : **${user.stats.fusionDouble || 0}** · 🌈 Triple : **${user.stats.tripleFusion || 0}**`
+
+ const totalCardsObtained = Object.values(allRewards).reduce((a, b) => a + b, 0)
+
+ const resultEmbed = new EmbedBuilder()
+  .setTitle(`⚡ Fusion max terminée — ${fusionsDone}× ${RARITY_EMOJI[rarity]}${rarity}`)
+  .setColor("#9b59b6")
+  .setDescription(`Set : **${setId}**`)
+  .addFields(
+   {
+    name:   "📊 Résultats",
+    value:  typeLine || "Aucune",
+    inline: false
+   },
+   {
+    name:   "🎁 Cartes obtenues",
+    value:  rewardSummaryLines.length > 0 ? rewardSummaryLines.join("\n") : "Aucune",
+    inline: true
+   },
+   {
+    name:   "💸 Doublons consommés",
+    value:  `**${totalConsumed}** doublons **${RARITY_EMOJI[rarity]}${rarity}**`,
+    inline: true
+   },
+   {
+    name:   "🃏 Total cartes",
+    value:  `**${totalCardsObtained}** carte${totalCardsObtained > 1 ? "s" : ""} obtenue${totalCardsObtained > 1 ? "s" : ""}`,
+    inline: true
+   },
+   {
+    name:   "⭐ XP gagnée",
+    value:  `**${totalXP}** XP`,
+    inline: true
+   },
+   {
+    name:   `🔝 Top cartes${Object.keys(allRewards).length > 10 ? " (top 10)" : ""}`,
+    value:  topCards.length > 0 ? topCards.join("\n") : "Aucune",
+    inline: false
+   },
+   {
+    name:   "📈 Tes stats de fusion",
+    value:  fusionStats,
+    inline: false
+   }
+  )
+
+ await originalInteraction.editReply({ embeds: [resultEmbed], components: [] })
+
+ const unlocked = [
+  ...achievementCheck(user, "fusion"),
+  ...achievementCheck(user, "collection"),
+  ...achievementCheck(user, "pack")
+ ]
+ if(unlocked.length) await notifyAchievements(i, unlocked)
 }
 
 /* ================================================================
@@ -450,7 +672,6 @@ module.exports = {
     const freshUser = getUser(interaction.user.id)
     const allCards  = getCards()
 
-    /* ── Vérification déblocage ── */
     if(!isSetUnlocked(freshUser, selectedSet, allCards)){
      const msg = getUnlockMessage(freshUser, selectedSet, allCards)
      return i.reply({ content: msg || "🔒 Ce set est verrouillé.", flags: 64 })
@@ -478,11 +699,6 @@ module.exports = {
      .setCustomId("fusion_rarity")
      .setPlaceholder("Choisis la rareté à fusionner...")
      .addOptions(rarityOptions)
-
-    const rarityRow = new ActionRowBuilder().addComponents(rarityMenu)
-    const backRow   = new ActionRowBuilder().addComponents(
-     new ButtonBuilder().setCustomId("fusion_back_sets").setLabel("← Retour aux sets").setStyle(ButtonStyle.Secondary)
-    )
 
     const setEmbed = new EmbedBuilder()
      .setTitle(`⚗️ Fusion — ${selectedSet}`)
@@ -514,11 +730,7 @@ module.exports = {
     const bonuses   = getFusionBonuses(interaction.user.id, freshUser)
 
     const confirmEmbed = buildConfirmEmbed(selectedSet, selectedRarity, dups, counts, bonuses)
-
-    const confirmRow = new ActionRowBuilder().addComponents(
-     new ButtonBuilder().setCustomId("fusion_confirm").setLabel("⚗️ Fusionner").setStyle(ButtonStyle.Success),
-     new ButtonBuilder().setCustomId("fusion_back_rarity").setLabel("← Retour").setStyle(ButtonStyle.Secondary)
-    )
+    const confirmRow   = buildConfirmRow(counts[selectedRarity])
 
     return i.update({ embeds: [confirmEmbed], components: [confirmRow] })
    }
@@ -581,16 +793,37 @@ module.exports = {
    }
 
    /* ──────────────────────────────────────────
-      ÉTAPE 3 : Confirmation → exécution
-      FIX : on passe `interaction` (slash command original) à runFusion
-      au lieu de `msg`, pour pouvoir utiliser interaction.editReply()
-      sur le message éphémère (msg.edit() ne fonctionne pas sur les
-      messages éphémères → DiscordAPIError[10008]).
+      BOUTON : Fusion 1×
    ────────────────────────────────────────── */
 
    if(i.customId === "fusion_confirm"){
     collector.stop("done")
     await runFusion(i, interaction, interaction.user.id, selectedSet, selectedRarity)
+    return
+   }
+
+   /* ──────────────────────────────────────────
+      BOUTON : Fusion Max (toutes les fusions d'un coup)
+   ────────────────────────────────────────── */
+
+   if(i.customId === "fusion_max"){
+    collector.stop("done")
+
+    /* Recalcul du nombre de fusions disponibles au moment du clic */
+    const freshUser    = getUser(interaction.user.id)
+    const dups         = getDupsByRarity(freshUser, cards, selectedSet)
+    const counts       = getFusionCounts(dups)
+    const fusionsPoss  = counts[selectedRarity] || 0
+
+    if(fusionsPoss === 0){
+     return i.update({
+      content: "❌ Plus aucune fusion disponible.",
+      embeds: [], components: []
+     })
+    }
+
+    await runFusionMax(i, interaction, interaction.user.id, selectedSet, selectedRarity, fusionsPoss)
+    return
    }
 
   })

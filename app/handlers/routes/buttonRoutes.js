@@ -51,8 +51,8 @@ async function routeButtonInteraction(interaction, client) {
  /*
   * NE PAS router fusion_* ici — retour silencieux (false sans console.warn).
   *
-  * Les boutons fusion_ (fusion_confirm, fusion_back_sets, fusion_back_rarity)
-  * sont gérés par le collector interne dans fusion.js.
+  * Les boutons fusion_ (fusion_confirm, fusion_max, fusion_back_sets,
+  * fusion_back_rarity) sont gérés par le collector interne dans fusion.js.
   * Si on appelait interaction.reply/update ici, le handler global
   * acknowledgerait l'interaction AVANT le collector → double acknowledge
   * → crash + message "expiré" affiché pendant la fenêtre active.
@@ -62,6 +62,7 @@ async function routeButtonInteraction(interaction, client) {
   */
  if (
   id === "fusion_confirm"     ||
+  id === "fusion_max"         ||
   id === "fusion_back_sets"   ||
   id === "fusion_back_rarity"
  ) {
