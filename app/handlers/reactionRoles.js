@@ -30,6 +30,18 @@ function saveData(data) {
  }
 }
 
+/* ─── Résolution complète réaction + message ─────────────────── */
+
+async function resolveReaction(reaction) {
+ if (reaction.partial) {
+  try { await reaction.fetch() } catch { return null }
+ }
+ if (reaction.message.partial) {
+  try { await reaction.message.fetch() } catch { return null }
+ }
+ return reaction
+}
+
 /* ─── Envoi / récupération du message de bienvenue ───────────── */
 
 async function ensureWelcomeMessage(client) {
@@ -94,16 +106,15 @@ function registerReactionRolesHandler(client) {
   try {
    if (user.bot) return
 
-   /* Résolution partielle si message non en cache */
-   if (reaction.partial) {
-    try { await reaction.fetch() } catch { return }
-   }
+   /* Résolution complète : réaction ET message (les deux peuvent être partiels) */
+   reaction = await resolveReaction(reaction)
+   if (!reaction) return
 
    const data = loadData()
    if (reaction.message.id !== data.welcomeMessageId) return
    if (reaction.emoji.name !== EMOJI) return
 
-   const guild  = reaction.message.guild
+   const guild = reaction.message.guild
    if (!guild) return
 
    const member = await guild.members.fetch(user.id).catch(() => null)
@@ -122,15 +133,14 @@ function registerReactionRolesHandler(client) {
   try {
    if (user.bot) return
 
-   if (reaction.partial) {
-    try { await reaction.fetch() } catch { return }
-   }
+   reaction = await resolveReaction(reaction)
+   if (!reaction) return
 
    const data = loadData()
    if (reaction.message.id !== data.welcomeMessageId) return
    if (reaction.emoji.name !== EMOJI) return
 
-   const guild  = reaction.message.guild
+   const guild = reaction.message.guild
    if (!guild) return
 
    const member = await guild.members.fetch(user.id).catch(() => null)
