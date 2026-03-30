@@ -364,7 +364,8 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
   const emoji  = RARITY_EMOJI[card.rarity] || ""
   const shiny  = card.shiny ? " ✨ SHINY" : ""
   const qtyStr = qty > 1 ? ` x${qty}` : ""
-  return `${emoji} **${card.name}**${shiny}${qtyStr}`
+  const isNew  = newCardIds.has(String(card.id)) ? " 🆕" : ""
+  return `${emoji} **${card.name}**${shiny}${qtyStr}${isNew}`
  })
 
  /* ─── FIX : step défini dans les deux blocs ───────────────────────────────
