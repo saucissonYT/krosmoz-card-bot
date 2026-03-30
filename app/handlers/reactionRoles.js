@@ -55,26 +55,35 @@ async function ensureWelcomeMessage(client) {
    return null
   }
 
-  /* Si un message ID est déjà stocké, on vérifie qu'il existe encore */
+  /* Si un message ID est déjà stocké → on tente de le récupérer */
   if (data.welcomeMessageId) {
    try {
     const existing = await channel.messages.fetch(data.welcomeMessageId)
-    if (existing) {
-     console.log("[reactionRoles] Message de bienvenue déjà présent.")
 
-     /* S'assurer que la réaction ✅ du bot est bien là */
-     if (!existing.reactions.cache.get(EMOJI)) {
-      await existing.react(EMOJI)
-     }
-
-     return data.welcomeMessageId
+    /* Message trouvé → on ne renvoie rien, on s'assure juste que la réaction est là */
+    if (!existing.reactions.cache.get(EMOJI)) {
+     await existing.react(EMOJI)
     }
-   } catch {
-    /* Message supprimé → on en envoie un nouveau */
+
+    console.log("[reactionRoles] Message de bienvenue déjà présent, aucun envoi.")
+    return data.welcomeMessageId
+
+   } catch (err) {
+    /*
+     * On n'envoie un nouveau message QUE si le message est introuvable (supprimé).
+     * Code 10008 = Unknown Message (message supprimé).
+     * Pour toute autre erreur (Missing Access, réseau...), on ne touche à rien.
+     */
+    if (err.code !== 10008) {
+     console.warn("[reactionRoles] Impossible de vérifier le message existant, on ne renvoie pas :", err.message)
+     return null
+    }
+
+    console.warn("[reactionRoles] Message supprimé, envoi d'un nouveau message.")
    }
   }
 
-  /* Envoi du message de bienvenue */
+  /* Envoi du message de bienvenue (première fois ou message supprimé) */
   const msg = await channel.send(
    "Bienvenue, une fois que tu as lu le règlement, tu peux prendre ton rôle en ajoutant une réaction ✅ et commencer ton aventure !"
   )
@@ -106,7 +115,6 @@ function registerReactionRolesHandler(client) {
   try {
    if (user.bot) return
 
-   /* Résolution complète : réaction ET message (les deux peuvent être partiels) */
    reaction = await resolveReaction(reaction)
    if (!reaction) return
 
