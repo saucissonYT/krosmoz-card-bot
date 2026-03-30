@@ -10,6 +10,7 @@
    - sufokia   → niveau 51  OU amakna    ≥ 70%
    - kelba     → niveau 66  OU sufokia   ≥ 70%
    - katrepat  → niveau 81  OU kelba     ≥ 70%
+   - sberg     → niveau 96  OU katrepat  ≥ 70%
 
    krosmoshop et events ignorent ce système (cartes hors règle).
 =============================================== */
@@ -17,12 +18,13 @@
 /* ================= CONFIG ================= */
 
 const SET_UNLOCK_CONFIG = [
- { id: "incarnam", levelRequired: 1,  prevSet: null,       name: "Incarnam"  },
- { id: "astrub",   levelRequired: 11, prevSet: "incarnam", name: "Astrub"    },
- { id: "amakna",   levelRequired: 36, prevSet: "astrub",   name: "Amakna"    },
- { id: "sufokia",  levelRequired: 51, prevSet: "amakna",   name: "Sufokia"   },
- { id: "kelba",    levelRequired: 66, prevSet: "sufokia",  name: "Kelba"     },
- { id: "katrepat", levelRequired: 81, prevSet: "kelba",    name: "Katrepat"  },
+ { id: "incarnam", levelRequired: 1,  prevSet: null,        name: "Incarnam"  },
+ { id: "astrub",   levelRequired: 11, prevSet: "incarnam",  name: "Astrub"    },
+ { id: "amakna",   levelRequired: 36, prevSet: "astrub",    name: "Amakna"    },
+ { id: "sufokia",  levelRequired: 51, prevSet: "amakna",    name: "Sufokia"   },
+ { id: "kelba",    levelRequired: 66, prevSet: "sufokia",   name: "Kelba"     },
+ { id: "katrepat", levelRequired: 81, prevSet: "kelba",     name: "Katrepat"  },
+ { id: "sberg",    levelRequired: 96, prevSet: "katrepat",  name: "Sberg"     },
 ]
 
 const COMPLETION_UNLOCK_THRESHOLD = 0.70
