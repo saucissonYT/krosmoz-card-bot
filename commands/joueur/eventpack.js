@@ -1,10 +1,5 @@
 const { EmbedBuilder } = require("discord.js")
 
-/*
- * FIX: rarityColor et rarityEmoji étaient hardcodés localement.
- * Remplacés par RARITY_EMOJI et RARITY_COLOR depuis constants.js
- * pour garantir la cohérence avec le reste du projet.
- */
 const { RARITY_EMOJI, RARITY_COLOR } = require("../../systems/constants")
 
 const {
@@ -146,25 +141,20 @@ module.exports = {
 
    if(!user.stats) user.stats = {}
 
-   // EventPacks globaux
    user.stats.eventPacksOpened = (user.stats.eventPacksOpened || 0) + 1
 
-   // Packs par classe
    if(!user.stats.eventPacksByClass) user.stats.eventPacksByClass = {}
    user.stats.eventPacksByClass[event.key] = (user.stats.eventPacksByClass[event.key] || 0) + 1
 
-   // Events distincts participés
    if(!user.stats.eventsParticipated) user.stats.eventsParticipated = []
    if(!user.stats.eventsParticipated.includes(event.key)){
     user.stats.eventsParticipated.push(event.key)
    }
 
-   // Premier pack de l'event
    if(isFirstPack){
     user.stats.firstEventPacks = (user.stats.firstEventPacks || 0) + 1
    }
 
-   // SSR obtenues en event — on compte sur le pack FINAL (après limitSSR)
    const ssrInPack = pack.filter(c => c?.rarity === "SSR").length
    if(ssrInPack > 0){
     user.stats.ssrPulled    = (user.stats.ssrPulled    || 0) + ssrInPack
@@ -174,23 +164,19 @@ module.exports = {
     user.stats.ssrByClass[event.key] = (user.stats.ssrByClass[event.key] || 0) + ssrInPack
    }
 
-   // Tickets entièrement utilisés
    if(user.event.used >= user.event.tickets){
     user.stats.ticketsFullyUsed = (user.stats.ticketsFullyUsed || 0) + 1
 
-    // Achievement speed tickets : tous les tickets en < 2 minutes
     const elapsed = Date.now() - (user.event.startTime || Date.now())
     if(elapsed <= 120000){
      user.stats.speedTickets = true
     }
    }
 
-   // Jackpot Enutrof — meta.jackpot est set par le handler Enutrof
    if(event.key === "enutrof" && meta.jackpot){
     user.stats.jackpotEnutrof = (user.stats.jackpotEnutrof || 0) + 1
    }
 
-   // FIX : Jackpot Feca — généré dans rewardSystem via jackpotMessage, pas meta.jackpot
    if(event.key === "feca" && jackpotMessage){
     user.stats.jackpotFeca = (user.stats.jackpotFeca || 0) + 1
    }
@@ -200,21 +186,28 @@ module.exports = {
    if(!user.cards) user.cards = {}
 
    /* ================= DISCOVERED TRACKING ================= */
+   /*
+    * On prend un snapshot AVANT d'ajouter les cartes
+    * pour savoir lesquelles sont vraiment nouvelles.
+    * Le 🆕 sera affiché sur ces cartes dans le reveal.
+    */
 
-   const discovered = []
+   const discoveredIds = new Set()
+
+   for(const card of pack){
+    if(!card?.id) continue
+    if(!user.cards[card.id] || user.cards[card.id] === 0){
+     discoveredIds.add(String(card.id))
+    }
+   }
 
    /* ================= SRAM ================= */
 
    if(event.key === "sram"){
 
+    /* Ajouter les cartes à l'inventaire pour Sram */
     for(const card of pack){
      if(!card?.id) continue
-
-     /* CHECK NEW avant d'ajouter */
-     if(!user.cards[card.id] || user.cards[card.id] === 0){
-      discovered.push(card)
-     }
-
      user.cards[card.id] = (user.cards[card.id] || 0) + 1
     }
 
@@ -252,13 +245,17 @@ module.exports = {
     ]
     save(interaction.user.id)
 
-    /* NOTIFICATION NOUVELLES CARTES (même pour Sram) */
-    if(discovered.length){
-     const lines = discovered.map(c => `🔎 **${c.name}**`)
-     await interaction.followUp({
-      content:`Nouvelle découverte !\n${lines.join("\n")}`,
-      flags:64
-     })
+    /* Nouvelles découvertes même pour Sram */
+    if(discoveredIds.size > 0){
+     const lines = pack
+      .filter(c => c?.id && discoveredIds.has(String(c.id)))
+      .map(c => `🔎 **${c.name}**`)
+     if(lines.length){
+      await interaction.followUp({
+       content:`Nouvelle découverte !\n${lines.join("\n")}`,
+       flags:64
+      })
+     }
     }
 
     if(unlocked.length)
@@ -275,14 +272,11 @@ module.exports = {
 
     if(!card || !card.id) continue
 
-    /* CHECK NEW avant d'ajouter */
-    if(!user.cards[card.id] || user.cards[card.id] === 0){
-     discovered.push(card)
-    }
-
     user.cards[card.id]=(user.cards[card.id]||0)+1
 
     let line = `${RARITY_EMOJI[card.rarity]||"❓"} **${card.name}** \`${card.rarity}\``
+
+    /* ── Emojis événements ── */
 
     if(event.key === "pandawa" && meta.duplicates){
      const isCopy = meta.duplicates.some(d => d.copy === card.name)
@@ -310,6 +304,9 @@ module.exports = {
     if(meta.downgrades?.some(d=>d.includes(card.name))){
      line += " 🐺"
     }
+
+    /* ── 🆕 Nouvelle carte ── */
+    if(discoveredIds.has(String(card.id))) line += " 🆕"
 
     revealed.push(line)
 
@@ -364,8 +361,6 @@ module.exports = {
     rp += `\n💰 JACKPOT !`
    }
 
-   /* ===== UX EVENT ===== */
-
    if(meta.ux?.length){
     rp += "\n\n✨ Effet de l'événement :\n" + meta.ux.join("\n")
    }
@@ -402,7 +397,7 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
     ]
    })
 
-   /* ================= VOICE LINE — DIVIN ================= */
+   /* ================= VOICE LINE ================= */
 
    const hasSSR = pack.some(c => c.rarity === "SSR")
    const hasS   = pack.some(c => c.rarity === "S")
@@ -420,7 +415,6 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
 
      const line = voicePool[Math.floor(Math.random() * voicePool.length)]
 
-     // RP DIVIN : header Discord (##) + italique gras + majuscules
      await channel.send(
       `## ${event.name}\n> ***${line.trim().toUpperCase()}***`
      )
@@ -429,12 +423,16 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
 
    /* ================= NOUVELLES DÉCOUVERTES ================= */
 
-   if(discovered.length){
-    const lines = discovered.map(c => `🔎 **${c.name}**`)
-    await interaction.followUp({
-     content:`Nouvelle découverte !\n${lines.join("\n")}`,
-     flags:64
-    })
+   if(discoveredIds.size > 0){
+    const lines = pack
+     .filter(c => c?.id && discoveredIds.has(String(c.id)))
+     .map(c => `🔎 **${c.name}**`)
+    if(lines.length){
+     await interaction.followUp({
+      content:`Nouvelle découverte !\n${lines.join("\n")}`,
+      flags:64
+     })
+    }
    }
 
    /* ================= ACHIEVEMENTS ================= */
