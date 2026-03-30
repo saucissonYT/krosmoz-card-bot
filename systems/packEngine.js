@@ -211,6 +211,14 @@ function openPack(user, setId, userId, options = {}){
  if(!user.cards) user.cards={}
 
  if(user.stats.ssrPulled===undefined) user.stats.ssrPulled=0
+ /*
+  * FIX : packsOpened n'est plus incrémenté ici.
+  * Il est incrémenté par l'appelant (krosmoz.js, eventpack.js…)
+  * avant la boucle d'ouverture, ce qui évitait un double-comptage :
+  *   - krosmoz.js  : packsOpened += packCount  (avant la boucle)
+  *   - packEngine  : packsOpened++              (× packCount dans la boucle)
+  *   = 2 × packCount au lieu de packCount
+  */
  if(user.stats.packsOpened===undefined) user.stats.packsOpened=0
  if(user.stats.shinySSR===undefined) user.stats.shinySSR=0
  if(user.stats.lastSSR===undefined) user.stats.lastSSR=false
@@ -253,7 +261,10 @@ function openPack(user, setId, userId, options = {}){
  }
 
  /* ---- Stats pack ---- */
- user.stats.packsOpened++
+ /*
+  * NE PAS incrémenter packsOpened ici — géré par l'appelant.
+  * On conserve uniquement les stats propres à chaque pack individuel.
+  */
 
  const parisNow = getParisTimeParts()
  const rarities = pack.map(c=>c?.rarity).filter(Boolean)

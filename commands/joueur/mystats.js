@@ -78,6 +78,16 @@ function buildPage(pageId, user, interaction) {
  const totalAchWithBP    = TOTAL_ACHIEVEMENTS + bpAchievementTotal
  const unlockedAchWithBP = achievementCount + bpAchievementCount
 
+ /*
+  * FIX : s.packsOpened peut être incrémenté par d'autres sources (buypack…)
+  * et ne correspond donc pas à ce qu'affiche "Via /krosmoz".
+  * On utilise krosmozOpened (= packs réellement ouverts via /krosmoz)
+  * pour construire le total global cohérent avec les sous-lignes.
+  */
+ const krosmozOpened   = s.krosmozOpened || s.packsOpened || 0
+ const eventOpened     = s.eventPacksOpened || 0
+ const totalPacksOpened = krosmozOpened + eventOpened
+
  /* ===== GÉNÉRAL ===== */
 
  if (pageId === "general") {
@@ -102,7 +112,7 @@ ${bar(ownedUnique, totalCards, 12)} ${pct(ownedUnique, totalCards)}
 　└ Battle Pass : **${bpAchievementCount}** / ${bpAchievementTotal}
 ${bar(unlockedAchWithBP, totalAchWithBP, 12)} ${pct(unlockedAchWithBP, totalAchWithBP)}
 
-📦 Packs ouverts : **${s.packsOpened || 0}**
+📦 Packs ouverts : **${totalPacksOpened}**
 📦 Packs achetés : **${s.packsBought || 0}**
 🌈 SSR obtenues : **${s.ssrPulled || 0}**
 ✨ SSR Shiny : **${shinyTotal}** (${shinyUnique} uniques)
@@ -168,11 +178,9 @@ ${setLines.join("\n")}
 
  if (pageId === "rng") {
 
-  const ssrRate = s.packsOpened > 0
-   ? ((s.ssrPulled || 0) / s.packsOpened * 100).toFixed(2) + "%"
+  const ssrRate = totalPacksOpened > 0
+   ? ((s.ssrPulled || 0) / totalPacksOpened * 100).toFixed(2) + "%"
    : "—"
-
-  const totalPacksOpened = (s.packsOpened || 0) + (s.eventPacksOpened || 0)
 
   return new EmbedBuilder()
    .setTitle(`🎲 Packs & RNG de ${interaction.user.username}`)
@@ -180,8 +188,8 @@ ${setLines.join("\n")}
    .setDescription(
 `**Packs ouverts**
 📦 Total global : **${totalPacksOpened}**
-　├ Via /krosmoz : **${s.krosmozOpened || s.packsOpened || 0}**
-　└ Via /eventpack : **${s.eventPacksOpened || 0}**
+　├ Via /krosmoz : **${krosmozOpened}**
+　└ Via /eventpack : **${eventOpened}**
 📦 Packs achetés : **${s.packsBought || 0}**
 📦 Packs en stock : **${user.packs || 0}**
 
@@ -268,7 +276,7 @@ ${setLines.join("\n")}
    .setColor("#8e44ad")
    .setDescription(
 `**Général**
-📦 EventPacks ouverts : **${s.eventPacksOpened || 0}**
+📦 EventPacks ouverts : **${eventOpened}**
 🎰 Events distincts : **${participated.length}** / 19
 ${bar(participated.length, 19, 12)}
 🎟️ Tickets épuisés : **${s.ticketsFullyUsed || 0}** fois
