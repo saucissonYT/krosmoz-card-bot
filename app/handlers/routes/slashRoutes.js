@@ -99,7 +99,9 @@ async function routeSlashInteraction(interaction, client) {
   /* ── Vérification sanction (commandes joueur uniquement) ── */
   if (folder === "joueur") {
     try {
-      const { isSanctioned } = require("../../systems/moderationSystem")
+      /* FIX: chemin corrigé — slashRoutes est dans app/handlers/routes/
+         donc ../../../ remonte jusqu'à la racine du projet               */
+      const { isSanctioned } = require("../../../systems/moderationSystem")
       const sanction = isSanctioned(interaction.user.id)
 
       if (sanction) {

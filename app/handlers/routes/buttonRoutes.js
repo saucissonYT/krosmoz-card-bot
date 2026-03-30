@@ -37,6 +37,18 @@ async function routeButtonInteraction(interaction, client) {
  }
 
  /*
+  * FIX: guild_accept / guild_decline sont gérés par le collector interne
+  * dans guildmanage.js. Si on arrive ici, c'est que le collector a expiré
+  * (bot redémarré, invitation trop vieille). On répond proprement.
+  */
+ if (id === "guild_accept" || id === "guild_decline"){
+  return interaction.reply({
+   content:"⏰ Cette invitation a expiré.",
+   flags:64
+  })
+ }
+
+ /*
   * NE PAS router fusion_* ici.
   *
   * Les boutons fusion_ (fusion_confirm, fusion_back_sets, fusion_back_rarity)

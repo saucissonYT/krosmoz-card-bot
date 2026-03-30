@@ -351,13 +351,16 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  }
 
  /* ── Achievements ────────────────────────────────────────────────────────── */
- const allUnlocked = []
- for (const result of results) {
-  for (const id of result.discovered || []) {
-   if (!allUnlocked.includes(id)) allUnlocked.push(id)
-  }
- }
- const uniqueUnlocked = [...new Set(allUnlocked)]
+ /*
+  * FIX : l'ancien code itérait sur result.discovered (= objets carte)
+  * en croyant avoir des IDs d'achievements → achievementCheck n'était
+  * JAMAIS appelé → pack1, pack10, bulkOpen, krosmoz42... ne se validaient pas.
+  */
+ const uniqueUnlocked = [
+  ...achievementCheck(user, "pack"),
+  ...achievementCheck(user, "collection"),
+  ...achievementCheck(user, "economy"),
+ ].filter((id, idx, self) => self.indexOf(id) === idx)
 
  /* ── Affichage (scroll ou direct) ───────────────────────────────────────── */
  const lines = aggregated.map(({ card, qty }) => {

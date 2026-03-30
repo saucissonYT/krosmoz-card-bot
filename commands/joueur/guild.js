@@ -22,7 +22,7 @@ const {
  MAX_MEMBERS,
  CREATE_COST
 } = require("../../systems/guildSystem")
-const { getGuildBonuses, formatBonuses, formatNextUnlocks } = require("../../systems/guildBonuses")
+const { getUserGuildBonuses, formatBonuses, formatNextUnlocks } = require("../../systems/guildBonuses")
 const {
  getGuildQuestProgress,
  claimGuildQuests,
@@ -109,7 +109,8 @@ ${guildList}`
    const xpReq = xpRequired(g.level)
    const bar   = progressBar(g.xp, xpReq, 14)
 
-   const bonuses         = getGuildBonuses(g.level)
+   /* FIX: getUserGuildBonuses(userId) au lieu de getGuildBonuses(level) qui n'existe pas */
+   const bonuses          = getUserGuildBonuses(interaction.user.id)
    const activeBonusCount = Object.values(bonuses).filter(v => v > 0).length
 
    const embed = new EmbedBuilder()
@@ -206,8 +207,8 @@ ${bar}
    const allDone   = completed >= progress.length
    const resetIn   = getNextGuildQuestReset(questType)
 
-   const typeLabel    = questType === "daily" ? "☀️ Journalières" : "📅 Hebdomadaires"
-   const bonusAmount  = questType === "daily" ? 200 : 500
+   const typeLabel   = questType === "daily" ? "☀️ Journalières" : "📅 Hebdomadaires"
+   const bonusAmount = questType === "daily" ? 200 : 500
 
    const embed = new EmbedBuilder()
     .setTitle(`📋 Quêtes de guilde — ${g.emoji} ${g.name}`)
@@ -336,6 +337,9 @@ ${nextText}`
 
      const g = result.guild
 
+     /* Mettre à jour le user local pour que buildMain fonctionne */
+     user.guildId = g.id
+
      const freshUser = getUser(interaction.user.id)
      const unlocked  = achievementCheck(freshUser, "guild")
 
@@ -449,7 +453,9 @@ Coût : **${CREATE_COST} kamas**`
     if(result.levelResult?.leveled)
      claimText += `\n\n🎉 **La guilde passe niveau ${result.levelResult.newLevel} !**`
 
+    /* FIX: répondre en éphémère PUIS rafraîchir le panel quêtes */
     await i.reply({ content:claimText, flags:64 })
+    await interaction.editReply(buildQuests())
 
     if(unlocked.length)
      await notifyAchievements(interaction, unlocked)
