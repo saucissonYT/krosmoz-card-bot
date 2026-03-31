@@ -16,7 +16,7 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 200 et débloquer des bonus permanents
-- Débloquer 555 succès, badges et titres exclusifs
+- Débloquer 530 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -130,7 +130,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | progressionSystem | XP et level-up (cap 200), milestones, bonus XP intégré |
 | playerBonuses | 9 bonus progressifs par niveau du joueur |
 | rankSystem | Rangs basés sur les achievements |
-| achievementRegistry | Agrégateur des 12 modules de succès actifs |
+| achievementRegistry | Agrégateur des 14 modules de succès actifs |
 | achievementEngine | Détection avec lecture dynamique des cartes |
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succes debloques |
@@ -139,7 +139,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## ✅ Achievements
 
-403 succès automatiques répartis en 13 catégories actives :
+449 succès automatiques répartis en 14 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -148,7 +148,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Économie** — kamas, daily, balance, inventaire, titres
 - **Social** — profil, leaderboard, mentions du bot
 - **Secrets** — Krosmo-bot, achievements cachés
-- **Events** — 148 achievements (participation, SSR par classe, jackpots)
+- **Events** — 150 achievements (participation, SSR par classe, jackpots)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
@@ -770,7 +770,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Le jeu compte `474` succes classiques + `81` succes Battle Pass, soit `555` succes au total
+- Le jeu compte `449` succes classiques + `81` succes Battle Pass, soit `530` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -852,7 +852,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 403 succès |
+| /achievements | Voir les 449 succès |
 | /krosmohelp | Aide du bot |
 
 ---
@@ -910,7 +910,7 @@ La commande **/quests** affiche une interface interactive avec :
 
 ## ✅ Achievements
 
-403 succès automatiques répartis en 13 catégories actives :
+449 succès automatiques répartis en 14 catégories actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -919,7 +919,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Économie** — kamas, daily, balance, inventaire, titres
 - **Social** — profil, leaderboard, mentions du bot
 - **Secrets** — Krosmo-bot, achievements cachés
-- **Events** — 148 achievements (participation, SSR par classe, jackpots)
+- **Events** — 150 achievements (participation, SSR par classe, jackpots)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
