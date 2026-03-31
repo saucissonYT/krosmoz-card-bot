@@ -719,10 +719,10 @@ async function buyPremium(userId) {
   const now = toDateOnly(new Date())
   if (now > current.endDate) return { ok: false, error: "Saison cloturee." }
 
-  if ((user.kamas || 0) < (season.premiumPrice || 8000))
-   return { ok: false, error: `Kamas insuffisants (${season.premiumPrice || 8000} requis).` }
+  if ((user.kamas || 0) < (season.premiumPrice || 18000))
+   return { ok: false, error: `Kamas insuffisants (${season.premiumPrice || 18000} requis).` }
 
-  user.kamas -= (season.premiumPrice || 8000)
+  user.kamas -= (season.premiumPrice || 18000)
   progress.hasPremium = true
   progress.stats.premiumBuys = (progress.stats.premiumBuys || 0) + 1
 
@@ -747,7 +747,7 @@ async function buyPremium(userId) {
   checkAndUnlockAchievements(progress, season)
   saveUserProgress(progress)
 
-  return { ok: true, retroCount, price: season.premiumPrice || 8000 }
+  return { ok: true, retroCount, price: season.premiumPrice || 18000 }
  } finally {
   claimLocks.delete(userId)
   releaseFileLock(lockPath)

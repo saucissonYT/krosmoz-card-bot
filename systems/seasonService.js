@@ -307,7 +307,7 @@ function buildSeasonTemplate(seasonId) {
   achievements:    buildSeasonAchievementsV3(seasonId),
   bonusVersion:    2,
   rewardsVersion:  6,
-  premiumPrice:    12000
+  premiumPrice:    18000
  }
 }
 

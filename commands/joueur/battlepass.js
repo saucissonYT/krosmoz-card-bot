@@ -143,7 +143,7 @@ function buildMainEmbed(userId) {
    `${EMOJI.gift} **A recuperer maintenant :** ${data.claimableCount}\n` +
    `${EMOJI.right} **Prochaine recompense :** ${nextRewardText}\n` +
    `${EMOJI.finish} **Prochain palier legendaire :** ${keyNext ? `Niv.${keyNext}` : "Atteint"}\n` +
-   `${EMOJI.diamond} **Prix Premium :** ${season.premiumPrice || 8000} kamas`
+   `${EMOJI.diamond} **Prix Premium :** ${season.premiumPrice || 18000} kamas`
   )
   .setColor(season.color || "#1B6B3A")
 
@@ -160,7 +160,7 @@ function buildMainEmbed(userId) {
  * dans une seule row, il n'y avait plus de place pour le bouton quêtes.
  */
 function buildActionRows(data) {
- const premiumPrice = data.seasonTemplate?.premiumPrice || 8000
+ const premiumPrice = data.seasonTemplate?.premiumPrice || 18000
 
  const row1 = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
@@ -391,7 +391,7 @@ async function sendSeason(interaction, userId) {
    .addFields(
     { name: "Debut", value: data.currentSeason?.startDate || "-", inline: true },
     { name: "Fin", value: data.currentSeason?.endDate || "-", inline: true },
-    { name: "Prix Premium", value: `${season.premiumPrice || 8000} kamas`, inline: true }
+    { name: "Prix Premium", value: `${season.premiumPrice || 18000} kamas`, inline: true }
    )
    .setColor(season.color || "#1B6B3A")
 
@@ -482,7 +482,7 @@ module.exports = {
    const refreshed = buildMainEmbed(userId)
    const confirmEmbed = new EmbedBuilder(refreshed.embed.data).addFields({
     name: "Confirmation Premium",
-    value: `Tu vas depenser **${refreshed.data.seasonTemplate.premiumPrice || 8000} kamas**.\nVeux-tu activer le Pass Premium maintenant ?`
+    value: `Tu vas depenser **${refreshed.data.seasonTemplate.premiumPrice || 18000} kamas**.\nVeux-tu activer le Pass Premium maintenant ?`
    })
    return interaction.update({ embeds: [confirmEmbed], components: [buildBuyConfirmRow()] })
   }
