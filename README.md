@@ -220,7 +220,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | S | ✨ | 800 | 2 000 | 5 000 |
 | SSR | 🌈 | 2 000 | 5 000 | 12 000 |
 
-**Prix d'un pack : 800 kamas** (1 gratuit/heure, cooldown réduit par niveau)
+**Prix d'un pack : 2500 kamas** (1 gratuit/heure, cooldown réduit par niveau)
 
 **Récompense de complétion d'un set : 20 000 kamas**
 
@@ -228,13 +228,13 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 
 | Rareté fusionnée | Doublons requis |
 |-----------------|-----------------|
-| C → U | 10 doublons |
-| U → R | 20 doublons |
-| R → SR | 40 doublons |
-| SR → HR | 80 doublons |
-| HR → UR | 150 doublons |
-| UR → S | 300 doublons |
-| S → SSR | 500 doublons |
+| C → U | 3 doublons |
+| U → R | 3 doublons |
+| R → SR | 4 doublons |
+| SR → HR | 5 doublons |
+| HR → UR | 6 doublons |
+| UR → S | 8 doublons |
+| S → SSR | 10 doublons |
 
 ### ☁️ Distribution Incarnam
 
