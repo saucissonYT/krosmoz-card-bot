@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Guildes — Krosmoz Card</title>
+ <meta name="theme-color" content="#c9a84c">
+ <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+ <nav class="navbar scrolled">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand"><span>🎴</span> KROSMOZ CARD</a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/leaderboard">Classement</a></li>
+    <li><a href="/cards">Cartes</a></li>
+    <li><a href="/market">Marché</a></li>
+    <li><a href="/guild" class="active">Guildes</a></li>
+   </ul>
+   <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+   <section style="padding-top:40px">
+    <h1 class="section-title fade-in">🏰 Détail des guildes</h1>
+    <p class="section-subtitle fade-in stagger-1">Recherche et fiche complète de guilde</p>
+
+    <div class="toolbar fade-in stagger-2">
+     <input id="guildSearch" class="input" placeholder="Nom ou ID de guilde..." />
+     <select id="guildSort" class="input input-select">
+      <option value="level">Tri: Niveau</option>
+      <option value="members">Tri: Membres</option>
+      <option value="name">Tri: Nom</option>
+     </select>
+     <button id="searchBtn" class="btn btn-outline">Rechercher</button>
+    </div>
+
+    <div id="guildList" class="catalog-grid"></div>
+
+    <div id="guildDetail" class="profile-card" style="margin-top:20px; display:none"></div>
+   </section>
+
+   <footer class="footer">
+    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
+   </footer>
+  </div>
+ </div>
+
+ <script>
+ document.getElementById("navToggle").addEventListener("click", () => {
+  document.getElementById("navLinks").classList.toggle("open")
+ })
+
+ let currentGuildId = null
+
+ function escapeHtml(str) {
+  const div = document.createElement("div")
+  div.textContent = String(str || "")
+  return div.innerHTML
+ }
+
+ function guildCard(g) {
+  return `
+   <article class="catalog-card">
+    <div class="catalog-card-head">
+     <span class="chip">${escapeHtml(g.emoji || "🏰")}</span>
+     <span class="chip">Niv. ${g.level}</span>
+    </div>
+    <h3>${escapeHtml(g.name)}</h3>
+    <p>ID: ${escapeHtml(g.id)}</p>
+    <p>Membres: ${g.members}/10</p>
+    <button class="btn btn-outline guild-open" data-id="${escapeHtml(g.id)}">Voir le détail</button>
+   </article>
+  `
+ }
+
+ async function loadGuildList() {
+  const root = document.getElementById("guildList")
+  const q = document.getElementById("guildSearch").value.trim()
+  const sort = document.getElementById("guildSort").value
+  root.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement des guildes...</p></div>`
+
+  try {
+   const params = new URLSearchParams({ limit: "30", sort })
+   if (q) params.set("q", q)
+   const res = await fetch(`/api/guilds?${params.toString()}`)
+   const data = await res.json()
+   const items = data.items || []
+
+   if (!items.length) {
+    root.innerHTML = `<div class="loading"><p>Aucune guilde trouvée.</p></div>`
+    return
+   }
+
+   root.innerHTML = items.map(guildCard).join("")
+   root.querySelectorAll(".guild-open").forEach((btn) => {
+    btn.addEventListener("click", () => openGuild(btn.dataset.id))
+   })
+
+   if (!currentGuildId) openGuild(items[0].id)
+  } catch (_) {
+   root.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+  }
+ }
+
+ function memberRow(m) {
+  const name = m.discord?.displayName || m.id
+  return `
+   <tr class="lb-row" onclick="window.location='/profile/${m.id}'">
+    <td>${escapeHtml(name)}<div class="lb-title">${escapeHtml(m.role)} · ${escapeHtml(m.title || "Nouveau")}</div></td>
+    <td class="lb-level">Niv. ${m.level}</td>
+    <td class="lb-value">${Number(m.totalCards || 0).toLocaleString("fr-FR")} cartes</td>
+   </tr>
+  `
+ }
+
+ async function openGuild(id) {
+  currentGuildId = id
+  const detail = document.getElementById("guildDetail")
+  detail.style.display = "block"
+  detail.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du détail...</p></div>`
+
+  try {
+   const res = await fetch(`/api/guild/${encodeURIComponent(id)}`)
+   if (!res.ok) {
+    detail.innerHTML = `<p style="color:var(--rarity-HR)">Guilde introuvable.</p>`
+    return
+   }
+   const g = await res.json()
+   detail.innerHTML = `
+    <h2>${escapeHtml(g.emoji || "🏰")} ${escapeHtml(g.name)} — Niv. ${g.level}</h2>
+    <div class="stats-inline">
+     <span class="chip">Membres: ${g.members.length}/${g.maxMembers}</span>
+     <span class="chip">XP: ${Number(g.xp || 0).toLocaleString("fr-FR")}</span>
+     <span class="chip">Quêtes complétées: ${Number(g.stats?.questsCompleted || 0).toLocaleString("fr-FR")}</span>
+     <span class="chip">Cards total: ${Number(g.stats?.totalCards || 0).toLocaleString("fr-FR")}</span>
+    </div>
+    <table class="lb-table" style="margin-top:12px">
+     <tbody>${(g.members || []).map(memberRow).join("")}</tbody>
+    </table>
+   `
+  } catch (_) {
+   detail.innerHTML = `<p style="color:var(--rarity-HR)">Erreur de chargement de la guilde.</p>`
+  }
+ }
+
+ document.getElementById("searchBtn").addEventListener("click", () => {
+  currentGuildId = null
+  loadGuildList()
+ })
+ document.getElementById("guildSearch").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+   currentGuildId = null
+   loadGuildList()
+  }
+ })
+ document.getElementById("guildSort").addEventListener("change", () => {
+  currentGuildId = null
+  loadGuildList()
+ })
+
+ const byPath = window.location.pathname.match(/^\/guild\/(.+)$/)
+ if (byPath && byPath[1]) {
+  currentGuildId = decodeURIComponent(byPath[1])
+  openGuild(currentGuildId)
+ }
+ loadGuildList()
+ </script>
+</body>
+</html>
