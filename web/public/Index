@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Krosmoz Card — Collectionne les cartes du Krosmoz</title>
+ <meta name="description" content="Bot Discord TCG inspiré de l'univers Krosmoz. Collectionne 2349 cartes, fusionne, échange, et deviens le meilleur collecteur !">
+ <meta name="theme-color" content="#c9a84c">
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>">
+ <link rel="stylesheet" href="/css/style.css">
+
+ <!-- Open Graph -->
+ <meta property="og:title" content="Krosmoz Card">
+ <meta property="og:description" content="Bot Discord TCG — 2349 cartes, 7 sets, 19 events, 530 achievements">
+ <meta property="og:type" content="website">
+ <meta property="og:url" content="https://krosmozcard.fr">
+</head>
+<body>
+
+ <!-- NAVBAR -->
+ <nav class="navbar" id="navbar">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand">
+    <span>🎴</span> KROSMOZ CARD
+   </a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/" class="active">Accueil</a></li>
+    <li><a href="/leaderboard">Classement</a></li>
+   </ul>
+   <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+
+   <!-- HERO -->
+   <section class="hero">
+    <div class="hero-badge">🌈 2349 cartes · 7 sets · 19 dieux</div>
+    <h1>Collectionne les cartes<br>du <span class="gold">Krosmoz</span></h1>
+    <p>
+     Ouvre des packs, fusionne tes doublons, échange sur le marché, 
+     et deviens le meilleur collecteur du Monde des Douze.
+    </p>
+    <div class="hero-buttons">
+     <a href="https://discord.com/oauth2/authorize?client_id=1480361812326224095&permissions=8&scope=bot%20applications.commands"
+      class="btn btn-gold" target="_blank" rel="noopener">
+      ✦ Ajouter le bot
+     </a>
+     <a href="/leaderboard" class="btn btn-outline">
+      🏆 Classement
+     </a>
+    </div>
+   </section>
+
+   <!-- STATS BAR -->
+   <section class="stats-bar" id="statsBar">
+    <div class="stat-item">
+     <div class="stat-value" id="stat-players">—</div>
+     <div class="stat-label">Joueurs</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-cards">—</div>
+     <div class="stat-label">Cartes existantes</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-packs">—</div>
+     <div class="stat-label">Packs ouverts</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-ssr">—</div>
+     <div class="stat-label">SSR possédées</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-guilds">—</div>
+     <div class="stat-label">Guildes</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-achievements">—</div>
+     <div class="stat-label">Succès débloqués</div>
+    </div>
+   </section>
+
+   <!-- FEATURES -->
+   <section class="section">
+    <h2 class="section-title">Le jeu de cartes du Krosmoz</h2>
+    <p class="section-subtitle">Tout ce que tu peux faire avec Krosmoz Card</p>
+
+    <div class="features-grid">
+
+     <div class="feature-card fade-in stagger-1">
+      <div class="feature-icon">📦</div>
+      <h3>Ouvre des packs</h3>
+      <p>Tire des cartes parmi 8 raretés, de Commune à SSR. Système de pity garanti pour les plus malchanceux.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-2">
+      <div class="feature-icon">⚗️</div>
+      <h3>Fusionne tes doublons</h3>
+      <p>Sacrifie tes doublons pour obtenir des cartes de rareté supérieure. Fusions critiques, doubles et triples possibles.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-3">
+      <div class="feature-icon">🛒</div>
+      <h3>Marché entre joueurs</h3>
+      <p>Achète et vends sur le marché. Prix régulés par la moyenne historique pour éviter la manipulation.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-4">
+      <div class="feature-icon">🎲</div>
+      <h3>19 Events des Dieux</h3>
+      <p>Ecaflip, Osamodas, Pandawa, Xelor… Chaque Dieu modifie les packs avec son pouvoir unique.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-1">
+      <div class="feature-icon">🏰</div>
+      <h3>Guildes & quêtes</h3>
+      <p>Crée ta guilde, recrute des membres, complète des quêtes collectives et débloquez des bonus permanents.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-2">
+      <div class="feature-icon">🏆</div>
+      <h3>530 Succès</h3>
+      <p>Débloque des badges, des titres et des récompenses en jouant. Certains sont secrets…</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-3">
+      <div class="feature-icon">🧩</div>
+      <h3>Fragments & Craft</h3>
+      <p>Collecte les 5 fragments d'une carte SSR pour la crafter. La voie du collectionneur patient.</p>
+     </div>
+
+     <div class="feature-card fade-in stagger-4">
+      <div class="feature-icon">🎡</div>
+      <h3>Roulette d'Ecaflip</h3>
+      <p>Tente ta chance une fois par heure. 31 lots possibles, dont un jackpot secret légendaire.</p>
+     </div>
+
+    </div>
+   </section>
+
+   <!-- SETS -->
+   <section class="section">
+    <h2 class="section-title">7 Sets à compléter</h2>
+    <p class="section-subtitle">Du village d'Incarnam aux terres glacées de Sberg</p>
+
+    <div class="features-grid" id="setsGrid">
+     <!-- Rempli dynamiquement -->
+    </div>
+   </section>
+
+   <!-- FOOTER -->
+   <footer class="footer">
+    <p>🎴 Krosmoz Card — Bot Discord TCG inspiré de l'univers <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
+    <p style="margin-top:8px; font-size:0.8rem">Projet non affilié à Ankama Games</p>
+   </footer>
+
+  </div>
+ </div>
+
+ <script>
+ /* -------- Navbar scroll -------- */
+ const navbar = document.getElementById("navbar")
+ window.addEventListener("scroll", () => {
+  navbar.classList.toggle("scrolled", window.scrollY > 40)
+ })
+
+ /* -------- Mobile nav -------- */
+ document.getElementById("navToggle").addEventListener("click", () => {
+  document.getElementById("navLinks").classList.toggle("open")
+ })
+
+ /* -------- Animate numbers -------- */
+ function animateValue(el, target, duration = 1200) {
+  const start = 0
+  const startTime = performance.now()
+  function update(currentTime) {
+   const elapsed = currentTime - startTime
+   const progress = Math.min(elapsed / duration, 1)
+   const eased = 1 - Math.pow(1 - progress, 3)
+   const current = Math.floor(start + (target - start) * eased)
+   el.textContent = current.toLocaleString("fr-FR")
+   if (progress < 1) requestAnimationFrame(update)
+  }
+  requestAnimationFrame(update)
+ }
+
+ /* -------- Load stats -------- */
+ async function loadStats() {
+  try {
+   const res = await fetch("/api/stats")
+   const data = await res.json()
+
+   animateValue(document.getElementById("stat-players"), data.players)
+   animateValue(document.getElementById("stat-cards"), data.totalCards)
+   animateValue(document.getElementById("stat-packs"), data.packsOpened)
+   animateValue(document.getElementById("stat-ssr"), data.ssrOwned)
+   animateValue(document.getElementById("stat-guilds"), data.guilds)
+   animateValue(document.getElementById("stat-achievements"), data.achievements)
+  } catch (err) {
+   console.error("Stats error:", err)
+  }
+ }
+
+ /* -------- Load sets -------- */
+ async function loadSets() {
+  try {
+   const res = await fetch("/api/sets")
+   const sets = await res.json()
+   const grid = document.getElementById("setsGrid")
+
+   const setEmojis = {
+    incarnam: "🌿", astrub: "🏘️", amakna: "🌾",
+    sufokia: "🌊", kelba: "🏜️", katrepat: "🦇", sberg: "❄️"
+   }
+
+   grid.innerHTML = sets.map(set => `
+    <div class="feature-card">
+     <div class="feature-icon">${setEmojis[set.id] || "📚"}</div>
+     <h3>${set.name}</h3>
+     <p>${set.description || "Set de cartes du Krosmoz"}</p>
+    </div>
+   `).join("")
+  } catch (err) {
+   console.error("Sets error:", err)
+  }
+ }
+
+ loadStats()
+ loadSets()
+ </script>
+
+</body>
+</html>

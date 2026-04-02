@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Classement — Krosmoz Card</title>
+ <meta name="description" content="Classement des meilleurs collecteurs de Krosmoz Card">
+ <meta name="theme-color" content="#c9a84c">
+ <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
+ <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+ <!-- NAVBAR -->
+ <nav class="navbar scrolled">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand">
+    <span>🎴</span> KROSMOZ CARD
+   </a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/leaderboard" class="active">Classement</a></li>
+   </ul>
+   <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+
+   <section style="padding-top: 40px">
+    <h1 class="section-title fade-in">🏆 Classement</h1>
+    <p class="section-subtitle fade-in stagger-1">Les meilleurs collecteurs du Krosmoz</p>
+
+    <!-- TABS -->
+    <div class="leaderboard-tabs fade-in stagger-2" id="tabs">
+     <button class="tab-btn active" data-cat="cards">🎴 Cartes</button>
+     <button class="tab-btn" data-cat="unique">📚 Uniques</button>
+     <button class="tab-btn" data-cat="kamas">💰 Kamas</button>
+     <button class="tab-btn" data-cat="level">⭐ Niveau</button>
+     <button class="tab-btn" data-cat="achievements">🏆 Succès</button>
+     <button class="tab-btn" data-cat="ssr">🌈 SSR</button>
+     <button class="tab-btn" data-cat="packs">📦 Packs</button>
+    </div>
+
+    <!-- TABLE -->
+    <div id="leaderboardContent">
+     <div class="loading">
+      <div class="spinner"></div>
+      <p>Chargement du classement…</p>
+     </div>
+    </div>
+   </section>
+
+   <footer class="footer">
+    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
+   </footer>
+
+  </div>
+ </div>
+
+ <script>
+ /* -------- Mobile nav -------- */
+ document.getElementById("navToggle").addEventListener("click", () => {
+  document.getElementById("navLinks").classList.toggle("open")
+ })
+
+ /* -------- State -------- */
+ let currentCategory = "cards"
+
+ const CATEGORY_LABELS = {
+  cards: "🎴 Cartes totales",
+  unique: "📚 Cartes uniques",
+  kamas: "💰 Kamas",
+  level: "⭐ Niveau",
+  achievements: "🏆 Succès",
+  ssr: "🌈 SSR",
+  packs: "📦 Packs ouverts"
+ }
+
+ const CATEGORY_UNITS = {
+  cards: "cartes",
+  unique: "uniques",
+  kamas: "kamas",
+  level: "niv.",
+  achievements: "succès",
+  ssr: "SSR",
+  packs: "packs"
+ }
+
+ /* -------- Tabs -------- */
+ document.getElementById("tabs").addEventListener("click", (e) => {
+  const btn = e.target.closest(".tab-btn")
+  if (!btn) return
+
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"))
+  btn.classList.add("active")
+
+  currentCategory = btn.dataset.cat
+  loadLeaderboard(currentCategory)
+ })
+
+ /* -------- Load leaderboard -------- */
+ async function loadLeaderboard(category) {
+  const container = document.getElementById("leaderboardContent")
+
+  container.innerHTML = `
+   <div class="loading">
+    <div class="spinner"></div>
+    <p>Chargement…</p>
+   </div>`
+
+  try {
+   const res = await fetch(`/api/leaderboard/${category}`)
+   const data = await res.json()
+
+   if (!data.length) {
+    container.innerHTML = `
+     <div class="loading">
+      <p style="color: var(--text-secondary)">Aucun joueur dans cette catégorie.</p>
+     </div>`
+    return
+   }
+
+   const unit = CATEGORY_UNITS[category] || ""
+
+   const rows = data.map((entry, i) => {
+    const rank = i + 1
+    const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : ""
+    const rowClass = rank <= 3 ? `top-${rank}` : ""
+    const medal = rank === 1 ? "👑" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`
+    const avatar = entry.discord?.avatarURL || `https://cdn.discordapp.com/embed/avatars/0.png`
+    const name = entry.discord?.displayName || entry.userId
+    const value = typeof entry.value === "number" ? entry.value.toLocaleString("fr-FR") : entry.value
+
+    return `
+     <tr class="lb-row ${rowClass}" onclick="window.location='/profile/${entry.userId}'" title="Voir le profil">
+      <td class="lb-rank ${rankClass}">${medal}</td>
+      <td>
+       <div class="lb-user">
+        <img src="${avatar}" alt="" class="lb-avatar" loading="lazy" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+        <div>
+         <div class="lb-name">${escapeHTML(name)}</div>
+         <div class="lb-title">${escapeHTML(entry.title || "")}</div>
+        </div>
+       </div>
+      </td>
+      <td class="lb-level">Niv. ${entry.level}</td>
+      <td class="lb-value">${value} ${unit}</td>
+     </tr>`
+   }).join("")
+
+   container.innerHTML = `
+    <table class="lb-table fade-in">
+     <tbody>${rows}</tbody>
+    </table>`
+
+  } catch (err) {
+   console.error("Leaderboard error:", err)
+   container.innerHTML = `
+    <div class="loading">
+     <p style="color: var(--rarity-HR)">Erreur de chargement. Réessaie dans un instant.</p>
+    </div>`
+  }
+ }
+
+ function escapeHTML(str) {
+  const div = document.createElement("div")
+  div.textContent = str
+  return div.innerHTML
+ }
+
+ /* -------- Init -------- */
+ loadLeaderboard("cards")
+ </script>
+
+</body>
+</html>

@@ -11,7 +11,12 @@ const {
  TextInputStyle
 } = require("discord.js")
 
-const { RARITY_EMOJI, RARITY_PRICE } = require("../../systems/constants")
+/* FIX : import SELL_PRICE au lieu de RARITY_PRICE pour le bouton vendre
+   RARITY_PRICE = prix market entre joueurs (10/20/50/100/200/700/1000/2500)
+   SELL_PRICE   = prix vente au bot (~40% du market : 3/8/20/50/120/320/800/2500)
+   Avant ce fix, vendre via /carte donnait le prix MARKET au lieu du prix SELL,
+   ce qui créait un exploit : /carte sell HR = 200k vs /sellcard HR = 120k       */
+const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { addListing } = require("../../systems/market")
@@ -143,7 +148,11 @@ module.exports={
      return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
 
     const card=cardsById[cid]
-    const price=RARITY_PRICE[card.rarity]||10
+
+    /* FIX : utilise SELL_PRICE (prix vente au bot) au lieu de RARITY_PRICE (prix market)
+       Avant : RARITY_PRICE[card.rarity]||10  → donnait le prix market (trop élevé)
+       Après : SELL_PRICE[card.rarity]||1      → cohérent avec /sellcard              */
+    const price=SELL_PRICE[card.rarity]||1
 
     user.cards[cid]--
 
@@ -190,10 +199,6 @@ module.exports={
 
   })
 
-  collector.on("end", () => {
-   msg.edit({ components: [] }).catch(() => {})
-  })
-
  },
 
  /* ---------------- MODAL HANDLER ---------------- */
@@ -232,7 +237,6 @@ module.exports={
     flags:64
    })
 
-  /* FIX : save ciblé par userId au lieu de save() global */
   save(interaction.user.id)
 
   return interaction.reply({
