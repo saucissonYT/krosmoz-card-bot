@@ -14,7 +14,7 @@ const { registerInteractionCreateHandler } = require("./handlers/interactionCrea
 const { registerReactionRolesHandler } = require("./handlers/reactionRoles") /* ← reaction roles */
 
 /* ← AJOUT : serveur web krosmozcard.fr */
-const { startWebServer } = require("../web/server")
+const { startWebServer } = require("../web/Server")
 
 const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
 
