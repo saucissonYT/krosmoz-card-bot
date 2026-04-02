@@ -13,6 +13,9 @@ const { registerMessageCreateHandler } = require("./handlers/messageCreate")
 const { registerInteractionCreateHandler } = require("./handlers/interactionCreate")
 const { registerReactionRolesHandler } = require("./handlers/reactionRoles") /* ← reaction roles */
 
+/* ← AJOUT : serveur web krosmozcard.fr */
+const { startWebServer } = require("../web/server")
+
 const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
 
 function initializeSystems() {
@@ -65,6 +68,12 @@ async function bootstrap() {
  registerReactionRolesHandler(client) /* ← enregistrement du handler reaction roles */
 
  await client.login(process.env.TOKEN)
+
+ /* ← AJOUT : démarrage du serveur web (krosmozcard.fr)
+    Utilise process.env.PORT assigné par Railway automatiquement.
+    En local, fallback sur le port 3000. */
+ startWebServer()
+
  return client
 }
 
