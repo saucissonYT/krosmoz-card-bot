@@ -99,6 +99,17 @@
  })
 
  const state = { page: 1, limit: 20, me: null, connected: false }
+ const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+ const RARITY_EMOJI = {
+  C: "⚪",
+  U: "🟢",
+  R: "🔵",
+  SR: "🟣",
+  HR: "🔴",
+  UR: "🟡",
+  S: "✨",
+  SSR: "🌈"
+ }
 
  function escapeHtml(str) {
   const div = document.createElement("div")
@@ -295,20 +306,38 @@
 
   const cardSelect = document.getElementById("sellCardSelect")
   cardSelect.innerHTML = ""
-  inventory.cards.forEach((c) => {
-   cardSelect.appendChild(option(c.cardId, `${c.cardName} [${c.rarity}] ×${c.qty}`))
+  const sortedCards = [...(inventory.cards || [])].sort((a, b) => {
+   const ar = RARITY_ORDER.indexOf(String(a.rarity || ""))
+   const br = RARITY_ORDER.indexOf(String(b.rarity || ""))
+   if (ar !== br) return ar - br
+   return String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr")
   })
-  if (!inventory.cards.length) cardSelect.appendChild(option("", "Aucune carte vendable"))
+
+  sortedCards.forEach((c) => {
+   const rarity = String(c.rarity || "C")
+   const emoji = RARITY_EMOJI[rarity] || "⚪"
+   cardSelect.appendChild(option(c.cardId, `${emoji} ${c.cardName} [${rarity}] ×${c.qty}`))
+  })
+  if (!sortedCards.length) cardSelect.appendChild(option("", "Aucune carte vendable"))
 
   const fragSelect = document.getElementById("sellFragmentSelect")
   fragSelect.innerHTML = ""
-  inventory.fragments.forEach((f, idx) => {
+  const sortedFrags = [...(inventory.fragments || [])].sort((a, b) => {
+   const ar = RARITY_ORDER.indexOf(String(a.rarity || "SSR"))
+   const br = RARITY_ORDER.indexOf(String(b.rarity || "SSR"))
+   if (ar !== br) return ar - br
+   return String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr") || Number(a.fragmentNumber || 0) - Number(b.fragmentNumber || 0)
+  })
+
+  sortedFrags.forEach((f, idx) => {
+   const rarity = String(f.rarity || "SSR")
+   const rarityEmoji = RARITY_EMOJI[rarity] || "🌈"
    fragSelect.appendChild(option(
     `${f.cardId}|${f.fragmentNumber}|${idx}`,
-    `${f.cardName} — fragment ${f.fragmentNumber}/5`
+    `🧩 ${rarityEmoji} ${f.cardName} — fragment ${f.fragmentNumber}/5`
    ))
   })
-  if (!inventory.fragments.length) fragSelect.appendChild(option("", "Aucun fragment vendable"))
+  if (!sortedFrags.length) fragSelect.appendChild(option("", "Aucun fragment vendable"))
 
   const box = document.getElementById("myListingsBox")
   box.style.display = "block"
