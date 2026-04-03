@@ -244,6 +244,30 @@ body::after {
  display: block;
 }
 
+.github-mini {
+ width: 32px;
+ height: 32px;
+ border-radius: 10px;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ background: rgba(255, 255, 255, 0.08);
+ border: 1px solid rgba(255, 255, 255, 0.2);
+ transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.github-mini:hover {
+ transform: translateY(-1px);
+ background: rgba(255, 255, 255, 0.15);
+}
+
+.github-mini svg {
+ width: 17px;
+ height: 17px;
+ fill: #f5f5f5;
+ display: block;
+}
+
 /* -------- HERO -------- */
 
 .hero {
@@ -843,6 +867,17 @@ body::after {
  margin: 8px 0 14px;
 }
 
+.notice-strip {
+ margin: 0 auto 14px;
+ padding: 10px 12px;
+ border-radius: 10px;
+ border: 1px solid rgba(201, 168, 76, 0.2);
+ background: rgba(201, 168, 76, 0.08);
+ color: var(--text-secondary);
+ font-size: .9rem;
+ max-width: 980px;
+}
+
 .catalog-grid {
  display: grid;
  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -949,6 +984,114 @@ body::after {
  margin: 10px 0 6px;
 }
 
+.auth-box {
+ background: var(--bg-card);
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ border-radius: var(--radius);
+ padding: 14px 16px;
+ margin-bottom: 14px;
+}
+
+.auth-inner {
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ gap: 12px;
+}
+
+.auth-inner h3 {
+ font-family: 'Cinzel', serif;
+ font-size: 1rem;
+ color: var(--gold-light);
+ margin-bottom: 2px;
+}
+
+.auth-inner p {
+ color: var(--text-secondary);
+ font-size: .9rem;
+}
+
+.trade-panel {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 12px;
+ margin-bottom: 16px;
+}
+
+.trade-col {
+ background: var(--bg-card);
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ border-radius: var(--radius);
+ padding: 12px;
+}
+
+.trade-col h3 {
+ font-family: 'Cinzel', serif;
+ font-size: .96rem;
+ color: var(--gold-light);
+ margin-bottom: 8px;
+}
+
+.inline-form {
+ display: grid;
+ grid-template-columns: 1fr 140px auto;
+ gap: 8px;
+}
+
+.action-row {
+ margin-top: 10px;
+ display: flex;
+ gap: 8px;
+}
+
+.listing-mini {
+ display: grid;
+ gap: 8px;
+ margin-top: 8px;
+}
+
+.listing-mini-row {
+ display: flex;
+ justify-content: space-between;
+ gap: 10px;
+ align-items: center;
+ padding: 8px 10px;
+ border-radius: 10px;
+ background: var(--bg-elevated);
+ border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.listing-mini-row span {
+ color: var(--text-secondary);
+ font-size: .9rem;
+}
+
+.toast {
+ position: fixed;
+ right: 16px;
+ bottom: 16px;
+ background: #1f4028;
+ border: 1px solid rgba(109, 242, 149, 0.4);
+ color: #ddffe8;
+ padding: 10px 12px;
+ border-radius: 10px;
+ opacity: 0;
+ transform: translateY(8px);
+ transition: all .2s ease;
+ z-index: 9999;
+}
+
+.toast.toast-error {
+ background: #4a1f26;
+ border-color: rgba(255, 128, 148, 0.45);
+ color: #ffdfe6;
+}
+
+.toast.show {
+ opacity: 1;
+ transform: translateY(0);
+}
+
 .spinner {
  width: 40px;
  height: 40px;
@@ -1018,6 +1161,9 @@ body::after {
  .rarity-grid { grid-template-columns: repeat(4, 1fr); }
  .xp-bar-wrapper { margin-left: auto; margin-right: auto; }
  .toolbar { grid-template-columns: 1fr 1fr; }
+ .trade-panel { grid-template-columns: 1fr; }
+ .inline-form { grid-template-columns: 1fr; }
+ .auth-inner { flex-direction: column; align-items: flex-start; }
 
  .lb-table, .lb-table tbody, .lb-row, .lb-row td {
   display: block;

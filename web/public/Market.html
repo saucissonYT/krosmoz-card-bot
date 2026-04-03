@@ -14,6 +14,7 @@
    <ul class="navbar-links" id="navLinks">
     <li><a href="/">Accueil</a></li>
     <li><a href="/leaderboard">Classement</a></li>
+    <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="https://discord.gg/W7UmsfCW" target="_blank" rel="noopener">Discord</a></li>
     <li><a href="/cards">Cartes</a></li>
     <li><a href="/market" class="active">Marché</a></li>
@@ -22,6 +23,9 @@
    <div class="navbar-right">
     <a class="discord-mini" href="https://discord.gg/W7UmsfCW" target="_blank" rel="noopener" aria-label="Discord">
      <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2h0C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z"/></svg>
+    </a>
+    <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
+     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
     <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
    </div>
@@ -33,6 +37,30 @@
    <section style="padding-top:40px">
     <h1 class="section-title fade-in">🛒 Marché en temps réel</h1>
     <p class="section-subtitle fade-in stagger-1">Cartes et fragments listés par les joueurs</p>
+    <p class="notice-strip fade-in stagger-1">Certaines images peuvent paraître floues: cela vient de la qualité des visuels sources de l'encyclopédie Wakfu.</p>
+
+    <div id="authBox" class="auth-box fade-in stagger-2"></div>
+
+    <div id="tradePanel" class="trade-panel fade-in stagger-2" style="display:none">
+     <div class="trade-col">
+      <h3>Vendre une carte</h3>
+      <div class="inline-form">
+       <select id="sellCardSelect" class="input input-select"></select>
+       <input id="sellCardPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
+       <button id="sellCardBtn" class="btn btn-outline">Vendre</button>
+      </div>
+     </div>
+     <div class="trade-col">
+      <h3>Vendre un fragment</h3>
+      <div class="inline-form">
+       <select id="sellFragmentSelect" class="input input-select"></select>
+       <input id="sellFragmentPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
+       <button id="sellFragmentBtn" class="btn btn-outline">Vendre</button>
+      </div>
+     </div>
+    </div>
+
+    <div id="myListingsBox" class="profile-card fade-in stagger-2" style="display:none"></div>
 
     <div class="toolbar fade-in stagger-2">
      <input id="searchInput" class="input" placeholder="Nom de carte..." />
@@ -70,7 +98,21 @@
   document.getElementById("navLinks").classList.toggle("open")
  })
 
- const state = { page: 1, limit: 20 }
+ const state = { page: 1, limit: 20, me: null, connected: false }
+
+ function escapeHtml(str) {
+  const div = document.createElement("div")
+  div.textContent = String(str || "")
+  return div.innerHTML
+ }
+
+ async function api(path, options = {}) {
+  const config = { credentials: "same-origin", ...options }
+  const res = await fetch(path, config)
+  let payload = null
+  try { payload = await res.json() } catch (_) {}
+  return { ok: res.ok, status: res.status, data: payload }
+ }
 
  function qs() {
   const p = new URLSearchParams()
@@ -87,20 +129,66 @@
   return p.toString()
  }
 
- function escapeHtml(str) {
-  const div = document.createElement("div")
-  div.textContent = str
-  return div.innerHTML
+ function showToast(msg, isError = false) {
+  const el = document.createElement("div")
+  el.className = `toast ${isError ? "toast-error" : ""}`
+  el.textContent = msg
+  document.body.appendChild(el)
+  setTimeout(() => el.classList.add("show"), 10)
+  setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 240) }, 2600)
+ }
+
+ function renderAuthBox() {
+  const root = document.getElementById("authBox")
+  if (!state.connected || !state.me) {
+   root.innerHTML = `
+    <div class="auth-inner">
+     <div>
+      <h3>Connexion Discord</h3>
+      <p>Connecte-toi pour acheter et vendre directement depuis le site.</p>
+     </div>
+     <a class="btn btn-outline" href="/auth/discord">Se connecter avec Discord</a>
+    </div>`
+   return
+  }
+
+  root.innerHTML = `
+   <div class="auth-inner">
+    <div>
+     <h3>Connecté en tant que ${escapeHtml(state.me.discord?.displayName || state.me.id)}</h3>
+     <p>Kamas: ${Number(state.me.kamas || 0).toLocaleString("fr-FR")} · Niveau ${state.me.level}</p>
+    </div>
+    <button id="logoutBtn" class="btn btn-outline">Se déconnecter</button>
+   </div>`
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+   await api("/auth/logout", { method: "POST" })
+   state.connected = false
+   state.me = null
+   document.getElementById("tradePanel").style.display = "none"
+   document.getElementById("myListingsBox").style.display = "none"
+   renderAuthBox()
+   await loadMarket()
+   showToast("Déconnecté.")
+  })
  }
 
  function listingCard(item) {
   const seller = item.sellerProfile?.displayName || item.seller
+  const isMine = state.connected && state.me && String(item.seller) === String(state.me.id)
   const fragment = item.type === "fragment"
-   ? `<p>Fragment: slot ${item.fragmentNumber}/5</p><p>Prix min: ${item.minimumPrice?.toLocaleString("fr-FR")} kamas</p>`
+   ? `<p>Fragment: slot ${item.fragmentNumber}/5</p><p>Prix min: ${(item.minimumPrice || 0).toLocaleString("fr-FR")} kamas</p>`
    : `<p>Type: carte complète</p>`
   const image = item.imageUrl
    ? `<div class="card-thumb-wrap"><img class="card-thumb" loading="lazy" src="${item.imageUrl}" alt="${escapeHtml(item.cardName)}" onerror="this.parentElement.style.display='none'"></div>`
    : ""
+
+  const action = !state.connected
+   ? `<button class="btn btn-outline" disabled>Connexion requise</button>`
+   : isMine
+    ? `<button class="btn btn-outline action-remove" data-id="${item.id}">Retirer</button>`
+    : `<button class="btn btn-outline action-buy" data-id="${item.id}">Acheter</button>`
+
   return `
    <article class="catalog-card">
     ${image}
@@ -113,6 +201,7 @@
     ${fragment}
     <p>Vendeur: ${escapeHtml(seller)}</p>
     <p class="price-line">${Number(item.price || 0).toLocaleString("fr-FR")} kamas</p>
+    <div class="action-row">${action}</div>
    </article>
   `
  }
@@ -138,30 +227,188 @@
   const meta = document.getElementById("resultMeta")
   grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du marché...</p></div>`
 
-  try {
-   const res = await fetch(`/api/market?${qs()}`)
-   const data = await res.json()
-   state.page = data.page
-   meta.textContent = `${(data.total || 0).toLocaleString("fr-FR")} annonces actives`
-
-   const items = data.items || []
-   if (!items.length) {
-    grid.innerHTML = `<div class="loading"><p>Aucune annonce trouvée.</p></div>`
-    renderPagination(1, 1)
-    return
-   }
-
-   grid.innerHTML = items.map(listingCard).join("")
-   renderPagination(data.page, data.pages)
-  } catch (_) {
+  const res = await api(`/api/market?${qs()}`)
+  if (!res.ok) {
    grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+   return
   }
+
+  const data = res.data || {}
+  state.page = data.page || 1
+  meta.textContent = `${Number(data.total || 0).toLocaleString("fr-FR")} annonces actives`
+
+  const items = data.items || []
+  if (!items.length) {
+   grid.innerHTML = `<div class="loading"><p>Aucune annonce trouvée.</p></div>`
+   renderPagination(1, 1)
+   return
+  }
+
+  grid.innerHTML = items.map(listingCard).join("")
+  renderPagination(data.page, data.pages)
+
+  grid.querySelectorAll(".action-buy").forEach((btn) => {
+   btn.addEventListener("click", async () => {
+    const listingId = Number(btn.dataset.id)
+    const r = await api("/api/market/buy", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ listingId })
+    })
+    if (!r.ok) return showToast(r.data?.error || "Achat impossible.", true)
+    showToast("Achat réussi.")
+    await refreshConnectedData()
+    await loadMarket()
+   })
+  })
+
+  grid.querySelectorAll(".action-remove").forEach((btn) => {
+   btn.addEventListener("click", async () => {
+    const listingId = Number(btn.dataset.id)
+    const r = await api("/api/market/remove", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ listingId })
+    })
+    if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
+    showToast("Annonce retirée.")
+    await refreshConnectedData()
+    await loadMarket()
+   })
+  })
  }
 
- document.getElementById("refreshBtn").addEventListener("click", () => {
-  state.page = 1
-  loadMarket()
+ function option(value, label) {
+  const o = document.createElement("option")
+  o.value = value
+  o.textContent = label
+  return o
+ }
+
+ async function loadSellerData() {
+  const invRes = await api("/api/me/inventory")
+  const listingRes = await api("/api/me/listings")
+  if (!invRes.ok || !listingRes.ok) return
+
+  const inventory = invRes.data || { cards: [], fragments: [] }
+  const myListings = (listingRes.data?.items || [])
+
+  const cardSelect = document.getElementById("sellCardSelect")
+  cardSelect.innerHTML = ""
+  inventory.cards.forEach((c) => {
+   cardSelect.appendChild(option(c.cardId, `${c.cardName} [${c.rarity}] ×${c.qty}`))
+  })
+  if (!inventory.cards.length) cardSelect.appendChild(option("", "Aucune carte vendable"))
+
+  const fragSelect = document.getElementById("sellFragmentSelect")
+  fragSelect.innerHTML = ""
+  inventory.fragments.forEach((f, idx) => {
+   fragSelect.appendChild(option(
+    `${f.cardId}|${f.fragmentNumber}|${idx}`,
+    `${f.cardName} — fragment ${f.fragmentNumber}/5`
+   ))
+  })
+  if (!inventory.fragments.length) fragSelect.appendChild(option("", "Aucun fragment vendable"))
+
+  const box = document.getElementById("myListingsBox")
+  box.style.display = "block"
+  box.innerHTML = `
+   <h2>Mes annonces (${myListings.length})</h2>
+   ${myListings.length ? `
+    <div class="listing-mini">
+     ${myListings.map((l) => `
+      <div class="listing-mini-row">
+       <span>${escapeHtml(l.cardName)} ${l.type === "fragment" ? `(frag ${l.fragmentNumber}/5)` : ""} — ${Number(l.price || 0).toLocaleString("fr-FR")} kamas</span>
+       <button class="btn btn-outline mini-remove" data-id="${l.id}">Retirer</button>
+      </div>
+     `).join("")}
+    </div>
+   ` : `<p class="result-meta">Tu n'as aucune annonce active.</p>`}
+  `
+
+  box.querySelectorAll(".mini-remove").forEach((btn) => {
+   btn.addEventListener("click", async () => {
+    const listingId = Number(btn.dataset.id)
+    const r = await api("/api/market/remove", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ listingId })
+    })
+    if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
+    showToast("Annonce retirée.")
+    await refreshConnectedData()
+    await loadMarket()
+   })
+  })
+ }
+
+ async function refreshConnectedData() {
+  if (!state.connected) return
+  const meRes = await api("/api/me")
+  if (!meRes.ok) {
+   state.connected = false
+   state.me = null
+   document.getElementById("tradePanel").style.display = "none"
+   document.getElementById("myListingsBox").style.display = "none"
+   renderAuthBox()
+   return
+  }
+  state.me = meRes.data
+  renderAuthBox()
+  document.getElementById("tradePanel").style.display = "grid"
+  await loadSellerData()
+ }
+
+ async function initAuth() {
+  const status = await api("/api/oauth/status")
+  state.connected = Boolean(status.data?.connected)
+
+  if (!state.connected) {
+   renderAuthBox()
+   return
+  }
+
+  await refreshConnectedData()
+ }
+
+ document.getElementById("sellCardBtn").addEventListener("click", async () => {
+  const cardId = document.getElementById("sellCardSelect").value
+  const price = Number(document.getElementById("sellCardPrice").value)
+  if (!cardId) return showToast("Choisis une carte.", true)
+  if (!Number.isFinite(price) || price <= 0) return showToast("Prix invalide.", true)
+
+  const r = await api("/api/market/sell-card", {
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({ cardId, price })
+  })
+  if (!r.ok) return showToast(r.data?.error || "Vente impossible.", true)
+  showToast("Carte mise en vente.")
+  document.getElementById("sellCardPrice").value = ""
+  await refreshConnectedData()
+  await loadMarket()
  })
+
+ document.getElementById("sellFragmentBtn").addEventListener("click", async () => {
+  const raw = document.getElementById("sellFragmentSelect").value
+  const price = Number(document.getElementById("sellFragmentPrice").value)
+  if (!raw) return showToast("Choisis un fragment.", true)
+  if (!Number.isFinite(price) || price <= 0) return showToast("Prix invalide.", true)
+
+  const [cardId, fragmentNumber] = raw.split("|")
+  const r = await api("/api/market/sell-fragment", {
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({ cardId, fragmentNumber: Number(fragmentNumber), price })
+  })
+  if (!r.ok) return showToast(r.data?.error || "Vente impossible.", true)
+  showToast("Fragment mis en vente.")
+  document.getElementById("sellFragmentPrice").value = ""
+  await refreshConnectedData()
+  await loadMarket()
+ })
+
+ document.getElementById("refreshBtn").addEventListener("click", () => { state.page = 1; loadMarket() })
  document.getElementById("searchInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") { state.page = 1; loadMarket() }
  })
@@ -169,7 +416,7 @@
  document.getElementById("raritySelect").addEventListener("change", () => { state.page = 1; loadMarket() })
  document.getElementById("sortSelect").addEventListener("change", () => { state.page = 1; loadMarket() })
 
- loadMarket()
+ initAuth().then(loadMarket)
  </script>
 </body>
 </html>

@@ -4,6 +4,14 @@ const fs = require("fs")
 const path = require("path")
 
 const { MAX_PLAYER_LEVEL } = require("../systems/constants")
+const { getUser } = require("../systems/userSystem")
+const {
+ addListing,
+ addFragmentListing,
+ buyCard,
+ getUserListings,
+ removeListing
+} = require("../systems/market")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
@@ -27,6 +35,8 @@ const OAUTH_CLIENT_ID = process.env.DISCORD_WEB_CLIENT_ID || process.env.CLIENT_
 const OAUTH_CLIENT_SECRET = process.env.DISCORD_WEB_CLIENT_SECRET || ""
 const OAUTH_REDIRECT_URI = process.env.DISCORD_WEB_REDIRECT_URI || ""
 const OAUTH_SCOPE = process.env.DISCORD_WEB_SCOPE || "identify"
+const WEB_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
+const webSessions = new Map()
 
 function findSetsPath() {
  const candidates = [
@@ -116,6 +126,54 @@ function parseCookies(req) {
 
 function cookieStateOptions() {
  return "HttpOnly; Path=/; Max-Age=600; SameSite=Lax"
+}
+
+function isHttpsRequest(req) {
+ return req.secure || String(req.headers["x-forwarded-proto"] || "").includes("https")
+}
+
+function cookieSessionOptions(req, maxAgeSec = Math.floor(WEB_SESSION_TTL_MS / 1000)) {
+ return `HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`
+}
+
+function createWebSession(userId) {
+ const token = crypto.randomBytes(32).toString("hex")
+ webSessions.set(token, {
+  userId: String(userId),
+  expiresAt: Date.now() + WEB_SESSION_TTL_MS
+ })
+ return token
+}
+
+function resolveSession(req) {
+ const cookies = parseCookies(req)
+ const token = cookies.kc_session
+ if (!token) return null
+
+ const session = webSessions.get(token)
+ if (!session) return null
+ if (session.expiresAt < Date.now()) {
+  webSessions.delete(token)
+  return null
+ }
+
+ return { token, userId: session.userId }
+}
+
+function clearSession(req, res) {
+ const cookies = parseCookies(req)
+ const token = cookies.kc_session
+ if (token) webSessions.delete(token)
+ res.setHeader("Set-Cookie", `kc_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`)
+}
+
+function requireSession(req, res) {
+ const session = resolveSession(req)
+ if (!session) {
+  res.status(401).json({ error: "Connexion Discord requise." })
+  return null
+ }
+ return session
 }
 
 async function resolveDiscordUser(userId) {
@@ -584,30 +642,103 @@ function oauthConfigured() {
  return Boolean(OAUTH_CLIENT_ID && OAUTH_CLIENT_SECRET && OAUTH_REDIRECT_URI)
 }
 
-function renderOAuthResult(user) {
- const name = String(user.global_name || user.username || "Aventurier")
- const id = String(user.id || "")
- return `<!DOCTYPE html>
-<html lang="fr">
-<head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Connexion Discord</title>
- <style>
-  body{font-family:Arial,sans-serif;background:#0b0b18;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0}
-  .card{background:#16162a;border:1px solid rgba(255,255,255,.12);padding:24px;border-radius:12px;max-width:520px}
-  a{color:#e8d48b}
- </style>
-</head>
-<body>
- <div class="card">
-  <h1>Connexion Discord reussie</h1>
-  <p>Bienvenue, <strong>${name}</strong> (ID ${id}).</p>
-  <p>Tu peux fermer cette fenetre et revenir sur le site.</p>
-  <p><a href="/">Retour a l'accueil</a></p>
- </div>
-</body>
-</html>`
+function enrichListingWithCardMeta(listing, cardsById, setNames) {
+ const card = cardsById.get(String(listing.card))
+ const setId = card?.set || "unknown"
+ return {
+  id: listing.id,
+  type: listing.type || "card",
+  price: Number(listing.price || 0),
+  cardId: String(listing.card),
+  cardName: card?.name || `Carte ${listing.card}`,
+  rarity: card?.rarity || "C",
+  set: setId,
+  setName: setNames.get(String(setId)) || String(setId),
+  imageUrl: card?.image && card?.set
+   ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+   : null,
+  seller: String(listing.seller || ""),
+  fragmentNumber: listing.type === "fragment" ? Number(listing.fragmentNumber || 0) : null,
+  timestamp: Number(listing.timestamp || 0)
+ }
+}
+
+function buildMePayload(userId) {
+ const user = getUser(userId)
+ const level = user.progression?.level || 1
+ const xp = user.progression?.xp || 0
+ const required = level < MAX_PLAYER_LEVEL ? 100 + level * 35 : 0
+
+ return {
+  id: String(userId),
+  title: user.title || "Nouveau",
+  level,
+  xp,
+  xpRequired: required,
+  kamas: user.kamas || 0,
+  cardsCount: Object.values(user.cards || {}).reduce((a, b) => a + b, 0),
+  uniqueCards: Object.keys(user.cards || {}).length,
+  fragmentsCount: Array.isArray(user.fragments) ? user.fragments.length : 0
+ }
+}
+
+function buildInventoryPayload(userId) {
+ const user = getUser(userId)
+ const cards = getCards()
+ const sets = getSets()
+ const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const setNames = getCardSetNameMap(sets)
+
+ const cardItems = Object.entries(user.cards || {})
+  .map(([cardId, qty]) => {
+   const card = cardsById.get(String(cardId))
+   const setId = card?.set || "unknown"
+   return {
+    cardId: String(cardId),
+    qty: Number(qty || 0),
+    cardName: card?.name || `Carte ${cardId}`,
+    rarity: card?.rarity || "C",
+    set: setId,
+    setName: setNames.get(String(setId)) || String(setId),
+    imageUrl: card?.image && card?.set
+     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+     : null
+   }
+  })
+  .filter((x) => x.qty > 0)
+  .sort((a, b) => {
+   const ar = RARITY_ORDER.indexOf(a.rarity)
+   const br = RARITY_ORDER.indexOf(b.rarity)
+   if (ar !== br) return ar - br
+   return a.cardName.localeCompare(b.cardName, "fr")
+  })
+
+ const fragments = Array.isArray(user.fragments) ? user.fragments : []
+ const fragmentItems = fragments
+  .map((f, idx) => {
+   const card = cardsById.get(String(f.cardId))
+   const setId = card?.set || "unknown"
+   return {
+    inventoryIndex: idx,
+    cardId: String(f.cardId),
+    fragmentNumber: Number(f.fragmentNumber || 0),
+    cardName: card?.name || `Carte ${f.cardId}`,
+    rarity: card?.rarity || "SSR",
+    set: setId,
+    setName: setNames.get(String(setId)) || String(setId),
+    imageUrl: card?.image && card?.set
+     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+     : null
+   }
+  })
+  .sort((a, b) =>
+   a.cardName.localeCompare(b.cardName, "fr") || a.fragmentNumber - b.fragmentNumber
+  )
+
+ return {
+  cards: cardItems,
+  fragments: fragmentItems
+ }
 }
 
 function createWebApp() {
@@ -754,10 +885,133 @@ function createWebApp() {
  })
 
  app.get("/api/oauth/status", (req, res) => {
+  const session = resolveSession(req)
   res.json({
    enabled: oauthConfigured(),
-   clientId: OAUTH_CLIENT_ID || null
+   clientId: OAUTH_CLIENT_ID || null,
+   connected: Boolean(session),
+   userId: session?.userId || null
   })
+ })
+
+ app.get("/api/me", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const discord = await resolveDiscordUser(session.userId)
+   const me = buildMePayload(session.userId)
+   res.json({ ...me, discord })
+  } catch (e) {
+   console.error("[WEB] /api/me:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/me/inventory", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   res.json(buildInventoryPayload(session.userId))
+  } catch (e) {
+   console.error("[WEB] /api/me/inventory:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/me/listings", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const cards = getCards()
+   const sets = getSets()
+   const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+   const setNames = getCardSetNameMap(sets)
+   const listings = getUserListings(session.userId)
+    .map((l) => enrichListingWithCardMeta(l, cardsById, setNames))
+    .sort((a, b) => b.timestamp - a.timestamp)
+
+   res.json({ items: listings })
+  } catch (e) {
+   console.error("[WEB] /api/me/listings:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/market/buy", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const listingId = Number(req.body?.listingId)
+   if (!Number.isFinite(listingId)) return res.status(400).json({ error: "listingId invalide." })
+
+   const result = buyCard(session.userId, listingId)
+   if (result?.error) return res.status(400).json({ error: result.error })
+   res.json({ ok: true, result })
+  } catch (e) {
+   console.error("[WEB] /api/market/buy:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/market/sell-card", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const cardId = String(req.body?.cardId || "").trim()
+   const price = Number(req.body?.price)
+   if (!cardId) return res.status(400).json({ error: "cardId manquant." })
+   if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Prix invalide." })
+
+   const result = addListing(session.userId, cardId, price)
+   if (result?.error) return res.status(400).json({ error: result.error })
+   res.json({ ok: true, listing: result })
+  } catch (e) {
+   console.error("[WEB] /api/market/sell-card:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/market/sell-fragment", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const cardId = String(req.body?.cardId || "").trim()
+   const fragmentNumber = Number(req.body?.fragmentNumber)
+   const price = Number(req.body?.price)
+   if (!cardId) return res.status(400).json({ error: "cardId manquant." })
+   if (!Number.isInteger(fragmentNumber) || fragmentNumber < 1 || fragmentNumber > 5) {
+    return res.status(400).json({ error: "Numéro de fragment invalide." })
+   }
+   if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Prix invalide." })
+
+   const result = addFragmentListing(session.userId, cardId, fragmentNumber, price)
+   if (result?.error) return res.status(400).json({ error: result.error })
+   res.json({ ok: true, listing: result })
+  } catch (e) {
+   console.error("[WEB] /api/market/sell-fragment:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/market/remove", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const listingId = Number(req.body?.listingId)
+   if (!Number.isFinite(listingId)) return res.status(400).json({ error: "listingId invalide." })
+
+   const result = removeListing(session.userId, listingId)
+   if (result?.error) return res.status(400).json({ error: result.error })
+   res.json({ ok: true })
+  } catch (e) {
+   console.error("[WEB] /api/market/remove:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
  })
 
  app.get("/auth/discord", (req, res) => {
@@ -766,7 +1020,7 @@ function createWebApp() {
   }
 
   const state = crypto.randomBytes(24).toString("hex")
-  res.setHeader("Set-Cookie", `kc_oauth_state=${encodeURIComponent(state)}; ${cookieStateOptions()}`)
+  res.setHeader("Set-Cookie", `kc_oauth_state=${encodeURIComponent(state)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`)
 
   const params = new URLSearchParams({
    client_id: OAUTH_CLIENT_ID,
@@ -774,7 +1028,7 @@ function createWebApp() {
    response_type: "code",
    scope: OAUTH_SCOPE,
    state,
-   prompt: "none"
+   prompt: "consent"
   })
 
   return res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`)
@@ -825,12 +1079,21 @@ function createWebApp() {
    }
 
    const me = await meRes.json()
-   res.setHeader("Set-Cookie", `kc_oauth_state=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`)
-   return res.status(200).send(renderOAuthResult(me))
+   const sessionToken = createWebSession(me.id)
+   res.setHeader("Set-Cookie", [
+    `kc_oauth_state=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`,
+    `kc_session=${encodeURIComponent(sessionToken)}; ${cookieSessionOptions(req)}`
+   ])
+   return res.redirect("/market?connected=1")
   } catch (e) {
    console.error("[WEB] /auth/discord/callback:", e)
    return res.status(500).send("Erreur OAuth.")
   }
+ })
+
+ app.post("/auth/logout", (req, res) => {
+  clearSession(req, res)
+  return res.json({ ok: true })
  })
 
  app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Index.html")))
@@ -840,6 +1103,7 @@ function createWebApp() {
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
+ app.get("/tutorial", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Tutorial.html")))
 
  app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Route introuvable" })
