@@ -4,7 +4,15 @@ const fs = require("fs")
 const path = require("path")
 
 const { MAX_PLAYER_LEVEL } = require("../systems/constants")
-const { getUser } = require("../systems/userSystem")
+const { getUser, save, updateActivityStreak } = require("../systems/userSystem")
+const { canClaim, claimDaily, getNextMidnightParisMs } = require("../systems/dailySystem")
+const { addBattlePassXP } = require("../systems/battlePassService")
+const { achievementCheck } = require("../systems/achievementCheck")
+const { ensureUserQuests } = require("../systems/questSystem")
+const { getUserGuild } = require("../systems/guildSystem")
+const { ensureSnapshot } = require("../systems/guildQuestSystem")
+const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
+const rouletteCommand = require("../commands/joueur/roulette")
 const {
  addListing,
  addFragmentListing,
@@ -36,6 +44,7 @@ const ACHIEVEMENT_CATEGORIES = [
 const webHooks = {
  onWebMarketBuy: null
 }
+const webRouletteLocks = new Set()
 
 let BASE = "/data"
 if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
@@ -127,6 +136,11 @@ function parseIntSafe(value, fallback) {
  const n = Number(value)
  if (!Number.isFinite(n)) return fallback
  return Math.floor(n)
+}
+
+function countUnlockedAchievements(unlocked) {
+ if (!Array.isArray(unlocked) || unlocked.length === 0) return 0
+ return new Set(unlocked.map((id) => String(id))).size
 }
 
 function parsePagination(req, defaultLimit = 25, maxLimit = 100) {
@@ -875,14 +889,37 @@ function createWebApp() {
  app.use("/assets/cards", express.static(CARD_IMAGES_RUNTIME_DIR, { index: false, fallthrough: true }))
  app.use("/assets/cards", express.static(CARD_IMAGES_REPO_DIR, { index: false, fallthrough: true }))
 
- app.get("/api/stats", (req, res) => {
-  try {
-   res.json(computeGlobalStats())
-  } catch (e) {
-   console.error("[WEB] /api/stats:", e)
-   res.status(500).json({ error: "Erreur serveur" })
-  }
- })
+app.get("/api/stats", (req, res) => {
+ try {
+  res.json(computeGlobalStats())
+ } catch (e) {
+  console.error("[WEB] /api/stats:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/battlepass/season", (req, res) => {
+ try {
+  const current = ensureCurrentSeason()
+  const tpl = getSeasonTemplate(current.activeSeason)
+  const now = new Date()
+  const end = current?.endDate ? new Date(`${current.endDate}T23:59:59.999Z`) : null
+  const daysRemaining = end ? Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000)) : null
+
+  res.json({
+   id: String(current.activeSeason || ""),
+   name: String(tpl?.name || current.activeSeason || "Saison"),
+   subtitle: String(tpl?.subtitle || ""),
+   emoji: String(tpl?.emoji || "🎟️"),
+   startDate: current.startDate || null,
+   endDate: current.endDate || null,
+   daysRemaining
+  })
+ } catch (e) {
+  console.error("[WEB] /api/battlepass/season:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
  app.get("/api/activity", async (req, res) => {
   try {
@@ -1040,19 +1077,148 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
- app.get("/api/me/inventory", (req, res) => {
-  try {
-   const session = requireSession(req, res)
-   if (!session) return
-   res.json(buildInventoryPayload(session.userId))
-  } catch (e) {
-   console.error("[WEB] /api/me/inventory:", e)
-   res.status(500).json({ error: "Erreur serveur" })
-  }
- })
+app.get("/api/me/inventory", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+  res.json(buildInventoryPayload(session.userId))
+ } catch (e) {
+  console.error("[WEB] /api/me/inventory:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
- app.get("/api/achievements", (req, res) => {
+app.post("/api/claim/daily", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const user = getUser(session.userId)
+  if (!user) return res.status(404).json({ error: "Joueur introuvable." })
+  ensureUserQuests(user)
   try {
+   const guild = getUserGuild(session.userId)
+   if (guild) ensureSnapshot(guild)
+  } catch (_) {}
+
+  if (!canClaim(user)) {
+   const now = Date.now()
+   const nextMidnight = getNextMidnightParisMs()
+   const remainingMs = Math.max(0, nextMidnight - now)
+   const hours = Math.floor(remainingMs / (1000 * 60 * 60))
+   const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
+   return res.status(429).json({
+    error: "Daily deja recuperee aujourd'hui.",
+    code: "DAILY_COOLDOWN",
+    remainingMs,
+    nextClaimText: `${hours}h ${minutes}m`
+   })
+  }
+
+  const result = await claimDaily(null, user, session.userId)
+  updateActivityStreak(user)
+
+  const streak = Number(result?.streak || 0)
+  const day = ((Math.max(1, streak) - 1) % 7) + 1
+  const xp = 25 + (day - 1) * 10
+  if (!user.progression) user.progression = { level: 1, xp: 0, totalXp: 0 }
+  user.progression.xp += xp
+  user.progression.totalXp += xp
+
+  if (!user.stats) user.stats = {}
+  user.stats.maxDailyStreak = Math.max(Number(user.stats.maxDailyStreak || 0), streak)
+
+  await addBattlePassXP(session.userId, "daily_claim")
+  const unlocked = [
+   ...achievementCheck(user, "daily"),
+   ...achievementCheck(user, "economy")
+  ]
+
+  save(session.userId)
+
+  return res.json({
+   ok: true,
+   reward: result?.reward || null,
+   streak,
+   streakBar: result?.streakBar || "",
+   xpGained: xp,
+   doubleReward: Boolean(result?.doubleReward),
+   bonusPacks: Number(result?.bonusPacksGiven || 0),
+   unlockedAchievements: unlocked.length
+  })
+ } catch (e) {
+  console.error("[WEB] /api/claim/daily:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/claim/roulette", async (req, res) => {
+ let lockUserId = ""
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  lockUserId = String(session.userId)
+  if (webRouletteLocks.has(lockUserId)) {
+   return res.status(429).json({ error: "Une roulette est deja en cours.", code: "ROULETTE_BUSY" })
+  }
+  webRouletteLocks.add(lockUserId)
+
+  const user = getUser(lockUserId)
+  if (!user) return res.status(404).json({ error: "Joueur introuvable." })
+  if (!user.stats) user.stats = {}
+  ensureUserQuests(user)
+  try {
+   const guild = getUserGuild(lockUserId)
+   if (guild) ensureSnapshot(guild)
+  } catch (_) {}
+
+  const cooldownMs = 60 * 60 * 1000
+  const now = Date.now()
+  const last = user.stats.rouletteLastSpin ? new Date(user.stats.rouletteLastSpin).getTime() : 0
+  const elapsed = now - last
+
+  if (elapsed < cooldownMs) {
+   const remainingMs = cooldownMs - elapsed
+   const min = Math.floor(remainingMs / 60000)
+   const sec = Math.floor((remainingMs % 60000) / 1000)
+   return res.status(429).json({
+    error: `Roulette en recharge: ${min}m ${sec}s.`,
+    code: "ROULETTE_COOLDOWN",
+    remainingMs
+   })
+  }
+
+  const lot = rouletteCommand.pickLot()
+  rouletteCommand.updateRouletteStats(user, lot, now)
+  await rouletteCommand.applyReward({ user: { id: lockUserId } }, user, lot)
+
+  await addBattlePassXP(lockUserId, "roulette_spin")
+  const unlocked = achievementCheck(user, "roulette")
+  save(lockUserId)
+
+  return res.json({
+   ok: true,
+   lot: {
+    id: lot.id,
+    name: lot.name,
+    emoji: lot.emoji,
+    rarity: lot.rarity,
+    reward: lot.reward,
+    rewardText: rouletteCommand.formatReward(lot.reward)
+   },
+   unlockedAchievements: unlocked.length
+  })
+ } catch (e) {
+  console.error("[WEB] /api/claim/roulette:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ } finally {
+  if (lockUserId) webRouletteLocks.delete(lockUserId)
+ }
+})
+
+app.get("/api/achievements", (req, res) => {
+ try {
    const session = resolveSession(req)
    const connected = Boolean(session)
    const user = connected ? getUser(session.userId) : null
@@ -1119,7 +1285,7 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
- app.post("/api/market/buy", (req, res) => {
+ app.post("/api/market/buy", async (req, res) => {
   try {
    const session = requireSession(req, res)
    if (!session) return
@@ -1129,6 +1295,21 @@ app.get("/api/sets", (req, res) => {
 
    const result = buyCard(session.userId, listingId)
    if (result?.error) return res.status(400).json({ error: result.error })
+   const sellerId = String(result?.listing?.seller || "")
+
+   const buyer = getUser(session.userId)
+   const seller = sellerId ? getUser(sellerId) : null
+   const unlocked = [
+    ...achievementCheck(buyer, "economy"),
+    ...achievementCheck(buyer, "collection"),
+    ...achievementCheck(buyer, "pack"),
+    ...achievementCheck(buyer, "fragment")
+   ]
+   const sellerUnlocked = seller
+    ? achievementCheck(seller, "economy")
+    : []
+   if (sellerId) save(sellerId)
+   save(session.userId)
 
    if (typeof webHooks.onWebMarketBuy === "function") {
     Promise.resolve(webHooks.onWebMarketBuy({
@@ -1139,14 +1320,19 @@ app.get("/api/sets", (req, res) => {
     })
    }
 
-   res.json({ ok: true, result })
+   res.json({
+    ok: true,
+    result,
+    unlockedAchievements: countUnlockedAchievements(unlocked),
+    sellerUnlockedAchievements: countUnlockedAchievements(sellerUnlocked)
+   })
   } catch (e) {
    console.error("[WEB] /api/market/buy:", e)
    res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
- app.post("/api/market/sell-card", (req, res) => {
+ app.post("/api/market/sell-card", async (req, res) => {
   try {
    const session = requireSession(req, res)
    if (!session) return
@@ -1158,14 +1344,24 @@ app.get("/api/sets", (req, res) => {
 
    const result = addListing(session.userId, cardId, price)
    if (result?.error) return res.status(400).json({ error: result.error })
-   res.json({ ok: true, listing: result })
+
+   const user = getUser(session.userId)
+   await addBattlePassXP(session.userId, "market_sell")
+   const unlocked = achievementCheck(user, "economy")
+   save(session.userId)
+
+   res.json({
+    ok: true,
+    listing: result,
+    unlockedAchievements: countUnlockedAchievements(unlocked)
+   })
   } catch (e) {
    console.error("[WEB] /api/market/sell-card:", e)
    res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
- app.post("/api/market/sell-fragment", (req, res) => {
+ app.post("/api/market/sell-fragment", async (req, res) => {
   try {
    const session = requireSession(req, res)
    if (!session) return
@@ -1181,7 +1377,17 @@ app.get("/api/sets", (req, res) => {
 
    const result = addFragmentListing(session.userId, cardId, fragmentNumber, price)
    if (result?.error) return res.status(400).json({ error: result.error })
-   res.json({ ok: true, listing: result })
+
+   const user = getUser(session.userId)
+   await addBattlePassXP(session.userId, "market_sell")
+   const unlocked = achievementCheck(user, "fragment")
+   save(session.userId)
+
+   res.json({
+    ok: true,
+    listing: result,
+    unlockedAchievements: countUnlockedAchievements(unlocked)
+   })
   } catch (e) {
    console.error("[WEB] /api/market/sell-fragment:", e)
    res.status(500).json({ error: "Erreur serveur" })

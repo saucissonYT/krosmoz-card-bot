@@ -48,7 +48,8 @@
 
    <!-- HERO -->
    <section class="hero">
-    <div class="hero-badge">🌈 2349 cartes · 7 sets · 19 dieux</div>
+   <div class="hero-badge">🌈 2349 cartes · 7 sets · 19 dieux</div>
+    <div class="hero-season" id="heroSeason">🎟️ Saison Battle Pass en cours...</div>
     <h1>Collectionne les cartes<br>du <span class="gold">Krosmoz</span></h1>
     <p>
      Ouvre des packs, fusionne tes doublons, échange sur le marché, 
@@ -92,6 +93,24 @@
     <div class="stat-item">
      <div class="stat-value" id="stat-achievements">—</div>
      <div class="stat-label">Succès débloqués</div>
+    </div>
+   </section>
+
+   <!-- DAILY ACTIONS -->
+   <section class="section section-claims">
+    <h2 class="section-title">Actions quotidiennes</h2>
+    <p class="section-subtitle">Recupere ta daily et tente la roulette directement sur le site</p>
+    <div class="claims-grid">
+     <article class="claim-card">
+      <h3>☀️ Daily</h3>
+      <p id="dailyStatus">Connexion Discord requise.</p>
+      <button id="dailyClaimBtn" class="btn btn-outline" type="button">Reclamer la daily</button>
+     </article>
+     <article class="claim-card">
+      <h3>🎰 Roulette</h3>
+      <p id="rouletteStatus">Connexion Discord requise.</p>
+      <button id="rouletteClaimBtn" class="btn btn-outline" type="button">Lancer la roulette</button>
+     </article>
     </div>
    </section>
 
@@ -236,6 +255,21 @@
   }
  }
 
+ function showToast(message, isError = false) {
+  let toast = document.getElementById("webToast")
+  if (!toast) {
+   toast = document.createElement("div")
+   toast.id = "webToast"
+   toast.className = "toast"
+   document.body.appendChild(toast)
+  }
+  toast.textContent = String(message || "")
+  toast.classList.toggle("toast-error", Boolean(isError))
+  toast.classList.add("show")
+  clearTimeout(showToast._timer)
+  showToast._timer = setTimeout(() => toast.classList.remove("show"), 3200)
+ }
+
  let activityItemsCache = []
  let activityVisibleCount = 8
  let activityCompactMode = false
@@ -304,6 +338,142 @@
   }
  }
 
+ /* -------- Load battle pass season -------- */
+ async function loadBattlePassSeason() {
+  const el = document.getElementById("heroSeason")
+  if (!el) return
+  try {
+   const res = await fetch("/api/battlepass/season")
+   const data = await res.json()
+   if (!res.ok) throw new Error(data?.error || "BP season failed")
+
+   const name = String(data?.name || "Saison")
+   const subtitle = String(data?.subtitle || "")
+   const emoji = String(data?.emoji || "🎟️")
+   const remaining = Number.isFinite(data?.daysRemaining) ? ` · ${data.daysRemaining}j restants` : ""
+   el.textContent = `${emoji} ${name}${subtitle ? ` — ${subtitle}` : ""}${remaining}`
+  } catch (err) {
+   console.error("BattlePass season error:", err)
+   el.textContent = "🎟️ Saison Battle Pass en cours"
+  }
+ }
+
+ function getReturnToPath() {
+  return `${window.location.pathname || "/"}${window.location.search || ""}`
+ }
+
+ function setClaimButtonsDisabled(disabled) {
+  const dailyBtn = document.getElementById("dailyClaimBtn")
+  const rouletteBtn = document.getElementById("rouletteClaimBtn")
+  if (dailyBtn) dailyBtn.disabled = disabled
+  if (rouletteBtn) rouletteBtn.disabled = disabled
+ }
+
+ async function loadClaimActions() {
+  const dailyStatus = document.getElementById("dailyStatus")
+  const rouletteStatus = document.getElementById("rouletteStatus")
+  const dailyBtn = document.getElementById("dailyClaimBtn")
+  const rouletteBtn = document.getElementById("rouletteClaimBtn")
+  if (!dailyStatus || !rouletteStatus || !dailyBtn || !rouletteBtn) return
+
+  let me = null
+  try {
+   const meRes = await fetch("/api/me", { credentials: "same-origin" })
+   if (meRes.ok) me = await meRes.json()
+  } catch (_) {}
+
+  if (!me?.id) {
+   dailyStatus.textContent = "Connecte-toi avec Discord pour reclamer ta daily."
+   rouletteStatus.textContent = "Connecte-toi avec Discord pour utiliser la roulette."
+   dailyBtn.textContent = "Connexion Discord"
+   rouletteBtn.textContent = "Connexion Discord"
+   const loginUrl = `/auth/discord?returnTo=${encodeURIComponent(getReturnToPath())}`
+   dailyBtn.onclick = () => { window.location.href = loginUrl }
+   rouletteBtn.onclick = () => { window.location.href = loginUrl }
+   setClaimButtonsDisabled(false)
+   return
+  }
+
+  dailyStatus.textContent = "Disponible une fois par jour (reset minuit Paris)."
+  rouletteStatus.textContent = "Disponible une fois par heure."
+  dailyBtn.textContent = "Reclamer la daily"
+  rouletteBtn.textContent = "Lancer la roulette"
+
+  dailyBtn.onclick = async () => {
+   dailyBtn.disabled = true
+   dailyBtn.textContent = "Traitement..."
+   try {
+    const res = await fetch("/api/claim/daily", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     credentials: "same-origin"
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+     const msg = data?.code === "DAILY_COOLDOWN"
+      ? `Daily deja prise. Prochaine dans ${data?.nextClaimText || "quelques heures"}.`
+      : (data?.error || "Impossible de reclamer la daily.")
+     dailyStatus.textContent = msg
+     showToast(msg, true)
+     return
+    }
+
+    const reward = data?.reward
+    let rewardText = "Recompense recue."
+    if (reward?.type === "pack") rewardText = `+${Number(reward.value || 0)} pack(s)`
+    else if (reward?.type === "kamas") rewardText = `+${Number(reward.value || 0).toLocaleString("fr-FR")} kamas`
+    else if (reward?.type === "ssr" && reward?.value?.name) rewardText = `SSR obtenue: ${reward.value.name}`
+
+    dailyStatus.textContent = `${rewardText} · Streak ${Number(data?.streak || 0)}/7 · +${Number(data?.xpGained || 0)} XP`
+    showToast("Daily recuperee avec succes.")
+    loadStats()
+   } catch (err) {
+    console.error("Daily claim error:", err)
+    dailyStatus.textContent = "Erreur reseau pendant la daily."
+    showToast("Erreur reseau pendant la daily.", true)
+   } finally {
+    dailyBtn.disabled = false
+    dailyBtn.textContent = "Reclamer la daily"
+   }
+  }
+
+  rouletteBtn.onclick = async () => {
+   rouletteBtn.disabled = true
+   rouletteBtn.textContent = "Tirage..."
+   try {
+    const res = await fetch("/api/claim/roulette", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     credentials: "same-origin"
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      let msg = data?.error || "Impossible de lancer la roulette."
+      if (data?.code === "ROULETTE_COOLDOWN" && Number.isFinite(data?.remainingMs)) {
+       const min = Math.floor(Number(data.remainingMs) / 60000)
+       const sec = Math.floor((Number(data.remainingMs) % 60000) / 1000)
+       msg = `Roulette en recharge: ${min}m ${sec}s.`
+      }
+      rouletteStatus.textContent = msg
+      showToast(msg, true)
+      return
+    }
+
+    const lot = data?.lot || {}
+    rouletteStatus.textContent = `${lot.emoji || "🎁"} ${lot.name || "Lot"} · ${lot.rewardText || "Recompense obtenue"}`
+    showToast("Roulette terminee, recompense ajoutee.")
+    loadStats()
+   } catch (err) {
+    console.error("Roulette claim error:", err)
+    rouletteStatus.textContent = "Erreur reseau pendant la roulette."
+    showToast("Erreur reseau pendant la roulette.", true)
+   } finally {
+    rouletteBtn.disabled = false
+    rouletteBtn.textContent = "Lancer la roulette"
+   }
+  }
+ }
+
  /* -------- Load activity feed -------- */
  async function loadActivity() {
   const feed = document.getElementById("activityFeed")
@@ -367,8 +537,10 @@
  }
 
  loadStats()
+ loadBattlePassSeason()
  loadSets()
  loadActivity()
+ loadClaimActions()
  </script>
 
 </body>
