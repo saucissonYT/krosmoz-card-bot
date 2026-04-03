@@ -33,7 +33,8 @@
  if (!status.connected) {
   setAuthState("")
   btn.textContent = "Connexion Discord"
-  btn.href = "/auth/discord"
+  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
+  btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
   return
  }
 

@@ -161,6 +161,15 @@ function parseCookies(req) {
  }, {})
 }
 
+function sanitizeReturnPath(value) {
+ const raw = String(value || "").trim()
+ if (!raw) return null
+ if (!raw.startsWith("/")) return null
+ if (raw.startsWith("//")) return null
+ if (raw.startsWith("/auth/")) return null
+ return raw
+}
+
 function cookieStateOptions() {
  return "HttpOnly; Path=/; Max-Age=600; SameSite=Lax"
 }
@@ -1152,7 +1161,11 @@ app.get("/api/sets", (req, res) => {
   }
 
   const state = crypto.randomBytes(24).toString("hex")
-  res.setHeader("Set-Cookie", `kc_oauth_state=${encodeURIComponent(state)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`)
+  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/market?connected=1"
+  res.setHeader("Set-Cookie", [
+   `kc_oauth_state=${encodeURIComponent(state)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`,
+   `kc_oauth_return=${encodeURIComponent(returnTo)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`
+  ])
 
   const params = new URLSearchParams({
    client_id: OAUTH_CLIENT_ID,
@@ -1172,7 +1185,8 @@ app.get("/api/sets", (req, res) => {
    if (req.query.error) return res.status(400).send(`Discord OAuth error: ${req.query.error}`)
 
    const cookies = parseCookies(req)
-   const expectedState = cookies.kc_oauth_state
+  const expectedState = cookies.kc_oauth_state
+   const returnTo = sanitizeReturnPath(cookies.kc_oauth_return) || "/market?connected=1"
    const state = String(req.query.state || "")
    const code = String(req.query.code || "")
 
@@ -1211,12 +1225,13 @@ app.get("/api/sets", (req, res) => {
    }
 
    const me = await meRes.json()
-   const sessionToken = createWebSession(me.id)
-   res.setHeader("Set-Cookie", [
+  const sessionToken = createWebSession(me.id)
+  res.setHeader("Set-Cookie", [
     `kc_oauth_state=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`,
+    `kc_oauth_return=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`,
     `kc_session=${encodeURIComponent(sessionToken)}; ${cookieSessionOptions(req)}`
    ])
-   return res.redirect("/market?connected=1")
+   return res.redirect(returnTo)
   } catch (e) {
    console.error("[WEB] /auth/discord/callback:", e)
    return res.status(500).send("Erreur OAuth.")

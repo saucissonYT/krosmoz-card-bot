@@ -84,7 +84,13 @@
   category: "all",
   connected: false,
   completionOnly: false,
-  items: []
+  items: [],
+  categoryStats: {}
+ }
+
+ function getLoginUrl() {
+  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
+  return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
  }
 
  function esc(str) {
@@ -93,10 +99,21 @@
   return d.innerHTML
  }
 
+ function categoryLabel(category) {
+  const stat = state.categoryStats?.[category.id]
+  if (!stat) return category.label
+  return `${category.label} (${stat.unlocked}/${stat.total})`
+ }
+
+ function renderCategorySelect() {
+  const sel = document.getElementById("categorySelect")
+  sel.innerHTML = CATEGORIES.map((c) => `<option value="${c.id}">${categoryLabel(c)}</option>`).join("")
+  sel.value = state.category
+ }
+
  function initCategorySelect() {
   const sel = document.getElementById("categorySelect")
-  sel.innerHTML = CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join("")
-  sel.value = state.category
+  renderCategorySelect()
   sel.addEventListener("change", () => {
    state.category = sel.value
    loadAchievements()
@@ -106,11 +123,13 @@
  function initCompletionToggle() {
   const btn = document.getElementById("completionToggle")
   btn.textContent = "Complétion: OFF"
-  btn.disabled = !state.connected
+  btn.disabled = false
   if (!state.connected) {
    btn.textContent = "Complétion (connexion Discord requise)"
+   btn.onclick = () => { window.location.href = getLoginUrl() }
    return
   }
+  btn.onclick = null
   btn.onclick = () => {
    state.completionOnly = !state.completionOnly
    btn.textContent = `Complétion: ${state.completionOnly ? "ON" : "OFF"}`
@@ -167,6 +186,8 @@
    const res = await fetch(`/api/achievements?category=${encodeURIComponent(state.category)}`, { credentials: "same-origin" })
    const data = await res.json()
    state.items = data.items || []
+   state.categoryStats = data.categories || {}
+   renderCategorySelect()
    renderAchievements()
   } catch (_) {
    grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`

@@ -119,6 +119,11 @@
   return div.innerHTML
  }
 
+ function getLoginUrl() {
+  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
+  return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
+ }
+
  async function api(path, options = {}) {
   const config = { credentials: "same-origin", ...options }
   const res = await fetch(path, config)
@@ -176,7 +181,7 @@
    : ""
 
   const action = !state.connected
-   ? `<button class="btn btn-outline" disabled>Connexion requise</button>`
+   ? `<button class="btn btn-outline action-login">Connexion requise</button>`
    : isMine
     ? `<button class="btn btn-outline action-remove" data-id="${item.id}">Retirer</button>`
     : `<button class="btn btn-outline action-buy" data-id="${item.id}">Acheter</button>`
@@ -265,6 +270,12 @@
 
     await refreshConnectedData()
     await loadMarket()
+   })
+  })
+
+  grid.querySelectorAll(".action-login").forEach((btn) => {
+   btn.addEventListener("click", () => {
+    window.location.href = getLoginUrl()
    })
   })
 

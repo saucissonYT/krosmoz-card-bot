@@ -85,6 +85,11 @@
   ownedCardIds: new Set()
  }
 
+ function getLoginUrl() {
+  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
+  return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
+ }
+
  async function loadSets() {
   try {
    const res = await fetch("/api/sets")
@@ -175,8 +180,9 @@
   }
 
   if (!state.connected) {
-   toggle.textContent = "Complétion (connexion Discord requise)"
-   toggle.disabled = true
+  toggle.textContent = "Complétion (connexion Discord requise)"
+   toggle.disabled = false
+   toggle.onclick = () => { window.location.href = getLoginUrl() }
    return
   }
 
@@ -190,6 +196,7 @@
 
   toggle.textContent = "Complétion: OFF"
   toggle.disabled = false
+  toggle.onclick = null
   toggle.addEventListener("click", () => {
    state.completionMask = !state.completionMask
    toggle.textContent = `Complétion: ${state.completionMask ? "ON" : "OFF"}`
