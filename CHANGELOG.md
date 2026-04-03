@@ -81,6 +81,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - `fusion.js` — résultat SSR : ajout de `ssrPulled += quantity` (corrige aussi le cas double fusion) + `fusionSSRResult += quantity` au lieu de +1
   - `battlePassService.js` — récompense `card_random_ssr` : remplace `ssrFromEvent` (faux positif) par `ssrFromBattlePass`
 
+- **Succès roulette corrigés et normalisés**
+  - Remplacement du module roulette dupliqué par un vrai `achievementRoulette.js` dédié
+  - Ajout de 20 succès avec trigger explicite `roulette` (tours, lots, jackpots, SSR/shiny, kamas/packs, horaires, streak)
+  - Ajout des catégories `roulette` et `fragment` dans le filtre web `/achievements`
+
+- **Validation de succès rendue systématique**
+  - `achievementCheck()` vérifie désormais l'ensemble des succès à chaque appel (plus un passage `progression`)
+  - Corrige les cas où un succès pouvait rester bloqué à cause d'un trigger trop spécifique (dont les paliers du type "X succès")
+
 - **`fusion_*` boutons expiraient immédiatement**
   - Cause : un fallback `fusion_*` dans `buttonRoutes.js` acknowledgeait l'interaction avant le collector interne → double acknowledge → crash
   - Fix : suppression du fallback (même pattern que `profil_*` et `mystats_*`)

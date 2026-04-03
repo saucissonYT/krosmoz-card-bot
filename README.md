@@ -16,7 +16,7 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 200 et débloquer des bonus permanents
-- Débloquer 530 succès, badges et titres exclusifs
+- Débloquer 469 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
 
 ---
@@ -139,7 +139,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## ✅ Achievements
 
-449 succès automatiques répartis en 14 catégories actives :
+469 succès automatiques répartis en catégories de progression actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -153,7 +153,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
-- **Roulette** — 46 achievements (tours, kamas, packs, SSR, lots par rareté, jackpots, secrets horaires)
+- **Roulette** — 20 achievements (tours, lots rares, jackpots, SSR/shiny, kamas/packs, créneaux horaires, streak)
 
 Les succès secrets apparaissent comme **🔒 ???** jusqu'à leur découverte et donnent **+50% de kamas** bonus.
 
@@ -390,17 +390,17 @@ Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît
 
 Aucune migration requise — tous les champs sont lus avec fallback `|| 0`.
 
-### 46 succès dédiés
+### 20 succès dédiés
 
 | Catégorie | Succès | Paliers |
 |-----------|--------|---------|
-| 🎡 Tours | 4 | 1 · 10 · 100 · 1 000 |
-| 💰 Kamas | 4 | 5k · 25k · 100k · 500k |
-| 📦 Packs | 4 | 1 · 10 · 50 · 150 |
-| 🌈 SSR | 2 | 1 · 3 |
-| ⬜🟩🟦🟥 Lots par rareté | 16 | 4 paliers × 4 raretés |
-| 🎰 Jackpots | 4 | 1 · 3 · 5 · 10 |
-| 🔒 Secrets | 2 | Jouer entre 2h–5h · entre 13h–14h (heure FR) |
+| 🎡 Tours | 5 | 1 · 5 · 25 · 75 · 150 |
+| 💠 Lots rares | 4 | Rare (1/20) · Très rare (1/10) |
+| 🎰 Jackpots | 2 | 1 · 3 |
+| 🌈 SSR & Shiny | 2 | SSR (1) · Shiny (1) |
+| 💰📦 Gains | 3 | Kamas (50k/250k) · Packs (25) |
+| 🕒 Créneaux | 2 | Nuit (2h–5h) · Midi (13h–14h) |
+| 📅 Streak | 2 | 7 jours · 30 jours |
 
 ---
 
@@ -770,7 +770,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
-- Le jeu compte `449` succes classiques + `81` succes Battle Pass, soit `530` succes au total
+- Le jeu compte `469` succes classiques + `81` succes Battle Pass, soit `550` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -852,7 +852,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 449 succès |
+| /achievements | Voir les 469 succès |
 | /krosmohelp | Aide du bot |
 
 ---
@@ -910,7 +910,7 @@ La commande **/quests** affiche une interface interactive avec :
 
 ## ✅ Achievements
 
-449 succès automatiques répartis en 14 catégories actives :
+469 succès automatiques répartis en catégories de progression actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -924,7 +924,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
-- **Roulette** — 46 achievements (tours, kamas, packs, SSR, lots par rareté, jackpots, secrets horaires)
+- **Roulette** — 20 achievements (tours, lots rares, jackpots, SSR/shiny, kamas/packs, créneaux horaires, streak)
 
 Les succès débloquent des **badges** et des **titres**.
 
