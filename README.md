@@ -203,7 +203,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | 🌾 Astrub | 258 |
 | 🌽 Amakna | 298 |
 | 🌊 Sufokia | 353 |
-| 🐦‍⬛ Kelba | 456 |
+| 🦅 Kelba | 456 |
 | 🦇 Katrepat | 431 |
 | 🧊 Sberg | 433 |
 
@@ -288,7 +288,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 | S | 6 | 1.70% |
 | SSR | 5 | 1.42% |
 
-### 🐦‍⬛ Distribution Kelba
+### 🦅 Distribution Kelba
 
 | Rareté | Cartes | Taux |
 |--------|--------|------|
@@ -341,7 +341,7 @@ Les sets se débloquent progressivement au fil de la progression du joueur. Chaq
 | 🌾 Astrub | 11 | Incarnam ≥ 70% |
 | 🌽 Amakna | 36 | Astrub ≥ 70% |
 | 🌊 Sufokia | 51 | Amakna ≥ 70% |
-| 🐦‍⬛ Kelba | 66 | Sufokia ≥ 70% |
+| 🦅 Kelba | 66 | Sufokia ≥ 70% |
 | 🦇 Katrepat | 81 | Kelba ≥ 70% |
 | 🧊 Sberg | 96 | Katrepat ≥ 70% |
 

@@ -276,7 +276,7 @@ Bug commands/joueur/carte.js : save() appelé sans userId dans le handler sell_ 
 
 ### Added
 
-- **Nouveau set 🐦‍⬛ Kelba** — 456 cartes, le plus grand set du jeu
+- **Nouveau set 🦅 Kelba** — 456 cartes, le plus grand set du jeu
   - Distribution : 174 C, 132 U, 57 R, 38 SR, 24 HR, 16 UR, 10 S, 5 SSR
   - Pyramide de raretés C > U > R > SR > HR > UR > S > SSR respectée
   - Images importées et validées via le script d'import
