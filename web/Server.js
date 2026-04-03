@@ -81,6 +81,22 @@ function getSets() {
  return raw?.sets || []
 }
 
+function getSetsWithCounts() {
+ const sets = getSets()
+ const cards = getCards()
+ const counts = new Map()
+
+ for (const card of cards) {
+  const setId = String(card.set || "unknown")
+  counts.set(setId, (counts.get(setId) || 0) + 1)
+ }
+
+ return sets.map((set) => ({
+  ...set,
+  totalCards: counts.get(String(set.id)) || 0
+ }))
+}
+
 function getGuildList() {
  const guilds = readJSON(GUILDS_PATH, [])
  return Array.isArray(guilds) ? guilds : Object.values(guilds || {})
@@ -799,9 +815,9 @@ function createWebApp() {
   }
  })
 
- app.get("/api/sets", (req, res) => {
-  try {
-   res.json(getSets())
+app.get("/api/sets", (req, res) => {
+ try {
+   res.json(getSetsWithCounts())
   } catch (e) {
    console.error("[WEB] /api/sets:", e)
    res.status(500).json({ error: "Erreur serveur" })
@@ -1104,6 +1120,7 @@ function createWebApp() {
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/tutorial", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Tutorial.html")))
+ app.get("/about", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "About.html")))
 
  app.use((req, res) => {
   if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Route introuvable" })

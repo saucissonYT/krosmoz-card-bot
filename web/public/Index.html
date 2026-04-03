@@ -54,6 +54,9 @@
      et deviens le meilleur collecteur du Monde des Douze.
     </p>
     <div class="hero-buttons">
+     <a href="https://discord.gg/W7UmsfCW" class="btn btn-outline" target="_blank" rel="noopener">
+      💬 Discord
+     </a>
      <a href="/leaderboard" class="btn btn-outline">
       🏆 Classement
      </a>
@@ -163,6 +166,7 @@
    <footer class="footer">
     <p>🎴 Krosmoz Card — Bot Discord TCG inspiré de l'univers <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
     <p style="margin-top:8px; font-size:0.8rem">Projet non affilié à Ankama Games</p>
+    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
    </footer>
 
   </div>
@@ -229,8 +233,16 @@
      <div class="feature-icon">${setEmojis[set.id] || "📚"}</div>
      <h3>${set.name}</h3>
      <p>${set.description || "Set de cartes du Krosmoz"}</p>
+     <p><strong>${(set.totalCards || 0).toLocaleString("fr-FR")} / ${(set.totalCards || 0).toLocaleString("fr-FR")}</strong></p>
     </div>
-   `).join("")
+   `).join("") + `
+    <div class="feature-card">
+     <div class="feature-icon">❓</div>
+     <h3>À venir...</h3>
+     <p>Un nouveau set est en préparation.</p>
+     <p><strong>??? / ???</strong></p>
+    </div>
+   `
   } catch (err) {
    console.error("Sets error:", err)
   }

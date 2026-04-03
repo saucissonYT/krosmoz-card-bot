@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Recherche Cartes — Krosmoz Card</title>
+ <title>Recherche Cartes - Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -35,9 +35,9 @@
  <div class="page">
   <div class="container">
    <section style="padding-top:40px">
-   <h1 class="section-title fade-in">📚 Recherche de cartes</h1>
-   <p class="section-subtitle fade-in stagger-1">Catalogue complet avec filtres et pagination</p>
-   <p class="notice-strip fade-in stagger-1">Certaines images peuvent paraître floues: cela vient de la qualité des visuels sources de l'encyclopédie Wakfu.</p>
+    <h1 class="section-title fade-in">📚 Recherche de cartes</h1>
+    <p class="section-subtitle fade-in stagger-1">Catalogue complet avec filtres et pagination</p>
+    <p class="notice-strip fade-in stagger-1">Certaines images peuvent paraître floues: cela vient de la qualité des visuels sources de l'encyclopédie Wakfu.</p>
 
     <div class="toolbar fade-in stagger-2">
      <input id="searchInput" class="input" placeholder="Nom de carte..." />
@@ -55,15 +55,17 @@
       <option value="rarity">Tri: Rareté</option>
      </select>
      <button id="searchBtn" class="btn btn-outline">Rechercher</button>
+     <button id="completionToggle" class="btn btn-outline" disabled>Complétion</button>
     </div>
 
     <div id="resultMeta" class="result-meta"></div>
-    <div id="cardsGrid" class="catalog-grid"></div>
+    <div id="cardsGrid" class="catalog-grid cards-dense"></div>
     <div id="pagination" class="pagination"></div>
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
+    <p>🦅 <a href="/">Krosmoz Card</a> - krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
    </footer>
   </div>
  </div>
@@ -73,7 +75,13 @@
   document.getElementById("navLinks").classList.toggle("open")
  })
 
- const state = { page: 1, limit: 24 }
+ const state = {
+  page: 1,
+  limit: 42,
+  connected: false,
+  completionMask: false,
+  ownedCardIds: new Set()
+ }
 
  async function loadSets() {
   try {
@@ -97,6 +105,7 @@
   const rarity = document.getElementById("raritySelect").value
   const set = document.getElementById("setSelect").value
   const sort = document.getElementById("sortSelect").value
+
   if (search) q.set("q", search)
   if (rarity) q.set("rarity", rarity)
   if (set) q.set("set", set)
@@ -104,12 +113,21 @@
   return q.toString()
  }
 
-function cardRow(card) {
+ function escapeHtml(str) {
+  const div = document.createElement("div")
+  div.textContent = str
+  return div.innerHTML
+ }
+
+ function cardRow(card) {
+  const owned = state.ownedCardIds.has(String(card.id))
+  const masked = state.completionMask && !owned
   const image = card.imageUrl
    ? `<div class="card-thumb-wrap"><img class="card-thumb" loading="lazy" src="${card.imageUrl}" alt="${escapeHtml(card.name)}" onerror="this.parentElement.style.display='none'"></div>`
    : ""
+
   return `
-   <article class="catalog-card">
+   <article class="catalog-card ${masked ? "card-incomplete" : ""}">
     ${image}
     <div class="catalog-card-head">
      <span class="chip chip-rarity">${card.rarity}</span>
@@ -121,15 +139,12 @@ function cardRow(card) {
   `
  }
 
- function escapeHtml(str) {
-  const div = document.createElement("div")
-  div.textContent = str
-  return div.innerHTML
- }
-
  function renderPagination(page, pages) {
   const root = document.getElementById("pagination")
-  if (pages <= 1) { root.innerHTML = ""; return }
+  if (pages <= 1) {
+   root.innerHTML = ""
+   return
+  }
 
   root.innerHTML = `
    <button class="btn btn-outline" ${page <= 1 ? "disabled" : ""} data-page="${page - 1}">← Précédent</button>
@@ -145,28 +160,63 @@ function cardRow(card) {
   })
  }
 
+ async function initCompletionToggle() {
+  const toggle = document.getElementById("completionToggle")
+  if (!toggle) return
+
+  try {
+   const statusRes = await fetch("/api/oauth/status", { credentials: "same-origin" })
+   const status = await statusRes.json()
+   state.connected = Boolean(status?.connected)
+  } catch (_) {
+   state.connected = false
+  }
+
+  if (!state.connected) {
+   toggle.textContent = "Complétion (connexion Discord requise)"
+   toggle.disabled = true
+   return
+  }
+
+  try {
+   const invRes = await fetch("/api/me/inventory", { credentials: "same-origin" })
+   if (invRes.ok) {
+    const inv = await invRes.json()
+    state.ownedCardIds = new Set((inv.cards || []).map((c) => String(c.cardId)))
+   }
+  } catch (_) {}
+
+  toggle.textContent = "Complétion: OFF"
+  toggle.disabled = false
+  toggle.addEventListener("click", () => {
+   state.completionMask = !state.completionMask
+   toggle.textContent = `Complétion: ${state.completionMask ? "ON" : "OFF"}`
+   loadCards()
+  })
+ }
+
  async function loadCards() {
   const grid = document.getElementById("cardsGrid")
   const meta = document.getElementById("resultMeta")
   grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement des cartes...</p></div>`
 
   try {
-    const res = await fetch(`/api/cards?${queryString()}`)
-    const data = await res.json()
-    state.page = data.page
+   const res = await fetch(`/api/cards?${queryString()}`)
+   const data = await res.json()
+   state.page = data.page
 
-    meta.textContent = `${(data.total || 0).toLocaleString("fr-FR")} cartes trouvées`
-    const items = data.items || []
-    if (!items.length) {
-     grid.innerHTML = `<div class="loading"><p>Aucune carte pour ces filtres.</p></div>`
-     renderPagination(1, 1)
-     return
-    }
+   meta.textContent = `${(data.total || 0).toLocaleString("fr-FR")} cartes trouvées`
+   const items = data.items || []
+   if (!items.length) {
+    grid.innerHTML = `<div class="loading"><p>Aucune carte pour ces filtres.</p></div>`
+    renderPagination(1, 1)
+    return
+   }
 
-    grid.innerHTML = items.map(cardRow).join("")
-    renderPagination(data.page, data.pages)
-  } catch (e) {
-    grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+   grid.innerHTML = items.map(cardRow).join("")
+   renderPagination(data.page, data.pages)
+  } catch (_) {
+   grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
   }
  }
 
@@ -174,13 +224,30 @@ function cardRow(card) {
   state.page = 1
   loadCards()
  })
- document.getElementById("searchInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { state.page = 1; loadCards() }
- })
- document.getElementById("raritySelect").addEventListener("change", () => { state.page = 1; loadCards() })
- document.getElementById("setSelect").addEventListener("change", () => { state.page = 1; loadCards() })
- document.getElementById("sortSelect").addEventListener("change", () => { state.page = 1; loadCards() })
 
+ document.getElementById("searchInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+   state.page = 1
+   loadCards()
+  }
+ })
+
+ document.getElementById("raritySelect").addEventListener("change", () => {
+  state.page = 1
+  loadCards()
+ })
+
+ document.getElementById("setSelect").addEventListener("change", () => {
+  state.page = 1
+  loadCards()
+ })
+
+ document.getElementById("sortSelect").addEventListener("change", () => {
+  state.page = 1
+  loadCards()
+ })
+
+ initCompletionToggle()
  loadSets().then(loadCards)
  </script>
 </body>

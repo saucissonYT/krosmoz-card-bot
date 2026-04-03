@@ -835,7 +835,7 @@ body::after {
 
 .toolbar {
  display: grid;
- grid-template-columns: 1.8fr repeat(3, minmax(140px, 1fr)) auto;
+ grid-template-columns: 1.8fr repeat(3, minmax(140px, 1fr)) auto auto;
  gap: 10px;
  margin-bottom: 18px;
 }
@@ -884,6 +884,10 @@ body::after {
  gap: 14px;
 }
 
+.cards-dense {
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .catalog-card {
  background: var(--bg-card);
  border: 1px solid rgba(255, 255, 255, 0.06);
@@ -895,6 +899,21 @@ body::after {
 .catalog-card:hover {
  transform: translateY(-3px);
  border-color: rgba(201, 168, 76, 0.25);
+}
+
+.catalog-card.card-incomplete {
+ background: #050508;
+ border-color: rgba(255, 255, 255, 0.07);
+}
+
+.catalog-card.card-incomplete .card-thumb {
+ filter: grayscale(100%) brightness(0.16) contrast(115%);
+}
+
+.catalog-card.card-incomplete h3,
+.catalog-card.card-incomplete p,
+.catalog-card.card-incomplete .chip {
+ color: #606070 !important;
 }
 
 .catalog-card h3 {
@@ -1164,6 +1183,7 @@ body::after {
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .auth-inner { flex-direction: column; align-items: flex-start; }
+ .cards-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
  .lb-table, .lb-table tbody, .lb-row, .lb-row td {
   display: block;
@@ -1184,4 +1204,13 @@ body::after {
  .hero-buttons { flex-direction: column; align-items: center; }
  .rarity-grid { grid-template-columns: repeat(2, 1fr); }
  .toolbar { grid-template-columns: 1fr; }
+ .cards-dense { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1100px) {
+ .cards-dense { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1550px) {
+ .cards-dense { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
