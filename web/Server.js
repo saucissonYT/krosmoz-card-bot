@@ -17,6 +17,8 @@ const GUILDS_PATH = path.join(BASE, "guilds.json")
 const MARKET_PATH = path.join(BASE, "market.json")
 const MARKET_HISTORY_PATH = path.join(BASE, "marketHistory.json")
 const PUBLIC_DIR = path.join(__dirname, "public")
+const CARD_IMAGES_RUNTIME_DIR = path.join(BASE, "cards", "images")
+const CARD_IMAGES_REPO_DIR = path.join(process.cwd(), "cards", "images")
 
 const DISCORD_USER_TTL_MS = 5 * 60 * 1000
 const discordUserCache = new Map()
@@ -372,14 +374,17 @@ function computeCardsCatalog(query) {
    break
  }
 
- return {
-  total: filtered.length,
-  items: filtered.map((card) => ({
+  return {
+   total: filtered.length,
+   items: filtered.map((card) => ({
    id: card.id,
    name: card.name || `Carte ${card.id}`,
    rarity: card.rarity || "C",
    set: card.set || "unknown",
-   setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu")
+   setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null
   }))
  }
 }
@@ -441,6 +446,9 @@ async function computeMarket(query) {
    rarity: card?.rarity || "C",
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null,
    seller: String(entry.seller || ""),
    fragmentNumber: itemType === "fragment" ? Number(entry.fragmentNumber || 0) : null,
    minimumPrice: itemType === "fragment"
@@ -611,6 +619,8 @@ function createWebApp() {
 
  app.use(express.static(PUBLIC_DIR, { index: false }))
  app.get("/css/style.css", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Style.css")))
+ app.use("/assets/cards", express.static(CARD_IMAGES_RUNTIME_DIR, { index: false, fallthrough: true }))
+ app.use("/assets/cards", express.static(CARD_IMAGES_REPO_DIR, { index: false, fallthrough: true }))
 
  app.get("/api/stats", (req, res) => {
   try {
