@@ -95,19 +95,6 @@
     </div>
    </section>
 
-   <!-- ACTIVITY -->
-   <section class="section section-activity">
-    <h2 class="section-title">Journal d'activite</h2>
-    <p class="section-subtitle">Les derniers echanges sur le marche entre joueurs</p>
-    <div class="activity-controls">
-     <button id="activityCompactBtn" type="button" class="btn btn-outline activity-btn">Mode compact: OFF</button>
-     <button id="activityMoreBtn" type="button" class="btn btn-outline activity-btn">Voir plus</button>
-    </div>
-    <div id="activityFeed" class="activity-feed">
-     <div class="loading">Chargement des activites...</div>
-    </div>
-   </section>
-
    <!-- FEATURES -->
    <section class="section">
     <h2 class="section-title">Le jeu de cartes du Krosmoz</h2>
@@ -173,6 +160,19 @@
 
     <div class="features-grid" id="setsGrid">
      <!-- Rempli dynamiquement -->
+    </div>
+   </section>
+
+   <!-- ACTIVITY -->
+   <section class="section section-activity">
+    <h2 class="section-title">Journal d'activite</h2>
+    <p class="section-subtitle">Les derniers echanges sur le marche entre joueurs</p>
+    <div class="activity-controls">
+     <button id="activityCompactBtn" type="button" class="btn btn-outline activity-btn">Mode compact: OFF</button>
+     <button id="activityMoreBtn" type="button" class="btn btn-outline activity-btn">Voir plus</button>
+    </div>
+    <div id="activityFeed" class="activity-feed">
+     <div class="loading">Chargement des activites...</div>
     </div>
    </section>
 
@@ -351,14 +351,14 @@
      <div class="feature-icon">${setEmojis[set.id] || "📚"}</div>
      <h3>${set.name}</h3>
      <p>${set.description || "Set de cartes du Krosmoz"}</p>
-     <p><strong>${(set.totalCards || 0).toLocaleString("fr-FR")} / ${(set.totalCards || 0).toLocaleString("fr-FR")}</strong></p>
+     <p><strong>${(set.totalCards || 0).toLocaleString("fr-FR")} cartes</strong></p>
     </div>
    `).join("") + `
     <div class="feature-card">
      <div class="feature-icon">❓</div>
      <h3>À venir...</h3>
      <p>Un nouveau set est en préparation.</p>
-     <p><strong>??? / ???</strong></p>
+     <p><strong>??? cartes</strong></p>
     </div>
    `
   } catch (err) {
