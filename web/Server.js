@@ -764,6 +764,23 @@ function createWebApp() {
  const app = express()
  app.disable("x-powered-by")
 
+ app.use((req, res, next) => {
+  const proto = String(req.headers["x-forwarded-proto"] || "")
+  const host = String(req.headers.host || "")
+  const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production"
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1")
+
+  if (isProd && !isLocal && proto && !proto.includes("https")) {
+   return res.redirect(301, `https://${host}${req.originalUrl}`)
+  }
+
+  if (proto.includes("https")) {
+   res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+  }
+
+  return next()
+ })
+
  app.use(express.json({ limit: "1mb" }))
  app.use(express.urlencoded({ extended: false }))
 
