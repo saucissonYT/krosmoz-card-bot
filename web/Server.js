@@ -4,15 +4,10 @@ const fs = require("fs")
 const path = require("path")
 
 const { MAX_PLAYER_LEVEL } = require("../systems/constants")
-const { getUser, save, updateActivityStreak } = require("../systems/userSystem")
-const { canClaim, claimDaily, getNextMidnightParisMs } = require("../systems/dailySystem")
+const { getUser, save } = require("../systems/userSystem")
 const { addBattlePassXP } = require("../systems/battlePassService")
 const { achievementCheck } = require("../systems/achievementCheck")
-const { ensureUserQuests } = require("../systems/questSystem")
-const { getUserGuild } = require("../systems/guildSystem")
-const { ensureSnapshot } = require("../systems/guildQuestSystem")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
-const rouletteCommand = require("../commands/joueur/roulette")
 const {
  addListing,
  addFragmentListing,
@@ -44,7 +39,6 @@ const ACHIEVEMENT_CATEGORIES = [
 const webHooks = {
  onWebMarketBuy: null
 }
-const webRouletteLocks = new Set()
 
 let BASE = "/data"
 if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
@@ -1085,135 +1079,6 @@ app.get("/api/me/inventory", (req, res) => {
  } catch (e) {
   console.error("[WEB] /api/me/inventory:", e)
   res.status(500).json({ error: "Erreur serveur" })
- }
-})
-
-app.post("/api/claim/daily", async (req, res) => {
- try {
-  const session = requireSession(req, res)
-  if (!session) return
-
-  const user = getUser(session.userId)
-  if (!user) return res.status(404).json({ error: "Joueur introuvable." })
-  ensureUserQuests(user)
-  try {
-   const guild = getUserGuild(session.userId)
-   if (guild) ensureSnapshot(guild)
-  } catch (_) {}
-
-  if (!canClaim(user)) {
-   const now = Date.now()
-   const nextMidnight = getNextMidnightParisMs()
-   const remainingMs = Math.max(0, nextMidnight - now)
-   const hours = Math.floor(remainingMs / (1000 * 60 * 60))
-   const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60))
-   return res.status(429).json({
-    error: "Daily deja recuperee aujourd'hui.",
-    code: "DAILY_COOLDOWN",
-    remainingMs,
-    nextClaimText: `${hours}h ${minutes}m`
-   })
-  }
-
-  const result = await claimDaily(null, user, session.userId)
-  updateActivityStreak(user)
-
-  const streak = Number(result?.streak || 0)
-  const day = ((Math.max(1, streak) - 1) % 7) + 1
-  const xp = 25 + (day - 1) * 10
-  if (!user.progression) user.progression = { level: 1, xp: 0, totalXp: 0 }
-  user.progression.xp += xp
-  user.progression.totalXp += xp
-
-  if (!user.stats) user.stats = {}
-  user.stats.maxDailyStreak = Math.max(Number(user.stats.maxDailyStreak || 0), streak)
-
-  await addBattlePassXP(session.userId, "daily_claim")
-  const unlocked = [
-   ...achievementCheck(user, "daily"),
-   ...achievementCheck(user, "economy")
-  ]
-
-  save(session.userId)
-
-  return res.json({
-   ok: true,
-   reward: result?.reward || null,
-   streak,
-   streakBar: result?.streakBar || "",
-   xpGained: xp,
-   doubleReward: Boolean(result?.doubleReward),
-   bonusPacks: Number(result?.bonusPacksGiven || 0),
-   unlockedAchievements: unlocked.length
-  })
- } catch (e) {
-  console.error("[WEB] /api/claim/daily:", e)
-  res.status(500).json({ error: "Erreur serveur" })
- }
-})
-
-app.post("/api/claim/roulette", async (req, res) => {
- let lockUserId = ""
- try {
-  const session = requireSession(req, res)
-  if (!session) return
-
-  lockUserId = String(session.userId)
-  if (webRouletteLocks.has(lockUserId)) {
-   return res.status(429).json({ error: "Une roulette est deja en cours.", code: "ROULETTE_BUSY" })
-  }
-  webRouletteLocks.add(lockUserId)
-
-  const user = getUser(lockUserId)
-  if (!user) return res.status(404).json({ error: "Joueur introuvable." })
-  if (!user.stats) user.stats = {}
-  ensureUserQuests(user)
-  try {
-   const guild = getUserGuild(lockUserId)
-   if (guild) ensureSnapshot(guild)
-  } catch (_) {}
-
-  const cooldownMs = 60 * 60 * 1000
-  const now = Date.now()
-  const last = user.stats.rouletteLastSpin ? new Date(user.stats.rouletteLastSpin).getTime() : 0
-  const elapsed = now - last
-
-  if (elapsed < cooldownMs) {
-   const remainingMs = cooldownMs - elapsed
-   const min = Math.floor(remainingMs / 60000)
-   const sec = Math.floor((remainingMs % 60000) / 1000)
-   return res.status(429).json({
-    error: `Roulette en recharge: ${min}m ${sec}s.`,
-    code: "ROULETTE_COOLDOWN",
-    remainingMs
-   })
-  }
-
-  const lot = rouletteCommand.pickLot()
-  rouletteCommand.updateRouletteStats(user, lot, now)
-  await rouletteCommand.applyReward({ user: { id: lockUserId } }, user, lot)
-
-  await addBattlePassXP(lockUserId, "roulette_spin")
-  const unlocked = achievementCheck(user, "roulette")
-  save(lockUserId)
-
-  return res.json({
-   ok: true,
-   lot: {
-    id: lot.id,
-    name: lot.name,
-    emoji: lot.emoji,
-    rarity: lot.rarity,
-    reward: lot.reward,
-    rewardText: rouletteCommand.formatReward(lot.reward)
-   },
-   unlockedAchievements: unlocked.length
-  })
- } catch (e) {
-  console.error("[WEB] /api/claim/roulette:", e)
-  res.status(500).json({ error: "Erreur serveur" })
- } finally {
-  if (lockUserId) webRouletteLocks.delete(lockUserId)
  }
 })
 
