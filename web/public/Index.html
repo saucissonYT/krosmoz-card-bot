@@ -95,6 +95,19 @@
     </div>
    </section>
 
+   <!-- ACTIVITY -->
+   <section class="section section-activity">
+    <h2 class="section-title">Journal d'activite</h2>
+    <p class="section-subtitle">Les derniers echanges sur le marche entre joueurs</p>
+    <div class="activity-controls">
+     <button id="activityCompactBtn" type="button" class="btn btn-outline activity-btn">Mode compact: OFF</button>
+     <button id="activityMoreBtn" type="button" class="btn btn-outline activity-btn">Voir plus</button>
+    </div>
+    <div id="activityFeed" class="activity-feed">
+     <div class="loading">Chargement des activites...</div>
+    </div>
+   </section>
+
    <!-- FEATURES -->
    <section class="section">
     <h2 class="section-title">Le jeu de cartes du Krosmoz</h2>
@@ -201,6 +214,79 @@
   requestAnimationFrame(update)
  }
 
+ function escapeHtml(value) {
+  return String(value ?? "")
+   .replace(/&/g, "&amp;")
+   .replace(/</g, "&lt;")
+   .replace(/>/g, "&gt;")
+   .replace(/"/g, "&quot;")
+   .replace(/'/g, "&#39;")
+ }
+
+ function rarityEmoji(rarity) {
+  switch (String(rarity || "").toUpperCase()) {
+   case "SSR": return "🌟"
+   case "S": return "✨"
+   case "UR": return "💎"
+   case "HR": return "🔥"
+   case "SR": return "🟣"
+   case "R": return "🔵"
+   case "U": return "🟢"
+   default: return "⚪"
+  }
+ }
+
+ let activityItemsCache = []
+ let activityVisibleCount = 8
+ let activityCompactMode = false
+
+ function renderActivity() {
+  const feed = document.getElementById("activityFeed")
+  const moreBtn = document.getElementById("activityMoreBtn")
+  const compactBtn = document.getElementById("activityCompactBtn")
+  if (!feed || !moreBtn || !compactBtn) return
+
+  compactBtn.textContent = `Mode compact: ${activityCompactMode ? "ON" : "OFF"}`
+  feed.classList.toggle("activity-feed-compact", activityCompactMode)
+
+  const items = activityItemsCache.slice(0, activityVisibleCount)
+  if (!items.length) {
+    feed.innerHTML = `<div class="activity-empty">Aucune activite recente pour le moment.</div>`
+    moreBtn.style.display = "none"
+    return
+  }
+
+  feed.innerHTML = items.map((item) => {
+   const ts = Number(item?.timestamp || 0)
+   const dateLabel = ts > 0
+    ? new Date(ts).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })
+    : "Date inconnue"
+   const buyer = escapeHtml(item?.buyer?.name || "Joueur")
+   const seller = escapeHtml(item?.seller?.name || "Joueur")
+   const cardName = escapeHtml(item?.cardName || "Carte inconnue")
+   const price = Number(item?.price || 0).toLocaleString("fr-FR")
+   const isFragment = item?.kind === "market_fragment"
+   const label = isFragment
+    ? `🧩 Fragment ${Number(item?.fragmentNumber || 0)}/5 · ${cardName}`
+    : `${rarityEmoji(item?.rarity)} ${cardName}`
+
+   return `
+    <article class="activity-item">
+     <div class="activity-main">
+      <div class="activity-title">${label}</div>
+      <div class="activity-meta"><strong>${buyer}</strong> a achete a <strong>${seller}</strong></div>
+     </div>
+     <div class="activity-side">
+      <div class="activity-price">${price} kamas</div>
+      <div class="activity-time">${dateLabel}</div>
+     </div>
+    </article>
+   `
+  }).join("")
+
+  moreBtn.style.display = activityVisibleCount < activityItemsCache.length ? "inline-flex" : "none"
+ }
+
  /* -------- Load stats -------- */
  async function loadStats() {
   try {
@@ -215,6 +301,36 @@
    animateValue(document.getElementById("stat-achievements"), data.achievements)
   } catch (err) {
    console.error("Stats error:", err)
+  }
+ }
+
+ /* -------- Load activity feed -------- */
+ async function loadActivity() {
+  const feed = document.getElementById("activityFeed")
+  const moreBtn = document.getElementById("activityMoreBtn")
+  const compactBtn = document.getElementById("activityCompactBtn")
+  if (!feed) return
+  if (moreBtn) {
+   moreBtn.addEventListener("click", () => {
+    activityVisibleCount += 8
+    renderActivity()
+   })
+  }
+  if (compactBtn) {
+   compactBtn.addEventListener("click", () => {
+    activityCompactMode = !activityCompactMode
+    renderActivity()
+   })
+  }
+  try {
+   const res = await fetch("/api/activity?limit=30")
+   const data = await res.json()
+   activityItemsCache = Array.isArray(data?.items) ? data.items : []
+   renderActivity()
+  } catch (err) {
+   console.error("Activity error:", err)
+   feed.innerHTML = `<div class="activity-empty">Impossible de charger le journal d'activite.</div>`
+   if (moreBtn) moreBtn.style.display = "none"
   }
  }
 
@@ -252,6 +368,7 @@
 
  loadStats()
  loadSets()
+ loadActivity()
  </script>
 
 </body>

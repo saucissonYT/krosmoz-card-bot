@@ -308,6 +308,41 @@ function computeGlobalStats() {
  }
 }
 
+async function computeActivityFeed(limit = 12) {
+ const cards = getCards()
+ const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const history = readJSON(MARKET_HISTORY_PATH, [])
+ const safeLimit = Math.max(1, Math.min(30, Number(limit) || 12))
+
+ const latest = [...history]
+  .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+  .slice(0, safeLimit)
+
+ return Promise.all(latest.map(async (entry) => {
+  const card = cardsById.get(String(entry.card))
+  const buyer = await resolveDiscordUser(String(entry.buyer || ""))
+  const seller = await resolveDiscordUser(String(entry.seller || ""))
+  const isFragment = String(entry.type || "card") === "fragment"
+
+  return {
+   kind: isFragment ? "market_fragment" : "market_card",
+   timestamp: Number(entry.timestamp || 0),
+   price: Number(entry.price || 0),
+   cardName: card?.name || `Carte ${entry.card}`,
+   rarity: card?.rarity || "C",
+   fragmentNumber: isFragment ? Number(entry.fragmentNumber || 0) : null,
+   buyer: {
+    id: String(entry.buyer || ""),
+    name: buyer?.displayName || String(entry.buyer || "Joueur")
+   },
+   seller: {
+    id: String(entry.seller || ""),
+    name: seller?.displayName || String(entry.seller || "Joueur")
+   }
+  }
+ }))
+}
+
 function computeLeaderboard(category) {
  const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
  if (!valid.includes(category)) return []
@@ -535,6 +570,8 @@ async function computeMarket(query) {
  const rarity = normalizeText(query.rarity).toUpperCase()
  const set = normalizeText(query.set)
  const sort = normalizeText(query.sort) || "recent"
+ const minPrice = Number(query.minPrice)
+ const maxPrice = Number(query.maxPrice)
 
  let items = (market || []).map((entry) => {
   const card = cardsById.get(String(entry.card))
@@ -567,6 +604,8 @@ async function computeMarket(query) {
   if (rarity && item.rarity !== rarity) return false
   if (set && normalizeText(item.set) !== set) return false
   if (q && !normalizeText(item.cardName).includes(q)) return false
+  if (Number.isFinite(minPrice) && minPrice > 0 && item.price < minPrice) return false
+  if (Number.isFinite(maxPrice) && maxPrice > 0 && item.price > maxPrice) return false
   return true
  })
 
@@ -841,6 +880,17 @@ function createWebApp() {
    res.json(computeGlobalStats())
   } catch (e) {
    console.error("[WEB] /api/stats:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/activity", async (req, res) => {
+  try {
+   const limit = Number(req.query.limit || 12)
+   const items = await computeActivityFeed(limit)
+   res.json({ items })
+  } catch (e) {
+   console.error("[WEB] /api/activity:", e)
    res.status(500).json({ error: "Erreur serveur" })
   }
  })
@@ -1246,6 +1296,7 @@ app.get("/api/sets", (req, res) => {
  app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Index.html")))
  app.get("/leaderboard", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Leaderboard.html")))
  app.get("/profile/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
+ app.get("/profile", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/cards", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Cards.html")))
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))

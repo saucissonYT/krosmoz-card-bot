@@ -62,7 +62,7 @@
 
     <div id="myListingsBox" class="profile-card fade-in stagger-2" style="display:none"></div>
 
-    <div class="toolbar fade-in stagger-2">
+    <div class="toolbar market-toolbar fade-in stagger-2">
      <input id="searchInput" class="input" placeholder="Nom de carte..." />
      <select id="typeSelect" class="input input-select">
       <option value="all">Type: Tous</option>
@@ -74,6 +74,11 @@
       <option>C</option><option>U</option><option>R</option><option>SR</option>
       <option>HR</option><option>UR</option><option>S</option><option>SSR</option>
      </select>
+     <select id="setSelect" class="input input-select">
+      <option value="">Set (tous)</option>
+     </select>
+     <input id="minPriceInput" class="input" type="number" min="1" placeholder="Prix min">
+     <input id="maxPriceInput" class="input" type="number" min="1" placeholder="Prix max">
      <select id="sortSelect" class="input input-select">
       <option value="recent">Tri: Récent</option>
       <option value="price_asc">Prix croissant</option>
@@ -132,6 +137,21 @@
   return { ok: res.ok, status: res.status, data: payload }
  }
 
+ async function loadSets() {
+  try {
+   const res = await fetch("/api/sets")
+   if (!res.ok) return
+   const sets = await res.json()
+   const select = document.getElementById("setSelect")
+   for (const set of sets || []) {
+    const opt = document.createElement("option")
+    opt.value = String(set.id || "")
+    opt.textContent = String(set.name || set.id || "Set")
+    select.appendChild(opt)
+   }
+  } catch (_) {}
+ }
+
  function qs() {
   const p = new URLSearchParams()
   p.set("page", String(state.page))
@@ -139,10 +159,16 @@
   const q = document.getElementById("searchInput").value.trim()
   const type = document.getElementById("typeSelect").value
   const rarity = document.getElementById("raritySelect").value
+  const set = document.getElementById("setSelect").value
+  const minPrice = Number(document.getElementById("minPriceInput").value)
+  const maxPrice = Number(document.getElementById("maxPriceInput").value)
   const sort = document.getElementById("sortSelect").value
   if (q) p.set("q", q)
   if (type) p.set("type", type)
   if (rarity) p.set("rarity", rarity)
+  if (set) p.set("set", set)
+  if (Number.isFinite(minPrice) && minPrice > 0) p.set("minPrice", String(minPrice))
+  if (Number.isFinite(maxPrice) && maxPrice > 0) p.set("maxPrice", String(maxPrice))
   if (sort) p.set("sort", sort)
   return p.toString()
  }
@@ -451,9 +477,16 @@ async function refreshConnectedData() {
  })
  document.getElementById("typeSelect").addEventListener("change", () => { state.page = 1; loadMarket() })
  document.getElementById("raritySelect").addEventListener("change", () => { state.page = 1; loadMarket() })
+ document.getElementById("setSelect").addEventListener("change", () => { state.page = 1; loadMarket() })
+ document.getElementById("minPriceInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { state.page = 1; loadMarket() }
+ })
+ document.getElementById("maxPriceInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { state.page = 1; loadMarket() }
+ })
  document.getElementById("sortSelect").addEventListener("change", () => { state.page = 1; loadMarket() })
 
- initAuth().then(loadMarket)
+ loadSets().then(() => initAuth().then(loadMarket))
  </script>
 </body>
 </html>

@@ -92,16 +92,29 @@
 
  /* -------- Get user ID from URL -------- */
  const pathParts = window.location.pathname.split("/")
- const userId = pathParts[pathParts.length - 1]
+ const maybeId = pathParts[pathParts.length - 1]
+ const userId = /^\d{16,22}$/.test(maybeId) ? maybeId : null
 
  /* -------- Load profile -------- */
  async function loadProfile() {
   const container = document.getElementById("profileContent")
 
-  if (!userId || !/^\d{16,22}$/.test(userId)) {
+  if (!userId) {
+   try {
+    const meRes = await fetch("/api/me", { credentials: "same-origin" })
+    if (meRes.ok) {
+     const me = await meRes.json()
+     if (me?.id) {
+      window.location.replace(`/profile/${me.id}`)
+      return
+     }
+    }
+   } catch (_) {}
+
    container.innerHTML = `
     <div class="loading">
-     <p style="color: var(--rarity-HR)">❌ ID joueur invalide</p>
+     <p style="color: var(--rarity-HR)">❌ Connexion Discord requise pour voir ton profil.</p>
+     <p style="margin-top:12px"><a href="/auth/discord?returnTo=%2Fprofile">Se connecter</a></p>
      <p style="margin-top:12px"><a href="/leaderboard">← Retour au classement</a></p>
     </div>`
    return

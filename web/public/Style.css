@@ -455,6 +455,123 @@ body::after {
  font-size: 1.05rem;
 }
 
+/* -------- ACTIVITY FEED -------- */
+
+.section-activity {
+ padding-top: 30px;
+}
+
+.activity-controls {
+ display: flex;
+ gap: 10px;
+ justify-content: center;
+ align-items: center;
+ margin: -18px 0 18px;
+ flex-wrap: wrap;
+}
+
+.activity-btn {
+ padding: 8px 14px;
+ font-size: 0.85rem;
+}
+
+.activity-feed {
+ display: grid;
+ gap: 10px;
+ max-width: 980px;
+ margin: 0 auto;
+}
+
+.activity-item {
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+ gap: 12px;
+ padding: 14px 16px;
+ background: var(--bg-card);
+ border: 1px solid rgba(255, 255, 255, 0.06);
+ border-radius: var(--radius);
+ transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.activity-item:hover {
+ border-color: rgba(201, 168, 76, 0.25);
+ transform: translateY(-1px);
+}
+
+.activity-main {
+ min-width: 0;
+}
+
+.activity-title {
+ font-size: 0.98rem;
+ color: var(--text-primary);
+ font-weight: 600;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
+}
+
+.activity-meta {
+ font-size: 0.9rem;
+ color: var(--text-secondary);
+}
+
+.activity-meta strong {
+ color: var(--gold-light);
+ font-weight: 600;
+}
+
+.activity-side {
+ text-align: right;
+ flex-shrink: 0;
+}
+
+.activity-price {
+ color: var(--gold);
+ font-family: 'JetBrains Mono', monospace;
+ font-weight: 700;
+ font-size: 0.92rem;
+}
+
+.activity-time {
+ color: var(--text-muted);
+ font-size: 0.82rem;
+}
+
+.activity-empty {
+ text-align: center;
+ color: var(--text-secondary);
+ background: var(--bg-card);
+ border: 1px solid rgba(255, 255, 255, 0.06);
+ border-radius: var(--radius);
+ padding: 18px;
+}
+
+.activity-feed-compact {
+ gap: 7px;
+}
+
+.activity-feed-compact .activity-item {
+ padding: 9px 12px;
+}
+
+.activity-feed-compact .activity-title {
+ font-size: 0.9rem;
+}
+
+.activity-feed-compact .activity-meta {
+ font-size: 0.82rem;
+}
+
+.activity-feed-compact .activity-price {
+ font-size: 0.84rem;
+}
+
+.activity-feed-compact .activity-time {
+ font-size: 0.76rem;
+}
+
 /* -------- FEATURE CARDS -------- */
 
 .features-grid {
@@ -861,6 +978,10 @@ body::after {
  margin-bottom: 18px;
 }
 
+.market-toolbar {
+ grid-template-columns: 1.6fr repeat(5, minmax(120px, 1fr)) auto;
+}
+
 .input {
  width: 100%;
  background: var(--bg-input);
@@ -1236,6 +1357,8 @@ body::after {
  .cards-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .market-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .achievements-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .activity-item { flex-direction: column; align-items: flex-start; }
+ .activity-side { text-align: left; }
 
  .lb-table, .lb-table tbody, .lb-row, .lb-row td {
   display: block;

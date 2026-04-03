@@ -15,6 +15,26 @@
   stateEl.textContent = text || ""
  }
 
+ function setProfileLink(userId) {
+  if (!right) return
+  let profileEl = right.querySelector("#globalProfileBtn")
+
+  if (!userId) {
+    if (profileEl) profileEl.remove()
+    return
+  }
+
+  if (!profileEl) {
+   profileEl = document.createElement("a")
+   profileEl.id = "globalProfileBtn"
+   profileEl.className = "btn btn-outline btn-auth-top"
+   profileEl.textContent = "Profil"
+   right.insertBefore(profileEl, btn)
+  }
+
+  profileEl.href = `/profile/${encodeURIComponent(String(userId))}`
+ }
+
  let status = null
  try {
   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
@@ -23,6 +43,7 @@
 
  if (!status?.enabled) {
   setAuthState("")
+  setProfileLink(null)
   btn.textContent = "Connexion indisponible"
   btn.setAttribute("aria-disabled", "true")
   btn.style.pointerEvents = "none"
@@ -32,6 +53,7 @@
 
  if (!status.connected) {
   setAuthState("")
+  setProfileLink(null)
   btn.textContent = "Connexion Discord"
   const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
@@ -45,6 +67,7 @@
  } catch (_) {}
  const name = me?.discord?.displayName || me?.discord?.username || status.userId || "inconnu"
  setAuthState(`Connecté en tant que ${name}`)
+ setProfileLink(me?.id || status.userId)
 
  btn.textContent = "Deconnexion"
  btn.href = "#"
