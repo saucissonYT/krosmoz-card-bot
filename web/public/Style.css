@@ -372,6 +372,12 @@ body::after {
  color: var(--text-primary);
 }
 
+.btn-auth-top {
+ padding: 8px 14px;
+ font-size: 0.86rem;
+ line-height: 1;
+}
+
 /* -------- STATS BAR -------- */
 
 .stats-bar {
