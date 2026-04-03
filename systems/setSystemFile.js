@@ -2,6 +2,7 @@ const fs = require("fs")
 const path = require("path")
 
 const { data, save } = require("./dataManager")
+const { sortSetsByDisplayOrder } = require("./setOrder")
 
 /*
  * FIX: data.sets n'est jamais initialisé dans dataManager.loadAll().
@@ -13,8 +14,10 @@ const SETS_PATH = path.join(__dirname, "../cards/sets.json")
 function loadSets(){
 
  /* Si data.sets est déjà chargé et valide, on l'utilise */
- if(data.sets && Array.isArray(data.sets) && data.sets.length > 0)
+ if(data.sets && Array.isArray(data.sets) && data.sets.length > 0){
+  data.sets = sortSetsByDisplayOrder(data.sets)
   return data.sets
+ }
 
  /* Sinon, on charge depuis cards/sets.json */
  try{
@@ -36,6 +39,7 @@ function loadSets(){
    data.sets = []
   }
 
+  data.sets = sortSetsByDisplayOrder(data.sets)
   return data.sets
 
  }catch(err){
@@ -49,11 +53,11 @@ function loadSets(){
 
 function saveSets(list){
 
- data.sets = list
+ data.sets = sortSetsByDisplayOrder(list)
 
  /* Sauvegarder aussi dans le fichier sets.json source */
  try{
-  fs.writeFileSync(SETS_PATH, JSON.stringify(list, null, 2))
+  fs.writeFileSync(SETS_PATH, JSON.stringify(data.sets, null, 2))
  }catch(err){
   console.error("Erreur sauvegarde sets.json :", err)
  }

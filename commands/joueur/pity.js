@@ -7,8 +7,9 @@ const {
 
 const setsData = require("../../cards/sets.json")
 const { getUser, save } = require("../../systems/userSystem")
+const { sortSetsByDisplayOrder } = require("../../systems/setOrder")
 
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+const sets = sortSetsByDisplayOrder(Array.isArray(setsData) ? setsData : setsData.sets)
 
 const PER_PAGE = 3
 

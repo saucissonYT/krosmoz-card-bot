@@ -7,9 +7,10 @@ const {
 
 const { isDev } = require("../../systems/devSystem")
 const { getUser, save } = require("../../systems/userSystem")
+const { sortSetsByDisplayOrder } = require("../../systems/setOrder")
 
 const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+const sets = sortSetsByDisplayOrder(Array.isArray(setsData) ? setsData : setsData.sets)
 
 module.exports = {
 

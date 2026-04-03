@@ -2,9 +2,10 @@ const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
 const { RARITY_ORDER, RARITY_EMOJI, FUSION_COST } = require("../../systems/constants")
 const { getCards } = require("../../systems/cardRegistry")
+const { sortSetsByDisplayOrder } = require("../../systems/setOrder")
 
 const setsData = require("../../cards/sets.json")
-const sets = Array.isArray(setsData) ? setsData : setsData.sets
+const sets = sortSetsByDisplayOrder(Array.isArray(setsData) ? setsData : setsData.sets)
 
 function random(arr){
  return arr[Math.floor(Math.random()*arr.length)]

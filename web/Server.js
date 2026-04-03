@@ -8,6 +8,7 @@ const { getUser, save } = require("../systems/userSystem")
 const { addBattlePassXP } = require("../systems/battlePassService")
 const { achievementCheck } = require("../systems/achievementCheck")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
+const { sortSetsByDisplayOrder } = require("../systems/setOrder")
 const {
  addListing,
  addFragmentListing,
@@ -103,8 +104,8 @@ function getCards() {
 
 function getSets() {
  const raw = readJSON(findSetsPath(), [])
- if (Array.isArray(raw)) return raw
- return raw?.sets || []
+ const list = Array.isArray(raw) ? raw : (raw?.sets || [])
+ return sortSetsByDisplayOrder(list)
 }
 
 function getSetsWithCounts() {
