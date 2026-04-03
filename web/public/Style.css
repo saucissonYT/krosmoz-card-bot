@@ -913,6 +913,31 @@ body::after {
  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
+.achievements-grid {
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.achievement-card {
+ min-height: 170px;
+}
+
+.achievement-card.achievement-done {
+ border-color: rgba(46, 204, 113, 0.35);
+}
+
+.achievement-card.achievement-pending {
+ border-color: rgba(255, 255, 255, 0.08);
+}
+
+.achievement-card.achievement-hidden {
+ background: #06060b;
+}
+
+.achievement-card.achievement-hidden h3,
+.achievement-card.achievement-hidden p {
+ color: #6a6a78;
+}
+
 .catalog-card {
  background: var(--bg-card);
  border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1210,6 +1235,7 @@ body::after {
  .auth-inner { flex-direction: column; align-items: flex-start; }
  .cards-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .market-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .achievements-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
  .lb-table, .lb-table tbody, .lb-row, .lb-row td {
   display: block;
@@ -1232,6 +1258,7 @@ body::after {
  .toolbar { grid-template-columns: 1fr; }
  .cards-dense { grid-template-columns: 1fr; }
  .market-dense { grid-template-columns: 1fr; }
+ .achievements-grid { grid-template-columns: 1fr; }
 }
 
 @media (min-width: 1100px) {

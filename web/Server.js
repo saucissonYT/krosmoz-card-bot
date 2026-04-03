@@ -12,9 +12,27 @@ const {
  getUserListings,
  removeListing
 } = require("../systems/market")
+const achievementRegistry = require("../systems/achievementRegistry")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
+const ACHIEVEMENT_CATEGORIES = [
+ "all",
+ "pack",
+ "rng",
+ "collection",
+ "economy",
+ "fusion",
+ "daily",
+ "social",
+ "inventory",
+ "krosmoshop",
+ "event",
+ "guild",
+ "gift",
+ "progression",
+ "secret"
+]
 const webHooks = {
  onWebMarketBuy: null
 }
@@ -760,6 +778,26 @@ function buildInventoryPayload(userId) {
  }
 }
 
+function getAchievementsByCategory(category) {
+ const allEntries = Object.entries(achievementRegistry || {})
+ if (category === "all") return allEntries
+ if (category === "secret") return allEntries.filter(([, ach]) => ach?.secret)
+ return allEntries.filter(([, ach]) => String(ach?.trigger || "") === category && !ach?.secret)
+}
+
+function getAchievementCategoryStats(unlockedSet) {
+ const stats = {}
+ for (const category of ACHIEVEMENT_CATEGORIES) {
+  const entries = getAchievementsByCategory(category)
+  let unlocked = 0
+  for (const [id] of entries) {
+   if (unlockedSet.has(String(id))) unlocked++
+  }
+  stats[category] = { total: entries.length, unlocked }
+ }
+ return stats
+}
+
 function createWebApp() {
  const app = express()
  app.disable("x-powered-by")
@@ -950,6 +988,54 @@ app.get("/api/sets", (req, res) => {
    res.json(buildInventoryPayload(session.userId))
   } catch (e) {
    console.error("[WEB] /api/me/inventory:", e)
+   res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/achievements", (req, res) => {
+  try {
+   const session = resolveSession(req)
+   const connected = Boolean(session)
+   const user = connected ? getUser(session.userId) : null
+   const unlockedSet = new Set((user?.achievements || []).map((id) => String(id)))
+
+   const category = String(req.query.category || "all")
+   const safeCategory = ACHIEVEMENT_CATEGORIES.includes(category) ? category : "all"
+   const entries = getAchievementsByCategory(safeCategory)
+
+   const items = entries
+    .map(([id, ach]) => {
+     const unlocked = unlockedSet.has(String(id))
+     const hidden = Boolean(ach?.secret && !unlocked)
+
+     return {
+      id: String(id),
+      trigger: String(ach?.trigger || "other"),
+      secret: Boolean(ach?.secret),
+      unlocked,
+      badge: hidden ? "❓" : String(ach?.badge || "🏆"),
+      name: hidden ? "???" : String(ach?.name || "Succès"),
+      description: hidden ? "???" : String(ach?.description || "")
+     }
+    })
+    .sort((a, b) =>
+     Number(b.unlocked) - Number(a.unlocked) ||
+     a.trigger.localeCompare(b.trigger, "fr") ||
+     a.name.localeCompare(b.name, "fr")
+    )
+
+   const unlockedCount = items.filter((x) => x.unlocked).length
+
+   res.json({
+    connected,
+    category: safeCategory,
+    total: items.length,
+    unlocked: unlockedCount,
+    categories: getAchievementCategoryStats(unlockedSet),
+    items
+   })
+  } catch (e) {
+   console.error("[WEB] /api/achievements:", e)
    res.status(500).json({ error: "Erreur serveur" })
   }
  })
@@ -1149,6 +1235,7 @@ app.get("/api/sets", (req, res) => {
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
+ app.get("/achievements", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Achievements.html")))
  app.get("/tutorial", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Tutorial.html")))
  app.get("/about", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "About.html")))
 
