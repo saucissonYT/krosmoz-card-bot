@@ -15,6 +15,9 @@ const {
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
+const webHooks = {
+ onWebMarketBuy: null
+}
 
 let BASE = "/data"
 if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
@@ -964,6 +967,16 @@ app.get("/api/sets", (req, res) => {
 
    const result = buyCard(session.userId, listingId)
    if (result?.error) return res.status(400).json({ error: result.error })
+
+   if (typeof webHooks.onWebMarketBuy === "function") {
+    Promise.resolve(webHooks.onWebMarketBuy({
+     buyerId: String(session.userId),
+     listing: result.listing
+    })).catch((error) => {
+     console.error("[WEB] onWebMarketBuy hook:", error?.message || error)
+    })
+   }
+
    res.json({ ok: true, result })
   } catch (e) {
    console.error("[WEB] /api/market/buy:", e)
@@ -1130,6 +1143,12 @@ app.get("/api/sets", (req, res) => {
  return app
 }
 
+function setWebHooks(hooks = {}) {
+ if (typeof hooks.onWebMarketBuy === "function") {
+  webHooks.onWebMarketBuy = hooks.onWebMarketBuy
+ }
+}
+
 function startWebServer(port) {
  const app = createWebApp()
  const p = Number(port || process.env.PORT || 3000)
@@ -1144,4 +1163,4 @@ function startWebServer(port) {
  return app
 }
 
-module.exports = { createWebApp, startWebServer }
+module.exports = { createWebApp, startWebServer, setWebHooks }

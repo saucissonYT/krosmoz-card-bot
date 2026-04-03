@@ -378,6 +378,21 @@ body::after {
  line-height: 1;
 }
 
+.auth-state-top {
+ font-size: 0.82rem;
+ color: var(--text-secondary);
+ white-space: nowrap;
+ max-width: 220px;
+ overflow: hidden;
+ text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+ .auth-state-top {
+  display: none;
+ }
+}
+
 /* -------- STATS BAR -------- */
 
 .stats-bar {

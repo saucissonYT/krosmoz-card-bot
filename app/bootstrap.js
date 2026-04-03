@@ -5,6 +5,7 @@ const path = require("path")
 const dataManager = require("../systems/dataManager")
 const { loadGuilds, cleanOrphanedGuildIds } = require("../systems/guildSystem")
 const { buildCraftableIndex } = require("../systems/fragmentService")
+const { getCards } = require("../systems/cardRegistry")
 
 const { createClient, attachClientState } = require("./createClient")
 const { loadCommands } = require("./handlers/loadCommands")
@@ -14,7 +15,7 @@ const { registerInteractionCreateHandler } = require("./handlers/interactionCrea
 const { registerReactionRolesHandler } = require("./handlers/reactionRoles") /* ← reaction roles */
 
 /* ← AJOUT : serveur web krosmozcard.fr */
-const { startWebServer } = require("../web/Server")
+const { startWebServer, setWebHooks } = require("../web/Server")
 
 const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
 
@@ -66,6 +67,29 @@ async function bootstrap() {
  registerMessageCreateHandler(client)
  registerInteractionCreateHandler(client)
  registerReactionRolesHandler(client) /* ← enregistrement du handler reaction roles */
+
+ setWebHooks({
+  onWebMarketBuy: async ({ buyerId, listing }) => {
+   if (!buyerId || !listing) return
+
+   const cards = getCards()
+   const card = cards.find((c) => String(c.id) === String(listing.card))
+   const isFragment = String(listing.type || "card") === "fragment"
+   const itemLabel = isFragment
+    ? `fragment ${listing.fragmentNumber}/5 de ${card?.name || `carte #${listing.card}`}`
+    : `${card?.name || `carte #${listing.card}`}`
+   const price = Number(listing.price || 0).toLocaleString("fr-FR")
+
+   try {
+    const user = await client.users.fetch(String(buyerId))
+    await user.send(
+     `Achat confirme sur le site: ${itemLabel} pour ${price} kamas.\nL'objet a ete ajoute a ton inventaire Krosmoz Card.`
+    )
+   } catch (error) {
+    console.warn(`[WEB->DM] Impossible d'envoyer le DM achat a ${buyerId}: ${error?.message || error}`)
+   }
+  }
+ })
 
  await client.login(process.env.TOKEN)
 

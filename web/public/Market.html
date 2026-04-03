@@ -38,6 +38,7 @@
     <h1 class="section-title fade-in">🛒 Marché en temps réel</h1>
     <p class="section-subtitle fade-in stagger-1">Cartes et fragments listés par les joueurs</p>
     <p class="notice-strip fade-in stagger-1">Certaines images peuvent paraître floues: cela vient de la qualité des visuels sources de l'encyclopédie Wakfu.</p>
+    <div id="walletInfo" class="notice-strip fade-in stagger-2" style="display:none"></div>
 
     <div id="tradePanel" class="trade-panel fade-in stagger-2" style="display:none">
      <div class="trade-col">
@@ -147,6 +148,20 @@
   document.body.appendChild(el)
   setTimeout(() => el.classList.add("show"), 10)
   setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 240) }, 2600)
+ }
+
+ function renderWalletInfo() {
+  const box = document.getElementById("walletInfo")
+  if (!box) return
+  if (!state.connected || !state.me) {
+   box.style.display = "none"
+   box.textContent = ""
+   return
+  }
+
+  const kamas = Number(state.me.kamas || 0).toLocaleString("fr-FR")
+  box.style.display = "block"
+  box.textContent = `💰 Tes kamas: ${kamas}`
  }
 
  function listingCard(item) {
@@ -358,9 +373,11 @@ async function refreshConnectedData() {
    state.me = null
    document.getElementById("tradePanel").style.display = "none"
    document.getElementById("myListingsBox").style.display = "none"
+   renderWalletInfo()
    return
   }
   state.me = meRes.data
+  renderWalletInfo()
   document.getElementById("tradePanel").style.display = "grid"
   await loadSellerData()
  }
@@ -372,6 +389,7 @@ async function refreshConnectedData() {
   if (!state.connected) {
    document.getElementById("tradePanel").style.display = "none"
    document.getElementById("myListingsBox").style.display = "none"
+   renderWalletInfo()
    return
   }
 
