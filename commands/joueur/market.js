@@ -377,6 +377,15 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    const result = buyCard(interaction.user.id, listingId)
    if (result?.error) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
 
+   const listing = result?.listing || {}
+   const isFragment = getListingType(listing) === "fragment"
+   const cards = getCards()
+   const card = cards.find((c) => String(c.id) === String(listing.card))
+   const itemLabel = isFragment
+    ? `🧩 ${getFragmentDisplayName(listing.card, listing.fragmentNumber)}`
+    : `${RARITY_EMOJI[card?.rarity || "C"]} ${card?.name || `Carte #${listing.card}`}`
+   const priceLabel = Number(listing.price || 0).toLocaleString("fr-FR")
+
    const user = getUser(interaction.user.id)
    const unlocked = [
     ...achievementCheck(user, "economy"),
@@ -385,7 +394,10 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
     ...achievementCheck(user, "fragment")
    ]
 
-   await interaction.reply({ content: "✅ Achat effectué.", flags: 64 })
+   await interaction.reply({
+    content: `✅ Achat confirmé: **${itemLabel}** pour **${priceLabel} kamas**.\n📦 L'objet a été ajouté à ton inventaire.`,
+    flags: 64
+   })
    if (unlocked.length) await notifyAchievements(interaction, unlocked, user)
    return
   }

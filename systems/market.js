@@ -1,5 +1,5 @@
-const { data, save } = require("./dataManager")
-const { getUser } = require("./userSystem")
+const { data } = require("./dataManager")
+const { getUser, save: saveUserData } = require("./userSystem")
 const { getCardsById } = require("./cardRegistry")
 
 if (!data.market) data.market = []
@@ -57,6 +57,13 @@ function validatePrice(price) {
  return null
 }
 
+function persistUsers(...userIds) {
+ const uniqueIds = [...new Set(userIds.map((id) => String(id || "")).filter(Boolean))]
+ for (const id of uniqueIds) {
+  saveUserData(id)
+ }
+}
+
 function addListing(sellerId, cardId, price) {
  const market = data.market
  const seller = getUser(sellerId)
@@ -102,7 +109,7 @@ function addListing(sellerId, cardId, price) {
  }
 
  market.push(listing)
- save()
+ persistUsers(sellerId)
  return listing
 }
 
@@ -146,7 +153,7 @@ function addFragmentListing(sellerId, cardId, fragmentNumber, price) {
  seller.stats.fragmentsSold = (seller.stats.fragmentsSold || 0)
 
  data.market.push(listing)
- save()
+ persistUsers(sellerId)
  return listing
 }
 
@@ -196,7 +203,7 @@ function buyCard(buyerId, listingId) {
 
  if (data.marketHistory.length > 5000) data.marketHistory.shift()
 
- save()
+ persistUsers(buyerId, listing.seller)
  return { success: true, listing }
 }
 
@@ -221,7 +228,7 @@ function removeListing(userId, listingId) {
  }
 
  data.market = data.market.filter((entry) => entry.id !== listingId)
- save()
+ persistUsers(userId)
  return { success: true }
 }
 

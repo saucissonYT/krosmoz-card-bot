@@ -226,13 +226,27 @@
   grid.querySelectorAll(".action-buy").forEach((btn) => {
    btn.addEventListener("click", async () => {
     const listingId = Number(btn.dataset.id)
+    const card = btn.closest(".catalog-card")?.querySelector("h3")?.textContent?.trim() || "cette carte"
+    const confirmed = window.confirm(`Confirmer l'achat de ${card} ?`)
+    if (!confirmed) return
+
     const r = await api("/api/market/buy", {
      method: "POST",
      headers: { "Content-Type": "application/json" },
      body: JSON.stringify({ listingId })
     })
     if (!r.ok) return showToast(r.data?.error || "Achat impossible.", true)
-    showToast("Achat réussi.")
+
+    const listing = r.data?.result?.listing
+    if (listing) {
+     const kind = listing.type === "fragment"
+      ? `fragment ${listing.fragmentNumber}/5`
+      : "carte"
+     showToast(`Achat confirmé: ${kind} ajouté à ton inventaire.`)
+    } else {
+     showToast("Achat confirmé et inventaire mis à jour.")
+    }
+
     await refreshConnectedData()
     await loadMarket()
    })
