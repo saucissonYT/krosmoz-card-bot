@@ -1,13 +1,32 @@
-const { routeSlashInteraction } = require("./routes/slashRoutes")
+/* ════════════════════════════════════════════════════════════
+   MODIFICATIONS :
+   1. Utilise logger.js au lieu de console.log/console.error
+   2. Ajoute du contexte aux erreurs (commande, user, guild)
+   3. Log de debug pour chaque interaction (désactivable via LOG_LEVEL)
+════════════════════════════════════════════════════════════ */
+
+const { createLogger } = require("../../systems/logger")
+
+const { routeSlashInteraction }  = require("./routes/slashRoutes")
 const { routeSelectInteraction } = require("./routes/selectRoutes")
 const { routeButtonInteraction } = require("./routes/buttonRoutes")
-const { routeModalInteraction } = require("./routes/modalRoutes")
+const { routeModalInteraction }  = require("./routes/modalRoutes")
+
+const log = createLogger("INTERACTION")
 
 function registerInteractionCreateHandler(client) {
+
  client.on("interactionCreate", async (interaction) => {
-  console.log(`Interaction recue : ${interaction.type}`)
+
+  /* Log de debug — désactivable via LOG_LEVEL=info en prod */
+  log.debug("Interaction reçue", {
+   type:    interaction.type,
+   command: interaction.commandName || interaction.customId || "unknown",
+   user:    interaction.user?.id
+  })
 
   try {
+
    if (interaction.isAutocomplete()) {
     const command = client.commands.get(interaction.commandName)
     if (command?.autocomplete) await command.autocomplete(interaction)
@@ -32,8 +51,17 @@ function registerInteractionCreateHandler(client) {
    if (interaction.isModalSubmit()) {
     await routeModalInteraction(interaction, client)
    }
+
   } catch (error) {
-   console.error("ERREUR :", error)
+
+   /* FIX : on ajoute du contexte pour faciliter le debug en prod */
+   log.error("Erreur exécution interaction", {
+    type:    interaction.type,
+    command: interaction.commandName || interaction.customId || "unknown",
+    user:    interaction.user?.id,
+    guild:   interaction.guild?.id,
+    err:     error
+   })
 
    try {
     if (interaction.replied || interaction.deferred) {
@@ -48,10 +76,14 @@ function registerInteractionCreateHandler(client) {
      })
     }
    } catch (e) {
-    console.error("Impossible d'envoyer le message d'erreur :", e.message)
+    /* Interaction expirée ou déjà répondue — on log en debug */
+    log.debug("Impossible d'envoyer le message d'erreur", { err: e.message })
    }
+
   }
+
  })
+
 }
 
 module.exports = {

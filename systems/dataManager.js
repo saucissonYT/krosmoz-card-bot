@@ -1,125 +1,121 @@
-const fs = require("fs")
+const fs   = require("fs")
 const path = require("path")
+
+/* ════════════════════════════════════════════════════════════
+   MODIFICATIONS :
+   1. Utilise paths.js au lieu du pattern basePath dupliqué
+   2. Utilise logger.js au lieu de console.log/console.error
+   3. Utilise fileUtils.js (writeAtomic) pour les écritures
+   4. Utilise userDefaults.js (ensureUserStructure) au loadUser
+════════════════════════════════════════════════════════════ */
+
+const { getBasePath }          = require("./paths")
+const { createLogger }         = require("./logger")
+const { writeAtomic, readJsonSafe } = require("./fileUtils")
+const { ensureUserStructure }  = require("./userDefaults")
+
+const log = createLogger("DATA")
 
 /* ---------------- BASE PATH ---------------- */
 
-let BASE = "/data"
+const BASE = getBasePath()
 
-if(!fs.existsSync(BASE)){
- BASE = path.join(process.cwd(),"data")
-}
-
-if(!fs.existsSync(BASE)){
- fs.mkdirSync(BASE,{recursive:true})
-}
-
-console.log("Data path :",BASE)
+log.info("Data path initialisé", { path: BASE })
 
 /* ---------------- DIRECTORIES ---------------- */
 
-const USERS_DIR = path.join(BASE,"users")
+const USERS_DIR = path.join(BASE, "users")
 
-if(!fs.existsSync(USERS_DIR)){
- fs.mkdirSync(USERS_DIR,{recursive:true})
+if (!fs.existsSync(USERS_DIR)) {
+ fs.mkdirSync(USERS_DIR, { recursive: true })
 }
 
 /* ---------------- CARD IMAGE DIRECTORIES ---------------- */
 
-const CARDS_DIR = path.join(BASE,"cards")
-const CARDS_IMAGES_DIR = path.join(CARDS_DIR,"images")
+const CARDS_DIR        = path.join(BASE, "cards")
+const CARDS_IMAGES_DIR = path.join(CARDS_DIR, "images")
 
-if(!fs.existsSync(CARDS_IMAGES_DIR)){
- fs.mkdirSync(CARDS_IMAGES_DIR,{recursive:true})
+if (!fs.existsSync(CARDS_IMAGES_DIR)) {
+ fs.mkdirSync(CARDS_IMAGES_DIR, { recursive: true })
 }
 
 /* ---------------- FILE PATHS ---------------- */
 
 const paths = {
- users: path.join(BASE,"users.json"),
- market: path.join(BASE,"market.json"),
- marketHistory: path.join(BASE,"marketHistory.json"),
- devs: path.join(BASE,"devs.json"),
- cards: path.join(BASE,"cards.json")
+ users:         path.join(BASE, "users.json"),
+ market:        path.join(BASE, "market.json"),
+ marketHistory: path.join(BASE, "marketHistory.json"),
+ devs:          path.join(BASE, "devs.json"),
+ cards:         path.join(BASE, "cards.json")
 }
 
 /* ---------------- DATA CACHE ---------------- */
 
 const data = {
- users:{},
- market:[],
- marketHistory:[],
- devs:{ owners:[], devs:[] },
- cards:[]
+ users:         {},
+ market:        [],
+ marketHistory: [],
+ devs:          { owners: [], devs: [] },
+ cards:         []
 }
 
 /* ---------------- LOAD FILE ---------------- */
 
-function loadFile(file,defaultValue){
+function loadFile(file, defaultValue) {
 
- if(!fs.existsSync(file)){
-  fs.writeFileSync(file,JSON.stringify(defaultValue,null,2))
+ if (!fs.existsSync(file)) {
+  writeAtomic(file, defaultValue)
   return JSON.parse(JSON.stringify(defaultValue))
  }
 
- try{
-
-  const raw = fs.readFileSync(file,"utf8")
-
-  if(!raw || raw.trim()==="")
-   return JSON.parse(JSON.stringify(defaultValue))
-
-  return JSON.parse(raw)
-
- }catch(err){
-
-  console.error("Erreur lecture :",file,err)
-  return JSON.parse(JSON.stringify(defaultValue))
-
- }
+ return readJsonSafe(file, defaultValue)
 
 }
 
 /* ---------------- USER FILE ---------------- */
 
-function getUserFile(id){
- return path.join(USERS_DIR,`${id}.json`)
+function getUserFile(id) {
+ return path.join(USERS_DIR, `${id}.json`)
 }
 
-function loadUser(id){
+function loadUser(id) {
 
- if(data.users[id])
+ if (data.users[id])
   return data.users[id]
 
  const file = getUserFile(id)
 
- if(!fs.existsSync(file))
+ if (!fs.existsSync(file))
   return null
 
- try{
+ try {
 
-  const raw = fs.readFileSync(file,"utf8")
+  const raw  = fs.readFileSync(file, "utf8")
   const user = JSON.parse(raw)
 
-  user._dirty=false
+  /* FIX : garantir la structure complète au chargement */
+  ensureUserStructure(user)
 
-  data.users[id]=user
+  user._dirty = false
+
+  data.users[id] = user
 
   return user
 
- }catch(err){
+ } catch (err) {
 
-  console.error("Erreur lecture user :",id,err)
+  log.error("Erreur lecture user", { userId: id, err })
   return null
 
  }
 
 }
 
-function saveUser(id){
+function saveUser(id) {
 
  const user = data.users[id]
 
- if(!user || !user._dirty)
+ if (!user || !user._dirty)
   return
 
  const file = getUserFile(id)
@@ -128,33 +124,35 @@ function saveUser(id){
 
  delete clone._dirty
 
- fs.writeFileSync(file,JSON.stringify(clone,null,2))
+ /* FIX : écriture atomique pour éviter la corruption */
+ try {
+  writeAtomic(file, clone)
+ } catch (err) {
+  log.error("Erreur sauvegarde user", { userId: id, err })
+ }
 
- user._dirty=false
+ user._dirty = false
 
 }
 
 /* ---------------- MIGRATION USERS.JSON ---------------- */
 
-function migrateUsersJson(){
+function migrateUsersJson() {
 
- if(!fs.existsSync(paths.users))
+ if (!fs.existsSync(paths.users))
   return
 
- console.log("Migration users.json → users/")
+ log.info("Migration users.json → users/")
 
- const legacy = loadFile(paths.users,{})
+ const legacy = loadFile(paths.users, {})
 
- for(const id in legacy){
+ for (const id in legacy) {
 
   const file = getUserFile(id)
 
-  if(!fs.existsSync(file)){
+  if (!fs.existsSync(file)) {
 
-   fs.writeFileSync(
-    file,
-    JSON.stringify(legacy[id],null,2)
-   )
+   writeAtomic(file, legacy[id])
 
   }
 
@@ -162,39 +160,42 @@ function migrateUsersJson(){
 
  fs.renameSync(paths.users, paths.users + ".migrated")
 
- console.log("Migration terminée")
+ log.info("Migration terminée")
 
 }
 
 /* ---------------- LOAD ALL ---------------- */
 
-function loadAll(){
+function loadAll() {
 
  migrateUsersJson()
 
- data.market = loadFile(paths.market,[])
- data.marketHistory = loadFile(paths.marketHistory,[])
- data.devs = loadFile(paths.devs,{owners:[],devs:[]})
- data.cards = loadFile(paths.cards,[])
+ data.market        = loadFile(paths.market, [])
+ data.marketHistory = loadFile(paths.marketHistory, [])
+ data.devs          = loadFile(paths.devs, { owners: [], devs: [] })
+ data.cards         = loadFile(paths.cards, [])
 
- console.log("DataManager chargé")
+ log.info("DataManager chargé", {
+  cards:  data.cards.length,
+  market: data.market.length
+ })
 
 }
 
 /* ---------------- SAVE STATIC DATA ---------------- */
 
-function save(){
+function save() {
 
- try{
+ try {
 
-  fs.writeFileSync(paths.market,JSON.stringify(data.market,null,2))
-  fs.writeFileSync(paths.marketHistory,JSON.stringify(data.marketHistory,null,2))
-  fs.writeFileSync(paths.devs,JSON.stringify(data.devs,null,2))
-  fs.writeFileSync(paths.cards,JSON.stringify(data.cards,null,2))
+  writeAtomic(paths.market, data.market)
+  writeAtomic(paths.marketHistory, data.marketHistory)
+  writeAtomic(paths.devs, data.devs)
+  writeAtomic(paths.cards, data.cards)
 
- }catch(err){
+ } catch (err) {
 
-  console.error("Erreur sauvegarde DataManager",err)
+  log.error("Erreur sauvegarde DataManager", { err })
 
  }
 
@@ -202,20 +203,20 @@ function save(){
 
 /* ---------------- AUTOSAVE DIRTY USERS ---------------- */
 
-setInterval(()=>{
+setInterval(() => {
 
- for(const id in data.users){
+ for (const id in data.users) {
 
-  const user=data.users[id]
+  const user = data.users[id]
 
-  if(user._dirty)
+  if (user._dirty)
    saveUser(id)
 
  }
 
  save()
 
-},30000)
+}, 30000)
 
 /* ---------------- EXPORT ---------------- */
 

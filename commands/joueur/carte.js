@@ -11,20 +11,27 @@ const {
  TextInputStyle
 } = require("discord.js")
 
-/* FIX : import SELL_PRICE au lieu de RARITY_PRICE pour le bouton vendre
-   RARITY_PRICE = prix market entre joueurs (10/20/50/100/200/700/1000/2500)
-   SELL_PRICE   = prix vente au bot (~40% du market : 3/8/20/50/120/320/800/2500)
-   Avant ce fix, vendre via /carte donnait le prix MARKET au lieu du prix SELL,
-   ce qui créait un exploit : /carte sell HR = 200k vs /sellcard HR = 120k       */
-const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { getCardsById } = require("../../systems/cardRegistry")
+const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
+
 const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
 
-module.exports={
+/* ═══════════════════════════════════════════════════════════════
+   /carte — Afficher une carte avec options vendre / market
+   
+   MODIFIÉ :
+   - Supprimé les constantes locales rarityEmoji et rarityPrice
+     → utilise RARITY_EMOJI et SELL_PRICE depuis constants.js
+   - save() → save(interaction.user.id) (dirty save ciblé)
+   - Ajout de collector.on("end") pour désactiver les boutons
+   - Support shiny (affichage doré si le joueur possède une version shiny)
+═══════════════════════════════════════════════════════════════ */
 
- data:new SlashCommandBuilder()
+module.exports = {
+
+ data: new SlashCommandBuilder()
   .setName("carte")
   .setDescription("Afficher une carte")
   .addStringOption(option =>
@@ -34,25 +41,25 @@ module.exports={
    option.setName("id").setDescription("ID de la carte")
   ),
 
- async execute(interaction){
+ async execute(interaction) {
 
   const cardsById = getCardsById()
   const cards = Object.values(cardsById)
 
-  const user=getUser(interaction.user.id)
+  const user = getUser(interaction.user.id)
 
-  const name=interaction.options.getString("nom")
-  const id=interaction.options.getInteger("id")
+  const name = interaction.options.getString("nom")
+  const id = interaction.options.getInteger("id")
 
   let card
 
-  if(id){
-   card=cardsById[id]
+  if (id) {
+   card = cardsById[id]
   }
 
-  else if(name){
+  else if (name) {
 
-   card=cards.find(c=>
+   card = cards.find(c =>
     c.name.toLowerCase().includes(name.toLowerCase())
    )
 
@@ -60,20 +67,17 @@ module.exports={
 
   else
    return interaction.reply({
-    content:"❌ Tu dois préciser `nom` ou `id`.",
-    flags:64
+    content: "❌ Tu dois préciser `nom` ou `id`.",
+    flags: 64
    })
 
-  if(!card)
+  if (!card)
    return interaction.reply("❌ Carte introuvable.")
 
-  const count=user.cards?.[card.id]||0
+  const count = user.cards?.[card.id] || 0
 
-  /*
-   * FIX SHINY: Affichage de l'info shiny dans le détail de la carte.
-   * Si le joueur possède une version shiny de cette carte,
-   * on change l'embed (couleur dorée, icône ✨) et on affiche le nombre.
-   */
+  /* ── Shiny detection ── */
+
   const shinyCount = user.shinyCards?.[card.id] || 0
   const isShiny = shinyCount > 0
 
@@ -86,31 +90,30 @@ module.exports={
 📚 Set : ${card.set}
 📦 Possédé : x${count}`
 
-  if(isShiny){
+  if (isShiny) {
    description += `\n\n✨ **Version Shiny** : x${shinyCount}`
   }
 
-  const embed=new EmbedBuilder()
+  const embed = new EmbedBuilder()
    .setTitle(`${titleEmoji} ${card.name}${titleSuffix}`)
    .setDescription(description)
 
-  /* Couleur spéciale pour les shiny */
-  if(isShiny){
+  if (isShiny) {
    embed.setColor("#FFD700")
   }
 
-  const filePath=`${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
+  const filePath = `${CARDS_IMAGES_DIR}/${card.set}/${card.image}`
 
-  let files=[]
+  let files = []
 
-  if(fs.existsSync(filePath)){
+  if (fs.existsSync(filePath)) {
    embed.setImage(`attachment://${card.image}`)
-   files=[{attachment:filePath,name:card.image}]
-  }else{
-   embed.setFooter({text:"Image manquante"})
+   files = [{ attachment: filePath, name: card.image }]
+  } else {
+   embed.setFooter({ text: "Image manquante" })
   }
 
-  const row=new ActionRowBuilder().addComponents(
+  const row = new ActionRowBuilder().addComponents(
 
    new ButtonBuilder()
     .setCustomId(`sell_${card.id}`)
@@ -124,66 +127,64 @@ module.exports={
 
   )
 
-  const msg=await interaction.reply({
-   embeds:[embed],
-   components:[row],
-   files:files,
-   fetchReply:true
+  const msg = await interaction.reply({
+   embeds: [embed],
+   components: [row],
+   files: files,
+   fetchReply: true
   })
 
-  const collector=msg.createMessageComponentCollector({time:60000})
+  const collector = msg.createMessageComponentCollector({ time: 60000 })
 
-  collector.on("collect",async i=>{
+  collector.on("collect", async i => {
 
-   if(i.user.id!==interaction.user.id)
-    return i.reply({content:"Pas ta carte.",flags:64})
+   if (i.user.id !== interaction.user.id)
+    return i.reply({ content: "Pas ta carte.", flags: 64 })
 
    /* ---------------- SELL ---------------- */
 
-   if(i.customId.startsWith("sell_")){
+   if (i.customId.startsWith("sell_")) {
 
-    const cid=i.customId.split("_")[1]
+    const cid = i.customId.split("_")[1]
 
-    if(!user.cards[cid])
-     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
+    if (!user.cards[cid])
+     return i.reply({ content: "❌ Tu ne possèdes plus cette carte.", flags: 64 })
 
-    const card=cardsById[cid]
+    const soldCard = cardsById[cid]
 
-    /* FIX : utilise SELL_PRICE (prix vente au bot) au lieu de RARITY_PRICE (prix market)
-       Avant : RARITY_PRICE[card.rarity]||10  → donnait le prix market (trop élevé)
-       Après : SELL_PRICE[card.rarity]||1      → cohérent avec /sellcard              */
-    const price=SELL_PRICE[card.rarity]||1
+    /* FIX : utilise SELL_PRICE (prix vente au bot) au lieu du prix market */
+    const price = SELL_PRICE[soldCard.rarity] || 1
 
     user.cards[cid]--
 
-    if(user.cards[cid]===0)
+    if (user.cards[cid] === 0)
      delete user.cards[cid]
 
-    user.kamas+=price
+    user.kamas += price
 
-    if(!user.stats) user.stats={}
-    user.stats.cardsSold=(user.stats.cardsSold||0)+1
+    if (!user.stats) user.stats = {}
+    user.stats.cardsSold = (user.stats.cardsSold || 0) + 1
 
-    /* FIX : save ciblé par userId au lieu de save() global */
+    /* FIX : save ciblé par userId */
     save(interaction.user.id)
 
-    return i.reply(`💰 Carte vendue : **${card.name}**\nGain : **${price} kamas**`)
+    return i.reply(`💰 Carte vendue : **${soldCard.name}**\nGain : **${price} kamas**`)
    }
 
    /* ---------------- MARKET BUTTON ---------------- */
 
-   if(i.customId.startsWith("market_")){
+   if (i.customId.startsWith("market_")) {
 
-    const cid=i.customId.split("_")[1]
+    const cid = i.customId.split("_")[1]
 
-    if(!user.cards[cid])
-     return i.reply({content:"❌ Tu ne possèdes plus cette carte.",flags:64})
+    if (!user.cards[cid])
+     return i.reply({ content: "❌ Tu ne possèdes plus cette carte.", flags: 64 })
 
-    const modal=new ModalBuilder()
+    const modal = new ModalBuilder()
      .setCustomId(`marketmodal_${cid}`)
      .setTitle("Mettre en vente")
 
-    const priceInput=new TextInputBuilder()
+    const priceInput = new TextInputBuilder()
      .setCustomId("price")
      .setLabel("Prix de vente")
      .setStyle(TextInputStyle.Short)
@@ -199,30 +200,35 @@ module.exports={
 
   })
 
+  /* FIX : retire les boutons quand le collector expire (60s) */
+  collector.on("end", () => {
+   msg.edit({ components: [] }).catch(() => {})
+  })
+
  },
 
  /* ---------------- MODAL HANDLER ---------------- */
 
- async modal(interaction){
+ async modal(interaction) {
 
-  if(!interaction.customId.startsWith("marketmodal_")) return
+  if (!interaction.customId.startsWith("marketmodal_")) return
 
-  const cid=interaction.customId.split("_")[1]
+  const cid = interaction.customId.split("_")[1]
 
-  const price=parseInt(interaction.fields.getTextInputValue("price"))
+  const price = parseInt(interaction.fields.getTextInputValue("price"))
 
-  if(isNaN(price) || price<=0)
+  if (isNaN(price) || price <= 0)
    return interaction.reply({
-    content:"❌ Prix invalide.",
-    flags:64
+    content: "❌ Prix invalide.",
+    flags: 64
    })
 
-  const user=getUser(interaction.user.id)
+  const user = getUser(interaction.user.id)
 
-  if(!user.cards[cid])
+  if (!user.cards[cid])
    return interaction.reply({
-    content:"❌ Tu ne possèdes plus cette carte.",
-    flags:64
+    content: "❌ Tu ne possèdes plus cette carte.",
+    flags: 64
    })
 
   const result = addListing(
@@ -231,17 +237,18 @@ module.exports={
    price
   )
 
-  if(result?.error)
+  if (result?.error)
    return interaction.reply({
-    content:`❌ ${result.error}`,
-    flags:64
+    content: `❌ ${result.error}`,
+    flags: 64
    })
 
+  /* FIX : save ciblé par userId */
   save(interaction.user.id)
 
   return interaction.reply({
-   content:`🛒 Carte mise en vente pour **${price} kamas**.`,
-   flags:64
+   content: `🛒 Carte mise en vente pour **${price} kamas**.`,
+   flags: 64
   })
 
  }
