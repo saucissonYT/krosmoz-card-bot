@@ -1,0 +1,58 @@
+# ═══════════════════════════════════════════════════════════════
+#  CI/CD — Krosmoz Card Bot
+#
+#  Lance npm test à chaque push et pull request.
+#  Si les tests échouent → ❌ visible sur GitHub.
+#  Railway peut être configuré pour ne déployer que si CI passe.
+#
+#  Pour activer : placer ce fichier dans .github/workflows/test.yml
+# ═══════════════════════════════════════════════════════════════
+
+name: Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: "Tests (Node ${{ matrix.node-version }})"
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+
+      # 1. Checkout du repo
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      # 3. Installer les dépendances (y compris better-sqlite3 natif)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Créer le dossier data (les tests en ont besoin)
+      - name: Setup test data directory
+        run: |
+          mkdir -p data/users
+          mkdir -p data/cards/images
+          mkdir -p data/battlepass/progress
+          mkdir -p data/battlepass/seasons
+          mkdir -p data/battlepass/archive
+          echo "[]" > data/cards.json
+          echo '{"owners":[],"devs":[]}' > data/devs.json
+
+      # 5. Lancer les tests
+      - name: Run tests
+        run: npm test
