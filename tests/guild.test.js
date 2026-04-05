@@ -3,6 +3,9 @@
    Couvre : xpRequired, createGuild, joinGuild,
             leaveGuild, kick, promote, demote,
             transferLeader, renameGuild, ranks
+   
+   NOTE : les noms de guilde sont uniques par run
+   pour éviter les conflits avec la BDD existante.
 ═══════════════════════════════════════════════ */
 
 const assert = require("assert")
@@ -26,6 +29,12 @@ function test(name, fn) {
  catch (e) { console.error(`  ❌ ${name}\n     ${e.message}`); failed++ }
 }
 
+/* Suffixe unique pour éviter les conflits entre runs */
+const RUN = Date.now().toString(36).slice(-4)
+
+function uid(base) { return `test_${base}_${RUN}` }
+function gname(base) { return `G_${base}_${RUN}` }
+
 function setupUser(id, kamas = 10000) {
  const u = getUser(id)
  u.kamas = kamas; u.stats = {}
@@ -33,21 +42,23 @@ function setupUser(id, kamas = 10000) {
  save(id); return u
 }
 
+/* Cleanup : dissoudre les guildes de test en fin de run */
+const guildsToClean = []
+function trackGuild(guild) { if (guild) guildsToClean.push(guild) }
+
 console.log("\n══════ TESTS guildSystem.js ══════\n")
 
 /* ── xpRequired ── */
 
 test("xpRequired retourne un nombre positif", () => {
  for (let lvl = 1; lvl <= 100; lvl++) {
-  const xp = xpRequired(lvl)
-  assert.ok(xp > 0, `xpRequired(${lvl}) = ${xp} > 0`)
+  assert.ok(xpRequired(lvl) > 0, `xpRequired(${lvl}) > 0`)
  }
 })
 
 test("xpRequired est croissant", () => {
  for (let lvl = 1; lvl < 100; lvl++) {
-  assert.ok(xpRequired(lvl + 1) >= xpRequired(lvl),
-   `xpRequired(${lvl + 1}) >= xpRequired(${lvl})`)
+  assert.ok(xpRequired(lvl + 1) >= xpRequired(lvl))
  }
 })
 
@@ -63,100 +74,129 @@ test("MAX_MEMBERS, CREATE_COST, RENAME_COST, MAX_OFFICERS sont définis", () => 
 /* ── createGuild ── */
 
 test("createGuild crée une guilde valide", () => {
- setupUser("leader1", 20000)
- const r = createGuild("leader1", "TestGuild")
+ setupUser(uid("leader1"), 20000)
+ const r = createGuild(uid("leader1"), gname("Test"))
  assert.ok(!r.error, r.error)
  assert.ok(r.guild)
- assert.strictEqual(r.guild.name, "TestGuild")
- assert.strictEqual(r.guild.leaderId, "leader1")
- assert.ok(r.guild.memberIds.includes("leader1"))
+ assert.strictEqual(r.guild.name, gname("Test"))
+ assert.strictEqual(r.guild.leaderId, uid("leader1"))
+ assert.ok(r.guild.memberIds.includes(uid("leader1")))
+ trackGuild(r.guild)
 })
 
 test("createGuild refuse si kamas insuffisants", () => {
- setupUser("poor1", 100)
- const r = createGuild("poor1", "PoorGuild")
- assert.ok(r.error)
+ setupUser(uid("poor1"), 100)
+ assert.ok(createGuild(uid("poor1"), gname("Poor")).error)
 })
 
 test("createGuild refuse un nom trop court", () => {
- setupUser("leader2", 20000)
- assert.ok(createGuild("leader2", "AB").error)
+ setupUser(uid("leader2"), 20000)
+ assert.ok(createGuild(uid("leader2"), "AB").error)
 })
 
 test("createGuild refuse un nom dupliqué", () => {
- setupUser("leader3", 20000)
- const r = createGuild("leader3", "TestGuild") /* même nom que leader1 */
+ setupUser(uid("leader3"), 20000)
+ const r = createGuild(uid("leader3"), gname("Test"))
  assert.ok(r.error)
 })
 
 /* ── joinGuild ── */
 
 test("joinGuild ajoute le joueur", () => {
- const guild = getUserGuild("leader1")
- setupUser("member1")
- const r = joinGuild("member1", guild.id)
+ const guild = getUserGuild(uid("leader1"))
+ assert.ok(guild, "guilde leader1 doit exister")
+ setupUser(uid("member1"))
+ const r = joinGuild(uid("member1"), guild.id)
  assert.ok(!r.error, r.error)
- assert.ok(guild.memberIds.includes("member1"))
+ assert.ok(guild.memberIds.includes(uid("member1")))
 })
 
 test("joinGuild refuse si déjà dans une guilde", () => {
- const guild = getUserGuild("leader1")
- const r = joinGuild("member1", guild.id) /* member1 déjà dedans */
+ const guild = getUserGuild(uid("leader1"))
+ assert.ok(guild, "guilde leader1 doit exister")
+ const r = joinGuild(uid("member1"), guild.id)
  assert.ok(r.error)
 })
 
 /* ── leaveGuild ── */
 
 test("leaveGuild retire le membre", () => {
- const guild = getUserGuild("member1")
- const r = leaveGuild("member1")
+ const guild = getUserGuild(uid("member1"))
+ assert.ok(guild, "member1 doit être dans une guilde")
+ const r = leaveGuild(uid("member1"))
  assert.ok(!r.error, r.error)
- assert.ok(!guild.memberIds.includes("member1"))
+ assert.ok(!guild.memberIds.includes(uid("member1")))
 })
 
 test("leaveGuild refuse pour le meneur", () => {
- const r = leaveGuild("leader1")
+ const r = leaveGuild(uid("leader1"))
  assert.ok(r.error)
 })
 
 /* ── getGuildRank ── */
 
 test("getGuildRank retourne meneur, officier, membre", () => {
- const guild = getUserGuild("leader1")
- assert.strictEqual(getGuildRank(guild.id, "leader1"), "meneur")
+ const guild = getUserGuild(uid("leader1"))
+ assert.ok(guild, "guilde leader1 doit exister")
+ assert.strictEqual(getGuildRank(guild.id, uid("leader1")), "meneur")
 
- /* Ajouter un officier pour tester */
- setupUser("officer1")
- joinGuild("officer1", guild.id)
- promoteOfficer(guild.id, "leader1", "officer1")
- assert.strictEqual(getGuildRank(guild.id, "officer1"), "officier")
+ setupUser(uid("officer1"))
+ joinGuild(uid("officer1"), guild.id)
+ promoteOfficer(guild.id, uid("leader1"), uid("officer1"))
+ assert.strictEqual(getGuildRank(guild.id, uid("officer1")), "officier")
 
- setupUser("normal1")
- joinGuild("normal1", guild.id)
- assert.strictEqual(getGuildRank(guild.id, "normal1"), "membre")
+ setupUser(uid("normal1"))
+ joinGuild(uid("normal1"), guild.id)
+ assert.strictEqual(getGuildRank(guild.id, uid("normal1")), "membre")
 })
 
 /* ── disbandGuild ── */
 
 test("disbandGuild supprime la guilde et nettoie les membres", () => {
- setupUser("dleader", 20000)
- const { guild } = createGuild("dleader", "GuildToDisband")
- setupUser("dmember")
- joinGuild("dmember", guild.id)
+ setupUser(uid("dleader"), 20000)
+ const { guild } = createGuild(uid("dleader"), gname("Disband"))
+ setupUser(uid("dmember"))
+ joinGuild(uid("dmember"), guild.id)
 
- const r = disbandGuild(guild.id, "dleader")
+ const r = disbandGuild(guild.id, uid("dleader"))
  assert.ok(!r.error, r.error)
  assert.ok(!getGuild(guild.id))
- assert.ok(!getUser("dmember").guildId)
+ assert.ok(!getUser(uid("dmember")).guildId)
 })
 
 test("disbandGuild refuse si pas le meneur", () => {
- setupUser("dleader2", 20000)
- const { guild } = createGuild("dleader2", "GuildNoDis")
- setupUser("dmember2")
- joinGuild("dmember2", guild.id)
- assert.ok(disbandGuild(guild.id, "dmember2").error)
+ setupUser(uid("dleader2"), 20000)
+ const cr = createGuild(uid("dleader2"), gname("NoDis"))
+ assert.ok(!cr.error, cr.error)
+ trackGuild(cr.guild)
+
+ setupUser(uid("dmember2"))
+ joinGuild(uid("dmember2"), cr.guild.id)
+ assert.ok(disbandGuild(cr.guild.id, uid("dmember2")).error)
 })
+
+/* ── addGuildXP ── */
+
+test("addGuildXP ajoute de l'XP et level up", () => {
+ setupUser(uid("xpleader"), 20000)
+ const cr = createGuild(uid("xpleader"), gname("XPTest"))
+ assert.ok(!cr.error, cr.error)
+ trackGuild(cr.guild)
+
+ const r = addGuildXP(cr.guild.id, 99999)
+ assert.ok(r, "résultat non null")
+ assert.ok(r.newLevel > 1, "level up effectué")
+})
+
+/* ── Cleanup ── */
+
+for (const guild of guildsToClean) {
+ try {
+  if (getGuild(guild.id)) {
+   disbandGuild(guild.id, guild.leaderId)
+  }
+ } catch (_) {}
+}
 
 console.log(`\n══════ Résultats : ${passed} passed, ${failed} failed ══════\n`)
 process.exit(failed > 0 ? 1 : 0)
