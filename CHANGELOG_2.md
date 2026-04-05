@@ -21,6 +21,15 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Migration automatique au premier boot : lit tous les JSON, insère en SQLite dans une transaction atomique, renomme les JSON en `.migrated` (backup conservé, jamais supprimé)
   - Table `meta` pour tracker l'état de la migration
 
+- **Migration SQLite complète — guildes + battlepass** (`systems/database.js` + `systems/migrate.js`)
+  - Table `guilds` : JSON blob + colonnes indexées (name, leader_id, level, xp, member_count, created_at)
+  - Table `battlepass_progress` : clé composite (user_id, season_id) + colonnes indexées (current_level, total_xp, has_premium)
+  - 14 nouvelles fonctions CRUD : `dbLoadAllGuilds`, `dbSaveGuild`, `dbDeleteGuild`, `dbCountGuilds`, `dbGuildLeaderboard`, `dbFindGuildByName`, `dbLoadBattlePassProgress`, `dbSaveBattlePassProgress`, `dbDeleteBattlePassProgress`, `dbListBattlePassUserIds`, `dbCountBattlePassUsers`, `dbBattlePassLeaderboard`, `dbDeleteAllBattlePassProgress`
+  - Migration guildes : lit `guilds.json` → insère dans SQLite (transaction atomique) → backup en `.migrated`
+  - Migration battlepass : lit `battlepass/progress/*.json` → insère dans SQLite → backup dossier en `progress.migrated/`
+  - Les deux migrations s'exécutent automatiquement au premier boot, une seule fois (flag `meta`)
+  - Résultat : **zéro fichier JSON en lecture/écriture fréquente** — seuls les fichiers de config statiques restent en JSON (cards.json, devs.json, season templates)
+
 - **Nouveau système de logging structuré** (`systems/logger.js`)
   - 5 niveaux de gravité : `debug`, `info`, `warn`, `error`, `fatal`
   - Préfixe système automatique par fichier : `[GUILD]`, `[DATA]`, `[BOOT]`, `[DEV]`, `[INTERACTION]`, etc.
@@ -59,12 +68,27 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - `process.on("unhandledRejection")` — capture les promesses rejetées sans catch avec contexte complet
   - `process.on("uncaughtException")` — log fatal + sauvegarde d'urgence + exit propre pour redémarrage Railway
 
-- **Suite de tests unitaires** (`tests/`)
-  - `pack.test.js` — 12 tests couvrant la structure du pack, le pity SSR/S/UR, le hard pity, la distribution statistique et les edge cases
-  - `economy.test.js` — 12 tests couvrant rewardKamas, cohérence des constantes (RARITY_PRICE croissant, SELL_PRICE ≤ RARITY_PRICE, FUSION_COST croissant)
-  - `achievement.test.js` — 9 tests couvrant le déblocage, l'anti-doublon, les titres, les achievements secrets
+- **Suite de tests unitaires + intégration — 149 tests** (`tests/`)
+  - `pack.test.js` — 12 tests : structure du pack, pity SSR/S/UR, hard pity, distribution statistique, edge cases
+  - `economy.test.js` — 10 tests : rewardKamas, cohérence des constantes (RARITY_PRICE croissant, SELL_PRICE ≤ RARITY_PRICE, FUSION_COST croissant)
+  - `achievement.test.js` — 8 tests : déblocage, anti-doublon, titres, achievements secrets
+  - `market.test.js` — 15 tests : addListing, buyCard, removeListing, fragments, prix, getUserListings, getListingType
+  - `fragment.test.js` — 12 tests : addFragment, removeFragment, hasAllFragments, getMissing, getDistinct, stats
+  - `guild.test.js` — 15 tests : xpRequired, createGuild, joinGuild, leaveGuild, disbandGuild, ranks, addGuildXP, cleanup automatique
+  - `inputValidator.test.js` — 17 tests : validateUserId, validateCardId, validateAmount, validateGuildName, validateSetId, validateRarity
+  - `userDefaults.test.js` — 10 tests : ensureUserStructure, préservation des données existantes, valeurs par défaut
+  - `cardRegistry.test.js` — 10 tests : getCards, getCard, getCardsBySet, getCardsById, resetRegistry
+  - `progression.test.js` — 10 tests : addXP, level up, cap 200, cumul, progression.xp non-négatif
+  - `battlepass.test.js` — 12 tests : computeLevel, XP curve, endless rewards, monotonie, maxLevel
+  - `integration.test.js` — 18 tests E2E : parcours joueur complet (création → pack → market → fragments → guilde → achievements → progression → cohérence finale)
   - `run.js` — runner centralisé qui exécute toutes les suites de tests
   - Script npm `npm test` ajouté dans `package.json`
+
+- **CI/CD GitHub Actions** (`.github/workflows/test.yml`)
+  - Workflow automatique à chaque push sur main/master
+  - Tests sur Node 18 et Node 20 en parallèle
+  - Création automatique du dossier `data/` de test avec JSON minimaux
+  - Bloque le déploiement Railway si les tests échouent (via check suites)
 
 - **Résolveur centralisé de bonus** (`systems/bonusResolver.js`)
   - `resolveAllBonuses(userId, user)` — point unique pour calculer tous les bonus (guilde + niveau joueur)
@@ -142,10 +166,25 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **`systems/devSystem.js`** — migration vers les nouveaux utilitaires
   - Utilise `paths.js`, `logger.js`, `writeAtomic`, `readJsonSafe`
 
-- **`systems/guildSystem.js`** — migration vers les nouveaux utilitaires
-  - Utilise `paths.js`, `logger.js`, `writeAtomic`
+- **`systems/guildSystem.js`** — backend migré de `guilds.json` vers SQLite
+  - `loadGuilds()` charge depuis SQLite via `dbLoadAllGuilds()` (fallback JSON en cas d'erreur)
+  - `saveGuilds()` écrit chaque guilde en SQLite via `dbSaveGuild()`
+  - `disbandGuild()` appelle `dbDeleteGuild()` pour cohérence SQLite
+  - `cleanOrphanedGuildIds()` utilise `dbListUserIds()` au lieu de lire les fichiers JSON
   - Toutes les fonctions originales conservées à l'identique
   - Toutes les constantes exportées conservées (MAX_MEMBERS, CREATE_COST, RENAME_COST, MAX_OFFICERS)
+
+- **`systems/battlePassService.js`** — progression battlepass migrée vers SQLite
+  - `getUserProgress()` charge depuis SQLite via `dbLoadBattlePassProgress()` (fallback fichier JSON avec auto-migration)
+  - `saveUserProgress()` écrit en SQLite via `dbSaveBattlePassProgress()` au lieu de `writeAtomic()`
+  - `getAllProgressUserIds()` utilise `dbListBattlePassUserIds()` au lieu de `fs.readdirSync()`
+  - `devStatus()` utilise `dbCountBattlePassUsers()` pour le comptage
+  - Toute la logique métier (XP, rewards, achievements, seasons, endless) inchangée
+
+- **`systems/migrate.js`** — migrations v0.38 guildes + battlepass ajoutées
+  - `runGuildMigration()` : lit `guilds.json` → insère en SQLite → backup `.migrated`
+  - `runBattlePassMigration()` : lit `battlepass/progress/*.json` → insère en SQLite → backup dossier
+  - S'exécutent automatiquement au boot après la migration principale (users + market)
 
 - **`app/handlers/interactionCreate.js`** — error boundary renforcé
   - Fonction `safeErrorReply()` isolée pour gérer tous les cas (replied, deferred, expired)
@@ -190,10 +229,11 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Performance API web** — leaderboard SQL + cache 60s, profils cachés 30s
 - **Sécurité API** — rate limiting 100 req/min par IP avec réponse 429 + Retry-After
 - **Stabilité déploiement** — graceful shutdown sauvegarde toutes les données + ferme SQLite proprement avant redémarrage Railway
-- **Intégrité des données** — transactions SQLite atomiques, WAL mode pour les écritures concurrentes
-- **Qualité du code** — 33 tests unitaires, ESLint + Prettier configurés, JSDoc sur tous les systèmes
+- **Intégrité des données** — transactions SQLite atomiques, WAL mode pour les écritures concurrentes, migrations avec backup systématique (`.migrated`)
+- **Qualité du code** — 149 tests (12 suites dont 1 E2E), CI/CD GitHub Actions, ESLint + Prettier configurés, JSDoc sur tous les systèmes
 - **Maintenabilité** — 10 nouveaux utilitaires partagés réduisent la duplication de code
-- **Robustesse des sauvegardes** — `writeAtomic` pour les JSON restants, SQLite WAL pour les users/market
+- **Base de données unifiée** — 100% des données fréquentes en SQLite (users, market, guildes, battlepass) — seuls les fichiers de config statiques restent en JSON
+- **Robustesse des sauvegardes** — `writeAtomic` pour les JSON de config, SQLite WAL pour users/market/guildes/battlepass
 - **Diagnostic en production** — chaque erreur inclut le contexte complet (commande, userId, guildId)
 
 ---

@@ -1,3 +1,4 @@
+![Tests](https://github.com/saucissonYT/krosmoz-card-bot/actions/workflows/test.yml/badge.svg)
 # 🎴 Krosmoz Card Bot
 
 Krosmoz Card Bot est un bot Discord implémentant un jeu de collection de cartes (TCG) inspiré de l'univers Krosmoz (Wakfu / Dofus).
