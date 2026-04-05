@@ -1,0 +1,29 @@
+{
+ "env": {
+  "node": true,
+  "es2021": true
+ },
+ "parserOptions": {
+  "ecmaVersion": 2021
+ },
+ "rules": {
+  "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+  "no-undef": "error",
+  "no-constant-condition": "warn",
+  "no-empty": ["warn", { "allowEmptyCatch": true }],
+  "no-redeclare": "error",
+  "no-duplicate-case": "error",
+  "eqeqeq": ["warn", "smart"],
+  "no-var": "warn",
+  "prefer-const": "warn",
+  "no-throw-literal": "warn",
+  "no-unreachable": "error",
+  "no-fallthrough": "warn"
+ },
+ "ignorePatterns": [
+  "node_modules/",
+  "data/",
+  "logs/",
+  "cards/images/"
+ ]
+}

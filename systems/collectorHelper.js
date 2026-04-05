@@ -1,104 +1,91 @@
 /* ═══════════════════════════════════════════════════════════════
    COLLECTOR HELPER — systems/collectorHelper.js
 
-   Wrapper sécurisé pour les collectors Discord.
-   Remplace le pattern répété dans chaque commande avec boutons :
-   - Vérification que c'est bien le bon utilisateur
-   - Try/catch automatique avec fallback d'erreur
-   - Nettoyage des composants en fin de collector
+   Crée des collectors Discord avec cleanup automatique.
+   Supprime les composants quand le collector expire, évite les
+   fuites mémoire et les erreurs "Unknown interaction".
 
    Usage :
      const { createSafeCollector } = require("../../systems/collectorHelper")
 
-     createSafeCollector(msg, interaction, {
+     const collector = createSafeCollector(msg, {
        time: 120000,
-       onCollect: async (i) => {
-         // ta logique ici — i.user.id est garanti === interaction.user.id
-       },
-       onEnd: () => {
-         // optionnel — par défaut retire les composants
-       }
+       userId: interaction.user.id,  // filtre automatique
+       onCollect: async (i) => { ... },
+       onEnd: async (msg) => { ... }  // optionnel, par défaut supprime les composants
      })
+
+   @param {Message} msg      - Le message Discord contenant les composants
+   @param {Object}  options
+   @returns {MessageComponentCollector}
 ═══════════════════════════════════════════════════════════════ */
 
 const { createLogger } = require("./logger")
-
 const log = createLogger("COLLECTOR")
 
 /**
- * Crée un collector sécurisé avec vérification utilisateur,
- * gestion d'erreur et nettoyage automatique.
+ * Crée un collector avec cleanup automatique.
  *
- * @param {Message} msg - Le message Discord contenant les composants
- * @param {CommandInteraction} interaction - L'interaction d'origine (pour vérifier l'utilisateur)
+ * @param {import("discord.js").Message} msg
  * @param {Object} options
- * @param {number} [options.time=120000] - Durée du collector en ms
- * @param {Function} options.onCollect - Callback appelé quand l'utilisateur interagit
- * @param {Function} [options.onEnd] - Callback optionnel en fin de collector
- * @returns {InteractionCollector}
+ * @param {number}   [options.time=120000]  - Durée du collector en ms
+ * @param {string}   [options.userId]       - ID du user autorisé (filtre)
+ * @param {Function} [options.onCollect]    - Handler de collect
+ * @param {Function} [options.onEnd]        - Handler de fin (défaut: supprime composants)
+ * @param {string}   [options.componentType] - Type de composant à filtrer
+ * @returns {import("discord.js").InteractionCollector}
  */
-function createSafeCollector(msg, interaction, options = {}) {
+function createSafeCollector(msg, options = {}) {
 
- const {
-  time = 120000,
-  onCollect,
-  onEnd
- } = options
+ const time = options.time || 120000
 
- const collector = msg.createMessageComponentCollector({ time })
+ const collectorOptions = { time }
 
- collector.on("collect", async (i) => {
+ const collector = msg.createMessageComponentCollector(collectorOptions)
 
-  /* ── Vérification utilisateur ── */
-
-  if (i.user.id !== interaction.user.id) {
-   return i.reply({
-    content: "❌ Ce n'est pas ton menu.",
-    flags: 64
-   })
-  }
-
-  /* ── Exécution sécurisée ── */
-
-  try {
-
-   await onCollect(i)
-
-  } catch (err) {
-
-   log.error("Erreur dans collector", {
-    command: interaction.commandName || interaction.customId || "unknown",
-    user: interaction.user?.id,
-    err
-   })
-
-   try {
-    if (!i.replied && !i.deferred) {
-     await i.reply({ content: "❌ Une erreur est survenue.", flags: 64 })
-    } else {
-     await i.followUp({ content: "❌ Une erreur est survenue.", flags: 64 })
-    }
-   } catch (_) {
-    /* Interaction expirée — rien à faire */
+ /* ── Filter par userId ── */
+ if (options.userId) {
+  const originalOnCollect = options.onCollect
+  options.onCollect = async (i) => {
+   if (i.user.id !== options.userId) {
+    return i.reply({ content: "Pas pour toi.", flags: 64 }).catch(() => {})
    }
-
+   if (originalOnCollect) return originalOnCollect(i)
   }
+ }
 
- })
+ /* ── onCollect ── */
+ if (options.onCollect) {
+  collector.on("collect", async (i) => {
+   try {
+    await options.onCollect(i)
+   } catch (err) {
+    log.error("Erreur collector collect", { err: err.message, customId: i.customId })
+    try {
+     if (!i.replied && !i.deferred) {
+      await i.reply({ content: "Une erreur est survenue.", flags: 64 })
+     }
+    } catch (_) {}
+   }
+  })
+ }
 
- /* ── Fin du collector ── */
-
- collector.on("end", () => {
-
-  if (onEnd) return onEnd()
-
-  /* Par défaut : retirer les composants */
-  msg.edit({ components: [] }).catch(() => {})
-
+ /* ── onEnd — cleanup automatique ── */
+ collector.on("end", async () => {
+  try {
+   if (options.onEnd) {
+    await options.onEnd(msg)
+   } else {
+    /* Comportement par défaut : supprimer les composants */
+    await msg.edit({ components: [] }).catch(() => {})
+   }
+  } catch (err) {
+   /* Message supprimé ou indisponible — c'est OK */
+   log.debug("Cleanup collector ignoré", { err: err.message })
+  }
  })
 
  return collector
-
 }
 
 module.exports = { createSafeCollector }

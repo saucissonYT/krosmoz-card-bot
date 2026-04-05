@@ -1,108 +1,141 @@
-    /* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════
    INPUT VALIDATOR — systems/inputValidator.js
 
-   Fonctions de validation réutilisables pour les entrées
-   des commandes Discord. Chaque fonction retourne un objet
-   { ok, value/card/error } pour un pattern cohérent.
+   Validation centralisée des inputs utilisateur.
+   Empêche les crashes sur données malformées.
 
    Usage :
-     const { validateCardId } = require("../../systems/inputValidator")
-     const result = validateCardId(id, cardsById)
-     if (!result.ok) return interaction.reply(result.error)
-     const card = result.card
+     const { validateUserId, validateCardId, validateAmount, validateGuildName } = require("./inputValidator")
+
+     const { valid, error } = validateUserId(id)
+     if (!valid) return interaction.reply({ content: error, flags: 64 })
 ═══════════════════════════════════════════════════════════════ */
 
 /**
- * Valide un ID de carte et retourne la carte si elle existe.
- *
- * @param {*} id - L'ID fourni par l'utilisateur
- * @param {Object} cardsById - Le dictionnaire de cartes indexé par ID
- * @returns {{ ok: boolean, card?: Object, error?: string }}
+ * Valide un ID Discord (16 à 22 chiffres).
+ * @param {any} id
+ * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateCardId(id, cardsById) {
-
- if (id === null || id === undefined) {
-  return { ok: false, error: "❌ ID de carte requis." }
- }
-
- if (!Number.isInteger(id) || id < 0) {
-  return { ok: false, error: "❌ ID de carte invalide." }
- }
-
- const card = cardsById[id]
-
- if (!card) {
-  return { ok: false, error: "❌ Carte introuvable." }
- }
-
- return { ok: true, card }
-
+function validateUserId(id) {
+ if (!id) return { valid: false, error: "ID utilisateur manquant." }
+ const str = String(id)
+ if (!/^\d{16,22}$/.test(str)) return { valid: false, error: "ID utilisateur invalide." }
+ return { valid: true, value: str }
 }
 
 /**
- * Valide qu'une valeur est un entier positif.
- *
- * @param {*} value - La valeur à valider
- * @param {string} [name="valeur"] - Nom affiché dans le message d'erreur
- * @returns {{ ok: boolean, value?: number, error?: string }}
+ * Valide un ID de carte (entier positif).
+ * @param {any} id
+ * @returns {{ valid: boolean, error?: string, value?: number }}
  */
-function validatePositiveInteger(value, name = "valeur") {
-
- if (!Number.isInteger(value) || value <= 0) {
-  return { ok: false, error: `❌ ${name} doit être un entier positif.` }
+function validateCardId(id) {
+ if (id === null || id === undefined) return { valid: false, error: "ID de carte manquant." }
+ const num = Number(id)
+ if (!Number.isFinite(num) || num < 1 || !Number.isInteger(num)) {
+  return { valid: false, error: "ID de carte invalide (entier positif attendu)." }
  }
-
- return { ok: true, value }
-
+ return { valid: true, value: num }
 }
 
 /**
- * Valide un prix dans une fourchette donnée.
- *
- * @param {*} price - Le prix à valider
- * @param {number} [min=1] - Prix minimum
- * @param {number} [max=999999] - Prix maximum
- * @returns {{ ok: boolean, price?: number, error?: string }}
+ * Valide un montant (kamas, prix, quantité).
+ * @param {any}    amount
+ * @param {Object} [options]
+ * @param {number} [options.min=1]     - Minimum autorisé
+ * @param {number} [options.max=Infinity] - Maximum autorisé
+ * @param {string} [options.label="Montant"]
+ * @returns {{ valid: boolean, error?: string, value?: number }}
  */
-function validatePrice(price, min = 1, max = 999999) {
+function validateAmount(amount, options = {}) {
+ const min   = options.min   ?? 1
+ const max   = options.max   ?? Infinity
+ const label = options.label ?? "Montant"
 
- if (!Number.isFinite(price) || price < min || price > max) {
-  return { ok: false, error: `❌ Prix invalide (doit être entre ${min} et ${max}).` }
+ if (amount === null || amount === undefined) {
+  return { valid: false, error: `${label} manquant.` }
  }
 
- return { ok: true, price: Math.floor(price) }
+ const num = Number(amount)
 
+ if (!Number.isFinite(num) || !Number.isInteger(num)) {
+  return { valid: false, error: `${label} invalide (entier attendu).` }
+ }
+
+ if (num < min) return { valid: false, error: `${label} trop bas (min: ${min}).` }
+ if (num > max) return { valid: false, error: `${label} trop élevé (max: ${max}).` }
+
+ return { valid: true, value: num }
 }
 
 /**
- * Valide qu'un utilisateur possède au moins N exemplaires d'une carte.
- *
- * @param {Object} user - L'objet utilisateur
- * @param {string|number} cardId - L'ID de la carte
- * @param {number} [minCount=1] - Nombre minimum requis
- * @returns {{ ok: boolean, count?: number, error?: string }}
+ * Valide un nom de guilde.
+ * @param {any} name
+ * @returns {{ valid: boolean, error?: string, value?: string }}
  */
-function validateOwnership(user, cardId, minCount = 1) {
-
- const count = user.cards?.[cardId] || 0
-
- if (count < minCount) {
-  return {
-   ok: false,
-   count,
-   error: minCount === 1
-    ? "❌ Tu ne possèdes pas cette carte."
-    : `❌ Tu n'as que ${count} exemplaire(s) (${minCount} requis).`
-  }
+function validateGuildName(name) {
+ if (!name || typeof name !== "string") {
+  return { valid: false, error: "Nom de guilde manquant." }
  }
 
- return { ok: true, count }
+ const trimmed = name.trim()
 
+ if (trimmed.length < 2)  return { valid: false, error: "Nom trop court (min 2 caractères)." }
+ if (trimmed.length > 32) return { valid: false, error: "Nom trop long (max 32 caractères)." }
+
+ /* Anti-injection basique */
+ if (/[<>@#&\\]/.test(trimmed)) {
+  return { valid: false, error: "Nom contient des caractères interdits." }
+ }
+
+ return { valid: true, value: trimmed }
+}
+
+/**
+ * Valide un ID de set.
+ * @param {any}   setId
+ * @param {Array} [validSets] - Liste des sets valides (optionnel)
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateSetId(setId, validSets) {
+ if (!setId || typeof setId !== "string") {
+  return { valid: false, error: "ID de set manquant." }
+ }
+
+ const trimmed = setId.trim().toLowerCase()
+
+ if (trimmed.length < 1 || trimmed.length > 50) {
+  return { valid: false, error: "ID de set invalide." }
+ }
+
+ if (validSets && !validSets.includes(trimmed)) {
+  return { valid: false, error: `Set "${trimmed}" inconnu.` }
+ }
+
+ return { valid: true, value: trimmed }
+}
+
+/**
+ * Valide une rareté.
+ * @param {any} rarity
+ * @returns {{ valid: boolean, error?: string, value?: string }}
+ */
+function validateRarity(rarity) {
+ const VALID = ["C","U","R","SR","HR","UR","S","SSR"]
+ if (!rarity || typeof rarity !== "string") {
+  return { valid: false, error: "Rareté manquante." }
+ }
+ const upper = rarity.toUpperCase()
+ if (!VALID.includes(upper)) {
+  return { valid: false, error: `Rareté invalide : ${rarity}` }
+ }
+ return { valid: true, value: upper }
 }
 
 module.exports = {
+ validateUserId,
  validateCardId,
- validatePositiveInteger,
- validatePrice,
- validateOwnership
+ validateAmount,
+ validateGuildName,
+ validateSetId,
+ validateRarity
 }

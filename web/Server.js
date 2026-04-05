@@ -17,6 +17,8 @@ const {
  removeListing
 } = require("../systems/market")
 const achievementRegistry = require("../systems/achievementRegistry")
+const { createRateLimiter } = require("../systems/rateLimiter")
+const { apiCache } = require("../systems/apiCache")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
@@ -881,6 +883,35 @@ function createWebApp() {
  app.use(express.json({ limit: "1mb" }))
  app.use(express.urlencoded({ extended: false }))
 
+ /* ── Rate limiter API (100 req/min par IP) ── */
+ app.use("/api/", createRateLimiter({ windowMs: 60000, max: 100 }))
+
+ /* ── Health check endpoint ── */
+ app.get("/health", (req, res) => {
+  const uptime = process.uptime()
+  const mem = process.memoryUsage()
+
+  let userCount = 0
+  try {
+   if (fs.existsSync(USERS_DIR)) {
+    userCount = fs.readdirSync(USERS_DIR).filter(f => f.endsWith(".json")).length
+   }
+  } catch (_) {}
+
+  res.json({
+   status: "ok",
+   uptime: Math.floor(uptime),
+   uptimeHuman: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`,
+   memory: {
+    rss: Math.round(mem.rss / 1024 / 1024) + " MB",
+    heap: Math.round(mem.heapUsed / 1024 / 1024) + " MB"
+   },
+   users: userCount,
+   cacheEntries: apiCache.size(),
+   timestamp: new Date().toISOString()
+  })
+ })
+
  app.use(express.static(PUBLIC_DIR, { index: false }))
  app.get("/css/style.css", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Style.css")))
  app.use("/assets/cards", express.static(CARD_IMAGES_RUNTIME_DIR, { index: false, fallthrough: true }))
@@ -935,7 +966,11 @@ app.get("/api/battlepass/season", (req, res) => {
    const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
    if (!valid.includes(category)) return res.status(400).json({ error: "Categorie invalide" })
 
-   const entries = computeLeaderboard(category)
+   const entries = apiCache.getOrCompute(
+    `leaderboard:${category}`,
+    () => computeLeaderboard(category),
+    60000
+   )
    const resolved = await Promise.all(
     entries.slice(0, 50).map(async (entry, index) => {
      const discord = await resolveDiscordUser(entry.userId)
@@ -955,7 +990,11 @@ app.get("/api/battlepass/season", (req, res) => {
    const userId = req.params.id
    if (!/^\d{16,22}$/.test(userId)) return res.status(400).json({ error: "ID invalide" })
 
-   const profile = computeProfile(userId)
+   const profile = apiCache.getOrCompute(
+    `profile:${userId}`,
+    () => computeProfile(userId),
+    30000
+   )
    if (!profile) return res.status(404).json({ error: "Joueur introuvable" })
 
    const discord = await resolveDiscordUser(userId)
@@ -1178,6 +1217,11 @@ app.get("/api/achievements", (req, res) => {
     : []
    if (sellerId) save(sellerId)
    save(session.userId)
+
+   /* Invalidation cache après mutation */
+   apiCache.invalidate(`profile:${session.userId}`)
+   if (sellerId) apiCache.invalidate(`profile:${sellerId}`)
+   apiCache.invalidatePrefix("leaderboard:")
 
    if (typeof webHooks.onWebMarketBuy === "function") {
     Promise.resolve(webHooks.onWebMarketBuy({
