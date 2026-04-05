@@ -89,11 +89,18 @@ module.exports = {
    .setTitle("📦 Sets de cartes")
    .setDescription(descLines.join("\n") || "Aucun set.")
    .setColor(0xF1C40F)
-   .setFooter({ text: "🌐 Consultable aussi sur krosmozcard.fr/cards" })
+
+  const linkRow = new ActionRowBuilder().addComponents(
+   new ButtonBuilder()
+    .setLabel("Voir sur le site")
+    .setEmoji("🌐")
+    .setStyle(ButtonStyle.Link)
+    .setURL("https://www.krosmozcard.fr/cards")
+  )
 
   await interaction.reply({
    embeds:     [setsEmbed],
-   components: [menuRow],
+   components: [menuRow, linkRow],
    flags:      64
   })
 
@@ -143,7 +150,7 @@ module.exports = {
    if(!selectedSet){
     return i.update({
      embeds:     [setsEmbed],
-     components: [menuRow]
+     components: [menuRow, linkRow]
     })
    }
 

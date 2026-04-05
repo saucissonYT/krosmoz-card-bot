@@ -36,6 +36,12 @@ async function routeButtonInteraction(interaction, client) {
   if (command?.button) return command.button(interaction)
  }
 
+ /* ── KrosmoShop : achat groupé ── */
+ if (id === "krosmoshop_buyall") {
+  const command = client.commands.get("krosmoshop")
+  if (command?.button) return command.button(interaction)
+ }
+
  /*
   * FIX: guild_accept / guild_decline sont gérés par le collector interne
   * dans guildmanage.js. Si on arrive ici, c'est que le collector a expiré
