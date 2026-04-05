@@ -45,11 +45,10 @@ function checkSetCompletion(user,setId,percent){
 
 /* ---------------- ACHIEVEMENT CHECK ---------------- */
 /*
- * MODIFIÉ : applique désormais les récompenses (kamas, XP, packs)
- * au moment du déblocage d'un achievement.
- *
- * L'XP est ajoutée via addXP() pour déclencher les level-ups.
- * Les kamas et packs sont ajoutés directement sur le user.
+ * FIX v2 :
+ * 1. Safety Array.isArray — convertit {} en [] si userDefaults a mal initialisé
+ * 2. Dédoublonnage forcé — nettoie les doublons existants dans user.achievements
+ * 3. Protection anti-crash — chaque achievement est isolé dans un try/catch
  *
  * Retourne toujours un tableau d'IDs débloqués (rétro-compatible).
  * Les récompenses sont trackées dans user.stats.achievementRewards
@@ -60,13 +59,21 @@ function checkAchievements(user,trigger){
 
  const unlocked = []
 
- if(!user.achievements)
-  user.achievements=[]
+ /* ── FIX: Garantir que achievements est un tableau ── */
+ if(!Array.isArray(user.achievements))
+  user.achievements = []
+
+ /* ── FIX: Dédoublonnage des achievements existants ── */
+ const beforeLen = user.achievements.length
+ user.achievements = [...new Set(user.achievements)]
+ if(user.achievements.length !== beforeLen){
+  console.warn(`[ACHIEVEMENT] Dédoublonnage: ${beforeLen} → ${user.achievements.length} achievements`)
+ }
 
  if(!user.stats)
   user.stats={}
 
- if(!user.titles)
+ if(!Array.isArray(user.titles))
   user.titles=[]
 
  /* Initialiser le tracking des récompenses si absent */
@@ -92,7 +99,7 @@ function checkAchievements(user,trigger){
   if(trigger && achievement.trigger !== trigger)
    continue
 
-  /* ALREADY UNLOCKED */
+  /* ALREADY UNLOCKED — vérification stricte */
 
   if(user.achievements.includes(id))
    continue
@@ -104,6 +111,9 @@ function checkAchievements(user,trigger){
     const result = achievement.condition(user,checkSetCompletion)
 
     if(result){
+
+     /* Double vérif anti-doublon avant push */
+     if(user.achievements.includes(id)) continue
 
      user.achievements.push(id)
      unlocked.push(id)

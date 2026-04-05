@@ -167,6 +167,35 @@
     </div>
    `).join("")
 
+   /* ---- Pity bars ---- */
+   const pityHTML = (p.pity || []).map(pity => {
+    const ssrPct = Math.round((pity.SSR / 50) * 100)
+    const sPct = Math.round((pity.S / 30) * 100)
+    const urPct = Math.round((pity.UR / 10) * 100)
+    const ssrClass = ssrPct >= 90 ? "pct-100" : ssrPct >= 60 ? "pct-70" : ssrPct >= 30 ? "pct-50" : "pct-0"
+    const sClass = sPct >= 90 ? "pct-100" : sPct >= 60 ? "pct-70" : sPct >= 30 ? "pct-50" : "pct-0"
+    const urClass = urPct >= 90 ? "pct-100" : urPct >= 60 ? "pct-70" : urPct >= 30 ? "pct-50" : "pct-0"
+    return `
+     <div style="min-width:0">
+      <div style="font-weight:500;font-size:0.95rem;margin-bottom:8px">${escapeHTML(pity.setName)}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+       <span style="min-width:55px;font-size:0.8rem;color:var(--text-muted)">🌈 SSR</span>
+       <div class="set-bar" style="flex:1"><div class="set-bar-fill ${ssrClass}" style="width:${ssrPct}%"></div></div>
+       <span style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${pity.SSR}/50</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+       <span style="min-width:55px;font-size:0.8rem;color:var(--text-muted)">✨ S</span>
+       <div class="set-bar" style="flex:1"><div class="set-bar-fill ${sClass}" style="width:${sPct}%"></div></div>
+       <span style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${pity.S}/30</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+       <span style="min-width:55px;font-size:0.8rem;color:var(--text-muted)">🟡 UR</span>
+       <div class="set-bar" style="flex:1"><div class="set-bar-fill ${urClass}" style="width:${urPct}%"></div></div>
+       <span style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${pity.UR}/10</span>
+      </div>
+     </div>`
+   }).join("")
+
    /* ---- Render ---- */
    container.innerHTML = `
     <div style="margin-bottom:20px">
@@ -307,6 +336,16 @@
       </div>
      </div>
 
+    </div>
+
+    <!-- Pity par set -->
+    <div class="profile-grid">
+     <div class="profile-card fade-in stagger-4" style="grid-column: 1 / -1">
+      <h2>🎴 Pity par set</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+       ${pityHTML || '<p style="color:var(--text-muted)">Aucune donnée pity</p>'}
+      </div>
+     </div>
     </div>`
 
    /* Animate bars after render */

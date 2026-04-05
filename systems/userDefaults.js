@@ -4,15 +4,9 @@
    Garantit que chaque objet user a toutes les propriétés requises.
    Appelé une seule fois dans loadUser() / getUser() du userSystem.
 
-   Remplace les dizaines de :
-     if (!user.stats) user.stats = {}
-     if (!user.cards) user.cards = {}
-   dispersées dans toutes les commandes.
-
-   Usage :
-     const { ensureUserStructure } = require("./userDefaults")
-     const user = JSON.parse(raw)
-     ensureUserStructure(user)
+   FIX: achievements initialisé en [] (tableau) et non {} (objet).
+   L'achievementEngine utilise .includes() et .push() qui nécessitent
+   un tableau. Un objet {} causait des doublons silencieux.
 ═══════════════════════════════════════════════════════════════ */
 
 /**
@@ -49,17 +43,17 @@ function ensureUserStructure(user) {
 
  if (!user.stats) user.stats = {}
 
- /* ── Achievements ── */
+ /* ── Achievements — DOIT être un tableau [] ── */
 
- if (!user.achievements) user.achievements = {}
+ if (!Array.isArray(user.achievements)) user.achievements = []
 
  /* ── Titres ── */
 
- if (!user.titles) user.titles = ["Nouveau"]
+ if (!user.titles || !Array.isArray(user.titles)) user.titles = ["Nouveau"]
 
  /* ── Badges ── */
 
- if (!user.badges) user.badges = []
+ if (!user.badges || !Array.isArray(user.badges)) user.badges = []
 
  /* ── Cooldowns ── */
 
