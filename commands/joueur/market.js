@@ -1,3 +1,15 @@
+/* ═══════════════════════════════════════════════════════════════
+   /market — Marché entre joueurs (cartes + fragments)
+
+   MODIFICATIONS :
+   - Supprimé `const cards = getCards()` au top-level (snapshot statique)
+     → `getCards()` est appelé dynamiquement dans chaque fonction
+   - Supprimé `const rarityEmoji = {...}` local
+     → utilise `RARITY_EMOJI` depuis constants.js
+   - Ajout de JSDoc sur les fonctions principales
+   - Support complet des fragments (select menu UX)
+═══════════════════════════════════════════════════════════════ */
+
 const {
  EmbedBuilder,
  ActionRowBuilder,
@@ -22,47 +34,64 @@ const {
  getListingType
 } = require("../../systems/market")
 
-const { getCards } = require("../../systems/cardRegistry")
-const { getUser } = require("../../systems/userSystem")
-const { addBattlePassXP } = require("../../systems/battlePassService")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
-const { RARITY_EMOJI } = require("../../systems/constants")
+const { getCards }             = require("../../systems/cardRegistry")
+const { getUser }              = require("../../systems/userSystem")
+const { addBattlePassXP }      = require("../../systems/battlePassService")
+const { achievementCheck }     = require("../../systems/achievementCheck")
+const { notifyAchievements }   = require("../../systems/achievementNotifier")
+const { RARITY_EMOJI }         = require("../../systems/constants")
 const {
  getFragmentDisplayName,
  getFragmentInventoryRows
 } = require("../../systems/fragmentService")
 
-/* ─── State ──────────────────────────────────────────────────────────── */
+/* ─── State par utilisateur (menu actif) ─────────────────── */
 
+/** @type {Object<string, { page: number, pendingFragment?: { cardId: string, fragmentNumber: number } }>} */
 const marketState = {}
-const PAGE_SIZE = 10
+const PAGE_SIZE   = 10
 
-/* ─── Helpers ────────────────────────────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────────────── */
 
+/**
+ * Formate une ligne d'annonce pour l'affichage embed.
+ * Supporte les cartes et les fragments.
+ *
+ * @param {Object} listing  - L'annonce du market
+ * @param {Array}  cards    - Liste dynamique des cartes
+ * @param {Object} averages - Prix moyens
+ * @returns {string} Ligne formatée
+ */
 function formatListing(listing, cards, averages) {
+
  if (getListingType(listing) === "fragment") {
-  const avg = averages[`fragment:${listing.card}:${listing.fragmentNumber}`]
+  const avg      = averages[`fragment:${listing.card}:${listing.fragmentNumber}`]
   const minPrice = getFragmentMinimumPrice(listing.card, listing.fragmentNumber, averages)
-  const avgText = avg ? ` • 📊 ${avg}` : ""
+  const avgText  = avg ? ` • 📊 ${avg}` : ""
   return `ID:${listing.id} • 🧩 ${getFragmentDisplayName(listing.card, listing.fragmentNumber)} • ${listing.price} kamas • min ${minPrice}${avgText}`
  }
 
- const card = cards.find((c) => c.id == listing.card)
- const avg = averages[`card:${listing.card}`] ? ` • 📊 ${averages[`card:${listing.card}`]}` : ""
+ const card = cards.find(c => c.id == listing.card)
+ const avg  = averages[`card:${listing.card}`] ? ` • 📊 ${averages[`card:${listing.card}`]}` : ""
  return `ID:${listing.id} • ${RARITY_EMOJI[card?.rarity || "C"]} ${card?.name || "?"} • ${listing.price} kamas${avg}`
 }
 
-/* ─── Module ─────────────────────────────────────────────────────────── */
+/* ─── Module ─────────────────────────────────────────────── */
 
 module.exports = {
+
  name: "market",
 
  /* ══════════════════════════════════════════════════════════
     EXECUTE — menu principal
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Affiche le menu principal du marché avec 4 actions.
+  * @param {import("discord.js").ChatInputCommandInteraction} interaction
+  */
  async execute(interaction) {
+
   const userId = interaction.user.id
   marketState[userId] = { page: 0 }
 
@@ -91,7 +120,12 @@ module.exports = {
     BUTTON HANDLER
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Gère tous les boutons du market (navigation, modals, retour).
+  * @param {import("discord.js").ButtonInteraction} interaction
+  */
  async button(interaction) {
+
   const userId = interaction.user.id
 
   if (!marketState[userId]) {
@@ -152,10 +186,7 @@ module.exports = {
    return interaction.showModal(modal)
   }
 
-  /* ── Vendre fragment — NOUVELLE UX ──
-   * Au lieu du modal 3 champs, on affiche un select menu
-   * avec les fragments possédés par le joueur.
-   */
+  /* ── Vendre fragment (UX select menu) ── */
 
   if (interaction.customId === "market_sell_fragment") {
    return this.renderFragmentPicker(interaction)
@@ -164,16 +195,25 @@ module.exports = {
   /* ── Mes ventes ── */
 
   if (interaction.customId === "market_my") {
-   const cards = getCards()
+
+   const cards    = getCards()
    const listings = getUserListings(userId)
 
    if (listings.length === 0) {
-    return interaction.update({ content: "Tu n'as aucune vente active.", embeds: [], components: [] })
+    return interaction.update({
+     content: "Tu n'as aucune vente active.",
+     embeds: [],
+     components: []
+    })
    }
 
    const averages = getAveragePrices()
-   const lines = listings.map((l) => formatListing(l, cards, averages))
-   const embed = new EmbedBuilder().setTitle("📦 Mes ventes").setDescription(lines.join("\n"))
+   const lines    = listings.map(l => formatListing(l, cards, averages))
+
+   const embed = new EmbedBuilder()
+    .setTitle("📦 Mes ventes")
+    .setDescription(lines.join("\n"))
+
    const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId("market_remove_modal").setLabel("Retirer une vente").setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId("market_back").setLabel("Retour").setStyle(ButtonStyle.Secondary)
@@ -199,19 +239,24 @@ module.exports = {
  },
 
  /* ══════════════════════════════════════════════════════════
-    RENDER MARKET — liste des annonces
+    RENDER MARKET — liste paginée des annonces
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Affiche la liste paginée de toutes les annonces du marché.
+  * @param {import("discord.js").ButtonInteraction} interaction
+  */
  async renderMarket(interaction) {
-  const userId = interaction.user.id
-  const state = marketState[userId]
-  const cards = getCards()
+
+  const userId   = interaction.user.id
+  const state    = marketState[userId]
+  const cards    = getCards()
   const averages = getAveragePrices()
 
   const market = getMarket().slice().sort((a, b) => a.price - b.price)
-  const start = state.page * PAGE_SIZE
-  const slice = market.slice(start, start + PAGE_SIZE)
-  const lines = slice.map((l) => formatListing(l, cards, averages))
+  const start  = state.page * PAGE_SIZE
+  const slice  = market.slice(start, start + PAGE_SIZE)
+  const lines  = slice.map(l => formatListing(l, cards, averages))
 
   const embed = new EmbedBuilder()
    .setTitle("🛒 Marché")
@@ -229,22 +274,26 @@ module.exports = {
   )
 
   const payload = { embeds: [embed], components: [row1, row2] }
+
   if (interaction.isButton()) return interaction.update(payload)
   return interaction.editReply(payload)
  },
 
  /* ══════════════════════════════════════════════════════════
-    RENDER FRAGMENT PICKER — NOUVELLE UX
+    RENDER FRAGMENT PICKER
     Affiche les fragments du joueur dans un select menu.
-    Le joueur choisit, ensuite on demande seulement le prix.
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Affiche un select menu avec les fragments possédés pour la vente.
+  * @param {import("discord.js").ButtonInteraction} interaction
+  */
  async renderFragmentPicker(interaction) {
-  const userId = interaction.user.id
-  const user = getUser(userId)
 
-  /* Récupère toutes les cartes avec au moins 1 fragment */
-  const rows = getFragmentInventoryRows(user).filter((r) => r.ownedCount > 0)
+  const userId = interaction.user.id
+  const user   = getUser(userId)
+
+  const rows = getFragmentInventoryRows(user).filter(r => r.ownedCount > 0)
 
   if (rows.length === 0) {
    const embed = new EmbedBuilder()
@@ -259,22 +308,14 @@ module.exports = {
    return interaction.update({ embeds: [embed], components: [row] })
   }
 
-  /* Construit les options du select menu :
-   * Une option par (carte × slot possédé), max 25 (limite Discord).
-   * Label : "Nom de la carte — Slot 2/5"
-   * Description : stock + prix minimum
-   * Value : "cardId:fragmentNumber"
-   */
-
   const averages = getAveragePrices()
-  const options = []
+  const options  = []
 
   for (const row of rows) {
    for (const slotNum of row.numbers) {
 
-    /* Compte combien d'exemplaires de ce slot exact le joueur possède */
     const stock = (user.fragments || []).filter(
-     (f) => String(f.cardId) === String(row.cardId) && Number(f.fragmentNumber) === slotNum
+     f => String(f.cardId) === String(row.cardId) && Number(f.fragmentNumber) === slotNum
     ).length
 
     const minPrice = getFragmentMinimumPrice(row.cardId, slotNum, averages)
@@ -311,7 +352,7 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    .addOptions(options)
 
   const selectRow = new ActionRowBuilder().addComponents(selectMenu)
-  const backRow = new ActionRowBuilder().addComponents(
+  const backRow   = new ActionRowBuilder().addComponents(
    new ButtonBuilder().setCustomId("market_back").setLabel("Retour").setStyle(ButtonStyle.Secondary)
   )
 
@@ -320,11 +361,14 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
 
  /* ══════════════════════════════════════════════════════════
     SELECT HANDLER — fragment_select
-    Le joueur a choisi son fragment → on sauvegarde le choix
-    dans le state et on ouvre le modal prix uniquement.
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Gère la sélection d'un fragment → ouvre le modal prix.
+  * @param {import("discord.js").StringSelectMenuInteraction} interaction
+  */
  async select(interaction) {
+
   if (interaction.customId !== "market_fragment_select") return
 
   const userId = interaction.user.id
@@ -336,17 +380,13 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    })
   }
 
-  /* Décode "cardId:fragmentNumber" */
   const [cardId, fragmentNumberStr] = interaction.values[0].split(":")
   const fragmentNumber = parseInt(fragmentNumberStr)
 
-  /* Sauvegarde dans le state pour le modal */
   marketState[userId].pendingFragment = { cardId, fragmentNumber }
 
-  /* Affiche le prix minimum en placeholder pour guider le joueur */
-  const averages = getAveragePrices()
-  const minPrice = getFragmentMinimumPrice(cardId, fragmentNumber, averages)
-  const fragmentName = getFragmentDisplayName(cardId, fragmentNumber)
+  const averages     = getAveragePrices()
+  const minPrice     = getFragmentMinimumPrice(cardId, fragmentNumber, averages)
 
   const modal = new ModalBuilder()
    .setCustomId("marketFragmentPriceModal")
@@ -368,25 +408,33 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
     MODAL HANDLER
  ══════════════════════════════════════════════════════════ */
 
+ /**
+  * Gère tous les modals du market (achat, vente carte, vente fragment, retrait).
+  * @param {import("discord.js").ModalSubmitInteraction} interaction
+  */
  async modal(interaction) {
 
   /* ── Acheter ── */
 
   if (interaction.customId === "marketBuyModal") {
+
    const listingId = parseInt(interaction.fields.getTextInputValue("listingId"))
-   const result = buyCard(interaction.user.id, listingId)
+   const result    = buyCard(interaction.user.id, listingId)
+
    if (result?.error) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
 
-   const listing = result?.listing || {}
+   const listing    = result?.listing || {}
    const isFragment = getListingType(listing) === "fragment"
-   const cards = getCards()
-   const card = cards.find((c) => String(c.id) === String(listing.card))
+   const cards      = getCards()
+   const card       = cards.find(c => String(c.id) === String(listing.card))
+
    const itemLabel = isFragment
     ? `🧩 ${getFragmentDisplayName(listing.card, listing.fragmentNumber)}`
     : `${RARITY_EMOJI[card?.rarity || "C"]} ${card?.name || `Carte #${listing.card}`}`
+
    const priceLabel = Number(listing.price || 0).toLocaleString("fr-FR")
 
-   const user = getUser(interaction.user.id)
+   const user     = getUser(interaction.user.id)
    const unlocked = [
     ...achievementCheck(user, "economy"),
     ...achievementCheck(user, "collection"),
@@ -398,6 +446,7 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
     content: `✅ Achat confirmé: **${itemLabel}** pour **${priceLabel} kamas**.\n📦 L'objet a été ajouté à ton inventaire.`,
     flags: 64
    })
+
    if (unlocked.length) await notifyAchievements(interaction, unlocked, user)
    return
   }
@@ -405,15 +454,18 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
   /* ── Vendre carte ── */
 
   if (interaction.customId === "marketSellModal") {
+
    await interaction.deferReply({ flags: 64 })
+
    const cardId = parseInt(interaction.fields.getTextInputValue("cardId"))
    const price  = parseInt(interaction.fields.getTextInputValue("price"))
+
    if (isNaN(cardId) || isNaN(price)) return interaction.editReply("❌ ID ou prix invalide.")
 
    const result = addListing(interaction.user.id, cardId, price)
    if (result?.error) return interaction.editReply(`❌ ${result.error}`)
 
-   const user = getUser(interaction.user.id)
+   const user     = getUser(interaction.user.id)
    await addBattlePassXP(interaction.user.id, "market_sell")
    const unlocked = achievementCheck(user, "economy")
 
@@ -422,15 +474,13 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    return
   }
 
-  /* ── Vendre fragment — NOUVELLE UX
-   * Le modal ne demande QUE le prix.
-   * cardId + fragmentNumber viennent du marketState (sélection précédente).
-   */
+  /* ── Vendre fragment (modal prix uniquement) ── */
 
   if (interaction.customId === "marketFragmentPriceModal") {
+
    await interaction.deferReply({ flags: 64 })
 
-   const userId = interaction.user.id
+   const userId  = interaction.user.id
    const pending = marketState[userId]?.pendingFragment
 
    if (!pending) {
@@ -445,7 +495,7 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    }
 
    const minPrice = getFragmentMinimumPrice(cardId, fragmentNumber)
-   const result = addFragmentListing(userId, cardId, fragmentNumber, price)
+   const result   = addFragmentListing(userId, cardId, fragmentNumber, price)
 
    if (result?.error) {
     return interaction.editReply(`❌ ${result.error}\nPrix minimum actuel : **${minPrice}** kamas.`)
@@ -455,13 +505,14 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    delete marketState[userId].pendingFragment
 
    const fragmentName = getFragmentDisplayName(cardId, fragmentNumber)
-   const user = getUser(userId)
+   const user         = getUser(userId)
    await addBattlePassXP(userId, "market_sell")
    const unlocked = achievementCheck(user, "fragment")
 
    await interaction.editReply(
     `🧩 **${fragmentName}** mis en vente pour **${price} kamas**.\nPrix minimum : **${minPrice}** kamas.`
    )
+
    if (unlocked.length) await notifyAchievements(interaction, unlocked, user)
    return
   }
@@ -469,8 +520,10 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
   /* ── Retirer une vente ── */
 
   if (interaction.customId === "marketRemoveModal") {
+
    const listingId = parseInt(interaction.fields.getTextInputValue("listingId"))
-   const result = removeListing(interaction.user.id, listingId)
+   const result    = removeListing(interaction.user.id, listingId)
+
    if (result?.error) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
    return interaction.reply({ content: "📦 Vente retirée.", flags: 64 })
   }

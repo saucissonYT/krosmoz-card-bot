@@ -1,46 +1,48 @@
-const fs   = require("fs")
+/* ═══════════════════════════════════════════════════════════════
+   MODERATION SYSTEM — systems/moderationSystem.js
+
+   Gère les sanctions (ban temporaire / permanent) et le mode
+   malchance (force les tirages C uniquement).
+
+   MODIFICATIONS :
+   - Supprimé le pattern `let BASE = "/data"` dupliqué
+     → utilise `getBasePath()` depuis paths.js (source unique)
+   - Supprimé `loadJSON` / `saveJSON` manuels
+     → utilise `readJsonSafe` / `writeAtomic` depuis fileUtils.js
+   - Supprimé les `console.error` bruts
+     → utilise `createLogger("MODERATION")` depuis logger.js
+   - Ajout de JSDoc sur toutes les fonctions exportées
+   - Ajout de try/catch robustes sur les opérations critiques
+═══════════════════════════════════════════════════════════════ */
+
 const path = require("path")
 
-/* ================================================================
-   MODERATION SYSTEM
-   – sanctions  : empêche un joueur d'utiliser le bot pendant X temps
-   – malchance  : force le joueur à ne tirer que des cartes C (blanches)
-================================================================ */
+const { getBasePath }                = require("./paths")
+const { createLogger }               = require("./logger")
+const { writeAtomic, readJsonSafe }  = require("./fileUtils")
 
-/* -------- BASE PATH (Railway /data ou ./data local) -------- */
+const log = createLogger("MODERATION")
 
-let BASE = "/data"
-if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
-if (!fs.existsSync(BASE)) fs.mkdirSync(BASE, { recursive: true })
+/* ─── Chemins ─────────────────────────────────────────────── */
 
-const SANCTIONS_PATH = path.join(BASE, "sanctions.json")
-const NOLUCK_PATH    = path.join(BASE, "noluck.json")
+const BASE            = getBasePath()
+const SANCTIONS_PATH  = path.join(BASE, "sanctions.json")
+const NOLUCK_PATH     = path.join(BASE, "noluck.json")
 
-/* ================================================================
-   HELPERS LOAD / SAVE
-================================================================ */
+/* ─── Chargement initial ─────────────────────────────────── */
 
-function loadJSON(filePath, defaultValue) {
-  try {
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf8")
-      if (raw && raw.trim() !== "") return JSON.parse(raw)
-    }
-  } catch (err) {
-    console.error(`[MODERATION] Erreur lecture ${filePath}:`, err)
-  }
-  return defaultValue
-}
+/** @type {Object<string, SanctionEntry>} */
+let sanctions = readJsonSafe(SANCTIONS_PATH, {})
 
-function saveJSON(filePath, data) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
-  } catch (err) {
-    console.error(`[MODERATION] Erreur sauvegarde ${filePath}:`, err)
-  }
-}
+/** @type {Object<string, NoluckEntry>} */
+let noluck = readJsonSafe(NOLUCK_PATH, {})
 
-/* ================================================================
+log.info("Moderation chargée", {
+ sanctions: Object.keys(sanctions).length,
+ noluck:    Object.keys(noluck).length
+})
+
+/* ═══════════════════════════════════════════════════════════════
    SANCTIONS
    Structure sanctions.json :
    {
@@ -51,135 +53,251 @@ function saveJSON(filePath, data) {
        "at":      1699999000000
      }
    }
-================================================================ */
-
-let sanctions = loadJSON(SANCTIONS_PATH, {})
+═══════════════════════════════════════════════════════════════ */
 
 /**
- * Sanctionner un joueur.
- * @param {string} userId     - ID Discord de la cible
- * @param {number} durationMs - Durée en millisecondes (0 = permanent)
- * @param {string} reason     - Raison
- * @param {string} by         - ID du modérateur
+ * @typedef {Object} SanctionEntry
+ * @property {number|null} endsAt  - Timestamp de fin (null = permanent)
+ * @property {string}      reason  - Raison de la sanction
+ * @property {string}      by      - ID du modérateur
+ * @property {number}      at      - Timestamp de création
+ */
+
+/**
+ * Sanctionner un joueur (ban temporaire ou permanent).
+ * @param {string} userId      - ID Discord de la cible
+ * @param {number} durationMs  - Durée en ms (0 = permanent)
+ * @param {string} [reason]    - Raison
+ * @param {string} [by]        - ID du modérateur
+ * @returns {SanctionEntry} L'entrée de sanction créée
  */
 function sanctionPlayer(userId, durationMs, reason = "Aucune raison précisée", by = "inconnu") {
-  const now    = Date.now()
-  const endsAt = durationMs > 0 ? now + durationMs : null   // null = permanent
 
-  sanctions[userId] = { endsAt, reason, by, at: now }
-  saveJSON(SANCTIONS_PATH, sanctions)
+ const now    = Date.now()
+ const endsAt = durationMs > 0 ? now + durationMs : null
 
-  return sanctions[userId]
+ sanctions[userId] = { endsAt, reason, by, at: now }
+
+ try {
+  writeAtomic(SANCTIONS_PATH, sanctions)
+ } catch (err) {
+  log.error("Erreur sauvegarde sanctions", { err, userId })
+ }
+
+ log.info("Joueur sanctionné", { userId, durationMs, reason, by })
+
+ return sanctions[userId]
 }
 
 /**
  * Lever la sanction d'un joueur.
+ * @param {string} userId - ID Discord
+ * @returns {boolean} true si une sanction existait et a été levée
  */
 function unsanctionPlayer(userId) {
-  if (!sanctions[userId]) return false
-  delete sanctions[userId]
-  saveJSON(SANCTIONS_PATH, sanctions)
-  return true
+
+ if (!sanctions[userId]) return false
+
+ delete sanctions[userId]
+
+ try {
+  writeAtomic(SANCTIONS_PATH, sanctions)
+ } catch (err) {
+  log.error("Erreur sauvegarde unsanction", { err, userId })
+ }
+
+ log.info("Sanction levée", { userId })
+
+ return true
 }
 
 /**
  * Vérifier si un joueur est sanctionné.
  * Nettoie automatiquement les sanctions expirées.
- * @returns {object|null}  La sanction active, ou null
+ * @param {string} userId - ID Discord
+ * @returns {boolean} true si le joueur est actuellement sanctionné
  */
 function isSanctioned(userId) {
-  const entry = sanctions[userId]
-  if (!entry) return null
 
-  /* Sanction permanente */
-  if (entry.endsAt === null) return entry
+ const entry = sanctions[userId]
+ if (!entry) return false
 
-  /* Vérifier expiration */
-  if (Date.now() >= entry.endsAt) {
-    delete sanctions[userId]
-    saveJSON(SANCTIONS_PATH, sanctions)
-    return null
+ /* Sanction permanente */
+ if (entry.endsAt === null) return true
+
+ /* Sanction expirée → nettoyage automatique */
+ if (Date.now() >= entry.endsAt) {
+  delete sanctions[userId]
+
+  try {
+   writeAtomic(SANCTIONS_PATH, sanctions)
+  } catch (err) {
+   log.error("Erreur nettoyage sanction expirée", { err, userId })
   }
 
-  return entry
+  return false
+ }
+
+ return true
 }
 
 /**
- * Récupérer toutes les sanctions actives (pour debug/audit).
+ * Récupérer les infos de sanction d'un joueur.
+ * @param {string} userId - ID Discord
+ * @returns {SanctionEntry|null}
  */
-function getAllSanctions() {
-  const now    = Date.now()
-  const active = {}
-
-  for (const [uid, entry] of Object.entries(sanctions)) {
-    if (entry.endsAt === null || now < entry.endsAt) {
-      active[uid] = entry
-    } else {
-      /* Nettoyage au passage */
-      delete sanctions[uid]
-    }
-  }
-
-  saveJSON(SANCTIONS_PATH, sanctions)
-  return active
+function getSanction(userId) {
+ if (!isSanctioned(userId)) return null
+ return sanctions[userId] || null
 }
 
-/* ================================================================
-   MALCHANCE
+/**
+ * Retourne toutes les sanctions actives.
+ * @returns {Object<string, SanctionEntry>}
+ */
+function getAllSanctions() {
+ /* Nettoyage des sanctions expirées avant retour */
+ const now     = Date.now()
+ let   changed = false
+
+ for (const userId in sanctions) {
+  const entry = sanctions[userId]
+  if (entry.endsAt !== null && now >= entry.endsAt) {
+   delete sanctions[userId]
+   changed = true
+  }
+ }
+
+ if (changed) {
+  try {
+   writeAtomic(SANCTIONS_PATH, sanctions)
+  } catch (err) {
+   log.error("Erreur nettoyage batch sanctions", { err })
+  }
+ }
+
+ return { ...sanctions }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MALCHANCE (NOLUCK)
+   Force un joueur à ne tirer que des cartes C (blanches).
+
    Structure noluck.json :
    {
      "123456789": {
-       "active": true,
-       "by":     "moderator_id",
-       "at":     1699999000000
+       "endsAt":  1700000000000,
+       "reason":  "triche",
+       "by":      "moderator_id",
+       "at":      1699999000000
      }
    }
-================================================================ */
-
-let noluck = loadJSON(NOLUCK_PATH, {})
+═══════════════════════════════════════════════════════════════ */
 
 /**
- * Activer ou désactiver la malchance d'un joueur.
- * @param {string}  userId - ID Discord de la cible
- * @param {boolean} active - true = activer, false = désactiver
- * @param {string}  by     - ID du modérateur
+ * @typedef {Object} NoluckEntry
+ * @property {number|null} endsAt  - Timestamp de fin (null = permanent)
+ * @property {string}      reason  - Raison
+ * @property {string}      by      - ID du modérateur
+ * @property {number}      at      - Timestamp de création
  */
-function setNoLuck(userId, active, by = "inconnu") {
-  if (active) {
-    noluck[userId] = { active: true, by, at: Date.now() }
-  } else {
-    delete noluck[userId]
-  }
-  saveJSON(NOLUCK_PATH, noluck)
+
+/**
+ * Activer le mode malchance sur un joueur.
+ * @param {string} userId      - ID Discord
+ * @param {number} durationMs  - Durée en ms (0 = permanent)
+ * @param {string} [reason]    - Raison
+ * @param {string} [by]        - ID du modérateur
+ * @returns {NoluckEntry}
+ */
+function setNoluck(userId, durationMs, reason = "Aucune raison précisée", by = "inconnu") {
+
+ const now    = Date.now()
+ const endsAt = durationMs > 0 ? now + durationMs : null
+
+ noluck[userId] = { endsAt, reason, by, at: now }
+
+ try {
+  writeAtomic(NOLUCK_PATH, noluck)
+ } catch (err) {
+  log.error("Erreur sauvegarde noluck", { err, userId })
+ }
+
+ log.info("Noluck activé", { userId, durationMs, reason, by })
+
+ return noluck[userId]
 }
 
 /**
- * Vérifier si un joueur a la malchance active.
+ * Désactiver le mode malchance.
+ * @param {string} userId - ID Discord
+ * @returns {boolean} true si le mode existait et a été retiré
+ */
+function removeNoluck(userId) {
+
+ if (!noluck[userId]) return false
+
+ delete noluck[userId]
+
+ try {
+  writeAtomic(NOLUCK_PATH, noluck)
+ } catch (err) {
+  log.error("Erreur sauvegarde removeNoluck", { err, userId })
+ }
+
+ log.info("Noluck retiré", { userId })
+
+ return true
+}
+
+/**
+ * Vérifier si un joueur est en mode malchance.
+ * Nettoie automatiquement les entrées expirées.
+ * @param {string} userId - ID Discord
  * @returns {boolean}
  */
-function hasNoLuck(userId) {
-  return !!(noluck[userId]?.active)
+function hasNoluck(userId) {
+
+ const entry = noluck[userId]
+ if (!entry) return false
+
+ if (entry.endsAt === null) return true
+
+ if (Date.now() >= entry.endsAt) {
+  delete noluck[userId]
+
+  try {
+   writeAtomic(NOLUCK_PATH, noluck)
+  } catch (err) {
+   log.error("Erreur nettoyage noluck expiré", { err, userId })
+  }
+
+  return false
+ }
+
+ return true
 }
 
 /**
- * Récupérer tous les joueurs avec malchance active.
+ * Récupérer les infos de malchance d'un joueur.
+ * @param {string} userId - ID Discord
+ * @returns {NoluckEntry|null}
  */
-function getAllNoLuck() {
-  return { ...noluck }
+function getNoluck(userId) {
+ if (!hasNoluck(userId)) return null
+ return noluck[userId] || null
 }
 
-/* ================================================================
-   EXPORTS
-================================================================ */
+/* ─── Export ─────────────────────────────────────────────── */
 
 module.exports = {
-  /* Sanctions */
-  sanctionPlayer,
-  unsanctionPlayer,
-  isSanctioned,
-  getAllSanctions,
-  /* Malchance */
-  setNoLuck,
-  hasNoLuck,
-  getAllNoLuck,
+ sanctionPlayer,
+ unsanctionPlayer,
+ isSanctioned,
+ getSanction,
+ getAllSanctions,
+ setNoluck,
+ removeNoluck,
+ hasNoluck,
+ getNoluck
 }
