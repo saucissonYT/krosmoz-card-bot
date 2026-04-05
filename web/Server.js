@@ -476,6 +476,16 @@ function computeProfile(userId) {
   guild,
   rarityBreakdown,
   setProgress,
+  pity: sets.map((set) => {
+   const p = user.pity?.[set.id] || {}
+   return {
+    setId: set.id,
+    setName: set.name,
+    UR:  p.UR  ?? 0,
+    S:   p.S   ?? 0,
+    SSR: p.SSR ?? 0
+   }
+  }),
   stats: {
    packsOpened: user.stats?.packsOpened || 0,
    fusions: user.stats?.fusions || 0,

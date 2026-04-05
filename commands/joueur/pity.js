@@ -50,7 +50,7 @@ function formatPercent(rate){
 
 /* ---------- BUILD PAGE ---------- */
 
-function buildPage(user, page){
+function buildPage(user, page, userId){
 
  const totalPages = Math.max(1, Math.ceil(sets.length / PER_PAGE))
  page = Math.max(1, Math.min(page, totalPages))
@@ -96,7 +96,7 @@ ${progressBar(ssr, 50)}`
  const embed = new EmbedBuilder()
   .setTitle("🎴 Pity")
   .setDescription(lines.join("\n\n"))
-  .setFooter({ text:`Page ${page}/${totalPages} • ${sets.length} sets` })
+  .setFooter({ text:`Page ${page}/${totalPages} • ${sets.length} sets • 🌐 krosmozcard.fr` })
   .setColor("#f1c40f")
 
  const row = new ActionRowBuilder().addComponents(
@@ -117,8 +117,13 @@ ${progressBar(ssr, 50)}`
    .setCustomId("pity_next")
    .setLabel("▶")
    .setStyle(ButtonStyle.Secondary)
-   .setDisabled(page >= totalPages)
+   .setDisabled(page >= totalPages),
 
+  new ButtonBuilder()
+   .setLabel("Profil web")
+   .setEmoji("🌐")
+   .setStyle(ButtonStyle.Link)
+   .setURL(`https://www.krosmozcard.fr/profile/${userId || ""}`)
  )
 
  return { embed, row, totalPages }
@@ -141,7 +146,7 @@ module.exports = {
 
   let page = 1
 
-  const { embed, row } = buildPage(user, page)
+  const { embed, row } = buildPage(user, page, interaction.user.id)
 
   save()
 
@@ -163,7 +168,7 @@ module.exports = {
    if(i.customId === "pity_next") page++
    if(i.customId === "pity_prev") page--
 
-   const { embed, row } = buildPage(user, page)
+   const { embed, row } = buildPage(user, page, interaction.user.id)
 
    await i.update({
     embeds:[embed],

@@ -243,7 +243,13 @@ module.exports = {
     .setCustomId("profil_achievements")
     .setLabel("Succès")
     .setEmoji("🏆")
-    .setStyle(ButtonStyle.Success)
+    .setStyle(ButtonStyle.Success),
+
+   new ButtonBuilder()
+    .setLabel("Profil web")
+    .setEmoji("🌐")
+    .setStyle(ButtonStyle.Link)
+    .setURL(`https://www.krosmozcard.fr/profile/${target.id}`)
 
   )
 

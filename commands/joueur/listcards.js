@@ -89,6 +89,7 @@ module.exports = {
    .setTitle("📦 Sets de cartes")
    .setDescription(descLines.join("\n") || "Aucun set.")
    .setColor(0xF1C40F)
+   .setFooter({ text: "🌐 Consultable aussi sur krosmozcard.fr/cards" })
 
   await interaction.reply({
    embeds:     [setsEmbed],
