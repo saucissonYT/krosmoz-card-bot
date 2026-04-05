@@ -2,7 +2,11 @@
    DATABASE — systems/database.js
 
    Couche SQLite avec better-sqlite3 (synchrone).
-   Remplace les fichiers JSON pour users et market.
+   Remplace les fichiers JSON pour :
+     - users
+     - market / marketHistory
+     - guilds           ← NOUVEAU v0.39
+     - battlepass progress  ← NOUVEAU v0.39
 
    Installation requise :
      npm install better-sqlite3
@@ -12,8 +16,8 @@
      const db = getDb()
      const row = db.prepare("SELECT * FROM users WHERE id = ?").get(userId)
 
-   Les cards, devs, guilds, battlepass restent en JSON (pas d'impact perf).
-   Seuls les users et le market migrent vers SQLite.
+   Les cards, devs, season templates, current_season restent en JSON
+   (données statiques / config, pas d'impact perf).
 ═══════════════════════════════════════════════════════════════ */
 
 const path    = require("path")
@@ -121,6 +125,38 @@ function createTables(db) {
 
   CREATE INDEX IF NOT EXISTS idx_mh_timestamp ON market_history(timestamp DESC);
 
+  /* ── GUILDS ────────────────────────────────── */
+  CREATE TABLE IF NOT EXISTS guilds (
+   id              TEXT PRIMARY KEY,
+   data            TEXT NOT NULL,
+   name            TEXT NOT NULL,
+   leader_id       TEXT NOT NULL,
+   level           INTEGER DEFAULT 1,
+   xp              INTEGER DEFAULT 0,
+   member_count    INTEGER DEFAULT 1,
+   created_at      INTEGER DEFAULT 0,
+   updated_at      INTEGER DEFAULT 0
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_guilds_name     ON guilds(name);
+  CREATE INDEX IF NOT EXISTS idx_guilds_leader   ON guilds(leader_id);
+  CREATE INDEX IF NOT EXISTS idx_guilds_level    ON guilds(level DESC);
+
+  /* ── BATTLEPASS PROGRESS ───────────────────── */
+  CREATE TABLE IF NOT EXISTS battlepass_progress (
+   user_id         TEXT NOT NULL,
+   season_id       TEXT NOT NULL,
+   data            TEXT NOT NULL,
+   current_level   INTEGER DEFAULT 1,
+   total_xp        INTEGER DEFAULT 0,
+   has_premium     INTEGER DEFAULT 0,
+   updated_at      INTEGER DEFAULT 0,
+   PRIMARY KEY (user_id, season_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_bp_season  ON battlepass_progress(season_id);
+  CREATE INDEX IF NOT EXISTS idx_bp_level   ON battlepass_progress(current_level DESC);
+
   /* ── META (migration tracking) ─────────────── */
   CREATE TABLE IF NOT EXISTS meta (
    key   TEXT PRIMARY KEY,
@@ -143,7 +179,9 @@ function stmt(key, sql) {
  return _stmts[key]
 }
 
-/* ── Users ── */
+/* ═══════════════════════════════════════════════
+   USERS
+═══════════════════════════════════════════════ */
 
 function dbLoadUser(id) {
  const row = stmt("loadUser",
@@ -229,7 +267,9 @@ function dbLeaderboard(category, limit = 100) {
  `).all(limit)
 }
 
-/* ── Market ── */
+/* ═══════════════════════════════════════════════
+   MARKET
+═══════════════════════════════════════════════ */
 
 function dbLoadMarket() {
  return getDb().prepare("SELECT * FROM market ORDER BY timestamp DESC").all().map(row => ({
@@ -320,7 +360,147 @@ function dbAddMarketHistory(entry) {
  )
 }
 
-/* ── Meta ── */
+/* ═══════════════════════════════════════════════
+   GUILDS
+═══════════════════════════════════════════════ */
+
+function dbLoadAllGuilds() {
+ const rows = getDb().prepare("SELECT data FROM guilds").all()
+ const result = {}
+ for (const row of rows) {
+  try {
+   const guild = JSON.parse(row.data)
+   if (guild && guild.id) {
+    result[guild.id] = guild
+   }
+  } catch (_) { /* skip corrupted */ }
+ }
+ return result
+}
+
+function dbLoadGuild(guildId) {
+ const row = stmt("loadGuild",
+  "SELECT data FROM guilds WHERE id = ?"
+ ).get(guildId)
+ return row ? JSON.parse(row.data) : null
+}
+
+function dbSaveGuild(guild) {
+ if (!guild || !guild.id) return
+
+ const clone = JSON.parse(JSON.stringify(guild))
+
+ stmt("saveGuild", `
+  INSERT OR REPLACE INTO guilds
+   (id, data, name, leader_id, level, xp, member_count, created_at, updated_at)
+  VALUES
+   (?, ?, ?, ?, ?, ?, ?, ?, ?)
+ `).run(
+  clone.id,
+  JSON.stringify(clone),
+  clone.name || "Sans nom",
+  clone.leaderId || "",
+  clone.level || 1,
+  clone.xp || 0,
+  Array.isArray(clone.members) ? clone.members.length : 1,
+  clone.createdAt || Date.now(),
+  Date.now()
+ )
+}
+
+function dbDeleteGuild(guildId) {
+ stmt("deleteGuild", "DELETE FROM guilds WHERE id = ?").run(guildId)
+}
+
+function dbCountGuilds() {
+ return getDb().prepare("SELECT COUNT(*) as c FROM guilds").get().c
+}
+
+function dbGuildLeaderboard(limit = 50) {
+ return getDb().prepare(`
+  SELECT id, name, level, xp, member_count, leader_id
+  FROM guilds
+  ORDER BY level DESC, xp DESC
+  LIMIT ?
+ `).all(limit)
+}
+
+function dbFindGuildByName(name) {
+ const row = getDb().prepare(
+  "SELECT data FROM guilds WHERE LOWER(name) = LOWER(?)"
+ ).get(name)
+ return row ? JSON.parse(row.data) : null
+}
+
+/* ═══════════════════════════════════════════════
+   BATTLEPASS PROGRESS
+═══════════════════════════════════════════════ */
+
+function dbLoadBattlePassProgress(userId, seasonId) {
+ const row = stmt("loadBP",
+  "SELECT data FROM battlepass_progress WHERE user_id = ? AND season_id = ?"
+ ).get(userId, seasonId)
+ return row ? JSON.parse(row.data) : null
+}
+
+function dbSaveBattlePassProgress(progress) {
+ if (!progress || !progress.userId || !progress.seasonId) return
+
+ const clone = JSON.parse(JSON.stringify(progress))
+
+ stmt("saveBP", `
+  INSERT OR REPLACE INTO battlepass_progress
+   (user_id, season_id, data, current_level, total_xp, has_premium, updated_at)
+  VALUES
+   (?, ?, ?, ?, ?, ?, ?)
+ `).run(
+  clone.userId,
+  clone.seasonId,
+  JSON.stringify(clone),
+  clone.currentLevel || 1,
+  clone.totalXP || 0,
+  clone.hasPremium ? 1 : 0,
+  Date.now()
+ )
+}
+
+function dbDeleteBattlePassProgress(userId, seasonId) {
+ stmt("deleteBP",
+  "DELETE FROM battlepass_progress WHERE user_id = ? AND season_id = ?"
+ ).run(userId, seasonId)
+}
+
+function dbListBattlePassUserIds(seasonId) {
+ return getDb().prepare(
+  "SELECT user_id FROM battlepass_progress WHERE season_id = ?"
+ ).all(seasonId).map(r => r.user_id)
+}
+
+function dbCountBattlePassUsers(seasonId) {
+ return getDb().prepare(
+  "SELECT COUNT(*) as c FROM battlepass_progress WHERE season_id = ?"
+ ).get(seasonId).c
+}
+
+function dbBattlePassLeaderboard(seasonId, limit = 50) {
+ return getDb().prepare(`
+  SELECT user_id AS userId, current_level AS level, total_xp AS xp, has_premium AS premium
+  FROM battlepass_progress
+  WHERE season_id = ? AND current_level > 1
+  ORDER BY current_level DESC, total_xp DESC
+  LIMIT ?
+ `).all(seasonId, limit)
+}
+
+function dbDeleteAllBattlePassProgress(seasonId) {
+ getDb().prepare(
+  "DELETE FROM battlepass_progress WHERE season_id = ?"
+ ).run(seasonId)
+}
+
+/* ═══════════════════════════════════════════════
+   META
+═══════════════════════════════════════════════ */
 
 function dbGetMeta(key) {
  const row = getDb().prepare("SELECT value FROM meta WHERE key = ?").get(key)
@@ -333,7 +513,9 @@ function dbSetMeta(key, value) {
  ).run(key, String(value))
 }
 
-/* ── Transactions ── */
+/* ═══════════════════════════════════════════════
+   TRANSACTIONS
+═══════════════════════════════════════════════ */
 
 function dbTransaction(fn) {
  return getDb().transaction(fn)()
@@ -365,6 +547,24 @@ module.exports = {
  /* Market History */
  dbLoadMarketHistory,
  dbAddMarketHistory,
+
+ /* Guilds */
+ dbLoadAllGuilds,
+ dbLoadGuild,
+ dbSaveGuild,
+ dbDeleteGuild,
+ dbCountGuilds,
+ dbGuildLeaderboard,
+ dbFindGuildByName,
+
+ /* BattlePass Progress */
+ dbLoadBattlePassProgress,
+ dbSaveBattlePassProgress,
+ dbDeleteBattlePassProgress,
+ dbListBattlePassUserIds,
+ dbCountBattlePassUsers,
+ dbBattlePassLeaderboard,
+ dbDeleteAllBattlePassProgress,
 
  /* Meta */
  dbGetMeta,

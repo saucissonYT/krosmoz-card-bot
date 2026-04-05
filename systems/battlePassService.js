@@ -15,6 +15,13 @@ const {
  writeAtomic
 } = require("./seasonService")
 
+const {
+ dbLoadBattlePassProgress,
+ dbSaveBattlePassProgress,
+ dbListBattlePassUserIds,
+ dbCountBattlePassUsers
+} = require("./database")
+
 const claimLocks         = new Set()
 const commandCooldown    = new Map()
 const COOLDOWN_MS               = 2000
@@ -128,42 +135,54 @@ function checkCooldown(userId) {
 }
 
 function getUserProgress(userId, seasonId) {
- const filePath = getProgressPath(userId)
  const fallback = createDefaultProgress(userId, seasonId)
 
- if (!fs.existsSync(filePath)) {
-  writeAtomic(filePath, fallback)
-  return fallback
+ /* SQLite d'abord */
+ const fromDb = dbLoadBattlePassProgress(userId, seasonId)
+
+ if (fromDb) {
+  let changed = false
+
+  if (!fromDb.schemaVersion) { fromDb.schemaVersion = 1; changed = true }
+  if (!fromDb.stats) { fromDb.stats = fallback.stats; changed = true }
+  const statDefaults = { events: 0, setsCompleted: 0, rareCards: 0, rouletteSpins: 0 }
+  for (const [k, v] of Object.entries(statDefaults)) {
+   if (fromDb.stats[k] === undefined) { fromDb.stats[k] = v; changed = true }
+  }
+  if (!Array.isArray(fromDb.achievementsUnlocked)) { fromDb.achievementsUnlocked = []; changed = true }
+  if (!Array.isArray(fromDb.claimedFree))          { fromDb.claimedFree = [];          changed = true }
+  if (!Array.isArray(fromDb.claimedPremium))       { fromDb.claimedPremium = [];        changed = true }
+
+  if (fromDb.seasonId !== seasonId) {
+   const migrated = createDefaultProgress(userId, seasonId)
+   migrated.hasPremium = false
+   dbSaveBattlePassProgress(migrated)
+   return migrated
+  }
+
+  if (changed) dbSaveBattlePassProgress(fromDb)
+  return fromDb
  }
 
- const progress = readJson(filePath, fallback)
- let changed = false
-
- if (!progress.schemaVersion) { progress.schemaVersion = 1; changed = true }
- if (!progress.stats) { progress.stats = fallback.stats; changed = true }
- /* Init des nouveaux champs stats si absents */
- const statDefaults = { events: 0, setsCompleted: 0, rareCards: 0, rouletteSpins: 0 }
- for (const [k, v] of Object.entries(statDefaults)) {
-  if (progress.stats[k] === undefined) { progress.stats[k] = v; changed = true }
- }
- if (!Array.isArray(progress.achievementsUnlocked)) { progress.achievementsUnlocked = []; changed = true }
- if (!Array.isArray(progress.claimedFree))          { progress.claimedFree = [];          changed = true }
- if (!Array.isArray(progress.claimedPremium))       { progress.claimedPremium = [];        changed = true }
-
- if (progress.seasonId !== seasonId) {
-  const migrated = createDefaultProgress(userId, seasonId)
-  migrated.hasPremium = false
-  writeAtomic(filePath, migrated)
-  return migrated
+ /* Fallback : essayer l'ancien fichier JSON (période de transition) */
+ const filePath = getProgressPath(userId)
+ if (fs.existsSync(filePath)) {
+  const progress = readJson(filePath, fallback)
+  if (!progress.userId)   progress.userId   = String(userId)
+  if (!progress.seasonId) progress.seasonId = seasonId
+  /* Migrer vers SQLite automatiquement */
+  dbSaveBattlePassProgress(progress)
+  return progress
  }
 
- if (changed) writeAtomic(filePath, progress)
- return progress
+ /* Nouveau joueur : créer dans SQLite */
+ dbSaveBattlePassProgress(fallback)
+ return fallback
 }
 
 function saveUserProgress(progress) {
  progress.lastUpdated = new Date().toISOString()
- writeAtomic(getProgressPath(progress.userId), progress)
+ dbSaveBattlePassProgress(progress)
 }
 
 /* ─── File lock ─────────────────────────────────────────────────────────── */
@@ -410,6 +429,13 @@ function getSeasonBonusMultiplier(season) {
 /* ─── getAllProgressUserIds ──────────────────────────────────────────────── */
 
 function getAllProgressUserIds() {
+ const current = ensureCurrentSeason()
+
+ /* SQLite d'abord */
+ const fromDb = dbListBattlePassUserIds(current.activeSeason)
+ if (fromDb.length > 0) return fromDb
+
+ /* Fallback fichiers JSON (période de transition) */
  const paths = getBattlePassPaths()
  if (!fs.existsSync(paths.progress)) return []
  return fs.readdirSync(paths.progress)
@@ -794,10 +820,8 @@ function devSetXP(userId, totalXP) {
 
 function devStatus() {
  const current = ensureCurrentSeason()
- const paths   = getBattlePassPaths()
- const files   = fs.existsSync(paths.progress)
-  ? fs.readdirSync(paths.progress).filter((f) => f.endsWith(".json")) : []
- return { current, playersWithProgress: files.length, progressPath: paths.progress }
+ const count   = dbCountBattlePassUsers(current.activeSeason)
+ return { current, playersWithProgress: count, progressPath: getBattlePassPaths().progress }
 }
 
 function devGivePremium(userId) {

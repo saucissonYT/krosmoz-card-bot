@@ -4,59 +4,66 @@ const path = require("path")
 const { getUser, save } = require("./userSystem")
 
 /* ════════════════════════════════════════════════════════════
-   MODIFICATIONS (logger, paths, writeAtomic uniquement) :
-   - Aucune logique supprimée
-   - Aucune fonction retirée
-   - Toutes les exports originales conservées
+   GUILD SYSTEM — systems/guildSystem.js
+
+   v0.39 : Backend migré de guilds.json → SQLite.
+   Le cache mémoire (objet `guilds`) fonctionne exactement pareil.
+   - loadGuilds() charge depuis SQLite → cache mémoire
+   - saveGuilds() écrit du cache mémoire → SQLite
+   - Toutes les fonctions, exports, constantes conservés à l'identique
 ════════════════════════════════════════════════════════════ */
 
-const { getBasePath }                = require("./paths")
-const { createLogger }               = require("./logger")
-const { writeAtomic }                = require("./fileUtils")
+const { getBasePath }    = require("./paths")
+const { createLogger }   = require("./logger")
+const {
+ dbLoadAllGuilds,
+ dbSaveGuild,
+ dbDeleteGuild,
+ dbCountGuilds,
+ dbListUserIds,
+ dbLoadUser
+} = require("./database")
 
 const log = createLogger("GUILD")
 
-/* ================= STORAGE ================= */
-
-const BASE       = getBasePath()
-const GUILD_PATH = path.join(BASE, "guilds.json")
-
-log.info("Path initialisé", { path: GUILD_PATH })
+/* ================= STORAGE (cache mémoire) ================= */
 
 let guilds = {}
 
-function loadGuilds(){
- try{
-  if(fs.existsSync(GUILD_PATH)){
-   const raw = fs.readFileSync(GUILD_PATH, "utf8")
-
-   if(!raw || raw.trim() === "" || raw.trim() === "{}"){
-    log.info("guilds.json vide ou {}, initialisation propre")
-    guilds = {}
-   } else {
-    guilds = JSON.parse(raw)
-    log.info("Guildes chargées", { count: Object.keys(guilds).length })
-   }
-
-  } else {
-   log.info("guilds.json introuvable, création...")
-   guilds = {}
-   saveGuilds()
-  }
- }catch(err){
-  log.error("Erreur chargement guilds.json", { err })
+function loadGuilds() {
+ try {
+  guilds = dbLoadAllGuilds()
+  log.info("Guildes chargées depuis SQLite", { count: Object.keys(guilds).length })
+ } catch (err) {
+  log.error("Erreur chargement guilds SQLite", { err })
   guilds = {}
+
+  /* Fallback : tenter de lire l'ancien guilds.json */
+  try {
+   const GUILD_PATH = path.join(getBasePath(), "guilds.json")
+   if (fs.existsSync(GUILD_PATH)) {
+    const raw = fs.readFileSync(GUILD_PATH, "utf8")
+    if (raw && raw.trim() !== "" && raw.trim() !== "{}") {
+     guilds = JSON.parse(raw)
+     log.info("Fallback guilds.json chargé", { count: Object.keys(guilds).length })
+     /* Sauvegarder dans SQLite */
+     for (const guild of Object.values(guilds)) {
+      try { dbSaveGuild(guild) } catch (_) {}
+     }
+    }
+   }
+  } catch (_) {}
  }
  return guilds
 }
 
-function saveGuilds(){
- try{
-  const dir = path.dirname(GUILD_PATH)
-  if(!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive:true })
-  writeAtomic(GUILD_PATH, guilds)
- }catch(err){
-  log.error("Erreur sauvegarde guilds.json", { err })
+function saveGuilds() {
+ try {
+  for (const guild of Object.values(guilds)) {
+   dbSaveGuild(guild)
+  }
+ } catch (err) {
+  log.error("Erreur sauvegarde guilds SQLite", { err })
  }
 }
 
@@ -66,57 +73,38 @@ loadGuilds()
 
 /* ================= ORPHAN CLEANUP ================= */
 
-function cleanOrphanedGuildIds(){
-
- const { USERS_DIR } = require("./dataManager")
-
- if(!fs.existsSync(USERS_DIR)) return 0
+function cleanOrphanedGuildIds() {
 
  let cleaned = 0
 
- try{
+ try {
+  const userIds = dbListUserIds()
 
-  const files = fs.readdirSync(USERS_DIR).filter(f => f.endsWith(".json"))
+  for (const userId of userIds) {
+   try {
+    const userData = dbLoadUser(userId)
 
-  for(const file of files){
-
-   const filePath = path.join(USERS_DIR, file)
-
-   try{
-
-    const raw = fs.readFileSync(filePath, "utf8")
-    const userData = JSON.parse(raw)
-
-    if(userData.guildId && !guilds[userData.guildId]){
-
-     const userId = file.replace(".json", "")
+    if (userData && userData.guildId && !guilds[userData.guildId]) {
      log.info("Nettoyage orphelin", { userId, guildId: userData.guildId })
 
-     delete userData.guildId
-     delete userData._dirty
-
-     fs.writeFileSync(filePath, JSON.stringify(userData, null, 2))
-     cleaned++
-
+     /* Nettoyer via userSystem pour la cohérence cache */
      const memUser = getUser(userId)
-     if(memUser && memUser.guildId && !guilds[memUser.guildId]){
+     if (memUser && memUser.guildId && !guilds[memUser.guildId]) {
       delete memUser.guildId
       save(userId)
      }
 
+     cleaned++
     }
-
-   }catch(err){
-    log.warn("Fichier user illisible pendant cleanup", { file, err: err.message })
+   } catch (err) {
+    log.warn("Erreur user pendant cleanup", { userId, err: err.message })
    }
-
   }
-
- }catch(err){
+ } catch (err) {
   log.error("Erreur nettoyage orphelins", { err })
  }
 
- if(cleaned > 0)
+ if (cleaned > 0)
   log.info("Orphelins nettoyés", { cleaned })
 
  return cleaned
@@ -132,47 +120,47 @@ const GUILD_EMOJIS = [
  "🌀","🔮","💀","🧿","🪶","🍀","🌸","🌺","🔱","⚜️"
 ]
 
-function randomEmoji(){
+function randomEmoji() {
  return GUILD_EMOJIS[Math.floor(Math.random() * GUILD_EMOJIS.length)]
 }
 
 /* ================= CONSTANTES ================= */
 
-const MAX_MEMBERS = 10
-const CREATE_COST = 5000
-const RENAME_COST = 2000
+const MAX_MEMBERS  = 10
+const CREATE_COST  = 5000
+const RENAME_COST  = 2000
 const MAX_OFFICERS = 3
 
 /* ================= XP / LEVEL ================= */
 
-function xpRequired(level){
+function xpRequired(level) {
  return 100 + level * 50
 }
 
-function getTotalXpForLevel(level){
+function getTotalXpForLevel(level) {
  let total = 0
- for(let i = 1; i <= level; i++) total += xpRequired(i)
+ for (let i = 1; i <= level; i++) total += xpRequired(i)
  return total
 }
 
-function addGuildXP(guildId, amount){
+function addGuildXP(guildId, amount) {
 
  const guild = guilds[guildId]
- if(!guild) return null
+ if (!guild) return null
 
  guild.xp += amount
  guild.stats.totalXpEarned = (guild.stats.totalXpEarned || 0) + amount
 
- let leveled = false
+ let leveled  = false
  let oldLevel = guild.level
 
- while(guild.xp >= xpRequired(guild.level) && guild.level < 100){
+ while (guild.xp >= xpRequired(guild.level) && guild.level < 100) {
   guild.xp -= xpRequired(guild.level)
   guild.level++
   leveled = true
  }
 
- if(guild.level >= 100) guild.level = 100
+ if (guild.level >= 100) guild.level = 100
 
  saveGuilds()
 
@@ -180,22 +168,22 @@ function addGuildXP(guildId, amount){
   leveled,
   oldLevel,
   newLevel: guild.level,
-  xp: guild.xp,
+  xp:       guild.xp,
   required: xpRequired(guild.level)
  }
 }
 
 /* ================= GENERATE ID ================= */
 
-function generateId(){
+function generateId() {
  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
 /* ================= HELPER : vérifier & nettoyer guildId orphelin ================= */
 
-function validateUserGuild(userId){
+function validateUserGuild(userId) {
  const user = getUser(userId)
- if(user.guildId && !guilds[user.guildId]){
+ if (user.guildId && !guilds[user.guildId]) {
   log.info("Auto-nettoyage guildId orphelin", { userId })
   delete user.guildId
   save(userId)
@@ -206,51 +194,52 @@ function validateUserGuild(userId){
 
 /* ================= CRUD ================= */
 
-function createGuild(userId, name){
+function createGuild(userId, name) {
 
  const user = getUser(userId)
 
- if(user.guildId){
-  if(guilds[user.guildId]){
-   return { error:"Tu es déjà dans une guilde." }
+ if (user.guildId) {
+  if (guilds[user.guildId]) {
+   return { error: "Tu es déjà dans une guilde." }
   }
   log.info("Nettoyage guildId orphelin avant création", { userId, guildId: user.guildId })
   delete user.guildId
   save(userId)
  }
 
- if(user.kamas < CREATE_COST)
-  return { error:`Il faut ${CREATE_COST} kamas pour créer une guilde.` }
+ if (user.kamas < CREATE_COST)
+  return { error: `Il faut ${CREATE_COST} kamas pour créer une guilde.` }
 
  const existing = Object.values(guilds).find(
   g => g.name.toLowerCase() === name.toLowerCase()
  )
- if(existing)
-  return { error:"Ce nom de guilde est déjà pris." }
+ if (existing)
+  return { error: "Ce nom de guilde est déjà pris." }
 
- if(name.length < 3 || name.length > 24)
-  return { error:"Le nom doit faire entre 3 et 24 caractères." }
+ if (name.length < 3 || name.length > 24)
+  return { error: "Le nom doit faire entre 3 et 24 caractères." }
 
  user.kamas -= CREATE_COST
 
- const id = generateId()
+ const id    = generateId()
  const emoji = randomEmoji()
 
  guilds[id] = {
   id,
   name,
   emoji,
-  leaderId: userId,
+  leaderId:   userId,
   officerIds: [],
-  memberIds: [userId],
-  level: 1,
-  xp: 0,
-  createdAt: new Date().toISOString(),
-  questSnapshot: {},
-  questsClaimed: [],
+  memberIds:  [userId],
+  level:      1,
+  xp:         0,
+  createdAt:  new Date().toISOString(),
+  questSnapshot:  {},
+  questsClaimed:  [],
+  questsDayClaimed: [],
   questsWeek: null,
   stats: {
-   totalXpEarned: 0,
+   totalXpEarned:   0,
    questsCompleted: 0
   }
  }
@@ -265,17 +254,17 @@ function createGuild(userId, name){
  return { guild: guilds[id] }
 }
 
-function disbandGuild(guildId, requesterId){
+function disbandGuild(guildId, requesterId) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(guild.leaderId !== requesterId)
-  return { error:"Seul le meneur peut dissoudre la guilde." }
+ if (guild.leaderId !== requesterId)
+  return { error: "Seul le meneur peut dissoudre la guilde." }
 
- for(const memberId of guild.memberIds){
+ for (const memberId of guild.memberIds) {
   const u = getUser(memberId)
-  if(u.guildId === guildId){
+  if (u.guildId === guildId) {
    delete u.guildId
    save(memberId)
   }
@@ -283,28 +272,32 @@ function disbandGuild(guildId, requesterId){
 
  const name = guild.name
  delete guilds[guildId]
+
+ /* Supprimer de SQLite aussi */
+ try { dbDeleteGuild(guildId) } catch (_) {}
+
  saveGuilds()
 
  return { name }
 }
 
-function joinGuild(userId, guildId){
+function joinGuild(userId, guildId) {
 
- const user = getUser(userId)
+ const user  = getUser(userId)
  const guild = guilds[guildId]
 
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(user.guildId){
-  if(guilds[user.guildId]){
-   return { error:"Tu es déjà dans une guilde." }
+ if (user.guildId) {
+  if (guilds[user.guildId]) {
+   return { error: "Tu es déjà dans une guilde." }
   }
   delete user.guildId
   save(userId)
  }
 
- if(guild.memberIds.length >= MAX_MEMBERS)
-  return { error:`La guilde est pleine (${MAX_MEMBERS}/${MAX_MEMBERS}).` }
+ if (guild.memberIds.length >= MAX_MEMBERS)
+  return { error: `La guilde est pleine (${MAX_MEMBERS}/${MAX_MEMBERS}).` }
 
  guild.memberIds.push(userId)
  user.guildId = guildId
@@ -315,22 +308,22 @@ function joinGuild(userId, guildId){
  return { guild }
 }
 
-function leaveGuild(userId){
+function leaveGuild(userId) {
 
  const user = getUser(userId)
- if(!user.guildId) return { error:"Tu n'es dans aucune guilde." }
+ if (!user.guildId) return { error: "Tu n'es dans aucune guilde." }
 
  const guild = guilds[user.guildId]
- if(!guild){
+ if (!guild) {
   delete user.guildId
   save(userId)
-  return { error:"Guilde introuvable (nettoyé)." }
+  return { error: "Guilde introuvable (nettoyé)." }
  }
 
- if(guild.leaderId === userId)
-  return { error:"Le meneur ne peut pas quitter. Utilise /guildmanage pour dissoudre ou transférer." }
+ if (guild.leaderId === userId)
+  return { error: "Le meneur ne peut pas quitter. Utilise /guildmanage pour dissoudre ou transférer." }
 
- guild.memberIds = guild.memberIds.filter(id => id !== userId)
+ guild.memberIds  = guild.memberIds.filter(id => id !== userId)
  guild.officerIds = guild.officerIds.filter(id => id !== userId)
 
  delete user.guildId
@@ -340,27 +333,27 @@ function leaveGuild(userId){
  return { guild }
 }
 
-function kickMember(guildId, requesterId, targetId){
+function kickMember(guildId, requesterId, targetId) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- const isLeader = guild.leaderId === requesterId
+ const isLeader  = guild.leaderId === requesterId
  const isOfficer = guild.officerIds.includes(requesterId)
 
- if(!isLeader && !isOfficer)
-  return { error:"Seuls le meneur et les officiers peuvent exclure." }
+ if (!isLeader && !isOfficer)
+  return { error: "Seuls le meneur et les officiers peuvent exclure." }
 
- if(targetId === guild.leaderId)
-  return { error:"Impossible d'exclure le meneur." }
+ if (targetId === guild.leaderId)
+  return { error: "Impossible d'exclure le meneur." }
 
- if(!isLeader && guild.officerIds.includes(targetId))
-  return { error:"Un officier ne peut pas exclure un autre officier." }
+ if (!isLeader && guild.officerIds.includes(targetId))
+  return { error: "Un officier ne peut pas exclure un autre officier." }
 
- if(!guild.memberIds.includes(targetId))
-  return { error:"Ce joueur n'est pas dans la guilde." }
+ if (!guild.memberIds.includes(targetId))
+  return { error: "Ce joueur n'est pas dans la guilde." }
 
- guild.memberIds = guild.memberIds.filter(id => id !== targetId)
+ guild.memberIds  = guild.memberIds.filter(id => id !== targetId)
  guild.officerIds = guild.officerIds.filter(id => id !== targetId)
 
  const user = getUser(targetId)
@@ -371,42 +364,49 @@ function kickMember(guildId, requesterId, targetId){
  return { guild }
 }
 
-function promoteOfficer(guildId, requesterId, targetId){
+function promoteOfficer(guildId, requesterId, targetId) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(guild.leaderId !== requesterId)
-  return { error:"Seul le meneur peut promouvoir." }
+ if (guild.leaderId !== requesterId)
+  return { error: "Seul le meneur peut promouvoir." }
 
- if(!guild.memberIds.includes(targetId))
-  return { error:"Ce joueur n'est pas dans la guilde." }
+ if (!guild.memberIds.includes(targetId))
+  return { error: "Ce joueur n'est pas dans la guilde." }
 
- if(guild.officerIds.includes(targetId))
-  return { error:"Ce joueur est déjà officier." }
+ if (guild.officerIds.includes(targetId))
+  return { error: "Ce joueur est déjà officier." }
 
- if(targetId === guild.leaderId)
-  return { error:"Le meneur ne peut pas être officier." }
+ if (targetId === guild.leaderId)
+  return { error: "Le meneur ne peut pas être officier." }
 
- if(guild.officerIds.length >= MAX_OFFICERS)
-  return { error:`Maximum ${MAX_OFFICERS} officiers.` }
+ if (guild.officerIds.length >= MAX_OFFICERS)
+  return { error: `Maximum ${MAX_OFFICERS} officiers.` }
 
  guild.officerIds.push(targetId)
+
+ /* Stats pour achievement */
+ const targetUser = getUser(targetId)
+ targetUser.stats = targetUser.stats || {}
+ targetUser.stats.guildPromoted = (targetUser.stats.guildPromoted || 0) + 1
+ save(targetId)
+
  saveGuilds()
 
  return { guild }
 }
 
-function demoteOfficer(guildId, requesterId, targetId){
+function demoteOfficer(guildId, requesterId, targetId) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(guild.leaderId !== requesterId)
-  return { error:"Seul le meneur peut rétrograder." }
+ if (guild.leaderId !== requesterId)
+  return { error: "Seul le meneur peut rétrograder." }
 
- if(!guild.officerIds.includes(targetId))
-  return { error:"Ce joueur n'est pas officier." }
+ if (!guild.officerIds.includes(targetId))
+  return { error: "Ce joueur n'est pas officier." }
 
  guild.officerIds = guild.officerIds.filter(id => id !== targetId)
  saveGuilds()
@@ -414,51 +414,66 @@ function demoteOfficer(guildId, requesterId, targetId){
  return { guild }
 }
 
-function transferLeader(guildId, requesterId, targetId){
+function transferLeader(guildId, requesterId, targetId) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(guild.leaderId !== requesterId)
-  return { error:"Seul le meneur peut transférer." }
+ if (guild.leaderId !== requesterId)
+  return { error: "Seul le meneur peut transférer." }
 
- if(!guild.memberIds.includes(targetId))
-  return { error:"Ce joueur n'est pas dans la guilde." }
+ if (!guild.memberIds.includes(targetId))
+  return { error: "Ce joueur n'est pas dans la guilde." }
 
+ if (targetId === requesterId)
+  return { error: "Tu es déjà le meneur." }
+
+ /* Ancien meneur → officier (s'il reste de la place) */
  guild.officerIds = guild.officerIds.filter(id => id !== targetId)
-
- if(guild.officerIds.length < MAX_OFFICERS)
+ if (guild.officerIds.length < MAX_OFFICERS) {
   guild.officerIds.push(requesterId)
+ }
 
  guild.leaderId = targetId
+
+ /* Stats pour achievement */
+ const requesterUser = getUser(requesterId)
+ requesterUser.stats = requesterUser.stats || {}
+ requesterUser.stats.guildTransferred = (requesterUser.stats.guildTransferred || 0) + 1
+ save(requesterId)
+
  saveGuilds()
 
  return { guild }
 }
 
-function renameGuild(guildId, requesterId, newName){
+function renameGuild(guildId, requesterId, newName) {
 
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
 
- if(guild.leaderId !== requesterId)
-  return { error:"Seul le meneur peut renommer." }
+ if (guild.leaderId !== requesterId)
+  return { error: "Seul le meneur peut renommer." }
 
- if(newName.length < 3 || newName.length > 24)
-  return { error:"Le nom doit faire entre 3 et 24 caractères." }
+ if (newName.length < 3 || newName.length > 24)
+  return { error: "Le nom doit faire entre 3 et 24 caractères." }
 
  const existing = Object.values(guilds).find(
   g => g.id !== guildId && g.name.toLowerCase() === newName.toLowerCase()
  )
- if(existing) return { error:"Ce nom est déjà pris." }
+ if (existing) return { error: "Ce nom est déjà pris." }
 
  const user = getUser(requesterId)
- if(user.kamas < RENAME_COST)
-  return { error:`Il faut ${RENAME_COST} kamas pour renommer.` }
+ if (user.kamas < RENAME_COST)
+  return { error: `Il faut ${RENAME_COST} kamas pour renommer.` }
 
  user.kamas -= RENAME_COST
- guild.name = newName
+ guild.name  = newName
  guild.emoji = randomEmoji()
+
+ /* Stats pour achievement */
+ user.stats = user.stats || {}
+ user.stats.guildRenamed = (user.stats.guildRenamed || 0) + 1
 
  save(requesterId)
  saveGuilds()
@@ -468,17 +483,17 @@ function renameGuild(guildId, requesterId, newName){
 
 /* ================= GETTERS ================= */
 
-function getGuild(guildId){
+function getGuild(guildId) {
  return guilds[guildId] || null
 }
 
-function getUserGuild(userId){
+function getUserGuild(userId) {
  const user = getUser(userId)
- if(!user.guildId) return null
+ if (!user.guildId) return null
 
  const guild = guilds[user.guildId]
 
- if(!guild){
+ if (!guild) {
   log.info("getUserGuild: nettoyage orphelin", { userId })
   delete user.guildId
   save(userId)
@@ -488,38 +503,38 @@ function getUserGuild(userId){
  return guild
 }
 
-function getAllGuilds(){
+function getAllGuilds() {
  return Object.values(guilds)
 }
 
-function getGuildRank(guildId, memberId){
+function getGuildRank(guildId, memberId) {
  const guild = guilds[guildId]
- if(!guild) return "membre"
- if(guild.leaderId === memberId) return "meneur"
- if(guild.officerIds.includes(memberId)) return "officier"
+ if (!guild) return "membre"
+ if (guild.leaderId === memberId) return "meneur"
+ if (guild.officerIds.includes(memberId)) return "officier"
  return "membre"
 }
 
 /* ================= DEV TOOLS ================= */
 
-function devSetLevel(guildId, level){
+function devSetLevel(guildId, level) {
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
+ if (!guild) return { error: "Guilde introuvable." }
  guild.level = Math.max(1, Math.min(100, level))
  guild.xp = 0
  saveGuilds()
  return { guild }
 }
 
-function devAddXP(guildId, amount){
+function devAddXP(guildId, amount) {
  return addGuildXP(guildId, amount)
 }
 
-function devForceJoin(userId, guildId){
- const user = getUser(userId)
+function devForceJoin(userId, guildId) {
+ const user  = getUser(userId)
  const guild = guilds[guildId]
- if(!guild) return { error:"Guilde introuvable." }
- if(user.guildId) delete user.guildId
+ if (!guild) return { error: "Guilde introuvable." }
+ if (user.guildId) delete user.guildId
  guild.memberIds = guild.memberIds.filter(id => id !== userId)
  guild.memberIds.push(userId)
  user.guildId = guildId
