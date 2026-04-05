@@ -1,14 +1,13 @@
 /* ═══════════════════════════════════════════════
    TESTS — systems/cardRegistry.js
    Couvre : getCards, getCard, getCardsBySet,
-            getCardsByRarity, resetRegistry
+            getCardsById, resetRegistry
 ═══════════════════════════════════════════════ */
 
 const assert = require("assert")
 
 const dataManager = require("../systems/dataManager")
 
-/* ── Setup mock cards ── */
 const RARITIES = ["C","U","R","SR","HR","UR","S","SSR"]
 const SETS = ["incarnam", "astrub", "amakna"]
 const mockCards = []
@@ -23,7 +22,7 @@ for (const set of SETS) {
 dataManager.data.cards = mockCards
 
 const {
- getCards, getCard, getCardsBySet, getCardsByRarity, resetRegistry
+ getCards, getCard, getCardsBySet, getCardsById, resetRegistry
 } = require("../systems/cardRegistry")
 
 resetRegistry()
@@ -65,15 +64,16 @@ test("getCardsBySet retourne [] pour un set inexistant", () => {
  assert.strictEqual(cards.length, 0)
 })
 
-test("getCardsByRarity filtre par rareté", () => {
- const cards = getCardsByRarity("SSR")
- assert.ok(cards.length > 0)
- cards.forEach(c => assert.strictEqual(c.rarity, "SSR"))
+test("getCardsById retourne un objet indexé par id", () => {
+ const byId = getCardsById()
+ assert.ok(typeof byId === "object")
+ assert.ok(byId["1"], "carte id=1 présente")
+ assert.strictEqual(byId["1"].id, 1)
 })
 
-test("getCardsByRarity retourne [] pour une rareté inexistante", () => {
- const cards = getCardsByRarity("MEGA")
- assert.strictEqual(cards.length, 0)
+test("getCardsById contient toutes les cartes", () => {
+ const byId = getCardsById()
+ assert.strictEqual(Object.keys(byId).length, mockCards.length)
 })
 
 test("chaque carte a id, name, set, rarity", () => {

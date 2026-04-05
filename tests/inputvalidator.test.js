@@ -1,16 +1,18 @@
 /* ═══════════════════════════════════════════════
    TESTS — systems/inputValidator.js
-   Couvre : validateUserId, validatePrice,
-            validateGuildName, validateSetId,
-            validateRarity
+   Couvre : validateUserId, validateAmount,
+            validateCardId, validateGuildName,
+            validateSetId, validateRarity
 ═══════════════════════════════════════════════ */
 
 const assert = require("assert")
 
 const {
  validateUserId,
- validatePrice,
+ validateCardId,
+ validateAmount,
  validateGuildName,
+ validateSetId,
  validateRarity
 } = require("../systems/inputValidator")
 
@@ -26,72 +28,105 @@ console.log("\n══════ TESTS inputValidator.js ══════\n")
 /* ── validateUserId ── */
 
 test("validateUserId accepte un ID Discord valide (17-20 chiffres)", () => {
- assert.strictEqual(validateUserId("12345678901234567"), null)
- assert.strictEqual(validateUserId("123456789012345678"), null)
- assert.strictEqual(validateUserId("12345678901234567890"), null)
+ assert.strictEqual(validateUserId("12345678901234567").valid, true)
+ assert.strictEqual(validateUserId("123456789012345678").valid, true)
+ assert.strictEqual(validateUserId("12345678901234567890").valid, true)
 })
 
 test("validateUserId refuse un ID trop court", () => {
- assert.ok(validateUserId("123456"))
- assert.ok(validateUserId(""))
+ assert.strictEqual(validateUserId("123456").valid, false)
+ assert.strictEqual(validateUserId("").valid, false)
 })
 
 test("validateUserId refuse null/undefined", () => {
- assert.ok(validateUserId(null))
- assert.ok(validateUserId(undefined))
+ assert.strictEqual(validateUserId(null).valid, false)
+ assert.strictEqual(validateUserId(undefined).valid, false)
 })
 
 test("validateUserId refuse des lettres", () => {
- assert.ok(validateUserId("abcdefghijklmnopq"))
+ assert.strictEqual(validateUserId("abcdefghijklmnopq").valid, false)
 })
 
-/* ── validatePrice ── */
+/* ── validateCardId ── */
 
-test("validatePrice accepte un prix positif", () => {
- assert.strictEqual(validatePrice(100), null)
- assert.strictEqual(validatePrice(1), null)
- assert.strictEqual(validatePrice(999999), null)
+test("validateCardId accepte un entier positif", () => {
+ assert.strictEqual(validateCardId(1).valid, true)
+ assert.strictEqual(validateCardId(999).valid, true)
+ assert.strictEqual(validateCardId("42").valid, true)
 })
 
-test("validatePrice refuse un prix ≤ 0", () => {
- assert.ok(validatePrice(0))
- assert.ok(validatePrice(-50))
+test("validateCardId refuse null, 0, négatif", () => {
+ assert.strictEqual(validateCardId(null).valid, false)
+ assert.strictEqual(validateCardId(0).valid, false)
+ assert.strictEqual(validateCardId(-5).valid, false)
 })
 
-test("validatePrice refuse un non-nombre", () => {
- assert.ok(validatePrice("abc"))
- assert.ok(validatePrice(NaN))
- assert.ok(validatePrice(Infinity))
+/* ── validateAmount ── */
+
+test("validateAmount accepte un montant positif", () => {
+ assert.strictEqual(validateAmount(100).valid, true)
+ assert.strictEqual(validateAmount(1).valid, true)
+ assert.strictEqual(validateAmount(999999).valid, true)
+})
+
+test("validateAmount refuse un montant ≤ 0", () => {
+ assert.strictEqual(validateAmount(0).valid, false)
+ assert.strictEqual(validateAmount(-50).valid, false)
+})
+
+test("validateAmount refuse un non-nombre", () => {
+ assert.strictEqual(validateAmount("abc").valid, false)
+ assert.strictEqual(validateAmount(NaN).valid, false)
+ assert.strictEqual(validateAmount(Infinity).valid, false)
+})
+
+test("validateAmount respecte min/max", () => {
+ assert.strictEqual(validateAmount(5, { min: 10 }).valid, false)
+ assert.strictEqual(validateAmount(200, { max: 100 }).valid, false)
+ assert.strictEqual(validateAmount(50, { min: 10, max: 100 }).valid, true)
 })
 
 /* ── validateGuildName ── */
 
-test("validateGuildName accepte 3-24 caractères", () => {
- assert.strictEqual(validateGuildName("ABC"), null)
- assert.strictEqual(validateGuildName("MaGuildeTestTest12345678"), null)
+test("validateGuildName accepte 2-32 caractères", () => {
+ assert.strictEqual(validateGuildName("AB").valid, true)
+ assert.strictEqual(validateGuildName("MaGuilde").valid, true)
+ assert.strictEqual(validateGuildName("A".repeat(32)).valid, true)
 })
 
-test("validateGuildName refuse < 3 ou > 24 caractères", () => {
- assert.ok(validateGuildName("AB"))
- assert.ok(validateGuildName("A".repeat(25)))
+test("validateGuildName refuse < 2 ou > 32 caractères", () => {
+ assert.strictEqual(validateGuildName("A").valid, false)
+ assert.strictEqual(validateGuildName("A".repeat(33)).valid, false)
 })
 
-test("validateGuildName refuse une chaîne vide", () => {
- assert.ok(validateGuildName(""))
+test("validateGuildName refuse une chaîne vide ou null", () => {
+ assert.strictEqual(validateGuildName("").valid, false)
+ assert.strictEqual(validateGuildName(null).valid, false)
+})
+
+/* ── validateSetId ── */
+
+test("validateSetId accepte un set valide", () => {
+ assert.strictEqual(validateSetId("incarnam").valid, true)
+ assert.strictEqual(validateSetId("astrub", ["incarnam", "astrub"]).valid, true)
+})
+
+test("validateSetId refuse un set inconnu si liste fournie", () => {
+ assert.strictEqual(validateSetId("fake", ["incarnam", "astrub"]).valid, false)
 })
 
 /* ── validateRarity ── */
 
 test("validateRarity accepte C, U, R, SR, HR, UR, S, SSR", () => {
  for (const r of ["C","U","R","SR","HR","UR","S","SSR"]) {
-  assert.strictEqual(validateRarity(r), null, `${r} devrait être valide`)
+  assert.strictEqual(validateRarity(r).valid, true, `${r} devrait être valide`)
  }
 })
 
 test("validateRarity refuse une rareté inconnue", () => {
- assert.ok(validateRarity("MEGA"))
- assert.ok(validateRarity(""))
- assert.ok(validateRarity(null))
+ assert.strictEqual(validateRarity("MEGA").valid, false)
+ assert.strictEqual(validateRarity("").valid, false)
+ assert.strictEqual(validateRarity(null).valid, false)
 })
 
 console.log(`\n══════ Résultats : ${passed} passed, ${failed} failed ══════\n`)

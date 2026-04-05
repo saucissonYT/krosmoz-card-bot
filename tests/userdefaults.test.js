@@ -41,19 +41,18 @@ test("ensureUserStructure préserve les cartes existantes", () => {
  assert.strictEqual(user.cards["2"], 1)
 })
 
-test("ensureUserStructure crée la progression si absente", () => {
+test("ensureUserStructure crée level et xp si absents", () => {
  const user = {}
  ensureUserStructure(user)
- assert.ok(user.progression)
- assert.strictEqual(user.progression.level, 1)
- assert.strictEqual(user.progression.xp, 0)
+ assert.strictEqual(user.level, 1)
+ assert.strictEqual(user.xp, 0)
 })
 
-test("ensureUserStructure préserve la progression existante", () => {
- const user = { progression: { level: 42, xp: 999, totalXp: 12345 } }
+test("ensureUserStructure préserve level et xp existants", () => {
+ const user = { level: 42, xp: 999 }
  ensureUserStructure(user)
- assert.strictEqual(user.progression.level, 42)
- assert.strictEqual(user.progression.xp, 999)
+ assert.strictEqual(user.level, 42)
+ assert.strictEqual(user.xp, 999)
 })
 
 test("ensureUserStructure crée les fragments si absents", () => {
