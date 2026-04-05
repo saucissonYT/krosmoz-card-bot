@@ -1,16 +1,20 @@
 {
   "name": "krosmoz-card",
   "version": "1.0.0",
-  "description": "",
+  "description": "Bot Discord TCG Krosmoz Card",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "node tests/run.js",
+    "lint": "eslint . --ext .js",
+    "format": "prettier --write \"**/*.js\" --ignore-path .gitignore"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@discordjs/rest": "^0.4.1",
+    "better-sqlite3": "^11.7.0",
     "canvas": "^3.2.1",
     "discord-api-types": "^0.38.41",
     "discord.js": "^14.25.1",
@@ -20,6 +24,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
-    "prettier": "^3.8.1"
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0"
   }
 }

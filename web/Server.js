@@ -19,6 +19,13 @@ const {
 const achievementRegistry = require("../systems/achievementRegistry")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
+const {
+ dbLoadUser,
+ dbListUserIds,
+ dbCountUsers,
+ dbLeaderboard,
+ dbLoadMarketHistory
+} = require("../systems/database")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
@@ -92,12 +99,12 @@ function readJSON(filePath, fallback) {
 }
 
 function listUserFiles() {
- if (!fs.existsSync(USERS_DIR)) return []
- return fs.readdirSync(USERS_DIR).filter((f) => f.endsWith(".json"))
+ /* Compatibilité : retourne des "fake filenames" depuis SQLite */
+ return dbListUserIds().map(id => `${id}.json`)
 }
 
 function loadUser(userId) {
- return readJSON(path.join(USERS_DIR, `${userId}.json`), null)
+ return dbLoadUser(userId)
 }
 
 function getCards() {
@@ -281,7 +288,7 @@ function computeGlobalStats() {
  const cards = getCards()
  const sets = getSets()
  const guilds = getGuildList()
- const userFiles = listUserFiles()
+ const userIds = dbListUserIds()
  const cardsById = new Map(cards.map((c) => [String(c.id), c]))
 
  let totalCardsOwned = 0
@@ -291,8 +298,8 @@ function computeGlobalStats() {
  let totalSSR = 0
  let totalAchievements = 0
 
- for (const file of userFiles) {
-  const user = readJSON(path.join(USERS_DIR, file), null)
+ for (const userId of userIds) {
+  const user = loadUser(userId)
   if (!user) continue
 
   for (const [id, qty] of Object.entries(user.cards || {})) {
@@ -308,7 +315,7 @@ function computeGlobalStats() {
  }
 
  return {
-  players: userFiles.length,
+  players: userIds.length,
   totalCards: cards.length,
   totalSets: sets.length,
   cardsOwned: totalCardsOwned,
@@ -324,12 +331,10 @@ function computeGlobalStats() {
 async function computeActivityFeed(limit = 12) {
  const cards = getCards()
  const cardsById = new Map(cards.map((c) => [String(c.id), c]))
- const history = readJSON(MARKET_HISTORY_PATH, [])
  const safeLimit = Math.max(1, Math.min(30, Number(limit) || 12))
 
- const latest = [...history]
-  .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
-  .slice(0, safeLimit)
+ /* SQLite : déjà trié par timestamp DESC, limité */
+ const latest = dbLoadMarketHistory(safeLimit)
 
  return Promise.all(latest.map(async (entry) => {
   const card = cardsById.get(String(entry.card))
@@ -360,59 +365,8 @@ function computeLeaderboard(category) {
  const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
  if (!valid.includes(category)) return []
 
- const cards = getCards()
- const byId = new Map(cards.map((c) => [String(c.id), c]))
- const rows = []
-
- for (const file of listUserFiles()) {
-  const userId = file.replace(".json", "")
-  const user = readJSON(path.join(USERS_DIR, file), null)
-  if (!user) continue
-
-  let value = 0
-
-  switch (category) {
-   case "cards":
-    value = Object.values(user.cards || {}).reduce((a, b) => a + b, 0)
-    break
-   case "unique":
-    value = Object.keys(user.cards || {}).length
-    break
-   case "kamas":
-    value = user.kamas || 0
-    break
-   case "level":
-    value = user.progression?.level || 1
-    break
-   case "achievements":
-    value = user.achievements?.length || 0
-    break
-   case "packs":
-    value = user.stats?.packsOpened || 0
-    break
-   case "ssr": {
-    let count = 0
-    for (const [id, qty] of Object.entries(user.cards || {})) {
-     const card = byId.get(String(id))
-     if (card?.rarity === "SSR") count += qty
-    }
-    value = count
-    break
-   }
-  }
-
-  if (value > 0) {
-   rows.push({
-    userId,
-    value,
-    level: user.progression?.level || 1,
-    title: user.title || "Nouveau"
-   })
-  }
- }
-
- rows.sort((a, b) => b.value - a.value)
- return rows.slice(0, 100)
+ /* Requête SQL directe — instantané, plus besoin de lire tous les fichiers */
+ return dbLeaderboard(category, 100)
 }
 
 function computeProfile(userId) {
@@ -582,8 +536,9 @@ function getFragmentMinimumPrice(cardId, fragmentNumber, averages) {
 async function computeMarket(query) {
  const cards = getCards()
  const sets = getSets()
- const market = readJSON(MARKET_PATH, [])
- const history = readJSON(MARKET_HISTORY_PATH, [])
+ const { dbLoadMarket: loadMkt, dbLoadMarketHistory: loadHist } = require("../systems/database")
+ const market = loadMkt()
+ const history = loadHist(1000)
  const setNames = getCardSetNameMap(sets)
  const cardsById = new Map(cards.map((c) => [String(c.id), c]))
  const averages = computeMarketAverages(history)
@@ -903,9 +858,7 @@ function createWebApp() {
 
   let userCount = 0
   try {
-   if (fs.existsSync(USERS_DIR)) {
-    userCount = fs.readdirSync(USERS_DIR).filter(f => f.endsWith(".json")).length
-   }
+   userCount = dbCountUsers()
   } catch (_) {}
 
   res.json({

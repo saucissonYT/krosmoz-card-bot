@@ -1,10 +1,9 @@
 /* ════════════════════════════════════════════════════════════
    INDEX.JS — Point d'entrée
-   
-   MODIFICATIONS :
+
    1. Logger structuré
    2. Handlers unhandledRejection / uncaughtException
-   3. Graceful shutdown (sauvegarde tous les dirty users avant exit)
+   3. Graceful shutdown (sauvegarde dirty users + ferme SQLite)
    4. Lock file anti-double instance
 ════════════════════════════════════════════════════════════ */
 
@@ -77,6 +76,12 @@ async function gracefulShutdown(signal) {
 
   log.info("Sauvegarde terminée", { usersSaved: savedCount })
 
+  /* Fermer SQLite proprement */
+  try {
+   const { closeDb } = require("./systems/database")
+   closeDb()
+  } catch (_) {}
+
  } catch (err) {
   log.error("Erreur pendant la sauvegarde de shutdown", { err })
  }
@@ -109,6 +114,12 @@ process.on("uncaughtException", (err) => {
   }
   dataManager.save()
   log.info("Sauvegarde d'urgence réussie")
+ } catch (_) {}
+
+ /* Fermer SQLite */
+ try {
+  const { closeDb } = require("./systems/database")
+  closeDb()
  } catch (_) {}
 
  releaseLock()

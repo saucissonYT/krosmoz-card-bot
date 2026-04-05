@@ -2,17 +2,39 @@ const fs   = require("fs")
 const path = require("path")
 
 /* ════════════════════════════════════════════════════════════
-   MODIFICATIONS :
-   1. Utilise paths.js au lieu du pattern basePath dupliqué
-   2. Utilise logger.js au lieu de console.log/console.error
-   3. Utilise fileUtils.js (writeAtomic) pour les écritures
-   4. Utilise userDefaults.js (ensureUserStructure) au loadUser
+   DATA MANAGER — SQLite Backend
+
+   Même API publique que l'ancien dataManager JSON :
+     data, loadAll, save, loadUser, saveUser, USERS_DIR, CARDS_IMAGES_DIR
+
+   Backend changé : users et market stockés en SQLite.
+   Cards, devs, guilds, battlepass restent en JSON (pas d'impact perf).
+
+   Le cache en mémoire (data.users) fonctionne exactement pareil :
+   - loadUser() charge depuis SQLite → cache mémoire
+   - saveUser() écrit du cache mémoire → SQLite
+   - autosave 30s pour les dirty users (inchangé)
 ════════════════════════════════════════════════════════════ */
 
 const { getBasePath }          = require("./paths")
 const { createLogger }         = require("./logger")
 const { writeAtomic, readJsonSafe } = require("./fileUtils")
 const { ensureUserStructure }  = require("./userDefaults")
+const {
+ getDb,
+ dbLoadUser,
+ dbSaveUser,
+ dbDeleteUser,
+ dbListUserIds,
+ dbCountUsers,
+ dbLeaderboard,
+ dbLoadMarket,
+ dbAddMarketListing,
+ dbRemoveMarketListing,
+ dbLoadMarketHistory,
+ dbAddMarketHistory
+} = require("./database")
+const { runMigration } = require("./migrate")
 
 const log = createLogger("DATA")
 
@@ -39,17 +61,14 @@ if (!fs.existsSync(CARDS_IMAGES_DIR)) {
  fs.mkdirSync(CARDS_IMAGES_DIR, { recursive: true })
 }
 
-/* ---------------- FILE PATHS ---------------- */
+/* ---------------- FILE PATHS (JSON restants) ---------------- */
 
 const paths = {
- users:         path.join(BASE, "users.json"),
- market:        path.join(BASE, "market.json"),
- marketHistory: path.join(BASE, "marketHistory.json"),
  devs:          path.join(BASE, "devs.json"),
  cards:         path.join(BASE, "cards.json")
 }
 
-/* ---------------- DATA CACHE ---------------- */
+/* ---------------- DATA CACHE (même structure qu'avant) ---------------- */
 
 const data = {
  users:         {},
@@ -59,7 +78,7 @@ const data = {
  cards:         []
 }
 
-/* ---------------- LOAD FILE ---------------- */
+/* ---------------- LOAD FILE (JSON) ---------------- */
 
 function loadFile(file, defaultValue) {
 
@@ -72,42 +91,27 @@ function loadFile(file, defaultValue) {
 
 }
 
-/* ---------------- USER FILE ---------------- */
-
-function getUserFile(id) {
- return path.join(USERS_DIR, `${id}.json`)
-}
+/* ---------------- USER (SQLite) ---------------- */
 
 function loadUser(id) {
 
+ /* Cache mémoire d'abord */
  if (data.users[id])
   return data.users[id]
 
- const file = getUserFile(id)
+ /* Charger depuis SQLite */
+ const user = dbLoadUser(id)
 
- if (!fs.existsSync(file))
-  return null
+ if (!user) return null
 
- try {
+ /* Garantir la structure complète */
+ ensureUserStructure(user)
 
-  const raw  = fs.readFileSync(file, "utf8")
-  const user = JSON.parse(raw)
+ user._dirty = false
 
-  /* FIX : garantir la structure complète au chargement */
-  ensureUserStructure(user)
+ data.users[id] = user
 
-  user._dirty = false
-
-  data.users[id] = user
-
-  return user
-
- } catch (err) {
-
-  log.error("Erreur lecture user", { userId: id, err })
-  return null
-
- }
+ return user
 
 }
 
@@ -118,49 +122,40 @@ function saveUser(id) {
  if (!user || !user._dirty)
   return
 
- const file = getUserFile(id)
-
- const clone = JSON.parse(JSON.stringify(user))
-
- delete clone._dirty
-
- /* FIX : écriture atomique pour éviter la corruption */
  try {
-  writeAtomic(file, clone)
+  dbSaveUser(id, user, data.cards)
  } catch (err) {
-  log.error("Erreur sauvegarde user", { userId: id, err })
+  log.error("Erreur sauvegarde user SQLite", { userId: id, err })
  }
 
  user._dirty = false
 
 }
 
-/* ---------------- MIGRATION USERS.JSON ---------------- */
+/* ---------------- MIGRATION LEGACY users.json ---------------- */
 
 function migrateUsersJson() {
 
- if (!fs.existsSync(paths.users))
+ const legacyPath = path.join(BASE, "users.json")
+
+ if (!fs.existsSync(legacyPath))
   return
 
- log.info("Migration users.json → users/")
+ log.info("Migration users.json legacy → SQLite")
 
- const legacy = loadFile(paths.users, {})
+ const legacy = loadFile(legacyPath, {})
 
  for (const id in legacy) {
-
-  const file = getUserFile(id)
-
-  if (!fs.existsSync(file)) {
-
-   writeAtomic(file, legacy[id])
-
+  try {
+   dbSaveUser(id, legacy[id], data.cards)
+  } catch (err) {
+   log.error("Erreur migration user legacy", { userId: id, err })
   }
-
  }
 
- fs.renameSync(paths.users, paths.users + ".migrated")
+ fs.renameSync(legacyPath, legacyPath + ".migrated")
 
- log.info("Migration terminée")
+ log.info("Migration users.json terminée")
 
 }
 
@@ -168,16 +163,25 @@ function migrateUsersJson() {
 
 function loadAll() {
 
+ /* 1. Charger les données JSON statiques (cards d'abord, nécessaire pour la migration) */
+ data.cards = loadFile(paths.cards, [])
+ data.devs  = loadFile(paths.devs, { owners: [], devs: [] })
+
+ /* 2. Initialiser SQLite + migration automatique JSON → SQLite */
+ getDb()
+ runMigration(data.cards)
+
+ /* 3. Migration legacy users.json (très ancien format) */
  migrateUsersJson()
 
- data.market        = loadFile(paths.market, [])
- data.marketHistory = loadFile(paths.marketHistory, [])
- data.devs          = loadFile(paths.devs, { owners: [], devs: [] })
- data.cards         = loadFile(paths.cards, [])
+ /* 4. Charger le market depuis SQLite */
+ data.market        = dbLoadMarket()
+ data.marketHistory = dbLoadMarketHistory(1000)
 
- log.info("DataManager chargé", {
-  cards:  data.cards.length,
-  market: data.market.length
+ log.info("DataManager chargé (SQLite)", {
+  cards:   data.cards.length,
+  market:  data.market.length,
+  users:   dbCountUsers()
  })
 
 }
@@ -188,10 +192,12 @@ function save() {
 
  try {
 
-  writeAtomic(paths.market, data.market)
-  writeAtomic(paths.marketHistory, data.marketHistory)
-  writeAtomic(paths.devs, data.devs)
+  /* Cards et devs restent en JSON */
   writeAtomic(paths.cards, data.cards)
+  writeAtomic(paths.devs, data.devs)
+
+  /* Market → SQLite (sync complet : on vide et réinsère) */
+  syncMarketToDb()
 
  } catch (err) {
 
@@ -201,7 +207,50 @@ function save() {
 
 }
 
-/* ---------------- AUTOSAVE DIRTY USERS ---------------- */
+/**
+ * Synchronise le tableau data.market en mémoire vers SQLite.
+ * Stratégie : on compare les IDs et on ajoute/supprime les différences.
+ * En pratique, le market est petit (<100 entrées), donc un full sync est OK.
+ */
+function syncMarketToDb() {
+ try {
+  const db = getDb()
+  const dbMarket = dbLoadMarket()
+  const dbIds    = new Set(dbMarket.map(l => l.id))
+  const memIds   = new Set(data.market.map(l => l.id))
+
+  /* Supprimer de SQLite les listings retirés en mémoire */
+  for (const id of dbIds) {
+   if (!memIds.has(id)) {
+    dbRemoveMarketListing(id)
+   }
+  }
+
+  /* Ajouter dans SQLite les nouveaux listings */
+  for (const listing of data.market) {
+   if (!dbIds.has(listing.id)) {
+    const newId = dbAddMarketListing(listing)
+    listing.id = newId /* mettre à jour l'ID auto-incrémenté */
+   }
+  }
+
+  /* Sync historique : ajouter les nouvelles entrées */
+  const dbHistoryIds = new Set(
+   dbLoadMarketHistory(5000).map(h => `${h.seller}:${h.card}:${h.timestamp}`)
+  )
+  for (const entry of data.marketHistory) {
+   const key = `${entry.seller}:${entry.card}:${entry.timestamp}`
+   if (!dbHistoryIds.has(key)) {
+    dbAddMarketHistory(entry)
+   }
+  }
+
+ } catch (err) {
+  log.error("Erreur sync market → SQLite", { err })
+ }
+}
+
+/* ---------------- AUTOSAVE DIRTY USERS (30s) ---------------- */
 
 setInterval(() => {
 
@@ -209,7 +258,7 @@ setInterval(() => {
 
   const user = data.users[id]
 
-  if (user._dirty)
+  if (user && user._dirty)
    saveUser(id)
 
  }
@@ -218,7 +267,7 @@ setInterval(() => {
 
 }, 30000)
 
-/* ---------------- EXPORT ---------------- */
+/* ---------------- EXPORT (même API qu'avant) ---------------- */
 
 module.exports = {
  data,
