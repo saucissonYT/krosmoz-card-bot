@@ -1,6 +1,15 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — SECRETS & RNG EXTRÊMES
-=============================================== */
+   systems/achievements/achievementSecrets.js
+
+   Achievements secrets liés aux interactions cachées :
+   se faire arnaquer par le bot, recevoir une SSR mystérieuse.
+
+   Trigger utilisé : "secret"
+
+   @module achievementSecrets
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

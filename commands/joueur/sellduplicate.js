@@ -1,48 +1,35 @@
+/* ═══════════════════════════════════════════════════════════════
+   /sellduplicates — Vendre tous les doublons d'un coup
+
+   MODIFICATIONS :
+   - Supprimé la copie locale de `getSeasonSellMultiplier()` et son cache
+     → utilise `sellHelper.js` (module partagé avec sellcard)
+   - Ajout de JSDoc sur execute
+═══════════════════════════════════════════════════════════════ */
+
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
-const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
-const { ensureCurrentSeason, getSeasonTemplate } = require("../../systems/seasonService")
-
-const { getCardsById } = require("../../systems/cardRegistry")
-const { getUser, save } = require("../../systems/userSystem")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-let sellMultiplierCache = {
- value: 1,
- expiresAt: 0
-}
-
-function getSeasonSellMultiplier() {
- if (Date.now() < sellMultiplierCache.expiresAt) {
-  return sellMultiplierCache.value
- }
-
- let value = 1
- try {
-  const current = ensureCurrentSeason()
-  const season = getSeasonTemplate(current.activeSeason)
-  const bonus = season?.passiveBonus
-
-  if (bonus?.type === "market_sell_bonus") {
-   const parsed = Number(bonus.value)
-   if (Number.isFinite(parsed) && parsed > 0) value = parsed
-  }
- } catch (_) {}
-
- sellMultiplierCache = {
-  value,
-  expiresAt: Date.now() + 15000
- }
- return value
-}
+const { RARITY_EMOJI, SELL_PRICE }                          = require("../../systems/constants")
+const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../../systems/sellHelper")
+const { getCardsById }                                      = require("../../systems/cardRegistry")
+const { getUser, save }                                     = require("../../systems/userSystem")
+const { achievementCheck }                                  = require("../../systems/achievementCheck")
+const { notifyAchievements }                                = require("../../systems/achievementNotifier")
 
 module.exports = {
+
  name: "sellduplicates",
 
+ /**
+  * Calcule tous les doublons vendables (hors UR/SSR), affiche un
+  * résumé avec le gain total, et attend la confirmation du joueur.
+  *
+  * @param {import("discord.js").ChatInputCommandInteraction} interaction
+  */
  async execute(interaction) {
+
   const cardsById = getCardsById()
-  const user = getUser(interaction.user.id)
+  const user      = getUser(interaction.user.id)
 
   if (!user.cards || Object.keys(user.cards).length === 0) {
    return interaction.reply("Inventaire vide.")
@@ -51,26 +38,26 @@ module.exports = {
   if (!user.stats) user.stats = {}
 
   const sellMultiplier = getSeasonSellMultiplier()
-  const bonusPct = Math.max(0, Math.round((sellMultiplier - 1) * 100))
+  const bonusPct       = getSellBonusPercent(sellMultiplier)
 
   let totalCards = 0
   let totalKamas = 0
 
-  const toSell = []
+  const toSell       = []
   const previewLines = []
 
   for (const id in user.cards) {
    const card = cardsById[id]
    if (!card) continue
 
+   /* On ne vend pas les UR et SSR automatiquement */
    if (card.rarity === "UR" || card.rarity === "SSR") continue
 
    const count = user.cards[id]
    if (count <= 1) continue
 
    const duplicates = count - 1
-   const basePrice = SELL_PRICE[card.rarity] || 10
-   const price = Math.max(1, Math.floor(basePrice * sellMultiplier))
+   const price      = computeSellPrice(SELL_PRICE[card.rarity] || 10, sellMultiplier)
 
    totalCards += duplicates
    totalKamas += duplicates * price
@@ -106,18 +93,20 @@ ${previewLines.length > 15 ? `\n... et ${previewLines.length - 15} autres` : ""}
    fetchReply: true
   })
 
-  const filter = (i) => i.user.id === interaction.user.id
+  const filter    = (i) => i.user.id === interaction.user.id
   const collector = msg.createMessageComponentCollector({ filter, time: 30000, max: 1 })
 
   collector.on("collect", async (i) => {
+
    await i.deferUpdate()
 
    if (i.customId === "cancel_sell_dup") {
     return interaction.editReply({ content: "❌ Vente annulée.", embeds: [], components: [] })
    }
 
+   /* Relecture fraîche des cartes pour la vente effective */
    const cardsByIdFresh = getCardsById()
-   const soldLines = []
+   const soldLines      = []
 
    for (const item of toSell) {
     const card = cardsByIdFresh[item.id]
@@ -126,7 +115,7 @@ ${previewLines.length > 15 ? `\n... et ${previewLines.length - 15} autres` : ""}
     user.cards[item.id] -= item.duplicates
     if (user.cards[item.id] <= 0) delete user.cards[item.id]
 
-    user.kamas = (user.kamas || 0) + item.duplicates * item.price
+    user.kamas          = (user.kamas || 0) + item.duplicates * item.price
     user.stats.cardsSold = (user.stats.cardsSold || 0) + item.duplicates
 
     soldLines.push(`${RARITY_EMOJI[card.rarity]} **${card.name}** ×${item.duplicates}`)

@@ -1,7 +1,27 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — ÉCONOMIE
-   Kamas, ventes, daily, balance, inventaire, titres, help
-=============================================== */
+   systems/achievements/achievementEconomy.js
+
+   Achievements liés à l'économie du jeu : kamas possédés,
+   consultations de solde, daily claims/streaks, ouvertures
+   d'inventaire, consultations d'aide, et changements de titre.
+
+   Triggers utilisés : "economy", "daily", "inventory", "social"
+
+   Catégories :
+   - Kamas possédés        (kamas1000 → kamas1000000)
+   - Kamas secrets         (kamas666, lucky777, jackpot7777)
+   - Balance checks        (balance1 → balance1000)
+   - Daily claims          (daily1 → daily100)
+   - Daily streaks         (dailyStreak7 → dailyStreak365)
+   - Ouvertures inventaire (inventory1 → inventory1000)
+   - Consultations aide    (help1 → help1000)
+   - Changements de titre  (title1 → title50)
+
+   @module achievementEconomy
+   @see achievementRegistry.js — agrégateur
+   @see achievementEngine.js  — moteur de vérification
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

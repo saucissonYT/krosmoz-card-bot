@@ -1,7 +1,25 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — GUILDES
-   Création, progression, quêtes, social
-=============================================== */
+   systems/achievements/achievementGuild.js
+
+   Achievements liés au système de guildes : création, adhésion,
+   niveaux (5→100), quêtes hebdo, semaines parfaites, social
+   (guilde complète, vétéran, dons), XP contribuée, secrets.
+
+   Trigger utilisé : "guild"
+
+   Catégories :
+   - Création/adhésion  (guildJoin, guildCreate, guildOfficer)
+   - Niveaux            (guildLv5 → guildLv100)
+   - Quêtes             (guildQuest1 → guildQuest100 + perfect weeks)
+   - Social             (guildFull, guildVeteran, guildDonor)
+   - XP contribuée      (guildContrib1k → guildContrib50k)
+   - Secrets            (guildFirstBlood, guildAllBonuses, guildRename, guildTransfer)
+
+   @module achievementGuild
+   @see guildSystem.js — CRUD guildes
+   @see guildQuestSystem.js — quêtes hebdo
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

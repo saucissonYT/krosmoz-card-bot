@@ -1,7 +1,16 @@
-/* ===============================================
-   ACHIEVEMENTS - ROULETTE
-   Trigger dedie: "roulette"
-=============================================== */
+/* ═══════════════════════════════════════════════════════════════
+   ACHIEVEMENTS — ROULETTE
+   systems/achievements/achievementRoulette.js
+
+   Achievements liés à la Roulette d'Ecaflip : spins, lots
+   rares/très rares, jackpots, gains SSR/Shiny/kamas/packs,
+   streaks consécutifs, horaires secrets (nuit, midi).
+
+   Trigger utilisé : "roulette"
+
+   @module achievementRoulette
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
  rouletteSpin1: {

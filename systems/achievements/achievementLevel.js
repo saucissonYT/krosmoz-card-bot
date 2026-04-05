@@ -1,7 +1,25 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — NIVEAUX & PROGRESSION
-   Progression du joueur, XP, fidélité, grind, secrets
-=============================================== */
+   systems/achievements/achievementLevel.js
+
+   Achievements liés à la progression du joueur : paliers de
+   niveau (5→200), XP totale cumulée, grind quotidien, fidélité,
+   parcours complet, et secrets (palindromes, nuit, anniversaire).
+
+   Trigger utilisé : "progression"
+
+   Catégories :
+   - Niveaux           (level5 → level200)
+   - XP totale         (totalXP10k → totalXP716k)
+   - Grind quotidien   (grind7 → grind100)
+   - Fidélité          (fidelite7 → fidelite100)
+   - Parcours complet  (parcoursComplet)
+   - Secrets           (levelPalindrome, nightLevelUp, anniversaire)
+
+   @module achievementLevel
+   @see progressionSystem.js — XP et level-up
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

@@ -1,3 +1,22 @@
+/* ═══════════════════════════════════════════════════════════════
+   ACHIEVEMENTS — FRAGMENTS
+   systems/achievements/achievementFragments.js
+
+   Achievements liés aux fragments SSR : obtention, collection
+   de fragments distincts, crafting de SSR, vente de fragments.
+
+   Trigger utilisé : "fragment"
+
+   Catégories :
+   - Obtention    (fragFirst, frag10, fragDouble)
+   - Crafting     (fragComplete1 → fragComplete5)
+   - Vente        (fragSell1, fragSell10)
+
+   @module achievementFragments
+   @see fragmentService.js — logique fragments
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
+
 module.exports = {
 
 fragFirst: {

@@ -1,8 +1,25 @@
-/* ===============================================
-   ACHIEVEMENTS - PACKS
-   Packs ouverts + RNG + multi achats/ouvertures
-   + Packs disponibles en stock
-=============================================== */
+/* ═══════════════════════════════════════════════════════════════
+   ACHIEVEMENTS — PACKS
+   systems/achievements/achievementPacks.js
+
+   Achievements liés à l'ouverture de packs, aux achats, aux
+   ouvertures multi (bulk), au RNG, et au stock de packs.
+
+   Triggers utilisés : "pack", "economy", "rng"
+
+   Catégories :
+   - Packs ouverts     (pack1 → pack1000)
+   - Packs achetés     (packBuy1 → packBuy500)
+   - Achats multi x2+  (bulkBuy1 → bulkBuy50 + secrets)
+   - Ouvertures multi  (bulkOpen1 → bulkOpen50 + secrets)
+   - RNG spéciaux      (shinySSR, packDivin, pityBreaker...)
+   - Combos bulk       (bulkCombo20, bulkDual100...)
+   - Stock de packs    (packStock25 → packStock500)
+
+   @module achievementPacks
+   @see achievementRegistry.js — agrégateur
+   @see achievementEngine.js  — moteur de vérification
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

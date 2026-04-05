@@ -1,9 +1,18 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — EVENTS
-   EventPacks globaux, participation, tickets,
-   SSR en event, SSR par classe, packs par classe,
-   achievements croisés, jackpots Enutrof/Feca
-=============================================== */
+   systems/achievements/achievementEvents.js
+
+   Achievements liés aux events des 19 Dieux du Krosmoz :
+   packs d'event, participation, tickets, SSR en event,
+   SSR par classe, packs par classe, jackpots Enutrof/Feca,
+   achievements croisés multi-dieux.
+
+   Trigger utilisé : "event"
+
+   @module achievementEvents
+   @see eventRegistry.js — définition des 19 events
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

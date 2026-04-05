@@ -1,8 +1,18 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — SPÉCIAUX
-   Comportementaux, malchance, market, trade,
-   collection, vitesse, palindrome, prestige
-=============================================== */
+   systems/achievements/achievementSpecial.js
+
+   Achievements comportementaux, malchance, market, trade,
+   collection avancée, vitesse, palindrome, prestige.
+   Inclut les meta-achievements (10→200 succès) et le
+   "Krosmoz Absolu" (tous les succès du jeu).
+
+   Triggers utilisés : "pack", "economy", "collection", "event",
+                        "fusion", "daily", "social", "secret"
+
+   @module achievementSpecial
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 const ALL_TRIGGERS = ["pack","rng","economy","collection","fusion","social","inventory","daily","krosmoshop","event"]
 

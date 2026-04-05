@@ -1,7 +1,21 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — COLLECTION
-   Cartes totales, cartes uniques, sets
-=============================================== */
+   systems/achievements/achievementCollection.js
+
+   Achievements liés à la collection de cartes : nombre total
+   de cartes possédées, cartes uniques distinctes, et secrets.
+
+   Trigger utilisé : "collection"
+
+   Catégories :
+   - Cartes totales  (cards50 → cards1000)
+   - Cartes uniques  (unique10 → unique674)
+   - Secrets         (devilCards — exactement 666 cartes)
+
+   @module achievementCollection
+   @see achievementRegistry.js — agrégateur
+   @see achievementEngine.js  — moteur de vérification
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 
@@ -120,13 +134,13 @@ unique600:{
 unique674:{
  name:"Collection Totale",
  badge:"💎",
- description:"Poss?der les 1916 cartes uniques.",
+ description:"Posséder les 1916 cartes uniques.",
  title:"Collectionneur Absolu",
  trigger:"collection",
  condition:u=>Object.keys(u.cards||{}).length>=1916
 },
 
-/* ================= SETS ================= */
+/* ================= SECRETS ================= */
 
 devilCards:{
  name:"666 cartes",

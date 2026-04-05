@@ -1,7 +1,24 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — RARETÉS
-   SSR, Shiny, KrosmoShop
-=============================================== */
+   systems/achievements/achievementRarity.js
+
+   Achievements liés aux raretés : SSR obtenues, SSR Shiny (total
+   et uniques), et KrosmoShop (cartes SSR/S, kamas dépensés, jours).
+
+   Triggers utilisés : "pack", "krosmoshop"
+
+   Catégories :
+   - SSR obtenues       (firstSSR → ssr50)
+   - Shiny total        (shiny1 → shiny10)
+   - Shiny uniques      (uniqueShiny1 → uniqueShiny10)
+   - KrosmoShop achats  (shopBuy1 → shopBuy1000)
+   - KrosmoShop SSR/S   (shopSSR → shop25SSR, shopS1 → shopS10)
+   - KrosmoShop kamas   (shopSpend5000 → shopSpend500000)
+   - KrosmoShop jours   (shopDays7 → shopDays100)
+
+   @module achievementRarity
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

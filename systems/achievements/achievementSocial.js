@@ -1,7 +1,20 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — SOCIAL
-   Profil, leaderboard, mentions
-=============================================== */
+   systems/achievements/achievementSocial.js
+
+   Achievements liés aux interactions sociales : consultations
+   de profil, leaderboard, mentions du bot.
+
+   Trigger utilisé : "social"
+
+   Catégories :
+   - Profil       (profile1 → profile1000)
+   - Leaderboard  (leaderboard1 → leaderboard1000)
+   - Mentions     (mention1 → mention1000)
+
+   @module achievementSocial
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

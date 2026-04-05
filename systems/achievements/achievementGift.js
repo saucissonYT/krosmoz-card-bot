@@ -1,7 +1,22 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — DONS
-   Donner et recevoir des cartes
-=============================================== */
+   systems/achievements/achievementGift.js
+
+   Achievements liés au système de dons entre joueurs :
+   cartes données/reçues, dons spéciaux (SSR, Shiny, UR),
+   streaks, échanges mutuels, destinataires distincts.
+
+   Trigger utilisé : "gift"
+
+   Catégories :
+   - Dons donnés    (gift1 → gift100)
+   - Dons spéciaux  (giftSSR, giftShiny, giftUR)
+   - Dons reçus     (giftReceive1 → giftReceive50)
+   - Dons mutuels   (giftBothWays, giftStreak7, giftDifferent10)
+
+   @module achievementGift
+   @see achievementRegistry.js — agrégateur
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

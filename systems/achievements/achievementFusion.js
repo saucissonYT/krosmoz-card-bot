@@ -1,6 +1,20 @@
-/* ===============================================
+/* ═══════════════════════════════════════════════════════════════
    ACHIEVEMENTS — FUSION
-=============================================== */
+   systems/achievements/achievementFusion.js
+
+   Achievements liés à la fusion de cartes : nombre de fusions,
+   résultats critiques, doubles et triples.
+
+   Trigger utilisé : "fusion"
+
+   Catégories :
+   - Fusions totales  (fusion1 → fusion100)
+   - Résultats spéciaux (fusionCrit, fusionDouble, fusionTriple)
+
+   @module achievementFusion
+   @see achievementRegistry.js — agrégateur
+   @see achievementEngine.js  — moteur de vérification
+═══════════════════════════════════════════════════════════════ */
 
 module.exports = {
 

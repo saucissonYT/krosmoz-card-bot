@@ -1,72 +1,57 @@
+/* ═══════════════════════════════════════════════════════════════
+   /sellcard — Vendre une carte individuellement
+
+   MODIFICATIONS :
+   - Supprimé la copie locale de `getSeasonSellMultiplier()` et son cache
+     → utilise `sellHelper.js` (module partagé avec sellduplicate)
+   - Ajout de JSDoc sur execute et select
+═══════════════════════════════════════════════════════════════ */
+
 const {
  ActionRowBuilder,
  StringSelectMenuBuilder
 } = require("discord.js")
 
-const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
-const { ensureCurrentSeason, getSeasonTemplate } = require("../../systems/seasonService")
-
-const { getCardsById } = require("../../systems/cardRegistry")
-const { getUser, save } = require("../../systems/userSystem")
-const { achievementCheck } = require("../../systems/achievementCheck")
-const { notifyAchievements } = require("../../systems/achievementNotifier")
-
-let sellMultiplierCache = {
- value: 1,
- expiresAt: 0
-}
-
-function getSeasonSellMultiplier() {
- if (Date.now() < sellMultiplierCache.expiresAt) {
-  return sellMultiplierCache.value
- }
-
- let value = 1
- try {
-  const current = ensureCurrentSeason()
-  const season = getSeasonTemplate(current.activeSeason)
-  const bonus = season?.passiveBonus
-
-  if (bonus?.type === "market_sell_bonus") {
-   const parsed = Number(bonus.value)
-   if (Number.isFinite(parsed) && parsed > 0) value = parsed
-  }
- } catch (_) {}
-
- sellMultiplierCache = {
-  value,
-  expiresAt: Date.now() + 15000
- }
- return value
-}
+const { RARITY_EMOJI, SELL_PRICE }                          = require("../../systems/constants")
+const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../../systems/sellHelper")
+const { getCardsById }                                      = require("../../systems/cardRegistry")
+const { getUser, save }                                     = require("../../systems/userSystem")
+const { achievementCheck }                                  = require("../../systems/achievementCheck")
+const { notifyAchievements }                                = require("../../systems/achievementNotifier")
 
 module.exports = {
+
  name: "sellcard",
  description: "Vendre une carte",
 
+ /**
+  * Affiche un select menu avec toutes les cartes vendables du joueur.
+  * Les prix tiennent compte du bonus saisonnier actif.
+  * @param {import("discord.js").ChatInputCommandInteraction} interaction
+  */
  async execute(interaction) {
-  const cardsById = getCardsById()
-  const user = getUser(interaction.user.id)
+
+  const cardsById      = getCardsById()
+  const user           = getUser(interaction.user.id)
 
   if (!user.cards || Object.keys(user.cards).length === 0) {
    return interaction.reply({ content: "❌ Tu n'as aucune carte.", flags: 64 })
   }
 
   const sellMultiplier = getSeasonSellMultiplier()
-  const bonusPct = Math.max(0, Math.round((sellMultiplier - 1) * 100))
-  const options = []
+  const bonusPct       = getSellBonusPercent(sellMultiplier)
+  const options        = []
 
   for (const id in user.cards) {
    const card = cardsById[id]
    if (!card) continue
 
    const owned = user.cards[id]
-   const basePrice = SELL_PRICE[card.rarity] || 1
-   const price = Math.max(1, Math.floor(basePrice * sellMultiplier))
+   const price = computeSellPrice(SELL_PRICE[card.rarity] || 1, sellMultiplier)
 
    options.push({
-    label: `${RARITY_EMOJI[card.rarity]} ${card.name}`,
-    value: id,
+    label:       `${RARITY_EMOJI[card.rarity]} ${card.name}`,
+    value:       id,
     description: `Possédé: x${owned} • Vente: ${price} • Total: ${owned * price}`
    })
   }
@@ -89,13 +74,18 @@ module.exports = {
   })
  },
 
+ /**
+  * Gère la sélection d'une carte → effectue la vente.
+  * @param {import("discord.js").StringSelectMenuInteraction} interaction
+  */
  async select(interaction) {
+
   if (interaction.customId !== "sellcard_select") return
 
   const cardsById = getCardsById()
-  const user = getUser(interaction.user.id)
-  const id = interaction.values[0]
-  const card = cardsById[id]
+  const user      = getUser(interaction.user.id)
+  const id        = interaction.values[0]
+  const card      = cardsById[id]
 
   if (!card) {
    return interaction.update({ content: "❌ Carte introuvable.", components: [] })
@@ -106,9 +96,8 @@ module.exports = {
   }
 
   const sellMultiplier = getSeasonSellMultiplier()
-  const bonusPct = Math.max(0, Math.round((sellMultiplier - 1) * 100))
-  const basePrice = SELL_PRICE[card.rarity] || 1
-  const price = Math.max(1, Math.floor(basePrice * sellMultiplier))
+  const bonusPct       = getSellBonusPercent(sellMultiplier)
+  const price          = computeSellPrice(SELL_PRICE[card.rarity] || 1, sellMultiplier)
 
   user.cards[id]--
   if (user.cards[id] <= 0) delete user.cards[id]
