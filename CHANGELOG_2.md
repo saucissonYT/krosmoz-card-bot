@@ -68,7 +68,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - `process.on("unhandledRejection")` — capture les promesses rejetées sans catch avec contexte complet
   - `process.on("uncaughtException")` — log fatal + sauvegarde d'urgence + exit propre pour redémarrage Railway
 
-- **Suite de tests unitaires + intégration — 149 tests** (`tests/`)
+- **Suite de tests unitaires + intégration — 198 tests** (`tests/`)
   - `pack.test.js` — 12 tests : structure du pack, pity SSR/S/UR, hard pity, distribution statistique, edge cases
   - `economy.test.js` — 10 tests : rewardKamas, cohérence des constantes (RARITY_PRICE croissant, SELL_PRICE ≤ RARITY_PRICE, FUSION_COST croissant)
   - `achievement.test.js` — 8 tests : déblocage, anti-doublon, titres, achievements secrets
@@ -141,6 +141,31 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Typedefs pour Card, User, Rarity, PityCounters, PackResult, OpenPackResult, Guild, AchievementDef, MarketListing, PlayerBonuses, BattlePassProgress
   - Documentation des exports de chaque module système
 
+- **Utilitaire vente saisonnier partagé** (`systems/sellHelper.js`)
+  - `getSeasonSellMultiplier()` — multiplicateur saisonnier avec cache 15s
+  - `getSellBonusPercent(multiplier)` — pourcentage de bonus affiché au joueur
+  - `computeSellPrice(basePrice, multiplier)` — prix final avec minimum 1
+  - Extrait de `sellcard.js` et `sellduplicate.js` (code identique dupliqué dans les deux fichiers)
+
+- **3 nouvelles suites de tests** (`tests/`)
+  - `moderation.test.js` — 21 tests : sanctions (création, expiration auto, levée, permanent, cleanup batch), noluck (activation, expiration, retrait), IDs uniques par run
+  - `trade.test.js` — 18 tests : échange de cartes (transfert, suppression qty 0), activeUsers (tracking, libération, double-trade), cooldowns (blocage, expiration), auto-trade protection, menu options (qty > 0, limite 25), bot easter egg, cleanup
+  - `audit.test.js` — 10 tests : progressBar (0/50/75/100%), buildReport (complet, erreurs, vide), runFullAudit avec client mocké (sections, commandes valides/invalides, callback progression, validation cartes)
+  - **Total : 198 tests** (149 précédents + 49 nouveaux)
+
+- **Guide développeur** (`CONTRIBUTING.md`)
+  - Structure du projet documentée
+  - 8 conventions de code : constantes centralisées, getCards() dynamique, save() ciblé, writeAtomic, logger, paths.js, anti-duplication
+  - Guide "Ajouter une stat user" (1 ligne dans STAT_DEFAULTS)
+  - Guide "Ajouter un achievement"
+  - Guide "Écrire un test"
+  - Checklist avant commit
+
+- **Script de headers JSDoc** (`add-achievement-headers.js`)
+  - Script utilitaire pour ajouter les JSDoc headers aux modules d'achievements
+  - Détection automatique des headers existants (skip si `@module` présent)
+  - Remplacement de l'ancien commentaire simple par le header complet
+
 ### Changed
 
 - **`systems/dataManager.js`** — réécrit avec backend SQLite
@@ -207,6 +232,68 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **`package.json`** — ajout `better-sqlite3` en dépendance + scripts `test`, `lint`, `format` + devDependencies `eslint` et `prettier`
 
+- **`systems/userSystem.js`** — refactorisation de `ensureStats()`
+  - Le bloc de 60+ lignes `if(s.x === undefined) s.x = 0` est remplacé par un objet `STAT_DEFAULTS` + boucle `for...in` avec détection de type (number/null/array/object/NOW)
+  - `ensureKrosmoShop()` refactorisé avec `SHOP_STAT_DEFAULTS` (même pattern)
+  - Ajout de stats manquantes : `fragmentsFound`, `fragmentsSold`, `fragmentsCrafted`, `profileViews`, `balanceCheck`, `rouletteSpins`, `rouletteJackpot`, `rouletteKamas`
+  - `console.log` dans `migrateAll()` → `log.info` via logger.js
+  - JSDoc complet sur toutes les fonctions exportées
+  - Pour ajouter une nouvelle stat : **une seule ligne** dans `STAT_DEFAULTS`
+
+- **`systems/moderationSystem.js`** — migration vers les utilitaires centralisés
+  - Supprimé le pattern `let BASE = "/data"` dupliqué → `getBasePath()` depuis `paths.js`
+  - `loadJSON`/`saveJSON` manuels → `readJsonSafe`/`writeAtomic` depuis `fileUtils.js`
+  - `console.error` → `createLogger("MODERATION")` depuis `logger.js`
+  - Try/catch robuste sur chaque opération d'écriture
+  - JSDoc avec `@typedef SanctionEntry` et `@typedef NoluckEntry`
+
+- **`systems/auditSystem.js`** — lecture dynamique des cartes
+  - `data.cards || []` (×3) → `getCards()` depuis `cardRegistry` (dynamique)
+  - `console.error` (×4) → `log.error` via logger.js
+  - Import de `data` depuis dataManager supprimé (plus nécessaire pour les cartes)
+  - JSDoc avec `@typedef AuditResult`
+
+- **`systems/economy.js`** — ajout JSDoc complet sur `rewardKamas()`
+
+- **`commands/joueur/listcards.js`** — migration vers constantes centralisées
+  - Supprimé `rarityEmoji` et `rarityOrder` locaux → `RARITY_EMOJI` et `RARITY_ORDER` depuis `constants.js`
+  - Poids de tri construit dynamiquement depuis `RARITY_ORDER`
+  - Ajout `collector.on("end")` pour désactiver les composants après timeout
+
+- **`commands/joueur/market.js`** — nettoyage complet
+  - Supprimé `const cards = getCards()` au top-level (snapshot statique) → `getCards()` dynamique dans chaque fonction
+  - Supprimé `const rarityEmoji = {...}` local → `RARITY_EMOJI` depuis `constants.js`
+  - JSDoc sur `execute`, `button`, `renderMarket`, `renderFragmentPicker`, `select`, `modal`
+
+- **`commands/joueur/trade.js`** — save ciblé + robustesse
+  - 3× `save()` global → `save(trade.from)` + `save(trade.to)` ciblé
+  - Nouvelle fonction `cleanupTrade()` pour garantir la libération de `activeUsers` même en cas d'erreur
+  - JSDoc complet avec `@typedef TradeData`
+
+- **`commands/joueur/sellcard.js`** — extraction du code dupliqué
+  - Supprimé la copie locale de `getSeasonSellMultiplier()` + cache (20 lignes) → `require("../../systems/sellHelper")`
+
+- **`commands/joueur/sellduplicate.js`** — même extraction
+  - Supprimé la copie locale identique → `require("../../systems/sellHelper")`
+
+- **`commands/moderation/stats.js`** — lecture dynamique des cartes
+  - `const cards = data.cards || []` au top-level → `getCards()` dynamique
+  - Ajout compteur shiny et nombre de sets
+  - Nombres formatés avec `toLocaleString("fr-FR")`
+
+- **`app/handlers/reactionRoles.js`** — migration vers utilitaires centralisés
+  - 10× `console.log/warn/error` → `log.info/warn/error` via `createLogger("REACTION_ROLES")`
+  - `fs.readFileSync/writeFileSync` → `readJsonSafe/writeAtomic` depuis `fileUtils.js`
+  - JSDoc sur toutes les fonctions
+
+- **`systems/types.js`** — enrichi avec 25 typedefs
+  - Ajout : `SellMultiplierCache`, `TradeData`, `AuditResult`, `ValidationResult`, `SeasonState`, `AchievementReward`, `Fragment`, `MarketHistoryEntry`, `NoluckEntry`, `SanctionEntry`
+  - Signatures API documentées pour 18 modules (sellHelper, moderationSystem, fragmentService, etc.)
+
+- **14 modules d'achievements** — JSDoc headers ajoutés
+  - Chaque module a un header avec : chemin, description, triggers, catégories listées, `@module`, `@see`
+  - Fichiers : achievementPacks, achievementRarity, achievementFusion, achievementCollection, achievementEconomy, achievementSocial, achievementSecrets, achievementEvents, achievementSpecial, achievementGift, achievementGuild, achievementFragments, achievementRoulette, achievementLevel
+
 ### Fixed
 
 - **Doublons d'achievements** (`systems/userDefaults.js` + `systems/achievementEngine.js`)
@@ -223,18 +310,24 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **`commands/joueur/carte.js`** — prix de vente utilisait `rarityPrice` (prix market) au lieu de `SELL_PRICE` (prix vente au bot) → joueurs payés trop cher
 - **`commands/joueur/carte.js`** — boutons restaient visuellement actifs après expiration du collector (60s) → ajout de `collector.on("end")`
 
+- **`commands/joueur/trade.js`** — `save()` appelé sans argument (sauvegarde globale de tous les users) à chaque échange → surcharge disque. Fix : `save(trade.from)` + `save(trade.to)` ciblé
+- **`commands/joueur/trade.js`** — `activeUsers` non nettoyé en cas d'erreur pendant l'échange → joueurs bloqués. Fix : `cleanupTrade()` garantit la libération dans tous les cas
+
 ### Improved
 
 - **Performance leaderboard** — requête SQL indexée au lieu de lire et parser tous les fichiers JSON users/ (de O(n) fichiers à O(1) query)
 - **Performance API web** — leaderboard SQL + cache 60s, profils cachés 30s
+- **Performance disque** — `save(userId)` ciblé dans trade.js, carte.js, sellcard.js, sellduplicate.js au lieu de `save()` global qui écrivait tous les users en mémoire
 - **Sécurité API** — rate limiting 100 req/min par IP avec réponse 429 + Retry-After
 - **Stabilité déploiement** — graceful shutdown sauvegarde toutes les données + ferme SQLite proprement avant redémarrage Railway
 - **Intégrité des données** — transactions SQLite atomiques, WAL mode pour les écritures concurrentes, migrations avec backup systématique (`.migrated`)
-- **Qualité du code** — 149 tests (12 suites dont 1 E2E), CI/CD GitHub Actions, ESLint + Prettier configurés, JSDoc sur tous les systèmes
-- **Maintenabilité** — 10 nouveaux utilitaires partagés réduisent la duplication de code
+- **Qualité du code** — 198 tests (15 suites dont 1 E2E), CI/CD GitHub Actions, ESLint + Prettier configurés, JSDoc sur tous les modules (14 achievements + systèmes + commandes)
+- **Maintenabilité** — 11 utilitaires partagés (+ sellHelper.js), zéro duplication significative, `STAT_DEFAULTS` pour ajouter une stat en 1 ligne, `CONTRIBUTING.md` avec conventions et checklists
+- **Cohérence des patterns** — 100% des fichiers utilisent `getCards()` dynamique, `RARITY_EMOJI` depuis constants.js, `save(userId)` ciblé, logger structuré au lieu de console.log
 - **Base de données unifiée** — 100% des données fréquentes en SQLite (users, market, guildes, battlepass) — seuls les fichiers de config statiques restent en JSON
 - **Robustesse des sauvegardes** — `writeAtomic` pour les JSON de config, SQLite WAL pour users/market/guildes/battlepass
 - **Diagnostic en production** — chaque erreur inclut le contexte complet (commande, userId, guildId)
+- **Documentation** — `types.js` avec 25 typedefs et 18 signatures d'API, `CONTRIBUTING.md` avec guide complet, JSDoc `@module` sur les 14 modules d'achievements
 
 ---
 
