@@ -488,13 +488,36 @@ module.exports = {
    option.setName("packs")
     .setDescription("Nombre de packs à ouvrir (1-25)")
     .setRequired(false)
-    .setMinValue(1)
-    .setMaxValue(MAX_BATCH)
+    .setAutocomplete(true)
   ),
 
  /* ── Autocomplete ─────────────────────────────────────────────────────────── */
  async autocomplete(interaction) {
-  const focused      = interaction.options.getFocused().toLowerCase()
+  const focusedOption = interaction.options.getFocused(true)
+
+  /* ── Autocomplete : packs (quantité) ─────────────────────────────────────── */
+  if (focusedOption.name === "packs") {
+   let user = null
+   try { user = getUser(interaction.user.id) } catch (_) {}
+
+   const stock = user?.packs || 0
+   const input = focusedOption.value
+
+   const quantities = [1, 2, 3, 5, 10, 15, 20, 25]
+   const choices    = quantities.map((n) => ({
+    name:  `${n} pack${n > 1 ? "s" : ""} (stock : ${stock})`,
+    value: n
+   }))
+
+   const filtered = input
+    ? choices.filter((c) => String(c.value).startsWith(String(input)))
+    : choices
+
+   return interaction.respond(filtered.slice(0, 25))
+  }
+
+  /* ── Autocomplete : set ──────────────────────────────────────────────────── */
+  const focused      = focusedOption.value.toLowerCase()
   const rawSets      = loadSets()
   const playableSets = getPlayableSets(rawSets)
   const allCards     = getCards()
