@@ -402,7 +402,7 @@ function dbSaveGuild(guild) {
   clone.leaderId || "",
   clone.level || 1,
   clone.xp || 0,
-  Array.isArray(clone.members) ? clone.members.length : 1,
+  Array.isArray(clone.memberIds) ? clone.memberIds.length : 1,
   clone.createdAt || Date.now(),
   Date.now()
  )
@@ -499,6 +499,25 @@ function dbDeleteAllBattlePassProgress(seasonId) {
 }
 
 /* ═══════════════════════════════════════════════
+   GLOBAL STATS (agrégation SQL)
+═══════════════════════════════════════════════ */
+
+function dbGlobalStats() {
+ const row = getDb().prepare(`
+  SELECT
+   COUNT(*)          AS players,
+   COALESCE(SUM(kamas), 0)        AS totalKamas,
+   COALESCE(SUM(total_cards), 0)  AS cardsOwned,
+   COALESCE(SUM(ssr_count), 0)    AS ssrOwned,
+   COALESCE(SUM(packs_opened), 0) AS packsOpened,
+   COALESCE(SUM(achievements), 0) AS achievements,
+   COALESCE(SUM(CAST(json_extract(data, '$.stats.fusions') AS INTEGER)), 0) AS fusions
+  FROM users
+ `).get()
+ return row
+}
+
+/* ═══════════════════════════════════════════════
    META
 ═══════════════════════════════════════════════ */
 
@@ -536,6 +555,7 @@ module.exports = {
  dbListUserIds,
  dbCountUsers,
  dbLeaderboard,
+ dbGlobalStats,
 
  /* Market */
  dbLoadMarket,

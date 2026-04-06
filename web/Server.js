@@ -22,10 +22,10 @@ const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
 const {
  dbLoadUser,
- dbListUserIds,
  dbCountUsers,
  dbLeaderboard,
- dbLoadMarketHistory
+ dbLoadMarketHistory,
+ dbGlobalStats
 } = require("../systems/database")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
@@ -56,16 +56,28 @@ const webHooks = {
 let BASE = "/data"
 if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
 
-const USERS_DIR = path.join(BASE, "users")
 const CARDS_PATH = path.join(BASE, "cards.json")
-const MARKET_PATH = path.join(BASE, "market.json")
-const MARKET_HISTORY_PATH = path.join(BASE, "marketHistory.json")
 const PUBLIC_DIR = path.join(__dirname, "public")
 const CARD_IMAGES_RUNTIME_DIR = path.join(BASE, "cards", "images")
 const CARD_IMAGES_REPO_DIR = path.join(process.cwd(), "cards", "images")
 
 const DISCORD_USER_TTL_MS = 5 * 60 * 1000
 const discordUserCache = new Map()
+
+/* ── Cache données statiques (cards / sets) ── */
+const STATIC_CACHE_TTL = 60 * 1000
+let _cardsCache = null
+let _cardsCacheAt = 0
+let _setsCache = null
+let _setsCacheAt = 0
+
+/* ── Nettoyage périodique du cache Discord (toutes les 10 min) ── */
+setInterval(() => {
+ const now = Date.now()
+ for (const [key, entry] of discordUserCache) {
+  if (entry.expiresAt <= now) discordUserCache.delete(key)
+ }
+}, 10 * 60 * 1000)
 
 const OAUTH_CLIENT_ID = process.env.DISCORD_WEB_CLIENT_ID || process.env.CLIENT_ID || ""
 const OAUTH_CLIENT_SECRET = process.env.DISCORD_WEB_CLIENT_SECRET || ""
@@ -98,23 +110,26 @@ function readJSON(filePath, fallback) {
  }
 }
 
-function listUserFiles() {
- /* Compatibilité : retourne des "fake filenames" depuis SQLite */
- return dbListUserIds().map(id => `${id}.json`)
-}
-
 function loadUser(userId) {
  return dbLoadUser(userId)
 }
 
 function getCards() {
- return readJSON(CARDS_PATH, [])
+ const now = Date.now()
+ if (_cardsCache && (now - _cardsCacheAt) < STATIC_CACHE_TTL) return _cardsCache
+ _cardsCache = readJSON(CARDS_PATH, [])
+ _cardsCacheAt = now
+ return _cardsCache
 }
 
 function getSets() {
+ const now = Date.now()
+ if (_setsCache && (now - _setsCacheAt) < STATIC_CACHE_TTL) return _setsCache
  const raw = readJSON(findSetsPath(), [])
  const list = Array.isArray(raw) ? raw : (raw?.sets || [])
- return sortSetsByDisplayOrder(list)
+ _setsCache = sortSetsByDisplayOrder(list)
+ _setsCacheAt = now
+ return _setsCache
 }
 
 function getSetsWithCounts() {
@@ -287,42 +302,18 @@ function computeGlobalStats() {
  const cards = getCards()
  const sets = getSets()
  const guilds = getGuildList()
- const userIds = dbListUserIds()
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
-
- let totalCardsOwned = 0
- let totalKamas = 0
- let totalPacks = 0
- let totalFusions = 0
- let totalSSR = 0
- let totalAchievements = 0
-
- for (const userId of userIds) {
-  const user = loadUser(userId)
-  if (!user) continue
-
-  for (const [id, qty] of Object.entries(user.cards || {})) {
-   totalCardsOwned += qty
-   const card = cardsById.get(String(id))
-   if (card?.rarity === "SSR") totalSSR += qty
-  }
-
-  totalKamas += user.kamas || 0
-  totalPacks += user.stats?.packsOpened || 0
-  totalFusions += user.stats?.fusions || 0
-  totalAchievements += user.achievements?.length || 0
- }
+ const row = dbGlobalStats()
 
  return {
-  players: userIds.length,
+  players: row.players,
   totalCards: cards.length,
   totalSets: sets.length,
-  cardsOwned: totalCardsOwned,
-  ssrOwned: totalSSR,
-  totalKamas,
-  packsOpened: totalPacks,
-  fusions: totalFusions,
-  achievements: totalAchievements,
+  cardsOwned: row.cardsOwned,
+  ssrOwned: row.ssrOwned,
+  totalKamas: row.totalKamas,
+  packsOpened: row.packsOpened,
+  fusions: row.fusions,
+  achievements: row.achievements,
   guilds: guilds.length
  }
 }
@@ -881,7 +872,8 @@ function createWebApp() {
 
 app.get("/api/stats", (req, res) => {
  try {
-  res.json(computeGlobalStats())
+  const stats = apiCache.getOrCompute("global:stats", () => computeGlobalStats(), 60000)
+  res.json(stats)
  } catch (e) {
   console.error("[WEB] /api/stats:", e)
   res.status(500).json({ error: "Erreur serveur" })
