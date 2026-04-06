@@ -7,7 +7,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - Fixed → corrections de bugs
 - Improved → améliorations internes
 
-## [0.38.0] - 2026-04-05
+## [0.38.0] - 2026-04-06
 
 ### Added
 
@@ -25,6 +25,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Table `guilds` : JSON blob + colonnes indexées (name, leader_id, level, xp, member_count, created_at)
   - Table `battlepass_progress` : clé composite (user_id, season_id) + colonnes indexées (current_level, total_xp, has_premium)
   - 14 nouvelles fonctions CRUD : `dbLoadAllGuilds`, `dbSaveGuild`, `dbDeleteGuild`, `dbCountGuilds`, `dbGuildLeaderboard`, `dbFindGuildByName`, `dbLoadBattlePassProgress`, `dbSaveBattlePassProgress`, `dbDeleteBattlePassProgress`, `dbListBattlePassUserIds`, `dbCountBattlePassUsers`, `dbBattlePassLeaderboard`, `dbDeleteAllBattlePassProgress`
+  - `dbGlobalStats()` — agrégation SQL (SUM sur colonnes indexées + `json_extract` pour fusions) pour `/api/stats`, remplace la boucle JS sur tous les users
   - Migration guildes : lit `guilds.json` → insère dans SQLite (transaction atomique) → backup en `.migrated`
   - Migration battlepass : lit `battlepass/progress/*.json` → insère dans SQLite → backup dossier en `progress.migrated/`
   - Les deux migrations s'exécutent automatiquement au premier boot, une seule fois (flag `meta`)
@@ -178,11 +179,14 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **`web/Server.js`** — requêtes SQLite pour le web
   - `computeLeaderboard()` remplacé par `dbLeaderboard()` — requête SQL directe au lieu de lire tous les fichiers users/
-  - `loadUser()` et `listUserFiles()` utilisent SQLite
-  - `computeGlobalStats()` utilise `dbListUserIds()` + `loadUser()` SQLite
+  - `loadUser()` utilise SQLite via `dbLoadUser()`
+  - `computeGlobalStats()` réécrit avec `dbGlobalStats()` — 1 requête SQL au lieu de boucle JS sur tous les users
   - `computeActivityFeed()` lit l'historique depuis SQLite
   - `computeMarket()` lit le market depuis SQLite
+  - `getGuildList()` utilise `getAllGuilds()` du cache mémoire guildSystem au lieu de lire `guilds.json`
   - `/health` utilise `dbCountUsers()` au lieu de `fs.readdirSync`
+  - `/api/stats` wrappé dans `apiCache` (TTL 60s)
+  - Cache mémoire pour `getCards()` / `getSets()` (TTL 60s)
   - Rate limiting + cache + pity profil (inchangé par rapport au commit précédent)
 
 - **`index.js`** — fermeture SQLite au shutdown
@@ -313,6 +317,14 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **`commands/joueur/trade.js`** — `save()` appelé sans argument (sauvegarde globale de tous les users) à chaque échange → surcharge disque. Fix : `save(trade.from)` + `save(trade.to)` ciblé
 - **`commands/joueur/trade.js`** — `activeUsers` non nettoyé en cas d'erreur pendant l'échange → joueurs bloqués. Fix : `cleanupTrade()` garantit la libération dans tous les cas
 
+- **Guildes invisibles sur le site web** (`web/Server.js`)
+  - `getGuildList()` lisait l'ancien `guilds.json` via `readJSON()` au lieu du cache mémoire SQLite — le fichier JSON étant vide/périmé après migration, le compteur guildes sur l'index affichait 0, la page `/guild` était vide, et les profils joueurs n'affichaient pas leur guilde
+  - Fix : `getGuildList()` appelle `getAllGuilds()` depuis `guildSystem.js` — suppression de `GUILDS_PATH`
+
+- **`member_count` toujours à 1 en base SQLite** (`systems/database.js`)
+  - `dbSaveGuild()` utilisait `clone.members.length` mais la propriété s'appelle `memberIds` → `member_count` n'était jamais calculé correctement
+  - Fix : `clone.members` → `clone.memberIds`
+
 ### Improved
 
 - **Performance leaderboard** — requête SQL indexée au lieu de lire et parser tous les fichiers JSON users/ (de O(n) fichiers à O(1) query)
@@ -328,6 +340,18 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 - **Robustesse des sauvegardes** — `writeAtomic` pour les JSON de config, SQLite WAL pour users/market/guildes/battlepass
 - **Diagnostic en production** — chaque erreur inclut le contexte complet (commande, userId, guildId)
 - **Documentation** — `types.js` avec 25 typedefs et 18 signatures d'API, `CONTRIBUTING.md` avec guide complet, JSDoc `@module` sur les 14 modules d'achievements
+- **Performance `/api/stats`** — `computeGlobalStats()` réécrit avec `dbGlobalStats()` (une seule requête SQL `SUM` sur colonnes indexées + `json_extract` pour fusions) au lieu de boucler sur tous les users en JS — passe de O(n) à O(1)
+- **Cache `/api/stats`** — wrappé dans `apiCache.getOrCompute()` avec TTL 60s
+- **Cache `getCards()` / `getSets()`** — données statiques mises en cache mémoire avec TTL 60s, plus de lecture disque (`readJSON` + `fs.readFileSync`) à chaque requête API
+- **Nettoyage code mort** — suppression de `USERS_DIR`, `MARKET_PATH`, `MARKET_HISTORY_PATH`, `listUserFiles()`, `dbListUserIds` import (plus utilisés depuis migration SQLite)
+- **Sécurité : headers HTTP** — middleware qui pose `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- **Sécurité : CSRF** — vérification `Content-Type: application/json` obligatoire sur tous les POST `/api/` — bloque les form submissions cross-origin
+- **Sécurité : cookie session `SameSite=Strict`** — plus aucun envoi cross-origin du cookie, même en GET (cookies OAuth restent Lax pour le flow Discord)
+- **Sécurité : rate limiter marché** — 20 req/min sur `/api/market/buy`, `sell-card`, `sell-fragment`, `remove` en plus du 100 global
+- **Sécurité : prix plafonné** — `MAX_PRICE = 10_000_000` kamas sur sell-card et sell-fragment
+- **Sécurité : body limit** — `express.json({ limit: "50kb" })` au lieu de 1mb
+- **Sécurité : sessions** — nettoyage périodique des sessions expirées (toutes les 10 min) + cap à 10k sessions max avec éviction des plus anciennes — plus de fuite mémoire
+- **Sécurité : Discord API** — `encodeURIComponent(userId)` dans l'URL de `resolveDiscordUser()` pour éviter injection dans le path
 
 ---
 
