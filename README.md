@@ -27,9 +27,11 @@ Les joueurs peuvent :
 
 - Node.js
 - discord.js v14
-- JSON Database (fichiers individuels par joueur + guilds.json)
+- SQLite via better-sqlite3 (users, market, guilds, battlepass progress)
+- JSON (fichiers de config statiques : cards, devs, season templates)
 - Canvas (images inventaire)
 - Sharp (traitement d'images cartes)
+- Express (API web / webhooks)
 - Architecture modulaire (systems/)
 
 ---
@@ -47,10 +49,12 @@ krosmoz-card
 |-- systems/
 |   |-- achievements/        # modules de succès
 |   |-- eventHandlers/       # handlers d'events (1 par Dieu)
+|   |-- database.js          # couche SQLite (better-sqlite3, WAL, prepared statements)
+|   |-- migrate.js           # migration automatique JSON → SQLite
 |   |-- battlePassService.js # logique Battle Pass (XP, paliers, claims)
 |   |-- seasonService.js     # saisons (rotation, templates, rewards)
 |   |-- guildSystem.js       # guildes (CRUD, XP, niveaux)
-|   |-- guildQuestSystem.js  # quêtes hebdo de guilde (scaling)
+|   |-- guildQuestSystem.js  # quêtes de guilde (5 journa + 5 hebdo, scaling)
 |   |-- fragmentService.js   # logique fragments (drop, craft, index, progress)
 |   `-- ...                  # pack, market, user, progression, etc.
 |
@@ -66,13 +70,12 @@ krosmoz-card
 |   `-- sets.json
 |
 |-- data/
-|   |-- users/
-|   |-- battlepass/          # current_season, seasons, progress, archive
-|   |-- fragments/           # craftable_ssrs.json + craft_logs/<userId>.json
-|   |-- guilds.json
-|   |-- market.json
-|   |-- krosmoshop.json
-|   `-- cards.json
+|   |-- krosmoz.db           # base SQLite (users, market, guilds, battlepass)
+|   |-- cards.json           # définitions des cartes (config statique)
+|   |-- devs.json            # liste des devs (config statique)
+|   `-- battlepass/
+|       |-- current_season.json
+|       `-- seasons/          # templates de saisons
 |
 |-- index.js
 |-- CHANGELOG.md
@@ -89,8 +92,9 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 | Système | Rôle |
 |---------|------|
-| dataManager | Données persistantes, autosave 30s, dirty save |
-| userSystem | Gestion des utilisateurs (fichiers individuels) |
+| database | Couche SQLite (better-sqlite3, WAL mode, prepared statements, leaderboard SQL) |
+| dataManager | Cache mémoire + autosave 30s vers SQLite |
+| userSystem | Gestion des utilisateurs (cache + SQLite) |
 | cardRegistry | Indexation dynamique des cartes |
 | constants | Constantes centralisées (raretés, prix, couleurs, PACK_PRICE, MAX_PLAYER_LEVEL) |
 
@@ -115,7 +119,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 |---------|------|
 | guildSystem | CRUD guildes, XP, niveaux 1→100, hiérarchie (meneur/officier/membre), max 10 membres |
 | guildBonuses | Calcul des 10 bonus progressifs par niveau de guilde |
-| guildQuestSystem | 3 quêtes hebdo de guilde, scaling dynamique par nombre de membres, pool de 25 quêtes |
+| guildQuestSystem | 5 quêtes journalières + 5 quêtes hebdomadaires, scaling dynamique par nombre de membres |
 
 ### 💰 Économie
 
@@ -365,49 +369,6 @@ Chaque set récompense les joueurs aux paliers suivants :
 
 ---
 
-## 🎡 Roulette d'Ecaflip
-
-La Roulette d'Ecaflip est une récompense passive disponible une fois par heure, sans mise ni condition. Elle distribue 31 lots pondérés allant de kamas communs à des cartes SSR garanties, avec un jackpot secret ultra-rare.
-
-### Commande
-
-- `/roulette` — Faire tourner la roulette (cooldown 1h, salons dédiés uniquement)
-- `/devroulette` — Version dev sans cooldown, avec option pour forcer un lot 1–31
-
-### Les 31 lots
-
-| Rareté | Lots | Exemple |
-|--------|------|---------|
-| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, **200 XP** |
-| 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, **500–1 000 XP**, fragments |
-| 🟦 Rare | 21–26 | 5 000–7 500 kamas **+400–600 XP**, 8–10 packs, carte HR garantie |
-| 🟥 Très rare | 27–30 | 15 000 kamas **+1 500 XP**, 15 packs, carte UR/SSR garantie |
-| 🌟 Secret | 31 | **JACKPOT** — 1 SSR Shiny + 10 000 kamas + 5 packs (~1/2120) |
-
-Les lots XP donnent de l'**XP joueur** (pas de l'XP Battle Pass). Les lots kamas des raretés Rare et Très rare incluent désormais un bonus XP secondaire.
-
-Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît jamais dans la liste des récompenses visibles.
-
-### Stats suivies dans `user.stats`
-
-`rouletteSpins` · `rouletteLastSpin` · `rouletteConsecDays` · `rouletteLastDay` · `rouletteWinKamas` · `rouletteWinPacks` · `rouletteWinSSR` · `rouletteWinShiny` · `rouletteJackpot` · `rouletteLotCommun` · `rouletteLotPeuCommun` · `rouletteLotRare` · `rouletteLotTresRare` · `rouletteNightSpin` · `rouletteLunchSpin`
-
-Aucune migration requise — tous les champs sont lus avec fallback `|| 0`.
-
-### 20 succès dédiés
-
-| Catégorie | Succès | Paliers |
-|-----------|--------|---------|
-| 🎡 Tours | 5 | 1 · 5 · 25 · 75 · 150 |
-| 💠 Lots rares | 4 | Rare (1/20) · Très rare (1/10) |
-| 🎰 Jackpots | 2 | 1 · 3 |
-| 🌈 SSR & Shiny | 2 | SSR (1) · Shiny (1) |
-| 💰📦 Gains | 3 | Kamas (50k/250k) · Packs (25) |
-| 🕒 Créneaux | 2 | Nuit (2h–5h) · Midi (13h–14h) |
-| 📅 Streak | 2 | 7 jours · 30 jours |
-
----
-
 ## 🧩 Système de Fragments
 
 Les fragments sont un système permettant d'obtenir des cartes **SSR garanties** en collectant des pièces via les packs.
@@ -421,8 +382,7 @@ Les fragments sont un système permettant d'obtenir des cartes **SSR garanties**
 ### Drop
 
 - Les fragments droppent depuis le `packEngine` lors de chaque ouverture de pack
-- Le pool est indexé dynamiquement dans `data/fragments/craftable_ssrs.json`
-- L'index se reconstruit automatiquement au démarrage ou via `/fragments rebuild-index`
+- Le pool est indexé dynamiquement au démarrage et se reconstruit via `/fragments rebuild-index`
 
 ### Craft
 
@@ -456,18 +416,6 @@ Les fragments sont un système permettant d'obtenir des cartes **SSR garanties**
 | 🏆 Maître Forgeron | Crafter 5 SSR via fragments |
 | 💰 Marchand de Tessons | Vendre 1 fragment |
 | 🕶️ Broker de l'Ombre | Vendre 10 fragments |
-
-### Stockage
-
-```txt
-data/fragments/
-  craftable_ssrs.json      # index des SSR craftables (cardId[])
-  craft_logs/
-    <userId>.json           # historique des crafts par joueur
-```
-
-Les fragments sont stockés dans `user.fragments[]` avec : `cardId`, `fragmentNumber`, `source`, `obtainedAt`.
-
 
 ---
 
@@ -577,12 +525,17 @@ Les bonus se **cumulent** avec les bonus de guilde.
 | 🧧 Chance de double daily | +1% / 20 niv. | +5% |
 
 ### Quêtes de guilde
-- **3 quêtes par semaine**, tirées d'un pool de **25 quêtes** possibles
-- Mêmes quêtes pour toutes les guildes (sélection déterministe par semaine)
+
+- **5 quêtes journalières** + **5 quêtes hebdomadaires**, tirées de pools dédiés
+- Pool journalier : **15 quêtes** possibles (quêtes légères : quelques packs, fusions, daily, ventes, dons, shop, events, roulette)
+- Pool hebdomadaire : **27 quêtes** possibles (quêtes costaud : gros volumes de packs, fusions, SSR, daily, ventes, events, dons, kamas, shop, roulette)
+- Mêmes quêtes pour toutes les guildes (sélection déterministe par jour/semaine)
 - Progrès calculé par **diff de stats combinées** de tous les membres
-- Récompenses : **350 à 2000 XP de guilde** selon la difficulté
-- **Bonus semaine parfaite** si 3/3 terminées : **+500 XP**
-- Reset chaque **lundi à 1h** (heure française)
+- Récompenses : **150 à 2000 XP de guilde** selon la difficulté
+- **Bonus jour parfait** si 5/5 journalières terminées : **+200 XP**
+- **Bonus semaine parfaite** si 5/5 hebdomadaires terminées : **+500 XP**
+- Reset journalier chaque jour à **1h** (heure française)
+- Reset hebdomadaire chaque **lundi à 1h** (heure française)
 
 ### Scaling dynamique des quêtes
 
@@ -605,29 +558,35 @@ Les goals de base sont calibrés pour **8 joueurs actifs**. Une guilde de 10 fai
 
 **La récompense XP reste fixe** quel que soit le nombre de membres, pour ne pas pénaliser les petites guildes.
 
-**Exemples de quêtes de guilde (goals pour 10 membres / 8 effectifs) :**
+**Exemples de quêtes journalières de guilde (goals pour 10 membres / 8 effectifs) :**
+
+| Quête | Objectif | Récompense |
+|-------|----------|------------|
+| 📦 Ouverture du jour | Ouvrir 5 packs | ⭐ 200 XP |
+| 📦 Session packs | Ouvrir 10 packs | ⭐ 350 XP |
+| ⚗️ Petit Alchimiste | Faire 2 fusions | ⭐ 150 XP |
+| 🎁 Présence collective | Réclamer 3 daily | ⭐ 200 XP |
+| 💰 Petit Marchand | Vendre 5 cartes | ⭐ 200 XP |
+| 🎡 Tours collectifs | Jouer 6 fois à la roulette | ⭐ 280 XP |
+
+**Exemples de quêtes hebdomadaires de guilde (goals pour 10 membres / 8 effectifs) :**
 
 | Quête | Objectif | Récompense |
 |-------|----------|------------|
 | 📦 Chasseurs de packs | Ouvrir 30 packs | ⭐ 400 XP |
 | 📦 Pluie de cartes | Ouvrir 200 packs | ⭐ 2000 XP |
 | 🌈 Éclat arc-en-ciel | Obtenir 3 SSR | ⭐ 600 XP |
-| 🌈 Chasseurs de SSR | Obtenir 6 SSR | ⭐ 1000 XP |
-| ⚗️ Premiers essais | Faire 8 fusions | ⭐ 400 XP |
 | ⚗️ Laboratoire actif | Faire 50 fusions | ⭐ 1400 XP |
-| 🎁 Partage amical | Faire 4 dons | ⭐ 400 XP |
 | 🎁 Philanthropes | Faire 25 dons | ⭐ 1200 XP |
-| 💰 Grand déstockage | Vendre 50 cartes | ⭐ 800 XP |
-| 🎁 Fidélité collective | Réclamer 20 daily | ⭐ 600 XP |
 | 💎 Trésor de guilde | Gagner 80 000 kamas | ⭐ 1200 XP |
-| 🛒 Clients du KrosmoShop | Acheter 4 cartes au shop | ⭐ 400 XP |
+| 🎡 Festival d'Ecaflip | Jouer 36 fois à la roulette | ⭐ 900 XP |
 
 ### Interface /guild
 
 La commande **/guild** affiche une interface interactive avec :
 - Vue principale : emoji, nom, niveau, XP, barre de progression, membres, rôle
 - Onglet **Membres** : liste avec icônes de rôle
-- Onglet **Quêtes** : 3 quêtes hebdo avec barres de progression et timer
+- Onglet **Quêtes** : quêtes journalières et hebdomadaires avec barres de progression et timer
 - Onglet **Bonus** : bonus actifs + prochains déblocages
 - Bouton **Quitter**
 - Création via **modal** si le joueur n'est pas dans une guilde
@@ -705,11 +664,42 @@ Chaque Dieu a son propre mécanisme RNG et ses **voice lines** quand tu obtiens 
 | 🌿 Sadida | Croissance naturelle | Duplication progressive (35% par carte, max 2 duplications) |
 | ⚔️ Forgelance | Forge divine | Upgrade global de +1 rang sur toutes les cartes |
 
-### 🪅 Piñata du Dieu Ecaflip
+---
+
+## 🎡 Roulette d'Ecaflip
+
+La Roulette d'Ecaflip est une récompense passive disponible une fois par heure, sans mise ni condition. Elle distribue 31 lots pondérés allant de kamas communs à des cartes SSR garanties, avec un jackpot secret ultra-rare.
+
+### Commande
+
+- `/roulette` — Faire tourner la roulette (cooldown 1h, salons dédiés uniquement)
+- `/devroulette` — Version dev sans cooldown, avec option pour forcer un lot 1–31
+
+### Les 31 lots
+
+| Rareté | Lots | Exemple |
+|--------|------|---------|
+| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, **200 XP** |
+| 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, **500–1 000 XP**, fragments |
+| 🟦 Rare | 21–26 | 5 000–7 500 kamas **+400–600 XP**, 8–10 packs, carte HR garantie |
+| 🟥 Très rare | 27–30 | 15 000 kamas **+1 500 XP**, 15 packs, carte UR/SSR garantie |
+| 🌟 Secret | 31 | **JACKPOT** — 1 SSR Shiny + 10 000 kamas + 5 packs (~1/2120) |
+
+Les lots XP donnent de l'**XP joueur** (pas de l'XP Battle Pass). Les lots kamas des raretés Rare et Très rare incluent désormais un bonus XP secondaire.
+
+Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît jamais dans la liste des récompenses visibles.
+
+---
+
+## 🪅 Piñata d'Ecaflip
 
 La Piñata d'Ecaflip est un event communautaire automatique qui apparaît toutes les 2 à 6 heures dans le salon dédié. Tous les joueurs qui réagissent pendant les **60 secondes** de la piñata reçoivent des récompenses.
 
-**Mécanique** : le score de chaque joueur est calculé comme `nombre de réactions + (emojis uniques × 2)`. Plus le score est élevé, meilleur est le palier de récompenses. Le nombre total de participants booste un multiplicateur global (×1 à ×2).
+### Mécanique
+
+Le score de chaque joueur est calculé comme `nombre de réactions + (emojis uniques × 2)`. Plus le score est élevé, meilleur est le palier de récompenses. Le nombre total de participants booste un multiplicateur global (×1 à ×2).
+
+### Paliers de récompenses
 
 | Palier | Score min | Kamas | XP | Carte | Fragment |
 |--------|----------|-------|-----|-------|----------|
@@ -720,6 +710,7 @@ La Piñata d'Ecaflip est un event communautaire automatique qui apparaît toutes
 | 🌈 Krosmique | 28 | 2500-4000 | 160 | C→UR (70%) + SSR 2% | 25% |
 
 Chaque participant reçoit également de l'XP guilde et de l'XP battle pass proportionnels à son palier. 17 achievements dédiés trackent les participations, SSR gagnées, réactions cumulées et kamas gagnés via la piñata.
+
 ---
 
 ## 📅 Quêtes
@@ -740,7 +731,7 @@ Chaque participant reçoit également de l'XP guilde et de l'XP battle pass prop
 ### Interface /quests
 
 La commande **/quests** affiche une interface interactive avec :
-- Deux onglets : ☀ï¸ Journalières et 📅 Hebdomadaires
+- Deux onglets : ☀¸ Journalières et 📅 Hebdomadaires
 - Barres de progression pour chaque quête
 - Bouton **"Récupérer tout"** pour claim en un clic
 - Timer de reset affiché en temps réel
@@ -789,7 +780,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Paliers dedies aux niveaux BP, packs, daily, fusions, events, sets completes, premium, kamas, titres et badges
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
-- Progression et etat de claim par joueur : `data/battlepass/progress/<userId>.json`
+- Progression et etat de claim par joueur : stocké en SQLite (table `battlepass_progress`)
 - Le jeu compte `469` succes classiques + `81` succes Battle Pass, soit `550` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
@@ -991,7 +982,7 @@ Command Handlers
       |                                |
       +--> fragmentService ---------+
       |                                |               +--> playerBonuses
-      +--> market ---------------------+ 
+      +--> market ---------------------+
       |
       +--> guildSystem --> guildBonuses
       |
@@ -1002,49 +993,48 @@ Command Handlers
 userSystem / battlePassService / guildSystem
       |
       v
-dataManager
+  database.js (SQLite — better-sqlite3)
       |
-      +--> /data/users/*.json
-      +--> /data/battlepass/*
-      +--> /data/guilds.json, market.json, krosmoshop.json...
+      +--> krosmoz.db
+      |     ├── users (JSON blob + colonnes indexées)
+      |     ├── market / market_history
+      |     ├── guilds (JSON blob + colonnes indexées)
+      |     └── battlepass_progress
+      |
+      +--> cards.json, devs.json (config statique, JSON)
 ```
 
 ---
 
 ## 📂 Stockage des données
 
-Fichiers JSON individuels par joueur (dirty save system).
+Base de données **SQLite** (`krosmoz.db`) via **better-sqlite3** (synchrone, WAL mode, 8 MB cache).
 
-```txt
-/data
-  users/
-    123456789.json
-    987654321.json
-  battlepass/
-    current_season.json
-    global_achievements.json
-    seasons/
-      emeraude.json
-      pourpre.json
-      ...
-    progress/
-      <userId>.json
-    archive/
-      season_*.json
-  guilds.json
-  market.json
-  marketHistory.json
-  krosmoshop.json
-  devs.json
-  cards.json
-```
+### Tables SQLite
+
+| Table | Contenu |
+|-------|---------|
+| `users` | JSON blob complet + colonnes indexées (kamas, level, total_cards, unique_cards, achievements, packs_opened, ssr_count) pour leaderboard SQL |
+| `market` | Listings actifs du marché joueur |
+| `market_history` | Historique des ventes |
+| `guilds` | JSON blob complet + colonnes indexées (name, leader_id, level, xp, member_count) |
+| `battlepass_progress` | Progression BP par joueur/saison (current_level, total_xp, has_premium) |
+| `meta` | État des migrations |
+
+### Fichiers JSON restants (config statique)
+
+| Fichier | Contenu |
+|---------|---------|
+| `cards.json` | Définitions des 2349 cartes |
+| `devs.json` | Liste des développeurs |
+| `battlepass/current_season.json` | Saison active |
+| `battlepass/seasons/*.json` | Templates de saisons |
 
 Chaque joueur stocke : inventaire, shiny cards, kamas, pity, achievements, titres, progression, stats, krosmoshop, quêtes, guildId, progression Battle Pass, **fragments**.
 
-Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, quêtes hebdo, stats.
+Chaque guilde stocke : nom, emoji, meneur, officiers, membres, niveau, XP, quêtes journalières et hebdomadaires, stats.
 
-Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée par userId.
-
+Migration automatique JSON → SQLite au premier boot (transaction atomique, backup des anciens fichiers en `.migrated`).
 
 ---
 
@@ -1073,7 +1063,7 @@ Autosave toutes les 30 secondes pour les users modifiés + sauvegarde ciblée pa
 
 ---
 
-## 👨💻 Auteur
+## 👨‍💻 Auteur
 
 Projet créé par **sauci**
 
