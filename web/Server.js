@@ -30,6 +30,8 @@ const {
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
+const MAX_PRICE = 10_000_000
+const MAX_SESSIONS = 10_000
 const ACHIEVEMENT_CATEGORIES = [
  "all",
  "pack",
@@ -71,11 +73,14 @@ let _cardsCacheAt = 0
 let _setsCache = null
 let _setsCacheAt = 0
 
-/* ── Nettoyage périodique du cache Discord (toutes les 10 min) ── */
+/* ── Nettoyage périodique du cache Discord + sessions expirées (toutes les 10 min) ── */
 setInterval(() => {
  const now = Date.now()
  for (const [key, entry] of discordUserCache) {
   if (entry.expiresAt <= now) discordUserCache.delete(key)
+ }
+ for (const [token, session] of webSessions) {
+  if (session.expiresAt <= now) webSessions.delete(token)
  }
 }, 10 * 60 * 1000)
 
@@ -213,10 +218,25 @@ function isHttpsRequest(req) {
 }
 
 function cookieSessionOptions(req, maxAgeSec = Math.floor(WEB_SESSION_TTL_MS / 1000)) {
- return `HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`
+ return `HttpOnly; Path=/; Max-Age=${maxAgeSec}; SameSite=Strict${isHttpsRequest(req) ? "; Secure" : ""}`
 }
 
 function createWebSession(userId) {
+ /* Cap anti-flood : si trop de sessions, purger les expirées d'abord */
+ if (webSessions.size >= MAX_SESSIONS) {
+  const now = Date.now()
+  for (const [t, s] of webSessions) {
+   if (s.expiresAt <= now) webSessions.delete(t)
+  }
+  /* Si toujours au max, supprimer les plus anciennes */
+  if (webSessions.size >= MAX_SESSIONS) {
+   const oldest = [...webSessions.entries()]
+    .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
+    .slice(0, Math.floor(MAX_SESSIONS * 0.1))
+   for (const [t] of oldest) webSessions.delete(t)
+  }
+ }
+
  const token = crypto.randomBytes(32).toString("hex")
  webSessions.set(token, {
   userId: String(userId),
@@ -244,7 +264,7 @@ function clearSession(req, res) {
  const cookies = parseCookies(req)
  const token = cookies.kc_session
  if (token) webSessions.delete(token)
- res.setHeader("Set-Cookie", `kc_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`)
+ res.setHeader("Set-Cookie", `kc_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${isHttpsRequest(req) ? "; Secure" : ""}`)
 }
 
 function requireSession(req, res) {
@@ -273,7 +293,7 @@ async function resolveDiscordUser(userId) {
   const token = process.env.TOKEN
   if (!token) return fallback
 
-  const res = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+  const res = await fetch(`https://discord.com/api/v10/users/${encodeURIComponent(userId)}`, {
    headers: { Authorization: `Bot ${token}` }
   })
   if (!res.ok) return fallback
@@ -835,11 +855,39 @@ function createWebApp() {
   return next()
  })
 
- app.use(express.json({ limit: "1mb" }))
- app.use(express.urlencoded({ extended: false }))
+ app.use(express.json({ limit: "50kb" }))
+ app.use(express.urlencoded({ extended: false, limit: "50kb" }))
+
+ /* ── Security headers (helmet-like) ── */
+ app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff")
+  res.setHeader("X-Frame-Options", "DENY")
+  res.setHeader("X-XSS-Protection", "0")
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+  return next()
+ })
 
  /* ── Rate limiter API (100 req/min par IP) ── */
  app.use("/api/", createRateLimiter({ windowMs: 60000, max: 100 }))
+
+ /* ── Rate limiter strict sur POST marché (20 req/min par IP) ── */
+ const marketLimiter = createRateLimiter({ windowMs: 60000, max: 20 })
+ app.use("/api/market/buy", marketLimiter)
+ app.use("/api/market/sell-card", marketLimiter)
+ app.use("/api/market/sell-fragment", marketLimiter)
+ app.use("/api/market/remove", marketLimiter)
+
+ /* ── CSRF : POST API doit être application/json ── */
+ app.use("/api/", (req, res, next) => {
+  if (req.method === "POST") {
+   const ct = String(req.headers["content-type"] || "")
+   if (!ct.includes("application/json")) {
+    return res.status(415).json({ error: "Content-Type application/json requis." })
+   }
+  }
+  return next()
+ })
 
  /* ── Health check endpoint ── */
  app.get("/health", (req, res) => {
@@ -1207,6 +1255,7 @@ app.get("/api/achievements", (req, res) => {
    const price = Number(req.body?.price)
    if (!cardId) return res.status(400).json({ error: "cardId manquant." })
    if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Prix invalide." })
+   if (price > MAX_PRICE) return res.status(400).json({ error: `Prix max: ${MAX_PRICE.toLocaleString("fr-FR")} kamas.` })
 
    const result = addListing(session.userId, cardId, price)
    if (result?.error) return res.status(400).json({ error: result.error })
@@ -1240,6 +1289,7 @@ app.get("/api/achievements", (req, res) => {
     return res.status(400).json({ error: "Numéro de fragment invalide." })
    }
    if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ error: "Prix invalide." })
+   if (price > MAX_PRICE) return res.status(400).json({ error: `Prix max: ${MAX_PRICE.toLocaleString("fr-FR")} kamas.` })
 
    const result = addFragmentListing(session.userId, cardId, fragmentNumber, price)
    if (result?.error) return res.status(400).json({ error: result.error })
