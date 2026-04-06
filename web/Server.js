@@ -16,6 +16,7 @@ const {
  getUserListings,
  removeListing
 } = require("../systems/market")
+const { getAllGuilds } = require("../systems/guildSystem")
 const achievementRegistry = require("../systems/achievementRegistry")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
@@ -57,7 +58,6 @@ if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
 
 const USERS_DIR = path.join(BASE, "users")
 const CARDS_PATH = path.join(BASE, "cards.json")
-const GUILDS_PATH = path.join(BASE, "guilds.json")
 const MARKET_PATH = path.join(BASE, "market.json")
 const MARKET_HISTORY_PATH = path.join(BASE, "marketHistory.json")
 const PUBLIC_DIR = path.join(__dirname, "public")
@@ -134,8 +134,7 @@ function getSetsWithCounts() {
 }
 
 function getGuildList() {
- const guilds = readJSON(GUILDS_PATH, [])
- return Array.isArray(guilds) ? guilds : Object.values(guilds || {})
+ return getAllGuilds()
 }
 
 function parseIntSafe(value, fallback) {

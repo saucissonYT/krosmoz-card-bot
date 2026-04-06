@@ -5,8 +5,8 @@
    Remplace les fichiers JSON pour :
      - users
      - market / marketHistory
-     - guilds           ← NOUVEAU v0.39
-     - battlepass progress  ← NOUVEAU v0.39
+     - guilds           ← NOUVEAU v0.38
+     - battlepass progress  ← NOUVEAU v0.38
 
    Installation requise :
      npm install better-sqlite3

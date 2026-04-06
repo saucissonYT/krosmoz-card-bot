@@ -6,7 +6,7 @@ const { getUser, save } = require("./userSystem")
 /* ════════════════════════════════════════════════════════════
    GUILD SYSTEM — systems/guildSystem.js
 
-   v0.39 : Backend migré de guilds.json → SQLite.
+   v0.38 : Backend migré de guilds.json → SQLite.
    Le cache mémoire (objet `guilds`) fonctionne exactement pareil.
    - loadGuilds() charge depuis SQLite → cache mémoire
    - saveGuilds() écrit du cache mémoire → SQLite

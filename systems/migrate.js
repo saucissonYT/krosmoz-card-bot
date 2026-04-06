@@ -6,7 +6,7 @@
    Les fichiers JSON originaux sont conservés en backup (.migrated).
 
    v0.38 : users + market
-   v0.39 : + guilds + battlepass progress
+   v0.38 : + guilds + battlepass progress
 
    Usage :
      const { runMigration } = require("./migrate")
@@ -72,7 +72,7 @@ function runMigration(cardsDefs = []) {
  /* Vérifier si déjà migrée */
  const alreadyMigrated = dbGetMeta("migrated_at")
  if (alreadyMigrated) {
-  /* Vérifier si les nouvelles migrations (v0.39) ont été faites */
+  /* Vérifier si les nouvelles migrations (v8) ont été faites */
   runGuildMigration()
   runBattlePassMigration()
   return
@@ -211,13 +211,13 @@ function runMigration(cardsDefs = []) {
  log.info("   MIGRATION v0.38 TERMINÉE", result)
  log.info("══════════════════════════════════")
 
- /* Lancer les nouvelles migrations v0.39 */
+ /* Lancer les nouvelles migrations v0.38 */
  runGuildMigration()
  runBattlePassMigration()
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MIGRATION v0.39 — GUILDS (guilds.json → SQLite)
+   MIGRATION v0.38 — GUILDS (guilds.json → SQLite)
 ═══════════════════════════════════════════════════════════════ */
 
 function runGuildMigration() {
@@ -276,7 +276,7 @@ function runGuildMigration() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MIGRATION v0.39 — BATTLEPASS PROGRESS (fichiers JSON → SQLite)
+   MIGRATION v0.38 — BATTLEPASS PROGRESS (fichiers JSON → SQLite)
 ═══════════════════════════════════════════════════════════════ */
 
 function runBattlePassMigration() {
