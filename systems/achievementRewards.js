@@ -161,6 +161,25 @@ const MANUAL_OVERRIDES = {
  nightLevelUp:       4,  /* secret +50% → ~1 125 kamas */
  anniversaire:       6,  /* secret +50% → ~4 500 kamas, 2 packs */
 
+ /* ---- PIÑATA D'ECAFLIP ---- */
+ pinata1:            1,  /* Facile     — 100 kamas, 15 XP */
+ pinata3:            2,  /* Basique    — 200 kamas, 30 XP */
+ pinata10:           3,  /* Moyen      — 400 kamas, 60 XP */
+ pinata25:           4,  /* Difficile  — 750 kamas, 120 XP */
+ pinata50:           6,  /* Extrême    — 3 000 kamas, 500 XP, 2 packs */
+ pinataSSR1:         4,  /* Difficile  — 750 kamas, 120 XP */
+ pinataSSR3:         5,  /* Très dur   — 1 500 kamas, 250 XP, 1 pack */
+ pinataSSR5:         6,  /* Extrême    — 3 000 kamas, 500 XP, 2 packs */
+ pinataSSR10:        7,  /* Légendaire — 5 000 kamas, 1 000 XP, 3 packs (secret +50%) */
+ pinataReact1:       1,  /* Facile */
+ pinataReact50:      2,  /* Basique */
+ pinataReact100:     3,  /* Moyen */
+ pinataReact500:     5,  /* Très dur */
+ pinataReact1000:    7,  /* Légendaire (secret +50%) */
+ pinataKamas10k:     2,  /* Basique */
+ pinataKamas50k:     4,  /* Difficile */
+ pinataKamas200k:    6,  /* Extrême (secret +50%) */
+
 }
 
 /* ================= AUTO-DÉTECTION DU TIER ================= */

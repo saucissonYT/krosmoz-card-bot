@@ -127,7 +127,13 @@ const STAT_DEFAULTS = {
  /* ── Roulette ── */
  rouletteSpins:   0,
  rouletteJackpot: 0,
- rouletteKamas:   0
+ rouletteKamas:   0,
+
+ /* ── Piñata ── */
+ pinataParticipations: 0,
+ pinataReactionsTotal: 0,
+ pinataKamasWon:       0,
+ pinataSSRWon:         0
 }
 
 /**

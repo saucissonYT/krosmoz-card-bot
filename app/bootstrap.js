@@ -16,6 +16,7 @@ const { registerInteractionCreateHandler } = require("./handlers/interactionCrea
 const { registerReactionRolesHandler } = require("./handlers/reactionRoles")
 
 const { startWebServer, setWebHooks } = require("../web/Server")
+const { startPinataScheduler } = require("../systems/pinataEvent")
 
 const log = createLogger("BOOT")
 
@@ -69,6 +70,10 @@ async function bootstrap() {
     err: error.message
    })
   }
+
+  /* ── Piñata scheduler ── */
+  const PINATA_CHANNEL_ID = process.env.PINATA_CHANNEL_ID || ONLINE_RP_CHANNEL_ID
+  startPinataScheduler(client, PINATA_CHANNEL_ID)
  })
 
  registerMessageCreateHandler(client)

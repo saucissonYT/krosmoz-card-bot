@@ -17,4 +17,5 @@ module.exports = {
  ...require("./achievements/achievementFragments"),
  ...require("./achievements/achievementRoulette"),
  ...require("./achievements/achievementLevel"),
+ ...require("./achievements/achievementPinata"),
 }

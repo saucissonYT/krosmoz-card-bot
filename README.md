@@ -12,6 +12,7 @@ Les joueurs peuvent :
 - Vendre et acheter sur le marché entre joueurs
 - Tenter sa chance à la **Roulette d'Ecaflip** une fois par heure (31 lots, jackpot secret)
 - Participer aux événements des 19 Dieux du Krosmoz
+- Réagir aux **Piñatas d'Ecaflip** — event communautaire avec récompenses par palier
 - Acheter des cartes au KrosmoShop quotidien
 - Compléter des quêtes journalières et hebdomadaires
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
@@ -103,6 +104,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | eventSystem | Gestion du cycle de vie des events |
 | eventRegistry | Définition des 19 events |
 | eventHandlers/ | Logique RNG spécifique par Dieu |
+| pinataEvent | Piñata d'Ecaflip — event communautaire par réactions (60s, 5 paliers, scheduler auto) |
 | fragmentService | Fragments SSR (drop, index craftable, craft, progress, sell) |
 | fusion | Fusion de doublons (critique, double, triple) + bonus |
 | questSystem | Quêtes journalières et hebdomadaires |
@@ -150,6 +152,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Social** — profil, leaderboard, mentions du bot
 - **Secrets** — Krosmo-bot, achievements cachés
 - **Events** — 150 achievements (participation, SSR par classe, jackpots)
+- **Piñata** — 17 achievements (participations, SSR, réactions, kamas)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
@@ -701,6 +704,22 @@ Chaque Dieu a son propre mécanisme RNG et ses **voice lines** quand tu obtiens 
 | ✨ Eniripsa | Miracle de guérison | Purification C/U/R + guérison (UR→S 15%, S→SSR 5%) + 1 carte bonus |
 | 🌿 Sadida | Croissance naturelle | Duplication progressive (35% par carte, max 2 duplications) |
 | ⚔️ Forgelance | Forge divine | Upgrade global de +1 rang sur toutes les cartes |
+
+### 🪅 Piñata du Dieu Ecaflip
+
+La Piñata d'Ecaflip est un event communautaire automatique qui apparaît toutes les 2 à 6 heures dans le salon dédié. Tous les joueurs qui réagissent pendant les **60 secondes** de la piñata reçoivent des récompenses.
+
+**Mécanique** : le score de chaque joueur est calculé comme `nombre de réactions + (emojis uniques × 2)`. Plus le score est élevé, meilleur est le palier de récompenses. Le nombre total de participants booste un multiplicateur global (×1 à ×2).
+
+| Palier | Score min | Kamas | XP | Carte | Fragment |
+|--------|----------|-------|-----|-------|----------|
+| 🥉 Bronze | 1 | 100-300 | 10 | — | — |
+| 🥈 Argent | 5 | 300-700 | 25 | C/U (25%) | — |
+| 🥇 Or | 10 | 700-1400 | 50 | C/U/R (40%) | 10% |
+| 💎 Diamant | 18 | 1400-2500 | 100 | C→SR (55%) | 18% |
+| 🌈 Krosmique | 28 | 2500-4000 | 160 | C→UR (70%) + SSR 2% | 25% |
+
+Chaque participant reçoit également de l'XP guilde et de l'XP battle pass proportionnels à son palier. 17 achievements dédiés trackent les participations, SSR gagnées, réactions cumulées et kamas gagnés via la piñata.
 ---
 
 ## 📅 Quêtes
@@ -921,6 +940,7 @@ La commande **/quests** affiche une interface interactive avec :
 - **Social** — profil, leaderboard, mentions du bot
 - **Secrets** — Krosmo-bot, achievements cachés
 - **Events** — 150 achievements (participation, SSR par classe, jackpots)
+- **Piñata** — 17 achievements (participations, SSR, réactions, kamas)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
 - **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)

@@ -96,6 +96,26 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
   - Élimine les `require()` dynamiques circulaires entre packEngine, guildBonuses et playerBonuses
   - Retourne 12 bonus agrégés : kamasBonus, luckyPackBonus, xpBonus, shinyBonus, critBonus, doubleBonus, tripleBonus, cooldownReduction, dailyBonusPacks, doubleDailyBonus, shopDiscount, bpXpBonus
 
+- **Piñata du Dieu Ecaflip** (`systems/pinataEvent.js`)
+  - Event communautaire automatique : le dieu Ecaflip envoie une piñata dans le salon configuré
+  - Les joueurs réagissent avec des emojis pendant **60 secondes** — quantité + variété d'emojis = meilleur palier
+  - Score individuel = nombre de réactions + (emojis uniques × 2)
+  - 5 paliers de récompenses : 🥉 Bronze → 🥈 Argent → 🥇 Or → 💎 Diamant → 🌈 Krosmique
+  - Multiplicateur global ×1 à ×2 selon le nombre de participants (scaling communautaire)
+  - Récompenses possibles : kamas, XP joueur, XP guilde, XP battle pass, cartes (C→UR), fragments aléatoires, SSR (2% chance au palier Krosmique uniquement)
+  - Scheduler automatique : intervalle aléatoire entre 2h et 6h, première piñata 5-30 min après le boot
+  - Canal configurable via `PINATA_CHANNEL_ID` dans `.env` (fallback sur le canal RP)
+  - 4 stats trackées : `pinataParticipations`, `pinataReactionsTotal`, `pinataKamasWon`, `pinataSSRWon`
+  - **17 achievements dédiés** (`systems/achievements/achievementPinata.js`) — trigger `"pinata"`
+    - Participations : 1 / 3 / 10 / 25 / 50
+    - SSR gagnées à la piñata : 1 / 3 / 5 / 10 (10 = secret)
+    - Réactions cumulées : 1 / 50 / 100 / 500 / 1000 (1000 = secret)
+    - Kamas gagnés via piñata : 10k / 50k / 200k (200k = secret)
+  - Overrides de récompenses ajoutés dans `achievementRewards.js` (17 entrées)
+  - `achievementRegistry.js` mis à jour avec le module `achievementPinata`
+  - `userSystem.js` : 4 nouvelles stats dans `STAT_DEFAULTS`
+  - `bootstrap.js` : lancement du scheduler dans `clientReady`
+
 - **Rate limiting API** (`systems/rateLimiter.js`)
   - Middleware Express en mémoire, zéro dépendance npm
   - 100 requêtes/min par IP sur toutes les routes `/api/`
