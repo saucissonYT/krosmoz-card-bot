@@ -55,6 +55,19 @@ const webHooks = {
  onWebMarketBuy: null
 }
 
+/* ── Journal d'activité en mémoire (ring buffer) ── */
+const ACTIVITY_LOG_MAX = 200
+const activityLog = []
+
+function pushActivity(entry) {
+ if (!entry || !entry.kind) return
+ activityLog.unshift({
+  ...entry,
+  timestamp: entry.timestamp || Date.now()
+ })
+ if (activityLog.length > ACTIVITY_LOG_MAX) activityLog.length = ACTIVITY_LOG_MAX
+}
+
 let BASE = "/data"
 if (!fs.existsSync(BASE)) BASE = path.join(process.cwd(), "data")
 
@@ -338,15 +351,15 @@ function computeGlobalStats() {
  }
 }
 
-async function computeActivityFeed(limit = 12) {
+async function computeActivityFeed(limit = 10) {
  const cards = getCards()
  const cardsById = new Map(cards.map((c) => [String(c.id), c]))
- const safeLimit = Math.max(1, Math.min(30, Number(limit) || 12))
+ const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10))
 
- /* SQLite : déjà trié par timestamp DESC, limité */
+ /* Market history (SQLite) */
  const latest = dbLoadMarketHistory(safeLimit)
 
- return Promise.all(latest.map(async (entry) => {
+ const marketItems = await Promise.all(latest.map(async (entry) => {
   const card = cardsById.get(String(entry.card))
   const buyer = await resolveDiscordUser(String(entry.buyer || ""))
   const seller = await resolveDiscordUser(String(entry.seller || ""))
@@ -369,6 +382,24 @@ async function computeActivityFeed(limit = 12) {
    }
   }
  }))
+
+ /* Merge avec le journal d'activité en mémoire */
+ const logItems = await Promise.all(activityLog.slice(0, safeLimit).map(async (entry) => {
+  const enriched = { ...entry }
+
+  if (entry.userId) {
+   const discord = await resolveDiscordUser(String(entry.userId))
+   enriched.userName = discord?.displayName || String(entry.userId)
+  }
+
+  return enriched
+ }))
+
+ const merged = [...marketItems, ...logItems]
+  .sort((a, b) => b.timestamp - a.timestamp)
+  .slice(0, safeLimit)
+
+ return merged
 }
 
 function computeLeaderboard(category) {
@@ -953,7 +984,7 @@ app.get("/api/battlepass/season", (req, res) => {
 
  app.get("/api/activity", async (req, res) => {
   try {
-   const limit = Number(req.query.limit || 12)
+   const limit = Number(req.query.limit || 10)
    const items = await computeActivityFeed(limit)
    res.json({ items })
   } catch (e) {
@@ -1455,4 +1486,4 @@ function startWebServer(port) {
  return app
 }
 
-module.exports = { createWebApp, startWebServer, setWebHooks }
+module.exports = { createWebApp, startWebServer, setWebHooks, pushActivity }

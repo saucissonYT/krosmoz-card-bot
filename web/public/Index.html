@@ -166,14 +166,10 @@
 
    <!-- ACTIVITY -->
    <section class="section section-activity">
-    <h2 class="section-title">Journal d'activite</h2>
-    <p class="section-subtitle">Les derniers echanges sur le marche entre joueurs</p>
-    <div class="activity-controls">
-     <button id="activityCompactBtn" type="button" class="btn btn-outline activity-btn">Mode compact: OFF</button>
-     <button id="activityMoreBtn" type="button" class="btn btn-outline activity-btn">Voir plus</button>
-    </div>
+    <h2 class="section-title">Journal d'activité</h2>
+    <p class="section-subtitle">Les derniers événements du Krosmoz</p>
     <div id="activityFeed" class="activity-feed">
-     <div class="loading">Chargement des activites...</div>
+     <div class="loading">Chargement des activités...</div>
     </div>
    </section>
 
@@ -238,23 +234,15 @@
  }
 
  let activityItemsCache = []
- let activityVisibleCount = 8
- let activityCompactMode = false
 
  function renderActivity() {
   const feed = document.getElementById("activityFeed")
-  const moreBtn = document.getElementById("activityMoreBtn")
-  const compactBtn = document.getElementById("activityCompactBtn")
-  if (!feed || !moreBtn || !compactBtn) return
+  if (!feed) return
 
-  compactBtn.textContent = `Mode compact: ${activityCompactMode ? "ON" : "OFF"}`
-  feed.classList.toggle("activity-feed-compact", activityCompactMode)
-
-  const items = activityItemsCache.slice(0, activityVisibleCount)
+  const items = activityItemsCache.slice(0, 10)
   if (!items.length) {
-    feed.innerHTML = `<div class="activity-empty">Aucune activite recente pour le moment.</div>`
-    moreBtn.style.display = "none"
-    return
+   feed.innerHTML = `<div class="activity-empty">Aucune activité récente pour le moment.</div>`
+   return
   }
 
   feed.innerHTML = items.map((item) => {
@@ -262,30 +250,148 @@
    const dateLabel = ts > 0
     ? new Date(ts).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })
     : "Date inconnue"
-   const buyer = escapeHtml(item?.buyer?.name || "Joueur")
-   const seller = escapeHtml(item?.seller?.name || "Joueur")
-   const cardName = escapeHtml(item?.cardName || "Carte inconnue")
-   const price = Number(item?.price || 0).toLocaleString("fr-FR")
-   const isFragment = item?.kind === "market_fragment"
-   const label = isFragment
-    ? `🧩 Fragment ${Number(item?.fragmentNumber || 0)}/5 · ${cardName}`
-    : `${rarityEmoji(item?.rarity)} ${cardName}`
+   const kind = item?.kind || "unknown"
 
+   /* ── Market (achat carte / fragment) ── */
+   if (kind === "market_card" || kind === "market_fragment") {
+    const buyer = escapeHtml(item?.buyer?.name || "Joueur")
+    const seller = escapeHtml(item?.seller?.name || "Joueur")
+    const cardName = escapeHtml(item?.cardName || "Carte inconnue")
+    const price = Number(item?.price || 0).toLocaleString("fr-FR")
+    const isFragment = kind === "market_fragment"
+    const label = isFragment
+     ? `🧩 Fragment ${Number(item?.fragmentNumber || 0)}/5 · ${cardName}`
+     : `${rarityEmoji(item?.rarity)} ${cardName}`
+
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">${label}</div>
+       <div class="activity-meta"><strong>${buyer}</strong> a acheté à <strong>${seller}</strong></div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-price">${price} kamas</div>
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Event start ── */
+   if (kind === "event_start") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">⚡ Événement lancé</div>
+       <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Event end ── */
+   if (kind === "event_end") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">🏁 Événement terminé</div>
+       <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Drop S ── */
+   if (kind === "drop_s") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">✨ Drop S</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "???")}</strong></div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Drop SSR ── */
+   if (kind === "drop_ssr") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">🌟 Drop SSR</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "???")}</strong>${item?.shiny ? " 🌈 SHINY" : ""}</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Guild create ── */
+   if (kind === "guild_create") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">🏰 Guilde créée</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a fondé <strong>${escapeHtml(item?.guildName || "???")}</strong></div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Guild disband ── */
+   if (kind === "guild_disband") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">💀 Guilde dissoute</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.guildName || "???")}</strong> a été dissoute</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Piñata ── */
+   if (kind === "pinata") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">🪅 Piñata d'Ecaflip</div>
+       <div class="activity-meta">${Number(item?.participants || 0)} participant${(item?.participants || 0) > 1 ? "s" : ""}</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Fallback ── */
    return `
     <article class="activity-item">
      <div class="activity-main">
-      <div class="activity-title">${label}</div>
-      <div class="activity-meta"><strong>${buyer}</strong> a achete a <strong>${seller}</strong></div>
-     </div>
-     <div class="activity-side">
-      <div class="activity-price">${price} kamas</div>
-      <div class="activity-time">${dateLabel}</div>
+      <div class="activity-title">📋 ${escapeHtml(kind)}</div>
+      <div class="activity-meta">${dateLabel}</div>
      </div>
     </article>
    `
   }).join("")
-
-  moreBtn.style.display = activityVisibleCount < activityItemsCache.length ? "inline-flex" : "none"
  }
 
  /* -------- Load stats -------- */
@@ -328,30 +434,15 @@
  /* -------- Load activity feed -------- */
  async function loadActivity() {
   const feed = document.getElementById("activityFeed")
-  const moreBtn = document.getElementById("activityMoreBtn")
-  const compactBtn = document.getElementById("activityCompactBtn")
   if (!feed) return
-  if (moreBtn) {
-   moreBtn.addEventListener("click", () => {
-    activityVisibleCount += 8
-    renderActivity()
-   })
-  }
-  if (compactBtn) {
-   compactBtn.addEventListener("click", () => {
-    activityCompactMode = !activityCompactMode
-    renderActivity()
-   })
-  }
   try {
-   const res = await fetch("/api/activity?limit=30")
+   const res = await fetch("/api/activity?limit=10")
    const data = await res.json()
    activityItemsCache = Array.isArray(data?.items) ? data.items : []
    renderActivity()
   } catch (err) {
    console.error("Activity error:", err)
-   feed.innerHTML = `<div class="activity-empty">Impossible de charger le journal d'activite.</div>`
-   if (moreBtn) moreBtn.style.display = "none"
+   feed.innerHTML = `<div class="activity-empty">Impossible de charger le journal d'activité.</div>`
   }
  }
 

@@ -251,6 +251,8 @@ function createGuild(userId, name) {
  save(userId)
  saveGuilds()
 
+ try { require("../web/Server").pushActivity({ kind: "guild_create", userId, guildName: name }) } catch(_) {}
+
  return { guild: guilds[id] }
 }
 
@@ -277,6 +279,8 @@ function disbandGuild(guildId, requesterId) {
  try { dbDeleteGuild(guildId) } catch (_) {}
 
  saveGuilds()
+
+ try { require("../web/Server").pushActivity({ kind: "guild_disband", guildName: name }) } catch(_) {}
 
  return { name }
 }

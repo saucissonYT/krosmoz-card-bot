@@ -36,6 +36,8 @@ ${currentEvent.end}
 
  console.log("🏁 EVENT END:", currentEvent.key, currentEvent.stats)
 
+ try { require("../web/Server").pushActivity({ kind: "event_end", eventName: currentEvent.name }) } catch(_) {}
+
  currentEvent = null
 }
 
@@ -95,6 +97,8 @@ function startEvent(channel, forced=null){
  }
 
  console.log("🎰 EVENT START:", key, "| Tickets:", tickets)
+
+ try { require("../web/Server").pushActivity({ kind: "event_start", eventName: event.name }) } catch(_) {}
 
  if(channel){
   channel.send(

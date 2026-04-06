@@ -233,6 +233,7 @@ function openPack(user, setId, userId, options = {}){
  if(!user.shinyCards) user.shinyCards={}
 
  let ssrCount=0
+ let sCount=0
 
  /* ---- Shiny chance bonus ---- */
  const baseShinyRate = 0.005
@@ -260,6 +261,9 @@ function openPack(user, setId, userId, options = {}){
     card.shiny=true
    }
 
+  } else if(card.rarity==="S"){
+   sCount++
+   user.stats.ssrStreak=0
   } else {
    user.stats.ssrStreak=0
   }
@@ -327,6 +331,21 @@ function openPack(user, setId, userId, options = {}){
 
  /* ---- XP (with bonus) ---- */
  let xpGain=20
+
+ /* ---- ACTIVITY LOG : drops S et SSR ---- */
+ if(userId){
+  try{
+   const { pushActivity } = require("../web/Server")
+   for(const card of pack){
+    if(!card) continue
+    if(card.rarity === "SSR"){
+     pushActivity({ kind: "drop_ssr", userId, cardName: card.name, shiny: !!card.shiny })
+    } else if(card.rarity === "S"){
+     pushActivity({ kind: "drop_s", userId, cardName: card.name })
+    }
+   }
+  }catch(_){}
+ }
 
  const today=new Date().toDateString()
  let dailyBonus=false

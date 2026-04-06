@@ -292,7 +292,16 @@ function buildAchievementResponse(userId, categoryId = "all", page = 1, onlyLock
 
  const selectRow = new ActionRowBuilder().addComponents(selectMenu)
 
- return { embed, components: [navRow, selectRow] }
+ /* ROW 3 : lien web */
+ const linkRow = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+   .setLabel("Succès web")
+   .setEmoji("🌐")
+   .setStyle(ButtonStyle.Link)
+   .setURL("https://www.krosmozcard.fr/achievements")
+ )
+
+ return { embed, components: [navRow, selectRow, linkRow] }
 }
 
 module.exports = {

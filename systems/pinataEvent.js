@@ -335,6 +335,8 @@ async function launchPinata(channel) {
   totalSSR
  })
 
+ try { require("../web/Server").pushActivity({ kind: "pinata", participants: participants.size }) } catch(_) {}
+
  return { participants: participants.size, results }
 }
 

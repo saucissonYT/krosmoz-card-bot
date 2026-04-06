@@ -691,7 +691,7 @@ Le jackpot (lot 31) déclenche une annonce publique dans le salon et n'apparaît
 
 ---
 
-## 🪅 Piñata d'Ecaflip
+## 🌈 Piñata d'Ecaflip
 
 La Piñata d'Ecaflip est un event communautaire automatique qui apparaît toutes les 2 à 6 heures dans le salon dédié. Tous les joueurs qui réagissent pendant les **60 secondes** de la piñata reçoivent des récompenses.
 
@@ -915,6 +915,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /devguild | Gerer les guildes (list, info, setlevel, addxp, forcejoin, disband, create, bonuses) |
 | /devbp | Outils dev Battle Pass (status, add-xp, force, reset, claim-all, dry-run) |
 | /devroulette | Roulette sans cooldown, option forcer un lot 1–31 |
+| /forcepinata | Forcer l'apparition d'une Piñata d'Ecaflip |
 | /fragments | Outils dev fragments (give, give-all, clear, list, rebuild-index, simulate-drop) |
 
 ---
