@@ -72,8 +72,7 @@ async function bootstrap() {
   }
 
   /* ── Piñata scheduler ── */
-  const PINATA_CHANNEL_ID = process.env.PINATA_CHANNEL_ID || ONLINE_RP_CHANNEL_ID
-  startPinataScheduler(client, PINATA_CHANNEL_ID)
+  startPinataScheduler(client)
  })
 
  registerMessageCreateHandler(client)

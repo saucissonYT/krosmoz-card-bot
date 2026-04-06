@@ -340,11 +340,18 @@ async function launchPinata(channel) {
 
 /* ═══════════════════════════════════════════════════════════════
    SCHEDULER — intervalle aléatoire entre piñatas
-   Appeler startPinataScheduler(client, channelId) dans bootstrap
+   Appeler startPinataScheduler(client, channelIds) dans bootstrap
 ═══════════════════════════════════════════════════════════════ */
 
 const MIN_INTERVAL_MS = 2 * 60 * 60 * 1000  /* 2 heures */
 const MAX_INTERVAL_MS = 6 * 60 * 60 * 1000  /* 6 heures */
+
+/* Salons où la piñata peut apparaître (choix aléatoire à chaque lancement) */
+const DEFAULT_PINATA_CHANNELS = [
+ "1487121269018329178",
+ "1487121289393995776",
+ "1487545856738590911"
+]
 
 let schedulerTimeout = null
 
@@ -352,15 +359,21 @@ function getNextDelay() {
  return randInt(MIN_INTERVAL_MS, MAX_INTERVAL_MS)
 }
 
-function startPinataScheduler(client, channelId) {
- if (!channelId) {
-  log.warn("Pas de channelId configuré pour la piñata — scheduler désactivé")
+function startPinataScheduler(client, channelIds) {
+ const channels = Array.isArray(channelIds) && channelIds.length > 0
+  ? channelIds
+  : DEFAULT_PINATA_CHANNELS
+
+ if (channels.length === 0) {
+  log.warn("Aucun salon configuré pour la piñata — scheduler désactivé")
   return
  }
 
  async function tick() {
   try {
-   const channel = await client.channels.fetch(channelId)
+   /* Choisir un salon aléatoirement à chaque piñata */
+   const chosenId = channels[Math.floor(Math.random() * channels.length)]
+   const channel = await client.channels.fetch(chosenId)
    if (channel && channel.isTextBased()) {
     await launchPinata(channel)
    }
@@ -375,7 +388,7 @@ function startPinataScheduler(client, channelId) {
 
  /* Premier lancement entre 5 et 30 min après le boot */
  const firstDelay = randInt(5 * 60000, 30 * 60000)
- log.info("Première piñata dans", { minutes: Math.round(firstDelay / 60000) })
+ log.info("Première piñata dans", { minutes: Math.round(firstDelay / 60000), channels: channels.length })
  schedulerTimeout = setTimeout(tick, firstDelay)
 }
 
