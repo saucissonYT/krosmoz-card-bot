@@ -343,6 +343,21 @@ function getNextRarityFromMeta(rarity) {
  return order[idx + 1]
  }
 
+function getRarityEmoji(rarity) {
+ const token = String(rarity || "").toUpperCase()
+ const map = {
+  C: "⚪",
+  U: "🟢",
+  R: "🔵",
+  SR: "🟣",
+  HR: "🔴",
+  UR: "🟠",
+  S: "✨",
+  SSR: "🌟"
+ }
+ return map[token] || "🔹"
+}
+
  function getFragmentProgressForCard(cardId) {
   const numbers = new Set()
   let total = 0
@@ -565,7 +580,9 @@ function setupFusionPanel() {
   })
 
   if (infoLine) {
-   infoLine.textContent = `${fromRarity} → ${next} • ${fmt(info.duplicates)} doublons dispo • coût ${fmt(cost)} • prêt: ${fmt(requested)} fusion(s)`
+   const fromEmoji = getRarityEmoji(fromRarity)
+   const nextEmoji = next && next !== "-" ? getRarityEmoji(next) : ""
+   infoLine.textContent = `${fromEmoji} ${fromRarity} → ${nextEmoji ? `${nextEmoji} ${next}` : next} • ${fmt(info.duplicates)} doublons dispo • coût ${fmt(cost)} • prêt: ${fmt(requested)} fusion(s)`
   }
   runBtn.disabled = !(state.fusionUi.setId && row && requested > 0)
   runBtn.dataset.requested = String(requested)
@@ -1500,9 +1517,11 @@ function renderFusion() {
         const next = getNextRarityFromMeta(token)
         const info = getDuplicateInfoForFusion(activeSetId, token)
         const active = token === activeRarity
+        const nextEmoji = next ? getRarityEmoji(next) : ""
+        const tokenEmoji = getRarityEmoji(token)
         return `
          <button type="button" class="fusion-simple-step ${active ? "active" : ""}" data-rarity="${escapeHtml(token)}">
-          <span>${escapeHtml(token)} > ${escapeHtml(next || "-")}</span>
+          <span>${escapeHtml(tokenEmoji)} ${escapeHtml(token)} > ${escapeHtml(nextEmoji)} ${escapeHtml(next || "-")}</span>
           <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</small>
          </button>
         `
