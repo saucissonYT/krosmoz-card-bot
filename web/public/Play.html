@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+Ôªø<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
@@ -16,7 +16,7 @@
     <li><a href="/">Accueil</a></li>
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/market">MarchÈ</a></li>
+    <li><a href="/market">March√©</a></li>
     <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
@@ -31,7 +31,6 @@
    <section class="play-shell">
     <main class="play-main">
      <header class="play-head">
-      <h1 id="playTitle">INVENTAIRE</h1>
       <div class="play-tabs">
        <button class="play-tab" data-mode="inventory">Inventaire</button>
        <button class="play-tab" data-mode="collection">Collection</button>
@@ -39,9 +38,10 @@
        <button class="play-tab" data-mode="fusion">Fusion</button>
        <button class="play-tab" data-mode="craft">Craft</button>
        <a class="play-tab-link" href="/profile/">Profil</a>
-       <a class="play-tab-link" href="/market">MarchÈ</a>
+       <a class="play-tab-link" href="/market">March√©</a>
        <a class="play-tab-link" href="/achievements">Achievements</a>
       </div>
+      <h1 id="playTitle">INVENTAIRE</h1>
      </header>
 
      <div class="play-controls" id="playControls">
@@ -50,7 +50,7 @@
        <option value="">Tous les sets</option>
       </select>
       <select id="rarityFilter" class="input input-select">
-       <option value="">Toutes les raretÈs</option>
+       <option value="">Toutes les raret√©s</option>
        <option value="C">C</option>
        <option value="U">U</option>
        <option value="R">R</option>
@@ -60,8 +60,8 @@
        <option value="S">S</option>
        <option value="SSR">SSR</option>
       </select>
-      <button id="sortBtn" class="btn btn-outline">Tri QtÈ v</button>
-      <button id="collectionOwnedToggle" class="btn btn-outline" style="display:none">Collection: PossÈdÈes</button>
+      <button id="sortBtn" class="btn btn-outline">Tri Qt√© v</button>
+      <button id="collectionOwnedToggle" class="btn btn-outline" style="display:none">Collection: Poss√©d√©es</button>
      </div>
 
      <div class="play-subtabs" id="inventorySubtabs">
@@ -276,13 +276,13 @@
   const grid = document.getElementById("playGrid")
   const items = getFilteredItems()
   if (!items.length) {
-   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun rÈsultat avec ces filtres.</p></div>'
+   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun r√©sultat avec ces filtres.</p></div>'
    return
   }
   grid.innerHTML = items.map((item) => {
    let label = `x${fmt(item.qty)}`
    if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
-   if (state.mode === "collection") label = Number(item.qty || 0) > 0 ? `PossÈdÈe x${fmt(item.qty)}` : "Non possÈdÈe"
+   if (state.mode === "collection") label = Number(item.qty || 0) > 0 ? `Poss√©d√©e x${fmt(item.qty)}` : "Non poss√©d√©e"
    const silhouette = state.mode === "collection" && Number(item.qty || 0) <= 0
    return `
     <article class="play-card">
@@ -331,7 +331,7 @@
      <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
      </select>
-     <label>QuantitÈ</label>
+     <label>Quantit√©</label>
      <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
      <div class="action-row">
       <button id="buyPacksBtn" class="btn btn-outline">Acheter packs</button>
@@ -353,14 +353,14 @@
    <section class="action-grid">
     <article class="action-box">
      <h3>FUSION</h3>
-     <p class="action-sub">Fusionne tes doublons pour monter en raretÈ.</p>
+     <p class="action-sub">Fusionne tes doublons pour monter en raret√©.</p>
      <label>Set</label>
      <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
      </select>
-     <label>RaretÈ source</label>
+     <label>Raret√© source</label>
      <select id="fusionRarityInput" class="input input-select">
-      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (co˚t ${fmt(row.cost)} doublons)</option>`).join("")}
+      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (co√ªt ${fmt(row.cost)} doublons)</option>`).join("")}
      </select>
      <div class="action-row">
       <button id="fusionBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Fusionner</button>
@@ -412,7 +412,7 @@
    showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
    return
   }
-  showActionResult("packResultBox", `<p><strong>Achat validÈ:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
+  showActionResult("packResultBox", `<p><strong>Achat valid√©:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
   await reloadGameplayDataAndRender()
  }
 
@@ -424,7 +424,7 @@
    showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
    return
   }
-  showActionResult("packResultBox", `<p><strong>Ouverture terminÈe:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
+  showActionResult("packResultBox", `<p><strong>Ouverture termin√©e:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
   await reloadGameplayDataAndRender()
  }
 
@@ -436,7 +436,7 @@
    showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
    return
   }
-  showActionResult("fusionResultBox", `<p><strong>Fusion validÈe:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p><p>RÈcompense: ${escapeHtml(res.data?.reward?.cardName || "Carte")}</p>`)
+  showActionResult("fusionResultBox", `<p><strong>Fusion valid√©e:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p><p>R√©compense: ${escapeHtml(res.data?.reward?.cardName || "Carte")}</p>`)
   await reloadGameplayDataAndRender()
  }
 
@@ -447,7 +447,7 @@
    showActionResult("craftResultBox", `<p>${escapeHtml(res.data?.error || "Craft impossible.")}</p>`, true)
    return
   }
-  showActionResult("craftResultBox", `<p><strong>Craft SSR validÈ:</strong> ${escapeHtml(res.data?.card?.cardName || "Carte")}</p>`)
+  showActionResult("craftResultBox", `<p><strong>Craft SSR valid√©:</strong> ${escapeHtml(res.data?.card?.cardName || "Carte")}</p>`)
   await reloadGameplayDataAndRender()
  }
 
@@ -464,7 +464,7 @@
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
   collectionToggle.style.display = state.mode === "collection" ? "inline-flex" : "none"
-  collectionToggle.textContent = state.collectionOwnedOnly ? "Collection: PossÈdÈes" : "Collection: PossÈdÈes + manquantes"
+  collectionToggle.textContent = state.collectionOwnedOnly ? "Collection: Poss√©d√©es" : "Collection: Poss√©d√©es + manquantes"
   grid.style.display = "grid"
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
@@ -523,7 +523,7 @@
 
   document.getElementById("sortBtn").addEventListener("click", () => {
    state.sortDesc = !state.sortDesc
-   document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri QtÈ v" : "Tri QtÈ ^"
+   document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri Qt√© v" : "Tri Qt√© ^"
    renderCurrentMode()
   })
 
