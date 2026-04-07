@@ -737,7 +737,488 @@
 }
 
 .mode-fusion .mode-hero {
- border-color: rgba(94, 144, 255, 0.35);
+ border-color: rgba(136, 171, 255, 0.42);
+ background:
+  radial-gradient(circle at 18% 20%, rgba(98, 154, 255, 0.25), rgba(98, 154, 255, 0) 40%),
+  radial-gradient(circle at 82% 18%, rgba(232, 184, 255, 0.14), rgba(232, 184, 255, 0) 42%),
+  linear-gradient(148deg, #171d42 0%, #121734 100%);
+}
+
+.mode-fusion .mode-layout.fusion-layout {
+ grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+.fusion-config-card {
+ gap: 11px;
+}
+
+.fusion-set-grid {
+ display: grid;
+ grid-template-columns: repeat(3, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.fusion-set-card {
+ border: 1px solid rgba(255, 255, 255, 0.15);
+ border-radius: 10px;
+ background: #10163a;
+ color: #e8edff;
+ text-align: left;
+ padding: 8px 9px;
+ cursor: pointer;
+ display: grid;
+ gap: 2px;
+}
+
+.fusion-set-card strong {
+ font-size: 0.84rem;
+}
+
+.fusion-set-card small {
+ color: #9aa7d6;
+ font-size: 0.73rem;
+}
+
+.fusion-set-card:hover {
+ border-color: rgba(201, 168, 76, 0.5);
+}
+
+.fusion-set-card.active {
+ border-color: rgba(201, 168, 76, 0.78);
+ background: rgba(201, 168, 76, 0.12);
+}
+
+.fusion-separator {
+ height: 1px;
+ background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0));
+}
+
+.fusion-rarity-lane {
+ display: grid;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.fusion-rarity-node {
+ border: 1px solid rgba(255, 255, 255, 0.16);
+ border-radius: 11px;
+ background: #10163a;
+ color: #e6ebff;
+ padding: 8px 9px;
+ text-align: left;
+ cursor: pointer;
+ display: grid;
+ gap: 2px;
+}
+
+.fusion-rarity-node .fusion-rarity-pair {
+ font-weight: 700;
+ font-size: 0.83rem;
+}
+
+.fusion-rarity-node small {
+ color: #9eabda;
+ font-size: 0.73rem;
+}
+
+.fusion-rarity-node strong {
+ color: #f1d995;
+ font-size: 0.77rem;
+ font-family: "JetBrains Mono", monospace;
+}
+
+.fusion-rarity-node.active {
+ border-color: rgba(110, 172, 255, 0.84);
+ box-shadow: inset 0 0 0 1px rgba(110, 172, 255, 0.38);
+}
+
+.fusion-rarity-node.ready {
+ border-color: rgba(201, 168, 76, 0.62);
+}
+
+.fusion-options-grid {
+ display: grid;
+ grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+ gap: 10px;
+ align-items: end;
+}
+
+.fusion-chain-toggle {
+ border: 1px solid rgba(255, 255, 255, 0.14);
+ border-radius: 10px;
+ background: #10163a;
+ padding: 10px;
+ min-height: 42px;
+ display: inline-flex;
+ align-items: center;
+ gap: 8px;
+ color: #d5dcfb;
+ font-size: 0.84rem;
+}
+
+.fusion-chain-toggle input {
+ width: 15px;
+ height: 15px;
+ accent-color: #c9a84c;
+}
+
+.fusion-run-modes {
+ display: inline-flex;
+ gap: 8px;
+ flex-wrap: wrap;
+}
+
+.fusion-run-mode {
+ border: 1px solid rgba(255, 255, 255, 0.18);
+ background: #0f1535;
+ color: #dce3ff;
+ border-radius: 999px;
+ padding: 7px 13px;
+ cursor: pointer;
+ font-weight: 700;
+ min-width: 58px;
+}
+
+.fusion-run-mode:hover {
+ border-color: rgba(201, 168, 76, 0.62);
+}
+
+.fusion-run-mode.active {
+ border-color: rgba(201, 168, 76, 0.82);
+ background: rgba(201, 168, 76, 0.2);
+ color: #f7e5b3;
+}
+
+.fusion-preview-box {
+ gap: 9px;
+}
+
+.fusion-preview-head {
+ display: flex;
+ justify-content: space-between;
+ gap: 10px;
+ align-items: baseline;
+ color: #e6ecff;
+}
+
+.fusion-preview-head strong {
+ color: #f6f8ff;
+}
+
+.fusion-preview-head small {
+ color: #a8b3db;
+ font-size: 0.76rem;
+}
+
+.fusion-preview-kpis {
+ display: grid;
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.fusion-preview-kpis > div {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: 10px;
+ background: #0e1433;
+ padding: 7px;
+ display: grid;
+ gap: 1px;
+}
+
+.fusion-preview-kpis span {
+ color: #98a6d8;
+ font-size: 0.73rem;
+}
+
+.fusion-preview-kpis strong {
+ color: #f0f4ff;
+ font-size: 0.84rem;
+}
+
+.fusion-step-list {
+ display: grid;
+ gap: 7px;
+}
+
+.fusion-step {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: 10px;
+ background: #0d1330;
+ padding: 8px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ gap: 8px;
+}
+
+.fusion-step strong {
+ color: #edf2ff;
+ font-size: 0.82rem;
+}
+
+.fusion-step small {
+ color: #9aa8d9;
+ font-size: 0.75rem;
+}
+
+.fusion-step-stock {
+ color: #c3d7ff;
+ font-family: "JetBrains Mono", monospace;
+ font-size: 0.76rem;
+}
+
+.fusion-step.ready {
+ border-color: rgba(201, 168, 76, 0.6);
+}
+
+.fusion-step.blocked {
+ opacity: 0.82;
+}
+
+.fusion-side-stack {
+ align-content: start;
+}
+
+.fusion-forge-card {
+ gap: 10px;
+}
+
+.fusion-forge-stage {
+ position: relative;
+ border: 1px solid rgba(255, 255, 255, 0.13);
+ border-radius: 14px;
+ background:
+  radial-gradient(circle at 50% 34%, rgba(111, 163, 255, 0.19), rgba(111, 163, 255, 0) 55%),
+  radial-gradient(circle at 24% 72%, rgba(200, 161, 255, 0.12), rgba(200, 161, 255, 0) 56%),
+  linear-gradient(180deg, rgba(14, 21, 50, 0.92), rgba(10, 14, 35, 0.95));
+ min-height: 360px;
+ overflow: hidden;
+ padding: 12px;
+}
+
+.fusion-forge-aura {
+ position: absolute;
+ inset: -30%;
+ background:
+  radial-gradient(circle at 50% 40%, rgba(122, 173, 255, 0.18), rgba(122, 173, 255, 0) 45%),
+  radial-gradient(circle at 45% 62%, rgba(244, 204, 130, 0.08), rgba(244, 204, 130, 0) 45%);
+ opacity: 0.8;
+ pointer-events: none;
+}
+
+.fusion-forge-platform {
+ position: absolute;
+ left: 50%;
+ bottom: 34px;
+ width: min(340px, 82%);
+ height: 92px;
+ transform: translateX(-50%);
+ border: 1px solid rgba(255, 255, 255, 0.2);
+ background: linear-gradient(180deg, rgba(35, 45, 86, 0.6), rgba(17, 24, 49, 0.92));
+ clip-path: polygon(8% 0, 92% 0, 85% 30%, 73% 100%, 27% 100%, 15% 30%);
+ box-shadow: inset 0 12px 20px rgba(255, 255, 255, 0.08), 0 16px 28px rgba(0, 0, 0, 0.48);
+}
+
+.fusion-forge-orbit {
+ position: absolute;
+ inset: 0;
+ animation: fusionOrbitSpin 7.8s linear infinite;
+ animation-play-state: paused;
+}
+
+.fusion-forge-stage.animating .fusion-forge-orbit {
+ animation-play-state: running;
+}
+
+.fusion-forge-orb {
+ --angle: calc(var(--orb-index) * 72deg);
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ width: 86px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-126px) rotate(calc(var(--angle) * -1));
+ transition: transform 0.82s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.62s ease, filter 0.4s ease;
+}
+
+.fusion-forge-orb-core {
+ width: 86px;
+ height: 86px;
+ border-radius: 999px;
+ border: 1px solid rgba(192, 229, 255, 0.7);
+ background:
+  radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.22) 30%, rgba(88, 123, 224, 0.22) 76%, rgba(64, 88, 186, 0.2) 100%),
+  radial-gradient(circle at 64% 68%, rgba(164, 231, 255, 0.3), rgba(164, 231, 255, 0) 65%),
+  linear-gradient(145deg, rgba(175, 236, 255, 0.22), rgba(136, 131, 255, 0.2));
+ box-shadow: inset 0 8px 12px rgba(255, 255, 255, 0.22), 0 0 18px rgba(125, 190, 255, 0.34);
+ overflow: hidden;
+ animation: fusionOrbFloat 2.3s ease-in-out infinite;
+ animation-delay: calc(var(--orb-index) * -0.32s);
+ display: grid;
+ place-items: center;
+}
+
+.fusion-forge-orb-core img {
+ width: 78%;
+ height: 78%;
+ object-fit: cover;
+ filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.5));
+}
+
+.fusion-forge-orb-core span {
+ color: #f0f6ff;
+ font-family: "Cinzel", serif;
+ font-size: 1.65rem;
+ text-shadow: 0 0 12px rgba(66, 122, 255, 0.55);
+}
+
+.fusion-forge-core {
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ width: 92px;
+ height: 92px;
+ transform: translate(-50%, -50%);
+ border-radius: 999px;
+ border: 1px solid rgba(255, 241, 198, 0.62);
+ background:
+  radial-gradient(circle, rgba(255, 238, 167, 0.9), rgba(255, 238, 167, 0.2) 42%, rgba(255, 238, 167, 0) 72%),
+  radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 42%);
+ box-shadow: 0 0 26px rgba(255, 229, 147, 0.45);
+ animation: fusionCorePulse 1.7s ease-in-out infinite;
+}
+
+.fusion-forge-stage.phase-converge .fusion-forge-orb {
+ transform: translate(-50%, -50%) scale(0.44);
+ opacity: 0.2;
+}
+
+.fusion-forge-stage.phase-converge .fusion-forge-core {
+ transform: translate(-50%, -50%) scale(1.32);
+ box-shadow: 0 0 34px rgba(255, 233, 156, 0.72);
+}
+
+.fusion-forge-stage.phase-burst .fusion-forge-core {
+ animation: fusionBurstFlash 0.24s ease-in-out 3;
+}
+
+.fusion-forge-result {
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ transform: translate(-50%, -52%) scale(0.6);
+ opacity: 0;
+ transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+ display: grid;
+ justify-items: center;
+ gap: 8px;
+ pointer-events: none;
+ z-index: 4;
+}
+
+.fusion-forge-result-card {
+ width: min(230px, 48vw);
+ aspect-ratio: 0.69;
+ border-radius: 14px;
+ overflow: hidden;
+ filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.56));
+}
+
+.fusion-forge-result-card img {
+ width: 100%;
+ height: 100%;
+ object-fit: cover;
+}
+
+.fusion-forge-result strong {
+ color: #ffffff;
+ text-shadow: 0 0 12px rgba(18, 29, 72, 0.95);
+ font-size: 1.02rem;
+}
+
+.fusion-forge-result.visible {
+ opacity: 1;
+ transform: translate(-50%, -58%) scale(1);
+ animation: fusionResultPop 0.46s ease-out 1;
+}
+
+.fusion-forge-stage.phase-out .fusion-forge-result {
+ opacity: 0;
+ transform: translate(-50%, -55%) scale(0.78);
+}
+
+.fusion-forge-status {
+ position: absolute;
+ left: 50%;
+ bottom: 12px;
+ transform: translateX(-50%);
+ color: #dae4ff;
+ font-size: 0.82rem;
+ text-align: center;
+ width: calc(100% - 30px);
+}
+
+.fusion-history-list {
+ display: grid;
+ gap: 8px;
+ max-height: 280px;
+ overflow: auto;
+ padding-right: 4px;
+}
+
+.fusion-history-item {
+ border: 1px solid rgba(255, 255, 255, 0.11);
+ border-radius: 10px;
+ background: #0e1433;
+ padding: 8px;
+ display: grid;
+ grid-template-columns: 1fr auto;
+ gap: 8px;
+ align-items: center;
+}
+
+.fusion-history-item strong {
+ color: #f1f4ff;
+ font-size: 0.82rem;
+}
+
+.fusion-history-item span {
+ color: #e3e9ff;
+ font-size: 0.8rem;
+}
+
+.fusion-history-item small {
+ display: block;
+ color: #9aa7d7;
+ font-size: 0.73rem;
+}
+
+@keyframes fusionOrbitSpin {
+ 0% { transform: rotate(0deg); }
+ 100% { transform: rotate(360deg); }
+}
+
+@keyframes fusionOrbFloat {
+ 0% { transform: translateY(0) scale(1); }
+ 50% { transform: translateY(-4px) scale(1.03); }
+ 100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes fusionCorePulse {
+ 0% { opacity: 0.82; }
+ 50% { opacity: 1; }
+ 100% { opacity: 0.82; }
+}
+
+@keyframes fusionBurstFlash {
+ 0% { filter: brightness(1) saturate(1); }
+ 50% { filter: brightness(1.6) saturate(1.35); }
+ 100% { filter: brightness(1) saturate(1); }
+}
+
+@keyframes fusionResultPop {
+ 0% { transform: translate(-50%, -52%) scale(0.72); }
+ 55% { transform: translate(-50%, -60%) scale(1.08); }
+ 100% { transform: translate(-50%, -58%) scale(1); }
 }
 
 .mode-craft .mode-hero {
@@ -1479,6 +1960,33 @@ body.pack-opening-lock {
  .pack-set-grid {
   grid-template-columns: 1fr;
  }
+ .fusion-set-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .fusion-rarity-lane {
+  grid-template-columns: 1fr;
+ }
+ .fusion-options-grid {
+  grid-template-columns: 1fr;
+ }
+ .fusion-preview-kpis {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .fusion-forge-stage {
+  min-height: 320px;
+ }
+ .fusion-forge-orb {
+  width: 74px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-110px) rotate(calc(var(--angle) * -1));
+ }
+ .fusion-forge-orb-core {
+  width: 74px;
+  height: 74px;
+ }
+ .fusion-forge-core {
+  width: 80px;
+  height: 80px;
+ }
  .pack-open-grid {
   justify-content: center;
  }
@@ -1522,6 +2030,37 @@ body.pack-opening-lock {
  }
  .play-party-icons {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+ }
+ .fusion-set-grid {
+  grid-template-columns: 1fr;
+ }
+ .fusion-preview-kpis {
+  grid-template-columns: 1fr;
+ }
+ .fusion-forge-stage {
+  min-height: 286px;
+ }
+ .fusion-forge-platform {
+  height: 78px;
+  bottom: 28px;
+ }
+ .fusion-forge-orb {
+  width: 62px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-94px) rotate(calc(var(--angle) * -1));
+ }
+ .fusion-forge-orb-core {
+  width: 62px;
+  height: 62px;
+ }
+ .fusion-forge-core {
+  width: 68px;
+  height: 68px;
+ }
+ .fusion-forge-result-card {
+  width: min(182px, 62vw);
+ }
+ .fusion-forge-result strong {
+  font-size: 0.9rem;
  }
  .pack-open-overlay {
   padding: 10px;

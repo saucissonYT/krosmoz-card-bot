@@ -79,17 +79,25 @@
  }
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
- const state = {
-  mode: "inventory",
-  inventoryView: "cards",
-  sortDesc: true,
+const state = {
+ mode: "inventory",
+ inventoryView: "cards",
+ sortDesc: true,
   me: null,
   profile: null,
   inventory: null,
-  groupedFragments: [],
-  gameMeta: null,
-  selected: null
- }
+ groupedFragments: [],
+ gameMeta: null,
+ selected: null,
+ fusionUi: {
+  setId: "",
+  fromRarity: "C",
+  targetRarity: "U",
+  runMode: "1",
+  chain: false
+ },
+ fusionHistory: []
+}
  const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
  const PACK_BACK_IMAGE_BY_RARITY = {
   S: "/assets/ui/pack-back-s.png",
@@ -108,6 +116,8 @@ const SET_UNLOCK_RULES = [
 let packRevealResolve = null
 let packRevealEscHandlerBound = false
 let packRevealTimers = []
+const FUSION_AUTO_CHAIN_MAX_CALLS = 80
+const FUSION_MAX_CYCLES = 25
 
  function escapeHtml(value) {
   const div = document.createElement("div")
@@ -300,16 +310,67 @@ let packRevealTimers = []
   return Math.max(min, Math.min(max, Math.floor(n)))
  }
 
- function getFusionRowByRarity(rarity) {
-  const rows = (state.gameMeta && state.gameMeta.fusion) || []
-  return rows.find((row) => String(row.rarity || "").toUpperCase() === String(rarity || "").toUpperCase()) || null
- }
+function getFusionRowByRarity(rarity) {
+ const rows = (state.gameMeta && state.gameMeta.fusion) || []
+ return rows.find((row) => String(row.rarity || "").toUpperCase() === String(rarity || "").toUpperCase()) || null
+}
 
- function getNextRarityFromMeta(rarity) {
-  const order = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-  const idx = order.indexOf(String(rarity || "").toUpperCase())
-  if (idx < 0 || idx >= order.length - 1) return null
-  return order[idx + 1]
+function getFusionRows() {
+ const rows = (state.gameMeta && state.gameMeta.fusion) || []
+ return rows.slice().sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity))
+}
+
+function getCardsForSetAndRarity(setId, rarity) {
+ const cards = (state.inventory && state.inventory.cards) || []
+ return cards.filter((item) =>
+  String(item.set) === String(setId) && String(item.rarity).toUpperCase() === String(rarity).toUpperCase()
+ )
+}
+
+function getDuplicateInfoForFusion(setId, rarity) {
+ const matches = getCardsForSetAndRarity(setId, rarity)
+ let owned = 0
+ let duplicates = 0
+ for (const card of matches) {
+  const qty = Number(card.qty || 0)
+  owned += qty
+  if (qty > 1) duplicates += (qty - 1)
+ }
+ return { owned, duplicates, cardKinds: matches.length }
+}
+
+function getFusionStepChain(fromRarity, targetRarity) {
+ const chain = []
+ let current = String(fromRarity || "").toUpperCase()
+ const target = String(targetRarity || "").toUpperCase()
+ let guard = 0
+ while (current && current !== target && guard < 20) {
+  const next = getNextRarityFromMeta(current)
+  if (!next) break
+  chain.push({ from: current, to: next, row: getFusionRowByRarity(current) })
+  current = next
+  guard += 1
+ }
+ return chain
+}
+
+function parseFusionRunMode(value) {
+ const mode = String(value || "1")
+ return ["1", "5", "max"].includes(mode) ? mode : "1"
+}
+
+function getRequestedFusionCycles(mode, maxAvailable) {
+ const cap = Math.max(0, Math.min(FUSION_MAX_CYCLES, Number(maxAvailable || 0)))
+ if (mode === "max") return cap
+ if (mode === "5") return Math.min(5, cap)
+ return Math.min(1, cap)
+}
+
+function getNextRarityFromMeta(rarity) {
+ const order = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+ const idx = order.indexOf(String(rarity || "").toUpperCase())
+ if (idx < 0 || idx >= order.length - 1) return null
+ return order[idx + 1]
  }
 
  function getFragmentProgressForCard(cardId) {
@@ -467,26 +528,228 @@ function getNextSetUnlockInfo(unlockedSetIds = []) {
   refresh()
  }
 
- function setupFusionPanel() {
-  const rarityInput = document.getElementById("fusionRarityInput")
-  const fromBox = document.getElementById("fusionFromRarity")
-  const toBox = document.getElementById("fusionToRarity")
-  const costBox = document.getElementById("fusionCostLabel")
+function setupFusionPanel() {
+ const setInput = document.getElementById("fusionSetInput")
+ const targetInput = document.getElementById("fusionTargetInput")
+ const chainToggle = document.getElementById("fusionChainToggle")
+ const runBtn = document.getElementById("fusionRunBtn")
+ const previewBox = document.getElementById("fusionPreviewBox")
+ const historyBox = document.getElementById("fusionHistoryList")
+ const setCards = [...document.querySelectorAll(".fusion-set-card[data-set-id]")]
+ const rarityButtons = [...document.querySelectorAll(".fusion-rarity-node[data-rarity]")]
+ const runModeButtons = [...document.querySelectorAll(".fusion-run-mode[data-run-mode]")]
+ const fusionRows = getFusionRows()
 
-  function refresh() {
-   const rarity = String(rarityInput?.value || "")
-   const row = getFusionRowByRarity(rarity)
-   const toRarity = getNextRarityFromMeta(rarity)
-   if (fromBox) fromBox.textContent = rarity || "-"
-   if (toBox) toBox.textContent = toRarity || "-"
-   if (costBox) costBox.textContent = `${fmt(Number(row?.cost || 0))} doublons`
-  }
+ if (!setInput || !targetInput || !runBtn || !previewBox || !fusionRows.length) return
 
-  if (rarityInput) rarityInput.addEventListener("change", refresh)
-  refresh()
+ const setOptions = [...setInput.options].map((opt) => String(opt.value))
+ const rarityOptions = fusionRows.map((row) => String(row.rarity).toUpperCase())
+
+ if (!state.fusionUi.setId || !setOptions.includes(state.fusionUi.setId)) {
+  state.fusionUi.setId = setOptions[0] || ""
+ }
+ if (!state.fusionUi.fromRarity || !rarityOptions.includes(state.fusionUi.fromRarity)) {
+  state.fusionUi.fromRarity = rarityOptions[0] || "C"
+ }
+ state.fusionUi.runMode = parseFusionRunMode(state.fusionUi.runMode)
+
+ function getSetName(id) {
+  const opt = [...setInput.options].find((item) => String(item.value) === String(id))
+  return opt ? String(opt.textContent || id) : String(id)
  }
 
- function setupCraftPanel(crafts) {
+ function getChainContext() {
+  const setId = String(state.fusionUi.setId || "")
+  const fromRarity = String(state.fusionUi.fromRarity || "")
+  const targetRarity = String(state.fusionUi.targetRarity || "")
+  const row = getFusionRowByRarity(fromRarity)
+  const fromInfo = getDuplicateInfoForFusion(setId, fromRarity)
+  const maxSingleFusions = row?.cost ? Math.floor(fromInfo.duplicates / Number(row.cost || 1)) : 0
+  const immediateTarget = getNextRarityFromMeta(fromRarity)
+  const forceChain = Boolean(targetRarity && targetRarity !== immediateTarget)
+  const chainEnabled = Boolean(state.fusionUi.chain || forceChain)
+  const chainSteps = chainEnabled
+   ? getFusionStepChain(fromRarity, targetRarity)
+   : [{ from: fromRarity, to: immediateTarget, row }]
+  const requestedCycles = getRequestedFusionCycles(parseFusionRunMode(state.fusionUi.runMode), maxSingleFusions)
+
+  return {
+   setId,
+   setName: getSetName(setId),
+   fromRarity,
+   targetRarity,
+   immediateTarget,
+   chainEnabled,
+   chainSteps,
+   row,
+   fromInfo,
+   maxSingleFusions,
+   requestedCycles
+  }
+ }
+
+ function syncTargetOptions() {
+  const fromRarity = String(state.fusionUi.fromRarity || "")
+  const fromIdx = RARITY_ORDER.indexOf(fromRarity)
+  const options = (fromIdx >= 0 ? RARITY_ORDER.slice(fromIdx + 1) : [])
+  targetInput.innerHTML = options.map((rarity) => `<option value="${escapeHtml(rarity)}">${escapeHtml(rarity)}</option>`).join("")
+  if (!options.includes(String(state.fusionUi.targetRarity || ""))) {
+   state.fusionUi.targetRarity = options[0] || ""
+  }
+  targetInput.value = String(state.fusionUi.targetRarity || "")
+ }
+
+ function renderHistory() {
+  if (!historyBox) return
+  if (!Array.isArray(state.fusionHistory) || !state.fusionHistory.length) {
+   historyBox.innerHTML = '<p class="mode-muted">Aucune fusion dans cette session.</p>'
+   return
+  }
+  historyBox.innerHTML = state.fusionHistory.slice(0, 14).map((entry) => `
+   <article class="fusion-history-item">
+    <div>
+     <strong>${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}</strong>
+     <small>${escapeHtml(entry.setName)}</small>
+    </div>
+    <div>
+     <span>${escapeHtml(entry.rewardName || "Carte")}</span>
+     <small>${new Date(Number(entry.timestamp || Date.now())).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
+    </div>
+   </article>
+  `).join("")
+ }
+
+ function renderPreview(ctx) {
+  const stepRows = (ctx.chainSteps || []).map((step) => {
+   const stepInfo = getDuplicateInfoForFusion(ctx.setId, step.from)
+   const cost = Number(step?.row?.cost || 0)
+   const ready = cost > 0 ? stepInfo.duplicates >= cost : false
+   return `
+    <div class="fusion-step ${ready ? "ready" : "blocked"}">
+     <div>
+      <strong>${escapeHtml(step.from)} → ${escapeHtml(step.to || "-")}</strong>
+      <small>Coût ${fmt(cost)} doublons</small>
+     </div>
+     <div class="fusion-step-stock">${fmt(stepInfo.duplicates)}/${fmt(cost)}</div>
+    </div>
+   `
+  }).join("")
+
+  const runLabel = state.fusionUi.runMode === "max" ? "max" : `x${state.fusionUi.runMode}`
+  const chainLabel = ctx.chainEnabled ? `Auto-chain ${ctx.fromRarity} → ${ctx.targetRarity}` : `Fusion simple ${ctx.fromRarity} → ${ctx.immediateTarget || "-"}`
+  previewBox.innerHTML = `
+   <div class="fusion-preview-head">
+    <strong>${escapeHtml(ctx.setName)}</strong>
+    <small>${escapeHtml(chainLabel)}</small>
+   </div>
+   <div class="fusion-preview-kpis">
+    <div><span>Doublons source</span><strong>${fmt(ctx.fromInfo.duplicates)}</strong></div>
+    <div><span>Coût unitaire</span><strong>${fmt(Number(ctx.row?.cost || 0))}</strong></div>
+    <div><span>Cycles possibles</span><strong>${fmt(ctx.maxSingleFusions)}</strong></div>
+    <div><span>Cadence</span><strong>${escapeHtml(runLabel)}</strong></div>
+   </div>
+   <div class="fusion-step-list">
+    ${stepRows || '<p class="mode-muted">Aucune étape disponible.</p>'}
+   </div>
+   <p class="mode-muted">Les étapes supérieures dépendent aussi des doublons réellement obtenus pendant la chaîne.</p>
+  `
+ }
+
+ function refresh() {
+  setInput.value = String(state.fusionUi.setId || "")
+
+  setCards.forEach((card) => {
+   const active = String(card.dataset.setId || "") === String(state.fusionUi.setId || "")
+   card.classList.toggle("active", active)
+  })
+
+  rarityButtons.forEach((btn) => {
+   const rarity = String(btn.dataset.rarity || "")
+   const active = rarity === String(state.fusionUi.fromRarity || "")
+   btn.classList.toggle("active", active)
+
+   const row = getFusionRowByRarity(rarity)
+   const info = getDuplicateInfoForFusion(state.fusionUi.setId, rarity)
+   const cost = Number(row?.cost || 0)
+   const stockTag = btn.querySelector("[data-fusion-stock]")
+   if (stockTag) stockTag.textContent = `${fmt(info.duplicates)}/${fmt(cost)}`
+   btn.classList.toggle("ready", cost > 0 && info.duplicates >= cost)
+  })
+
+  runModeButtons.forEach((btn) => {
+   btn.classList.toggle("active", String(btn.dataset.runMode || "") === String(state.fusionUi.runMode || "1"))
+  })
+
+  syncTargetOptions()
+
+  const immediateTarget = getNextRarityFromMeta(state.fusionUi.fromRarity)
+  const forceChain = Boolean(state.fusionUi.targetRarity && state.fusionUi.targetRarity !== immediateTarget)
+  if (forceChain) state.fusionUi.chain = true
+  if (chainToggle) {
+   chainToggle.checked = Boolean(state.fusionUi.chain)
+   chainToggle.disabled = forceChain
+  }
+
+  const ctx = getChainContext()
+  renderPreview(ctx)
+  renderHistory()
+  renderFusionForgeIdle(ctx.setId, ctx.fromRarity)
+
+  const canRun = Boolean(ctx.setId && ctx.row && ctx.requestedCycles > 0 && ctx.chainSteps.length > 0)
+  runBtn.disabled = !canRun
+  const qtyLabel = ctx.requestedCycles > 0 ? `x${fmt(ctx.requestedCycles)} ` : ""
+  runBtn.textContent = ctx.chainEnabled
+   ? `Lancer ${qtyLabel}chaîne de fusion`
+   : `Fusionner ${qtyLabel}maintenant`
+ }
+
+ if (setInput) {
+  setInput.addEventListener("change", () => {
+   state.fusionUi.setId = String(setInput.value || "")
+   refresh()
+  })
+ }
+
+ setCards.forEach((card) => {
+  card.addEventListener("click", () => {
+   state.fusionUi.setId = String(card.dataset.setId || "")
+   refresh()
+  })
+ })
+
+ rarityButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+   state.fusionUi.fromRarity = String(btn.dataset.rarity || "C").toUpperCase()
+   state.fusionUi.targetRarity = ""
+   refresh()
+  })
+ })
+
+ runModeButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+   state.fusionUi.runMode = parseFusionRunMode(btn.dataset.runMode || "1")
+   refresh()
+  })
+ })
+
+ if (targetInput) {
+  targetInput.addEventListener("change", () => {
+   state.fusionUi.targetRarity = String(targetInput.value || "")
+   refresh()
+  })
+ }
+
+ if (chainToggle) {
+  chainToggle.addEventListener("change", () => {
+   state.fusionUi.chain = Boolean(chainToggle.checked)
+   refresh()
+  })
+ }
+
+ refresh()
+}
+
+function setupCraftPanel(crafts) {
   const select = document.getElementById("craftCardInput")
   const preview = document.getElementById("craftPreview")
   const readyTag = document.getElementById("craftReadyTag")
@@ -513,11 +776,163 @@ function getNextSetUnlockInfo(unlockedSetIds = []) {
    if (readyTag) readyTag.textContent = `${progress.unique}/5`
   }
 
-  if (select) select.addEventListener("change", refresh)
-  refresh()
+ if (select) select.addEventListener("change", refresh)
+ refresh()
+}
+
+function getFusionAnimationFragments(setId, rarity, needed = 5) {
+ const slots = []
+ const safeNeeded = Math.max(1, Number(needed || 5))
+ const cards = getCardsForSetAndRarity(setId, rarity)
+
+ for (const card of cards) {
+  const qty = Number(card.qty || 0)
+  const duplicates = Math.max(0, qty - 1)
+  for (let i = 0; i < duplicates; i++) {
+   slots.push({
+    cardName: String(card.cardName || "Fragment"),
+    imageUrl: card.imageUrl || null,
+    rarity: String(card.rarity || rarity || "C")
+   })
+   if (slots.length >= safeNeeded) break
+  }
+  if (slots.length >= safeNeeded) break
  }
 
- function getRarityToken(rarity) {
+ if (slots.length < safeNeeded) {
+  for (const card of cards) {
+   const qty = Math.max(1, Number(card.qty || 0))
+   for (let i = 0; i < qty; i++) {
+    slots.push({
+     cardName: String(card.cardName || "Fragment"),
+     imageUrl: card.imageUrl || null,
+     rarity: String(card.rarity || rarity || "C")
+    })
+    if (slots.length >= safeNeeded) break
+   }
+   if (slots.length >= safeNeeded) break
+  }
+ }
+
+ while (slots.length < safeNeeded) {
+  slots.push({
+   cardName: `${String(rarity || "C")} fragment`,
+   imageUrl: null,
+   rarity: String(rarity || "C")
+  })
+ }
+
+ return slots.slice(0, safeNeeded)
+}
+
+function buildFusionForgeOrbitMarkup(fragments = [], fallbackRarity = "C") {
+ const slots = Array.isArray(fragments) ? fragments.slice(0, 5) : []
+ while (slots.length < 5) {
+  slots.push({ cardName: `${fallbackRarity} fragment`, imageUrl: null, rarity: fallbackRarity })
+ }
+ return slots.map((fragment, index) => `
+  <div class="fusion-forge-orb orb-${index + 1}" style="--orb-index:${index};">
+   <div class="fusion-forge-orb-core">
+    ${fragment?.imageUrl
+     ? `<img src="${escapeHtml(fragment.imageUrl)}" alt="${escapeHtml(fragment.cardName || "Fragment")}">`
+     : `<span>${escapeHtml(String(fragment?.rarity || fallbackRarity).charAt(0))}</span>`}
+   </div>
+  </div>
+ `).join("")
+}
+
+function renderFusionForgeIdle(setId, rarity) {
+ const stage = document.getElementById("fusionForgeStage")
+ const orbit = document.getElementById("fusionForgeOrbit")
+ const result = document.getElementById("fusionForgeResult")
+ const resultName = document.getElementById("fusionForgeResultName")
+ const status = document.getElementById("fusionForgeStatus")
+ if (!stage || !orbit || !result || !resultName || !status) return
+ if (String(stage.getAttribute("data-busy") || "0") === "1") return
+ const sourceRarity = String(rarity || "C")
+ orbit.innerHTML = buildFusionForgeOrbitMarkup(getFusionAnimationFragments(setId, sourceRarity, 5), sourceRarity)
+ result.classList.remove("visible")
+ resultName.textContent = "Carte finale"
+ status.textContent = `Prêt: ${sourceRarity} → ${getNextRarityFromMeta(sourceRarity) || "?"}`
+}
+
+function playFusionForgeAnimation(payload = {}) {
+ const stage = document.getElementById("fusionForgeStage")
+ const orbit = document.getElementById("fusionForgeOrbit")
+ const result = document.getElementById("fusionForgeResult")
+ const resultImage = document.getElementById("fusionForgeResultImage")
+ const resultName = document.getElementById("fusionForgeResultName")
+ const status = document.getElementById("fusionForgeStatus")
+ if (!stage || !orbit || !result || !resultName || !status) return Promise.resolve()
+
+ if (Array.isArray(stage._fusionTimers)) {
+  for (const timer of stage._fusionTimers) window.clearTimeout(timer)
+ }
+ stage._fusionTimers = []
+
+ const fromRarity = String(payload?.fromRarity || "C")
+ const toRarity = String(payload?.toRarity || "")
+ const reward = payload?.reward || {}
+ const fragments = Array.isArray(payload?.fragments) ? payload.fragments.slice(0, 5) : []
+
+ orbit.innerHTML = buildFusionForgeOrbitMarkup(fragments, fromRarity)
+
+ const rewardName = `${String(reward?.rarity || toRarity || "").trim()} ${String(reward?.cardName || "Carte mystère").trim()}`.trim()
+ if (resultImage) {
+  if (reward?.imageUrl) {
+   resultImage.src = String(reward.imageUrl)
+   resultImage.alt = rewardName
+   resultImage.style.display = ""
+  } else {
+   resultImage.removeAttribute("src")
+   resultImage.alt = rewardName
+   resultImage.style.display = "none"
+  }
+ }
+ resultName.textContent = rewardName
+ status.textContent = `Fusion ${fromRarity} → ${toRarity || "?"}`
+
+ stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-burst", "phase-result", "phase-out")
+ result.classList.remove("visible")
+ stage.setAttribute("data-busy", "1")
+ void stage.offsetWidth
+ stage.classList.add("animating", "phase-spin")
+
+ return new Promise((resolve) => {
+  const queue = (delay, callback) => {
+   const timer = window.setTimeout(() => {
+    callback()
+   }, delay)
+   stage._fusionTimers.push(timer)
+  }
+
+  queue(860, () => {
+   stage.classList.add("phase-converge")
+   status.textContent = "Les fragments convergent vers le noyau..."
+  })
+  queue(1680, () => {
+   stage.classList.add("phase-burst")
+  })
+  queue(1980, () => {
+   stage.classList.add("phase-result")
+   result.classList.add("visible")
+   status.textContent = "Transmutation réussie"
+  })
+  queue(4020, () => {
+   stage.classList.add("phase-out")
+  })
+  queue(4460, () => {
+   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-burst", "phase-result", "phase-out")
+   stage.setAttribute("data-busy", "0")
+   result.classList.remove("visible")
+   status.textContent = `Dernier résultat: ${rewardName}`
+   stage._fusionTimers = []
+   resolve()
+  })
+ })
+}
+
+function getRarityToken(rarity) {
   return String(rarity || "C").toUpperCase().replace(/[^A-Z]/g, "") || "C"
  }
 
@@ -1174,67 +1589,126 @@ function showPackOpeningAnimation(payload) {
   setupPacksPanel(meta)
  }
 
- function renderFusion() {
-  const panel = document.getElementById("playFusion")
-  const meta = state.gameMeta || {}
-  const unlockedSets = meta.unlockedSets || []
-  const fusionRows = meta.fusion || []
-  const hasSets = unlockedSets.length > 0
-  const hasRows = fusionRows.length > 0
-  panel.innerHTML = `
-   <section class="mode-shell mode-fusion">
-    <header class="mode-hero">
-     <div>
-      <h2>Atelier de Fusion</h2>
-      <p>Convertis des doublons en cartes de rareté supérieure.</p>
+function renderFusion() {
+ const panel = document.getElementById("playFusion")
+ const meta = state.gameMeta || {}
+ const unlockedSets = meta.unlockedSets || []
+ const fusionRows = getFusionRows()
+ const hasSets = unlockedSets.length > 0
+ const hasRows = fusionRows.length > 0
+ const activeSetId = String(state.fusionUi.setId || unlockedSets[0]?.id || "")
+ const activeRarity = String(state.fusionUi.fromRarity || fusionRows[0]?.rarity || "C").toUpperCase()
+ const activeRow = getFusionRowByRarity(activeRarity) || fusionRows[0] || null
+ const immediateTarget = getNextRarityFromMeta(activeRarity) || "-"
+ const totalDuplicates = fusionRows.reduce((sum, row) => {
+  const info = getDuplicateInfoForFusion(activeSetId, row.rarity)
+  return sum + Number(info.duplicates || 0)
+ }, 0)
+ panel.innerHTML = `
+  <section class="mode-shell mode-fusion">
+   <header class="mode-hero">
+    <div>
+     <h2>Forge de Fusion</h2>
+     <p>Place 5 doublons en orbite, converge vers le noyau, puis révèle la carte finale.</p>
+    </div>
+    <div class="mode-kpi-grid mode-kpi-grid-4">
+     <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
+     <div class="mode-kpi"><span>Doublons disponibles</span><strong>${fmt(totalDuplicates)}</strong></div>
+     <div class="mode-kpi"><span>Conversion actuelle</span><strong>${escapeHtml(activeRarity)} → ${escapeHtml(immediateTarget)}</strong></div>
+     <div class="mode-kpi"><span>Coût source</span><strong>${fmt(Number(activeRow?.cost || 0))} doublons</strong></div>
+    </div>
+   </header>
+   <div class="mode-layout fusion-layout">
+    <article class="mode-card fusion-config-card">
+     <h3>Paramètres de forge</h3>
+     <label class="mode-label" for="fusionSetInput">Set ciblé</label>
+     <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
+     </select>
+     <div class="fusion-set-grid">
+      ${hasSets
+       ? unlockedSets.map((set, index) => `
+        <button type="button" class="fusion-set-card ${String(set.id) === activeSetId || (!activeSetId && index === 0) ? "active" : ""}" data-set-id="${escapeHtml(set.id)}">
+         <strong>${escapeHtml(set.name)}</strong>
+         <small>${fmt(Number(getSetProgressPct(set.id) || 0))}% complété</small>
+        </button>
+       `).join("")
+       : '<span class="mode-chip">Aucun set débloqué</span>'}
      </div>
-     <div class="mode-kpi-grid">
-      <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
-      <div class="mode-kpi"><span>Raretés fusionnables</span><strong>${fmt(fusionRows.length)}</strong></div>
-      <div class="mode-kpi"><span>Règle</span><strong>1 fusion = 1 carte</strong></div>
+
+     <div class="fusion-separator"></div>
+     <label class="mode-label">Rareté source</label>
+     <div class="fusion-rarity-lane">
+      ${hasRows
+       ? fusionRows.map((row) => {
+        const token = String(row.rarity || "C").toUpperCase()
+        const next = getNextRarityFromMeta(token)
+        const info = getDuplicateInfoForFusion(activeSetId, token)
+        return `
+         <button type="button" class="fusion-rarity-node ${token === activeRarity ? "active" : ""}" data-rarity="${escapeHtml(token)}">
+          <span class="fusion-rarity-pair">${escapeHtml(token)} → ${escapeHtml(next || "-")}</span>
+          <small>${fmt(Number(row.cost || 0))} requis</small>
+          <strong data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</strong>
+         </button>
+        `
+       }).join("")
+       : '<p class="mode-muted">Aucune rareté fusionnable disponible.</p>'}
      </div>
-    </header>
-    <div class="mode-layout">
-     <article class="mode-card">
-      <h3>Paramètres de fusion</h3>
-      <label class="mode-label" for="fusionSetInput">Set</label>
-      <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
-      </select>
-      <label class="mode-label" for="fusionRarityInput">Rareté source</label>
-      <select id="fusionRarityInput" class="input input-select" ${hasRows ? "" : "disabled"}>
-       ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)}</option>`).join("")}
-      </select>
-      <div class="mode-inline-stats mode-inline-stats-3">
-       <div><span>De</span><strong id="fusionFromRarity">-</strong></div>
-       <div><span>Vers</span><strong id="fusionToRarity">-</strong></div>
-       <div><span>Coût</span><strong id="fusionCostLabel">0 doublons</strong></div>
+
+     <div class="fusion-options-grid">
+      <div>
+       <label class="mode-label" for="fusionTargetInput">Cible maximum</label>
+       <select id="fusionTargetInput" class="input input-select" ${hasRows ? "" : "disabled"}></select>
       </div>
-      <div class="action-row">
-       <button id="fusionBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Lancer la fusion</button>
+      <label class="fusion-chain-toggle" for="fusionChainToggle">
+       <input id="fusionChainToggle" type="checkbox">
+       <span>Auto-chaîne jusqu'à la cible</span>
+      </label>
+     </div>
+
+     <div class="fusion-run-modes">
+      <button type="button" class="fusion-run-mode active" data-run-mode="1">x1</button>
+      <button type="button" class="fusion-run-mode" data-run-mode="5">x5</button>
+      <button type="button" class="fusion-run-mode" data-run-mode="max">MAX</button>
+     </div>
+
+     <div id="fusionPreviewBox" class="mode-preview fusion-preview-box"></div>
+
+     <div class="action-row fusion-actions">
+      <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Lancer la forge</button>
+     </div>
+     <div id="fusionResultBox" class="action-result mode-result"></div>
+    </article>
+
+    <div class="mode-right-stack fusion-side-stack">
+     <article class="mode-card fusion-forge-card">
+      <h3>Autel de convergence</h3>
+      <p class="mode-muted">Les 5 fragments orbitent, fusionnent au noyau, puis révèlent l'item final.</p>
+      <div id="fusionForgeStage" class="fusion-forge-stage" data-busy="0">
+       <div class="fusion-forge-aura"></div>
+       <div class="fusion-forge-platform"></div>
+       <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
+       <div class="fusion-forge-core"></div>
+       <div id="fusionForgeResult" class="fusion-forge-result">
+        <div class="fusion-forge-result-card">
+         <img id="fusionForgeResultImage" alt="Résultat de fusion">
+        </div>
+        <strong id="fusionForgeResultName">Carte finale</strong>
+       </div>
+       <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: sélectionne un set et une rareté.</p>
       </div>
-      <div id="fusionResultBox" class="action-result mode-result"></div>
      </article>
 
      <article class="mode-card">
-      <h3>Table des coûts</h3>
-      <div class="mode-rows">
-       ${hasRows
-        ? fusionRows.map((row) => {
-         const next = getNextRarityFromMeta(row.rarity)
-         return `<div class="mode-row"><span>${escapeHtml(row.rarity)} → ${escapeHtml(next || "-")}</span><strong>${fmt(row.cost)} doublons</strong></div>`
-        }).join("")
-        : '<p class="mode-muted">Aucune rareté fusionnable disponible.</p>'}
-      </div>
-      <div class="mode-info-box">
-       <p>La fusion consomme des doublons d’un set et donne une carte aléatoire de la rareté cible.</p>
-      </div>
+      <h3>Historique de session</h3>
+      <div id="fusionHistoryList" class="fusion-history-list"></div>
      </article>
     </div>
-   </section>
-  `
-  setupFusionPanel()
- }
+   </div>
+  </section>
+ `
+ setupFusionPanel()
+}
 
  function renderCraft() {
   const panel = document.getElementById("playCraft")
@@ -1320,17 +1794,115 @@ function showPackOpeningAnimation(payload) {
   await reloadGameplayDataAndRender()
  }
 
- async function handleFusionAction() {
-  const setId = String(document.getElementById("fusionSetInput")?.value || "").trim()
-  const rarity = String(document.getElementById("fusionRarityInput")?.value || "").trim()
-  const res = await postJson("/api/game/fuse", { setId, rarity })
-  if (!res.ok) {
-   showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
+async function handleFusionAction() {
+ const stage = document.getElementById("fusionForgeStage")
+ if (String(stage?.getAttribute("data-busy") || "0") === "1") return
+
+ const setId = String(state.fusionUi.setId || document.getElementById("fusionSetInput")?.value || "").trim()
+ const fromRarity = String(state.fusionUi.fromRarity || "").toUpperCase()
+ const targetRarity = String(state.fusionUi.targetRarity || "").toUpperCase()
+ const sourceRow = getFusionRowByRarity(fromRarity)
+ const immediateTarget = getNextRarityFromMeta(fromRarity)
+ const sourceInfo = getDuplicateInfoForFusion(setId, fromRarity)
+ const maxSingleFusions = sourceRow?.cost ? Math.floor(sourceInfo.duplicates / Number(sourceRow.cost || 1)) : 0
+ const forceChain = Boolean(targetRarity && targetRarity !== immediateTarget)
+ const chainEnabled = Boolean(state.fusionUi.chain || forceChain)
+ const chainSteps = chainEnabled
+  ? getFusionStepChain(fromRarity, targetRarity)
+  : [{ from: fromRarity, to: immediateTarget, row: sourceRow }]
+ const requestedCycles = getRequestedFusionCycles(parseFusionRunMode(state.fusionUi.runMode), maxSingleFusions)
+ if (!setId || !fromRarity || !sourceRow || !chainSteps.length || requestedCycles <= 0) {
+  showActionResult("fusionResultBox", "<p>Impossible de lancer la fusion avec les paramètres actuels.</p>", true)
+  return
+ }
+
+ const runBtn = document.getElementById("fusionRunBtn")
+ const baseLabel = String(runBtn?.textContent || "Lancer la forge")
+ let refreshed = false
+
+ try {
+  if (runBtn) {
+   runBtn.disabled = true
+   runBtn.textContent = "Forge en cours..."
+  }
+  showActionResult("fusionResultBox", "<p>Canalisation des fragments...</p>")
+
+  const logs = []
+  let calls = 0
+  let interruption = ""
+  outer:
+  for (let cycle = 0; cycle < requestedCycles; cycle++) {
+   for (const step of chainSteps) {
+    if (calls >= FUSION_AUTO_CHAIN_MAX_CALLS) {
+     interruption = "Limite de sécurité atteinte pour la chaîne automatique."
+     break outer
+    }
+    const res = await postJson("/api/game/fuse", { setId, rarity: step.from })
+    calls += 1
+    if (!res.ok) {
+     if (!logs.length) {
+      showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
+      return
+     }
+     interruption = String(res.data?.error || "Fusion interrompue.")
+     break outer
+    }
+
+    const data = res.data || {}
+    logs.push({
+     setId,
+     setName: getSetName(setId),
+     from: String(data.fromRarity || step.from || fromRarity),
+     to: String(data.toRarity || step.to || ""),
+     rewardName: String(data?.reward?.cardName || "Carte"),
+     rewardRarity: String(data?.reward?.rarity || data.toRarity || ""),
+     rewardImage: data?.reward?.imageUrl || null,
+     reward: data?.reward || null,
+     timestamp: Date.now()
+    })
+   }
+  }
+
+  if (!logs.length) {
+   showActionResult("fusionResultBox", "<p>Aucune fusion effectuée.</p>", true)
    return
   }
-  showActionResult("fusionResultBox", `<p><strong>Fusion validée:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p><p>Récompense: ${escapeHtml(res.data?.reward?.cardName || "Carte")}</p>`)
+
+  const last = logs[logs.length - 1]
+  await playFusionForgeAnimation({
+   fromRarity: last.from,
+   toRarity: last.to,
+   reward: {
+    cardName: last.rewardName,
+    rarity: last.rewardRarity,
+    imageUrl: last.rewardImage
+   },
+   fragments: getFusionAnimationFragments(setId, last.from, 5)
+  })
+
+  state.fusionHistory = logs.slice().reverse().map((entry) => ({
+   from: entry.from,
+   to: entry.to,
+   rewardName: `${entry.rewardRarity} ${entry.rewardName}`.trim(),
+   setName: entry.setName,
+   timestamp: entry.timestamp
+  })).concat(state.fusionHistory || []).slice(0, 24)
+
+  const summary = `
+   <p><strong>Forge terminée:</strong> ${fmt(logs.length)} fusion(s) validée(s)</p>
+   <p>Dernier résultat: ${escapeHtml((last.rewardRarity ? `${last.rewardRarity} ` : "") + (last.rewardName || "Carte"))}</p>
+   ${interruption ? `<p class="mode-muted">Arrêt partiel: ${escapeHtml(interruption)}</p>` : ""}
+  `
   await reloadGameplayDataAndRender()
+  refreshed = true
+  showActionResult("fusionResultBox", summary)
+ } finally {
+  if (!refreshed && runBtn) {
+   runBtn.disabled = false
+   runBtn.textContent = baseLabel
+  }
  }
+}
 
  async function handleCraftAction() {
   const cardId = String(document.getElementById("craftCardInput")?.value || "").trim()
@@ -1420,9 +1992,10 @@ function showPackOpeningAnimation(payload) {
    if (event.target && event.target.id === "openPacksBtn") return handleOpenPacksAction().catch(() => {})
   })
 
-  document.getElementById("playFusion").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "fusionBtn") return handleFusionAction().catch(() => {})
-  })
+ document.getElementById("playFusion").addEventListener("click", (event) => {
+  const btn = event.target.closest("#fusionRunBtn")
+  if (btn) return handleFusionAction().catch(() => {})
+ })
 
   document.getElementById("playCraft").addEventListener("click", (event) => {
    if (event.target && event.target.id === "craftBtn") return handleCraftAction().catch(() => {})
