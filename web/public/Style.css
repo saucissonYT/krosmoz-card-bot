@@ -244,8 +244,11 @@ body.auth-connected .hero {
  gap: 22px;
  list-style: none;
  align-items: center;
- white-space: nowrap;
- overflow-x: auto;
+ justify-content: center;
+ flex-wrap: wrap;
+ margin: 0;
+ padding: 0;
+ overflow: visible;
 }
 
 .navbar-subnav-links a {

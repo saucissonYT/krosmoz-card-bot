@@ -1,4 +1,4 @@
-(async function initGlobalAuthButton() {
+﻿(async function initGlobalAuthButton() {
  const btn = document.getElementById("globalAuthBtn")
  if (!btn) return
  const right = btn.parentElement
@@ -31,8 +31,6 @@
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
       <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
       <li><a href="/profile/">Profil</a></li>
-      <li><a href="/market">Marché</a></li>
-      <li><a href="/achievements">Achievements</a></li>
      </ul>
     </div>
    `
