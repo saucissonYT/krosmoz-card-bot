@@ -28,19 +28,20 @@
 
  <div class="page">
   <div class="container">
+   <div class="play-menu-wrap">
+    <div class="play-tabs">
+     <button class="play-tab" data-mode="inventory">Inventaire</button>
+     <button class="play-tab" data-mode="packs">Packs</button>
+     <button class="play-tab" data-mode="fusion">Fusion</button>
+     <button class="play-tab" data-mode="craft">Craft</button>
+     <a class="play-tab-link" href="/profile/">Profil</a>
+     <a class="play-tab-link" href="/market">Marché</a>
+     <a class="play-tab-link" href="/achievements">Achievements</a>
+    </div>
+   </div>
    <section class="play-shell">
     <main class="play-main">
      <header class="play-head">
-      <div class="play-tabs">
-       <button class="play-tab" data-mode="inventory">Inventaire</button>
-       <button class="play-tab" data-mode="collection">Collection</button>
-       <button class="play-tab" data-mode="packs">Packs</button>
-       <button class="play-tab" data-mode="fusion">Fusion</button>
-       <button class="play-tab" data-mode="craft">Craft</button>
-       <a class="play-tab-link" href="/profile/">Profil</a>
-       <a class="play-tab-link" href="/market">Marché</a>
-       <a class="play-tab-link" href="/achievements">Achievements</a>
-      </div>
       <h1 id="playTitle">INVENTAIRE</h1>
      </header>
 
@@ -61,7 +62,6 @@
        <option value="SSR">SSR</option>
       </select>
       <button id="sortBtn" class="btn btn-outline">Tri Qté v</button>
-      <button id="collectionOwnedToggle" class="btn btn-outline" style="display:none">Collection: Possédées</button>
      </div>
 
      <div class="play-subtabs" id="inventorySubtabs">
@@ -84,7 +84,6 @@
  <script>
  const MODE_PATH = {
   inventory: "/play/inventory",
-  collection: "/play/collection",
   packs: "/play/packs",
   fusion: "/play/fusion",
   craft: "/play/craft"
@@ -95,12 +94,10 @@
   mode: "inventory",
   inventoryView: "cards",
   sortDesc: true,
-  collectionOwnedOnly: true,
   me: null,
   profile: null,
   inventory: null,
   groupedFragments: [],
-  dex: [],
   gameMeta: null,
   selected: null
  }
@@ -119,7 +116,7 @@
 
  function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "collection", "packs", "fusion", "craft"].includes(tab) ? tab : "inventory"
+  return ["inventory", "packs", "fusion", "craft"].includes(tab) ? tab : "inventory"
  }
 
  async function fetchJson(url, options = {}) {
@@ -187,31 +184,6 @@
   )
  }
 
- async function loadDex() {
-  let page = 1
-  let pages = 1
-  const all = []
-  while (page <= pages && page <= 20) {
-   const res = await fetchJson(`/api/cards?page=${page}&limit=100`)
-   if (!res.ok) break
-   const payload = res.data || {}
-   for (const item of (payload.items || [])) all.push(item)
-   pages = Number(payload.pages || 1)
-   page += 1
-  }
-  const ownedCards = new Map((((state.inventory && state.inventory.cards) || []).map((card) => [String(card.cardId), Number(card.qty || 0)])))
-  state.dex = all.map((card) => ({
-   itemType: "card",
-   cardId: String(card.id),
-   cardName: card.name,
-   rarity: card.rarity,
-   set: card.set,
-   setName: card.setName || card.set,
-   imageUrl: card.imageUrl || null,
-   qty: Number(ownedCards.get(String(card.id)) || 0)
-  }))
- }
-
  async function loadData() {
   await requireLogin()
 
@@ -230,7 +202,6 @@
   const sets = new Map()
   for (const item of ((state.inventory && state.inventory.cards) || [])) sets.set(item.set, item.setName || item.set)
   for (const item of state.groupedFragments) sets.set(item.set, item.setName || item.set)
-  for (const item of (state.dex || [])) sets.set(item.set, item.setName || item.set)
   const options = [...sets.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "fr"))
   for (const [id, name] of options) {
    const opt = document.createElement("option")
@@ -239,11 +210,9 @@
    setSelect.appendChild(opt)
   }
 
-  await loadDex()
  }
 
  function getActiveSource() {
-  if (state.mode === "collection") return state.dex
   if (state.mode === "inventory" && state.inventoryView === "fragments") return state.groupedFragments
   return (state.inventory && state.inventory.cards) || []
  }
@@ -258,7 +227,6 @@
    if (set && String(item.set) !== String(set)) return false
    if (rarity && String(item.rarity) !== String(rarity)) return false
    if (state.mode === "inventory" && state.inventoryView === "cards" && Number(item.qty || 0) <= 0) return false
-   if (state.mode === "collection" && state.collectionOwnedOnly && Number(item.qty || 0) <= 0) return false
    return true
   })
 
@@ -282,12 +250,10 @@
   grid.innerHTML = items.map((item) => {
    let label = `x${fmt(item.qty)}`
    if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
-   if (state.mode === "collection") label = Number(item.qty || 0) > 0 ? `Possédée x${fmt(item.qty)}` : "Non possédée"
-   const silhouette = state.mode === "collection" && Number(item.qty || 0) <= 0
    return `
     <article class="play-card">
      <div class="play-card-img-wrap">
-      ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${silhouette ? "silhouette" : ""}">` : "<span>?</span>"}
+      ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}">` : "<span>?</span>"}
      </div>
      <div class="play-card-meta">
       <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
@@ -454,7 +420,6 @@
  function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
   const subtabs = document.getElementById("inventorySubtabs")
-  const collectionToggle = document.getElementById("collectionOwnedToggle")
   const grid = document.getElementById("playGrid")
   const packsPanel = document.getElementById("playPacks")
   const fusionPanel = document.getElementById("playFusion")
@@ -463,8 +428,6 @@
 
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
-  collectionToggle.style.display = state.mode === "collection" ? "inline-flex" : "none"
-  collectionToggle.textContent = state.collectionOwnedOnly ? "Collection: Possédées" : "Collection: Possédées + manquantes"
   grid.style.display = "grid"
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
@@ -485,8 +448,6 @@
    controls.style.display = "none"
    grid.style.display = "none"
    craftPanel.style.display = "block"
-  } else if (state.mode === "collection") {
-   title.textContent = "COLLECTION"
   } else {
    title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
   }
@@ -516,10 +477,6 @@
   document.getElementById("searchInput").addEventListener("input", renderCurrentMode)
   document.getElementById("setFilter").addEventListener("change", renderCurrentMode)
   document.getElementById("rarityFilter").addEventListener("change", renderCurrentMode)
-  document.getElementById("collectionOwnedToggle").addEventListener("click", () => {
-   state.collectionOwnedOnly = !state.collectionOwnedOnly
-   renderCurrentMode()
-  })
 
   document.getElementById("sortBtn").addEventListener("click", () => {
    state.sortDesc = !state.sortDesc
