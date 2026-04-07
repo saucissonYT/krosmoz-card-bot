@@ -347,7 +347,7 @@ let packRevealTimers = []
   return String(byProfile?.name || id || "Set")
  }
 
- function getNextSetUnlockInfo(unlockedSetIds = []) {
+function getNextSetUnlockInfo(unlockedSetIds = []) {
   const unlocked = new Set((unlockedSetIds || []).map((id) => String(id)))
   const currentLevel = Number(state.profile?.level || state.me?.level || 1)
 
@@ -367,6 +367,24 @@ let packRevealTimers = []
   return null
  }
 
+ function getSetPityState(setId) {
+  const pityRows = Array.isArray(state.profile?.pity) ? state.profile.pity : []
+  const row = pityRows.find((item) => String(item.setId) === String(setId)) || null
+  const ur = Math.max(0, Number(row?.UR || 0))
+  const s = Math.max(0, Number(row?.S || 0))
+  const ssr = Math.max(0, Number(row?.SSR || 0))
+  return {
+   UR: ur,
+   S: s,
+   SSR: ssr,
+   toGuaranteed: {
+    UR: Math.max(0, 10 - ur),
+    S: Math.max(0, 30 - s),
+    SSR: Math.max(0, 50 - ssr)
+   }
+  }
+ }
+
  function setupPacksPanel(meta) {
   const buyQtyInput = document.getElementById("buyPackQty")
   const openQtyInput = document.getElementById("openPackQty")
@@ -376,6 +394,7 @@ let packRevealTimers = []
   const setInput = document.getElementById("actionSetInput")
   const openHint = document.getElementById("openHint")
   const openQtyPreview = document.getElementById("packOpenQtyPreview")
+  const pityBox = document.getElementById("packSetPityBox")
   const setCards = [...document.querySelectorAll(".pack-set-card[data-set-id]")]
   const price = Number(meta.packPrice || 0)
   const stock = Number(meta.packStock || 0)
@@ -402,6 +421,35 @@ let packRevealTimers = []
    if (openHint) {
     const selectedName = String(setInput?.selectedOptions?.[0]?.dataset?.setName || setInput?.selectedOptions?.[0]?.textContent || "Set")
     openHint.textContent = `Ouverture ciblee sur ${selectedName}`
+   }
+   if (pityBox) {
+    const selectedSetId = String(setInput?.value || "")
+    const selectedSetName = String(setInput?.selectedOptions?.[0]?.dataset?.setName || setInput?.selectedOptions?.[0]?.textContent || selectedSetId || "Set")
+    const pity = getSetPityState(selectedSetId)
+    const urPct = Math.max(0, Math.min(100, Math.round((pity.UR / 10) * 100)))
+    const sPct = Math.max(0, Math.min(100, Math.round((pity.S / 30) * 100)))
+    const ssrPct = Math.max(0, Math.min(100, Math.round((pity.SSR / 50) * 100)))
+    pityBox.innerHTML = `
+     <h3>Pity du set</h3>
+     <p class="mode-muted">${escapeHtml(selectedSetName)}</p>
+     <div class="pack-pity-grid pack-pity-grid-bars">
+      <div class="pack-pity-row">
+       <div class="pack-pity-head"><span>UR</span><strong>${fmt(pity.UR)}/10</strong></div>
+       <div class="set-bar"><div class="set-bar-fill ${getPctClass(urPct)}" style="width:${urPct}%"></div></div>
+       <small>Garantie dans ${fmt(pity.toGuaranteed.UR)} pack(s)</small>
+      </div>
+      <div class="pack-pity-row">
+       <div class="pack-pity-head"><span>S</span><strong>${fmt(pity.S)}/30</strong></div>
+       <div class="set-bar"><div class="set-bar-fill ${getPctClass(sPct)}" style="width:${sPct}%"></div></div>
+       <small>Garantie dans ${fmt(pity.toGuaranteed.S)} pack(s)</small>
+      </div>
+      <div class="pack-pity-row">
+       <div class="pack-pity-head"><span>SSR</span><strong>${fmt(pity.SSR)}/50</strong></div>
+       <div class="set-bar"><div class="set-bar-fill ${getPctClass(ssrPct)}" style="width:${ssrPct}%"></div></div>
+       <small>Garantie dans ${fmt(pity.toGuaranteed.SSR)} pack(s)</small>
+      </div>
+     </div>
+    `
    }
    syncActiveSetCard()
   }
@@ -980,27 +1028,29 @@ function showPackOpeningAnimation(payload) {
        <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir</button>
       </div>
       <p id="openHint" class="mode-muted"></p>
-      <div id="packOpenResultBox" class="action-result mode-result"></div>
      </article>
 
-     <article class="mode-card">
-      <h3>Achat de packs</h3>
-      <p class="mode-muted">Achete des packs avec tes 💰.</p>
-      <label class="mode-label" for="buyPackQty">Quantité à acheter</label>
-      <input id="buyPackQty" class="input" type="number" min="1" max="50" step="1" value="1">
-      <div class="mode-inline-stats">
-       <div><span>Kamas disponibles</span><strong>💰 ${fmt(kamas)}</strong></div>
-       <div><span>Cout total</span><strong id="packTotalCost">💰 ${fmt(packPrice)}</strong></div>
-      </div>
-      <div class="mode-inline-stats">
-       <div><span>Stock actuel</span><strong>${fmt(stock)} packs</strong></div>
-       <div><span>Projection stock</span><strong id="packStockAfterBuy">${fmt(stock + 1)} packs après achat</strong></div>
-      </div>
-      <div class="action-row">
-       <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
-      </div>
-      <div id="packBuyResultBox" class="action-result mode-result"></div>
-     </article>
+     <div class="mode-right-stack">
+      <article class="mode-card">
+       <h3>Achat de packs</h3>
+       <p class="mode-muted">Achete des packs avec tes 💰.</p>
+       <label class="mode-label" for="buyPackQty">Quantité à acheter</label>
+       <input id="buyPackQty" class="input" type="number" min="1" max="50" step="1" value="1">
+       <div class="mode-inline-stats">
+        <div><span>Kamas disponibles</span><strong>💰 ${fmt(kamas)}</strong></div>
+        <div><span>Cout total</span><strong id="packTotalCost">💰 ${fmt(packPrice)}</strong></div>
+       </div>
+       <div class="mode-inline-stats">
+        <div><span>Stock actuel</span><strong>${fmt(stock)} packs</strong></div>
+        <div><span>Projection stock</span><strong id="packStockAfterBuy">${fmt(stock + 1)} packs après achat</strong></div>
+       </div>
+       <div class="action-row">
+        <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
+       </div>
+      </article>
+
+      <article class="mode-card" id="packSetPityBox"></article>
+     </div>
     </div>
    </section>
   `

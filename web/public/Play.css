@@ -498,6 +498,12 @@
  align-items: start;
 }
 
+.mode-right-stack {
+ display: grid;
+ gap: 12px;
+ align-content: start;
+}
+
 .mode-card {
  border: 1px solid rgba(255, 255, 255, 0.11);
  border-radius: 12px;
@@ -952,7 +958,7 @@ body.pack-opening-lock {
  grid-template-columns: 1fr;
  justify-items: stretch;
  align-items: start;
- gap: 10px;
+ gap: 8px;
  max-height: min(56vh, 520px);
  min-height: 220px;
  overflow-y: auto;
@@ -971,22 +977,26 @@ body.pack-opening-lock {
 }
 
 .pack-reveal-tier {
- border: 1px solid rgba(255, 255, 255, 0.08);
- border-radius: 12px;
- background: rgba(11, 17, 42, 0.58);
- padding: 9px 10px 10px;
- opacity: 0.82;
- transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+ border: none;
+ border-radius: 0;
+ background: transparent;
+ padding: 0;
+ opacity: 1;
+ transition: none;
 }
 
 .pack-reveal-tier.active {
  opacity: 1;
- border-color: rgba(201, 168, 76, 0.38);
- box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+ border-color: transparent;
+ box-shadow: none;
+}
+
+.pack-reveal-tier + .pack-reveal-tier {
+ margin-top: 2px;
 }
 
 .pack-reveal-tier-head {
- margin: 0 0 8px;
+ margin: 0 0 6px;
  color: #cdd4f3;
  font-size: 0.8rem;
 }
