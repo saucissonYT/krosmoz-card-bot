@@ -35,12 +35,13 @@
      <header class="play-head">
       <h1 id="playTitle">INVENTAIRE</h1>
       <div class="play-tabs">
-       <button class="play-tab" data-mode="inventory">Inventaire</button>
-       <button class="play-tab" data-mode="profile">Profil</button>
-       <button class="play-tab" data-mode="team">Collection</button>
-       <button class="play-tab" data-mode="dex">Catalogue</button>
-       <button class="play-tab" data-mode="market">Marche</button>
-      </div>
+      <button class="play-tab" data-mode="inventory">Inventaire</button>
+      <button class="play-tab" data-mode="profile">Profil</button>
+      <button class="play-tab" data-mode="team">Collection</button>
+      <button class="play-tab" data-mode="dex">Catalogue</button>
+      <button class="play-tab" data-mode="actions">Actions</button>
+      <button class="play-tab" data-mode="market">Marche</button>
+     </div>
      </header>
 
      <div class="play-controls" id="playControls">
@@ -71,6 +72,7 @@
       <div id="playGrid" class="play-grid"></div>
       <div id="playProfile" class="play-panel-alt" style="display:none"></div>
       <div id="playTeam" class="play-panel-alt" style="display:none"></div>
+      <div id="playActions" class="play-panel-alt" style="display:none"></div>
       <div id="playMarket" class="play-panel-alt" style="display:none"></div>
      </div>
     </main>
@@ -89,9 +91,10 @@
  <script>
  const MODE_PATH = {
   inventory: "/play/inventory",
-  profile: "/play/profile",
-  team: "/play/team",
-  dex: "/play/dex",
+ profile: "/play/profile",
+ team: "/play/team",
+ dex: "/play/dex",
+  actions: "/play/actions",
   market: "/play/market"
  }
 
@@ -105,6 +108,8 @@
   inventory: null,
   groupedFragments: [],
   dex: [],
+  gameMeta: null,
+  achievements: null,
   marketItems: [],
   myListings: [],
   selected: null
@@ -124,7 +129,7 @@
 
  function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "profile", "team", "dex", "market"].includes(tab) ? tab : "inventory"
+  return ["inventory", "profile", "team", "dex", "actions", "market"].includes(tab) ? tab : "inventory"
  }
 
  async function fetchJson(url, options = {}) {
@@ -239,12 +244,16 @@
  async function loadData() {
   await requireLogin()
 
-  const [profileRes, inventoryRes] = await Promise.all([
+  const [profileRes, inventoryRes, gameMetaRes, achievementsRes] = await Promise.all([
    fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}`),
-   fetchJson("/api/me/inventory")
+   fetchJson("/api/me/inventory"),
+   fetchJson("/api/game/meta"),
+   fetchJson("/api/achievements?category=all")
   ])
   if (profileRes.ok) state.profile = profileRes.data
   if (inventoryRes.ok) state.inventory = inventoryRes.data
+  if (gameMetaRes.ok) state.gameMeta = gameMetaRes.data
+  if (achievementsRes.ok) state.achievements = achievementsRes.data
   state.groupedFragments = groupFragments((state.inventory && state.inventory.fragments) || [])
 
   const setSelect = document.getElementById("setFilter")
@@ -386,7 +395,7 @@
   const panel = document.getElementById("playTeam")
   const team = topTeam((state.inventory && state.inventory.cards) || [], 6)
   if (!team.length) {
-   panel.innerHTML = '<div class="play-empty"><h3>Deck vide</h3></div>'
+   panel.innerHTML = '<div class="play-empty"><h3>Collection vide</h3></div>'
    return
   }
   panel.innerHTML = `
@@ -401,6 +410,109 @@
       </button>
     `).join("")}
    </div>
+  `
+ }
+
+ function getCraftCandidates() {
+  const grouped = new Map()
+  for (const frag of state.groupedFragments || []) {
+   const id = String(frag.cardId)
+   if (!grouped.has(id)) {
+    grouped.set(id, {
+     cardId: id,
+     cardName: frag.cardName,
+     imageUrl: frag.imageUrl || null,
+     setName: frag.setName || frag.set || "unknown",
+     numbers: new Set()
+    })
+   }
+   grouped.get(id).numbers.add(Number(frag.fragmentNumber || 0))
+  }
+  return [...grouped.values()].map((x) => ({
+   ...x,
+   uniqueCount: x.numbers.size,
+   canCraft: [1, 2, 3, 4, 5].every((n) => x.numbers.has(n))
+  })).sort((a, b) => Number(b.canCraft) - Number(a.canCraft) || b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
+ }
+
+ function renderActions() {
+  const panel = document.getElementById("playActions")
+  const meta = state.gameMeta || {}
+  const unlockedSets = meta.unlockedSets || []
+  const fusionRows = meta.fusion || []
+  const crafts = getCraftCandidates()
+  const ach = state.achievements || {}
+
+  const hasSets = unlockedSets.length > 0
+  const hasCraft = crafts.length > 0
+  panel.innerHTML = `
+   <section class="action-grid">
+    <article class="action-box">
+     <h3>Packs</h3>
+     <p class="action-sub">Prix: ${fmt(meta.packPrice || 0)} kamas - Stock: ${fmt(meta.packStock || (state.profile && state.profile.packs) || 0)}</p>
+     <label>Set</label>
+     <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
+     </select>
+     <label>Quantite</label>
+     <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
+     <div class="action-row">
+      <button id="buyPacksBtn" class="btn btn-outline">Acheter packs</button>
+      <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir packs</button>
+     </div>
+     ${hasSets ? "" : '<p class="action-sub">Aucun set debloque pour le moment.</p>'}
+     <div id="packResultBox" class="action-result"></div>
+    </article>
+
+    <article class="action-box">
+     <h3>Fusion</h3>
+     <p class="action-sub">Fusionne tes doublons pour monter en rarete.</p>
+     <label>Set</label>
+     <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
+     </select>
+     <label>Rareté source</label>
+     <select id="fusionRarityInput" class="input input-select">
+      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (cout ${fmt(row.cost)} doublons)</option>`).join("")}
+     </select>
+     <div class="action-row">
+      <button id="fusionBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Fusionner</button>
+     </div>
+     <div id="fusionResultBox" class="action-result"></div>
+    </article>
+
+    <article class="action-box">
+     <h3>Craft SSR</h3>
+     <p class="action-sub">Craft via fragments (1-5).</p>
+     <label>Carte</label>
+     <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
+      ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} (${item.uniqueCount}/5)</option>`).join("")}
+     </select>
+     <div class="action-row">
+      <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter</button>
+     </div>
+     ${hasCraft ? "" : '<p class="action-sub">Aucun fragment disponible.</p>'}
+     <div id="craftResultBox" class="action-result"></div>
+    </article>
+
+    <article class="action-box">
+     <h3>Succes</h3>
+     <p class="action-sub">Progression globale du profil web.</p>
+     <div class="action-stats">
+      <div><span>Total</span><strong>${fmt(ach.total || 0)}</strong></div>
+      <div><span>Debloques</span><strong>${fmt(ach.unlocked || 0)}</strong></div>
+      <div><span>Taux</span><strong>${ach.total ? `${Math.round(((ach.unlocked || 0) / ach.total) * 100)}%` : "0%"}</strong></div>
+     </div>
+     <div class="action-scroll">
+      ${Object.entries(ach.categories || {}).map(([key, stat]) => `
+        <div class="action-cat-row">
+         <span>${escapeHtml(key)}</span>
+         <strong>${fmt(stat.unlocked || 0)} / ${fmt(stat.total || 0)}</strong>
+        </div>
+      `).join("") || '<p class="action-sub">Aucune donnee.</p>'}
+     </div>
+    </article>
+   </section>
   `
  }
 
@@ -490,6 +602,7 @@
   const grid = document.getElementById("playGrid")
   const profilePanel = document.getElementById("playProfile")
   const teamPanel = document.getElementById("playTeam")
+  const actionsPanel = document.getElementById("playActions")
   const marketPanel = document.getElementById("playMarket")
   const title = document.getElementById("playTitle")
 
@@ -498,6 +611,7 @@
   grid.style.display = "grid"
   profilePanel.style.display = "none"
   teamPanel.style.display = "none"
+  actionsPanel.style.display = "none"
   marketPanel.style.display = "none"
 
   if (state.mode === "profile") {
@@ -510,6 +624,11 @@
    controls.style.display = "none"
    grid.style.display = "none"
    teamPanel.style.display = "block"
+  } else if (state.mode === "actions") {
+   title.textContent = "ACTIONS DU JEU"
+   controls.style.display = "none"
+   grid.style.display = "none"
+   actionsPanel.style.display = "block"
   } else if (state.mode === "market") {
    title.textContent = "MARCHE JOUEURS"
    controls.style.display = "none"
@@ -534,6 +653,11 @@
    renderTeam()
    const top = topTeam((state.inventory && state.inventory.cards) || [], 1)[0]
    if (top) renderDetail(top)
+   return
+  }
+  if (state.mode === "actions") {
+   renderActions()
+   renderDetail(state.selected || null)
    return
   }
   if (state.mode === "market") {
@@ -593,6 +717,86 @@
   }
   await loadMarket()
   renderCurrentMode()
+ }
+
+ function showActionResult(boxId, html, error = false) {
+  const box = document.getElementById(boxId)
+  if (!box) return
+  box.classList.toggle("error", Boolean(error))
+  box.innerHTML = html || ""
+ }
+
+ async function reloadGameplayDataAndRender() {
+  await loadData()
+  renderRoster()
+  renderCurrentMode()
+ }
+
+ async function handleBuyPacksAction() {
+  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const res = await postJson("/api/game/buy-packs", { quantity: qty })
+  if (!res.ok) {
+   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
+   return
+  }
+  showActionResult("packResultBox", `
+   <p><strong>Achat valide:</strong> x${fmt(res.data?.quantity || qty)} packs</p>
+   <p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>
+  `)
+  await reloadGameplayDataAndRender()
+ }
+
+ async function handleOpenPacksAction() {
+  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const setId = String(document.getElementById("actionSetInput")?.value || "").trim()
+  const res = await postJson("/api/game/open-packs", { quantity: qty, setId })
+  if (!res.ok) {
+   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
+   return
+  }
+  const cards = res.data?.cards || []
+  const top = cards.slice(0, 3).map((card) => `${escapeHtml(card.rarity)} ${escapeHtml(card.cardName)} x${fmt(card.qty)}`).join("<br>")
+  showActionResult("packResultBox", `
+   <p><strong>Ouverture terminee:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p>
+   <p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>
+   <p>${top || "Aucune carte remontee."}</p>
+  `)
+  await reloadGameplayDataAndRender()
+ }
+
+ async function handleFusionAction() {
+  const setId = String(document.getElementById("fusionSetInput")?.value || "").trim()
+  const rarity = String(document.getElementById("fusionRarityInput")?.value || "").trim()
+  const res = await postJson("/api/game/fuse", { setId, rarity })
+  if (!res.ok) {
+   showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
+   return
+  }
+  const reward = res.data?.reward || {}
+  showActionResult("fusionResultBox", `
+   <p><strong>Fusion validee:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p>
+   <p>Recompense: ${escapeHtml(reward.rarity || "")} ${escapeHtml(reward.cardName || "Carte")}</p>
+   <p>Doublons restants: ${fmt(res.data?.remainingDuplicates || 0)}</p>
+  `)
+  await reloadGameplayDataAndRender()
+ }
+
+ async function handleCraftAction() {
+  const cardId = String(document.getElementById("craftCardInput")?.value || "").trim()
+  const res = await postJson("/api/game/craft", { cardId })
+  if (!res.ok) {
+   const progress = res.data?.progress
+   const progressText = progress ? ` (${fmt(progress.ownedCount || 0)}/5)` : ""
+   showActionResult("craftResultBox", `<p>${escapeHtml((res.data?.error || "Craft impossible.") + progressText)}</p>`, true)
+   return
+  }
+  const card = res.data?.card || {}
+  showActionResult("craftResultBox", `
+   <p><strong>Craft SSR valide:</strong> ${escapeHtml(card.cardName || "Carte")}</p>
+   <p>${escapeHtml(card.rarity || "SSR")} - ${escapeHtml(card.set || "unknown")}</p>
+   ${res.data?.titleUnlocked ? `<p>Titre: ${escapeHtml(res.data.titleUnlocked)}</p>` : ""}
+  `)
+  await reloadGameplayDataAndRender()
  }
 
  function bindEvents() {
@@ -672,6 +876,24 @@
    }
    if (event.target && event.target.id === "refreshMarketBtn") {
     loadMarket().then(renderCurrentMode).catch(() => {})
+   }
+  })
+
+  document.getElementById("playActions").addEventListener("click", (event) => {
+   if (event.target && event.target.id === "buyPacksBtn") {
+    handleBuyPacksAction().catch(() => {})
+    return
+   }
+   if (event.target && event.target.id === "openPacksBtn") {
+    handleOpenPacksAction().catch(() => {})
+    return
+   }
+   if (event.target && event.target.id === "fusionBtn") {
+    handleFusionAction().catch(() => {})
+    return
+   }
+   if (event.target && event.target.id === "craftBtn") {
+    handleCraftAction().catch(() => {})
    }
   })
  }

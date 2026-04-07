@@ -374,6 +374,93 @@
  gap: 8px;
 }
 
+.action-grid {
+ display: grid;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ gap: 10px;
+}
+
+.action-box {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: 12px;
+ background: #11152f;
+ padding: 10px;
+ display: grid;
+ gap: 8px;
+}
+
+.action-box h3 {
+ font-family: "Cinzel", serif;
+ letter-spacing: 0.03em;
+}
+
+.action-sub {
+ color: #9ca3c8;
+ font-size: 0.86rem;
+}
+
+.action-box label {
+ color: #b2b8dc;
+ font-size: 0.85rem;
+}
+
+.action-row {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+}
+
+.action-result {
+ border: 1px solid rgba(201, 168, 76, 0.28);
+ border-radius: 10px;
+ background: rgba(201, 168, 76, 0.08);
+ padding: 8px;
+ min-height: 58px;
+ font-size: 0.88rem;
+}
+
+.action-result.error {
+ border-color: rgba(235, 92, 92, 0.4);
+ background: rgba(235, 92, 92, 0.08);
+}
+
+.action-stats {
+ display: grid;
+ grid-template-columns: repeat(3, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.action-stats > div {
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ border-radius: 10px;
+ background: #0f132e;
+ padding: 8px;
+}
+
+.action-stats span {
+ display: block;
+ font-size: 0.75rem;
+ color: #9ca3c8;
+}
+
+.action-scroll {
+ max-height: 210px;
+ overflow: auto;
+ display: grid;
+ gap: 6px;
+ padding-right: 4px;
+}
+
+.action-cat-row {
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ border-radius: 9px;
+ background: #0f132e;
+ padding: 7px 8px;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
+}
+
 .play-empty {
  border: 1px dashed rgba(255, 255, 255, 0.2);
  border-radius: 10px;
@@ -401,6 +488,9 @@
  }
  .play-profile-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .action-grid {
+  grid-template-columns: 1fr;
  }
 }
 

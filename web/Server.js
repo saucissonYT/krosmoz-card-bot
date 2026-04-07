@@ -3,12 +3,15 @@ const express = require("express")
 const fs = require("fs")
 const path = require("path")
 
-const { MAX_PLAYER_LEVEL } = require("../systems/constants")
+const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST } = require("../systems/constants")
 const { getUser, save } = require("../systems/userSystem")
 const { addBattlePassXP } = require("../systems/battlePassService")
 const { achievementCheck } = require("../systems/achievementCheck")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
 const { sortSetsByDisplayOrder } = require("../systems/setOrder")
+const { openPack } = require("../systems/packEngine")
+const { craftFromFragments } = require("../systems/fragmentService")
+const { isSetUnlocked } = require("../systems/setUnlockSystem")
 const {
  addListing,
  addFragmentListing,
@@ -179,6 +182,51 @@ function parseIntSafe(value, fallback) {
 function countUnlockedAchievements(unlocked) {
  if (!Array.isArray(unlocked) || unlocked.length === 0) return 0
  return new Set(unlocked.map((id) => String(id))).size
+}
+
+function normalizeRarity(value) {
+ const rarity = String(value || "").trim().toUpperCase()
+ return RARITY_ORDER.includes(rarity) ? rarity : ""
+}
+
+function getNextRarity(rarity) {
+ const index = RARITY_ORDER.indexOf(rarity)
+ if (index < 0) return null
+ if (index >= RARITY_ORDER.indexOf("SSR")) return null
+ return RARITY_ORDER[index + 1]
+}
+
+function getUserDuplicateCountForRarityInSet(user, cards, setId, rarity) {
+ let duplicates = 0
+ for (const card of cards) {
+  if (String(card.set) !== String(setId) || String(card.rarity) !== String(rarity)) continue
+  const count = Number(user.cards?.[card.id] || 0)
+  if (count > 1) duplicates += (count - 1)
+ }
+ return duplicates
+}
+
+function consumeDuplicatesForFusion(user, cards, setId, rarity, cost) {
+ let available = getUserDuplicateCountForRarityInSet(user, cards, setId, rarity)
+ if (available < cost) return { ok: false, available }
+
+ let remaining = cost
+ for (const card of cards) {
+  if (remaining <= 0) break
+  if (String(card.set) !== String(setId) || String(card.rarity) !== String(rarity)) continue
+
+  const count = Number(user.cards?.[card.id] || 0)
+  const removable = Math.max(0, count - 1)
+  if (removable <= 0) continue
+
+  const take = Math.min(removable, remaining)
+  user.cards[card.id] = count - take
+  if (user.cards[card.id] <= 0) delete user.cards[card.id]
+  remaining -= take
+ }
+
+ available = getUserDuplicateCountForRarityInSet(user, cards, setId, rarity)
+ return { ok: remaining === 0, availableAfter: available }
 }
 
 function parsePagination(req, defaultLimit = 25, maxLimit = 100) {
@@ -912,6 +960,8 @@ function createWebApp() {
  app.use("/api/market/sell-card", marketLimiter)
  app.use("/api/market/sell-fragment", marketLimiter)
  app.use("/api/market/remove", marketLimiter)
+ const gameLimiter = createRateLimiter({ windowMs: 60000, max: 40 })
+ app.use("/api/game/", gameLimiter)
 
  /* ── CSRF : POST API doit être application/json ── */
  app.use("/api/", (req, res, next) => {
@@ -1157,6 +1207,309 @@ app.get("/api/me/inventory", (req, res) => {
   res.json(buildInventoryPayload(session.userId))
  } catch (e) {
   console.error("[WEB] /api/me/inventory:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/game/meta", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const user = getUser(session.userId)
+  const cards = getCards()
+  const sets = getSets()
+
+  const unlockedSets = (sets || [])
+   .filter((set) => isSetUnlocked(user, set.id, cards))
+   .map((set) => ({ id: String(set.id), name: String(set.name || set.id) }))
+
+  const fusion = ["C", "U", "R", "SR", "HR", "UR", "S"].map((rarity) => ({
+   rarity,
+   cost: Number(FUSION_COST[rarity] || 0)
+  }))
+
+  res.json({
+   packPrice: Number(PACK_PRICE || 0),
+   packStock: Number(user.packs || 0),
+   unlockedSets,
+   fusion
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/meta:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/game/buy-packs", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const quantity = Math.max(1, Math.min(50, Number(req.body?.quantity || 1)))
+  if (!Number.isInteger(quantity)) return res.status(400).json({ error: "Quantite invalide." })
+
+  const user = getUser(session.userId)
+  const totalCost = Number(PACK_PRICE || 0) * quantity
+  if (Number(user.kamas || 0) < totalCost) {
+   return res.status(400).json({ error: `Pas assez de kamas (${totalCost.toLocaleString("fr-FR")} requis).` })
+  }
+
+  user.kamas -= totalCost
+  user.packs = Number(user.packs || 0) + quantity
+  if (!user.stats) user.stats = {}
+  user.stats.packsBought = Number(user.stats.packsBought || 0) + quantity
+  user.stats.maxBulkBuy = Math.max(Number(user.stats.maxBulkBuy || 0), quantity)
+  if (quantity >= 2) {
+   user.stats.multiPackBuys = Number(user.stats.multiPackBuys || 0) + 1
+  }
+
+  const unlocked = achievementCheck(user, "economy")
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   quantity,
+   totalCost,
+   packStock: Number(user.packs || 0),
+   kamas: Number(user.kamas || 0),
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/buy-packs:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/game/open-packs", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const quantity = Math.max(1, Math.min(25, Number(req.body?.quantity || 1)))
+  const setId = String(req.body?.setId || "").trim()
+  if (!Number.isInteger(quantity)) return res.status(400).json({ error: "Quantite invalide." })
+  if (!setId) return res.status(400).json({ error: "setId manquant." })
+
+  const user = getUser(session.userId)
+  const cards = getCards()
+  const sets = getSets()
+  const validSetIds = new Set((sets || []).map((set) => String(set.id)))
+  if (!validSetIds.has(setId)) return res.status(400).json({ error: "Set invalide." })
+  if (!isSetUnlocked(user, setId, cards)) return res.status(400).json({ error: "Set verrouille pour ce profil." })
+
+  const stock = Number(user.packs || 0)
+  if (stock < quantity) return res.status(400).json({ error: "Packs insuffisants." })
+
+  user.packs = stock - quantity
+  if (!user.stats) user.stats = {}
+  user.stats.packsOpened = Number(user.stats.packsOpened || 0) + quantity
+  user.stats.krosmozOpened = Number(user.stats.krosmozOpened || 0) + quantity
+  user.stats.maxBulkOpen = Math.max(Number(user.stats.maxBulkOpen || 0), quantity)
+  if (quantity >= 2) user.stats.multiPackOpens = Number(user.stats.multiPackOpens || 0) + 1
+
+  const pulls = []
+  let kamasGain = 0
+  let xpGain = 0
+  const rarityCount = {}
+  const grouped = new Map()
+  const fragments = []
+
+  for (let i = 0; i < quantity; i++) {
+   const result = openPack(user, setId, session.userId, { isSimpleCommandOpen: quantity === 1 })
+   kamasGain += Number(result?.kamasGain || 0)
+   xpGain += Number(result?.xpGain || 0)
+   if (result?.fragment) fragments.push(result.fragment)
+
+   for (const card of (result?.pack || [])) {
+    const rarity = String(card?.rarity || "C")
+    rarityCount[rarity] = Number(rarityCount[rarity] || 0) + 1
+    const key = `${card.id}:${card.shiny ? 1 : 0}`
+    if (!grouped.has(key)) {
+     grouped.set(key, {
+      cardId: String(card.id),
+      cardName: String(card.name || `Carte ${card.id}`),
+      rarity,
+      set: String(card.set || setId),
+      image: card?.image ? `/assets/cards/${encodeURIComponent(String(card.set || setId))}/${encodeURIComponent(String(card.image))}` : null,
+      shiny: Boolean(card?.shiny),
+      qty: 0
+     })
+    }
+    grouped.get(key).qty += 1
+   }
+
+   pulls.push({
+    luckyPack: Boolean(result?.luckyPack),
+    best: result?.best ? {
+     cardId: String(result.best.id),
+     cardName: String(result.best.name || `Carte ${result.best.id}`),
+     rarity: String(result.best.rarity || "C")
+    } : null
+   })
+  }
+
+  await addBattlePassXP(session.userId, "pack_open")
+  const unlocked = [
+   ...achievementCheck(user, "pack"),
+   ...achievementCheck(user, "rng"),
+   ...achievementCheck(user, "collection"),
+   ...achievementCheck(user, "fragment")
+  ]
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   quantity,
+   setId,
+   packStock: Number(user.packs || 0),
+   kamas: Number(user.kamas || 0),
+   totals: {
+    kamasGain,
+    xpGain,
+    rarityCount,
+    fragments: fragments.length
+   },
+   cards: [...grouped.values()].sort((a, b) =>
+    RARITY_ORDER.indexOf(String(b.rarity)) - RARITY_ORDER.indexOf(String(a.rarity)) ||
+    String(a.cardName).localeCompare(String(b.cardName), "fr")
+   ),
+   pulls,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/open-packs:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/game/fuse", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const setId = String(req.body?.setId || "").trim()
+  const rarity = normalizeRarity(req.body?.rarity)
+  if (!setId) return res.status(400).json({ error: "setId manquant." })
+  if (!rarity || rarity === "SSR") return res.status(400).json({ error: "Rareté invalide pour fusion." })
+
+  const cost = Number(FUSION_COST[rarity] || 0)
+  if (!cost) return res.status(400).json({ error: "Fusion indisponible pour cette rarete." })
+  const targetRarity = getNextRarity(rarity)
+  if (!targetRarity) return res.status(400).json({ error: "Rareté cible introuvable." })
+
+  const user = getUser(session.userId)
+  const cards = getCards()
+  const sets = getSets()
+  const validSetIds = new Set((sets || []).map((set) => String(set.id)))
+  if (!validSetIds.has(setId)) return res.status(400).json({ error: "Set invalide." })
+  if (!isSetUnlocked(user, setId, cards)) return res.status(400).json({ error: "Set verrouille pour ce profil." })
+
+  const consumed = consumeDuplicatesForFusion(user, cards, setId, rarity, cost)
+  if (!consumed.ok) {
+   return res.status(400).json({
+    error: "Doublons insuffisants pour fusion.",
+    required: cost,
+    available: consumed.available || 0
+   })
+  }
+
+  const rewardPool = cards.filter((card) => String(card.set) === setId && String(card.rarity) === targetRarity)
+  if (!rewardPool.length) {
+   return res.status(400).json({ error: `Aucune carte ${targetRarity} dans ce set.` })
+  }
+  const reward = rewardPool[Math.floor(Math.random() * rewardPool.length)]
+
+  if (!user.cards) user.cards = {}
+  user.cards[reward.id] = Number(user.cards[reward.id] || 0) + 1
+
+  if (!user.stats) user.stats = {}
+  user.stats.fusions = Number(user.stats.fusions || 0) + 1
+
+  const xp = 15
+  try {
+   const { addXP } = require("../systems/progressionSystem")
+   addXP(user, xp)
+  } catch (_) {}
+  await addBattlePassXP(session.userId, "fusion")
+
+  const unlocked = [
+   ...achievementCheck(user, "fusion"),
+   ...achievementCheck(user, "collection"),
+   ...achievementCheck(user, "rng")
+  ]
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   setId,
+   fromRarity: rarity,
+   toRarity: targetRarity,
+   cost,
+   reward: {
+    cardId: String(reward.id),
+    cardName: String(reward.name || `Carte ${reward.id}`),
+    rarity: String(reward.rarity || targetRarity),
+    set: String(reward.set || setId),
+    imageUrl: reward?.image ? `/assets/cards/${encodeURIComponent(String(reward.set || setId))}/${encodeURIComponent(String(reward.image))}` : null
+   },
+   remainingDuplicates: Number(consumed.availableAfter || 0),
+   xpGain: xp,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/fuse:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/game/craft", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const cardId = String(req.body?.cardId || "").trim()
+  if (!cardId) return res.status(400).json({ error: "cardId manquant." })
+
+  const result = await craftFromFragments(session.userId, cardId)
+  if (!result?.ok) {
+   return res.status(400).json({
+    error: result?.error || "Craft impossible.",
+    progress: result?.progress || null
+   })
+  }
+
+  const user = getUser(session.userId)
+  const unlocked = [
+   ...achievementCheck(user, "fragment"),
+   ...achievementCheck(user, "collection"),
+   ...achievementCheck(user, "rng")
+  ]
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  const crafted = result.card || {}
+  res.json({
+   ok: true,
+   card: {
+    cardId: String(crafted.id || cardId),
+    cardName: String(crafted.name || `Carte ${cardId}`),
+    rarity: String(crafted.rarity || "SSR"),
+    set: String(crafted.set || "unknown"),
+    imageUrl: crafted?.image ? `/assets/cards/${encodeURIComponent(String(crafted.set || "unknown"))}/${encodeURIComponent(String(crafted.image))}` : null
+   },
+   titleUnlocked: result.titleUnlocked || null,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/craft:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })
