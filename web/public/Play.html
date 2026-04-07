@@ -530,86 +530,35 @@ function getNextSetUnlockInfo(unlockedSetIds = []) {
 
 function setupFusionPanel() {
  const setInput = document.getElementById("fusionSetInput")
- const targetInput = document.getElementById("fusionTargetInput")
- const chainToggle = document.getElementById("fusionChainToggle")
+ const qtyInput = document.getElementById("fusionQtyInput")
  const runBtn = document.getElementById("fusionRunBtn")
- const previewBox = document.getElementById("fusionPreviewBox")
+ const infoLine = document.getElementById("fusionInfoLine")
  const historyBox = document.getElementById("fusionHistoryList")
- const setCards = [...document.querySelectorAll(".fusion-set-card[data-set-id]")]
- const rarityButtons = [...document.querySelectorAll(".fusion-rarity-node[data-rarity]")]
- const runModeButtons = [...document.querySelectorAll(".fusion-run-mode[data-run-mode]")]
+ const stepButtons = [...document.querySelectorAll(".fusion-simple-step[data-rarity]")]
  const fusionRows = getFusionRows()
-
- if (!setInput || !targetInput || !runBtn || !previewBox || !fusionRows.length) return
+ if (!setInput || !qtyInput || !runBtn || !historyBox || !stepButtons.length || !fusionRows.length) return
 
  const setOptions = [...setInput.options].map((opt) => String(opt.value))
- const rarityOptions = fusionRows.map((row) => String(row.rarity).toUpperCase())
+ const rarityOptions = fusionRows.map((row) => String(row.rarity || "").toUpperCase())
 
- if (!state.fusionUi.setId || !setOptions.includes(state.fusionUi.setId)) {
+ if (!setOptions.includes(String(state.fusionUi.setId || ""))) {
   state.fusionUi.setId = setOptions[0] || ""
  }
- if (!state.fusionUi.fromRarity || !rarityOptions.includes(state.fusionUi.fromRarity)) {
+ if (!rarityOptions.includes(String(state.fusionUi.fromRarity || ""))) {
   state.fusionUi.fromRarity = rarityOptions[0] || "C"
  }
- state.fusionUi.runMode = parseFusionRunMode(state.fusionUi.runMode)
-
- function getSetName(id) {
-  const opt = [...setInput.options].find((item) => String(item.value) === String(id))
-  return opt ? String(opt.textContent || id) : String(id)
- }
-
- function getChainContext() {
-  const setId = String(state.fusionUi.setId || "")
-  const fromRarity = String(state.fusionUi.fromRarity || "")
-  const targetRarity = String(state.fusionUi.targetRarity || "")
-  const row = getFusionRowByRarity(fromRarity)
-  const fromInfo = getDuplicateInfoForFusion(setId, fromRarity)
-  const maxSingleFusions = row?.cost ? Math.floor(fromInfo.duplicates / Number(row.cost || 1)) : 0
-  const immediateTarget = getNextRarityFromMeta(fromRarity)
-  const forceChain = Boolean(targetRarity && targetRarity !== immediateTarget)
-  const chainEnabled = Boolean(state.fusionUi.chain || forceChain)
-  const chainSteps = chainEnabled
-   ? getFusionStepChain(fromRarity, targetRarity)
-   : [{ from: fromRarity, to: immediateTarget, row }]
-  const requestedCycles = getRequestedFusionCycles(parseFusionRunMode(state.fusionUi.runMode), maxSingleFusions)
-
-  return {
-   setId,
-   setName: getSetName(setId),
-   fromRarity,
-   targetRarity,
-   immediateTarget,
-   chainEnabled,
-   chainSteps,
-   row,
-   fromInfo,
-   maxSingleFusions,
-   requestedCycles
-  }
- }
-
- function syncTargetOptions() {
-  const fromRarity = String(state.fusionUi.fromRarity || "")
-  const fromIdx = RARITY_ORDER.indexOf(fromRarity)
-  const options = (fromIdx >= 0 ? RARITY_ORDER.slice(fromIdx + 1) : [])
-  targetInput.innerHTML = options.map((rarity) => `<option value="${escapeHtml(rarity)}">${escapeHtml(rarity)}</option>`).join("")
-  if (!options.includes(String(state.fusionUi.targetRarity || ""))) {
-   state.fusionUi.targetRarity = options[0] || ""
-  }
-  targetInput.value = String(state.fusionUi.targetRarity || "")
- }
+ state.fusionUi.quantity = parseSafeQty(state.fusionUi.quantity || 1, 1, 25, 1)
 
  function renderHistory() {
-  if (!historyBox) return
   if (!Array.isArray(state.fusionHistory) || !state.fusionHistory.length) {
    historyBox.innerHTML = '<p class="mode-muted">Aucune fusion dans cette session.</p>'
    return
   }
-  historyBox.innerHTML = state.fusionHistory.slice(0, 14).map((entry) => `
+  historyBox.innerHTML = state.fusionHistory.slice(0, 10).map((entry) => `
    <article class="fusion-history-item">
     <div>
      <strong>${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}</strong>
-     <small>${escapeHtml(entry.setName)}</small>
+     <small>${escapeHtml(entry.setName || "Set")}</small>
     </div>
     <div>
      <span>${escapeHtml(entry.rewardName || "Carte")}</span>
@@ -619,132 +568,58 @@ function setupFusionPanel() {
   `).join("")
  }
 
- function renderPreview(ctx) {
-  const stepRows = (ctx.chainSteps || []).map((step) => {
-   const stepInfo = getDuplicateInfoForFusion(ctx.setId, step.from)
-   const cost = Number(step?.row?.cost || 0)
-   const ready = cost > 0 ? stepInfo.duplicates >= cost : false
-   return `
-    <div class="fusion-step ${ready ? "ready" : "blocked"}">
-     <div>
-      <strong>${escapeHtml(step.from)} → ${escapeHtml(step.to || "-")}</strong>
-      <small>Coût ${fmt(cost)} doublons</small>
-     </div>
-     <div class="fusion-step-stock">${fmt(stepInfo.duplicates)}/${fmt(cost)}</div>
-    </div>
-   `
-  }).join("")
-
-  const runLabel = state.fusionUi.runMode === "max" ? "max" : `x${state.fusionUi.runMode}`
-  const chainLabel = ctx.chainEnabled ? `Auto-chain ${ctx.fromRarity} → ${ctx.targetRarity}` : `Fusion simple ${ctx.fromRarity} → ${ctx.immediateTarget || "-"}`
-  previewBox.innerHTML = `
-   <div class="fusion-preview-head">
-    <strong>${escapeHtml(ctx.setName)}</strong>
-    <small>${escapeHtml(chainLabel)}</small>
-   </div>
-   <div class="fusion-preview-kpis">
-    <div><span>Doublons source</span><strong>${fmt(ctx.fromInfo.duplicates)}</strong></div>
-    <div><span>Coût unitaire</span><strong>${fmt(Number(ctx.row?.cost || 0))}</strong></div>
-    <div><span>Cycles possibles</span><strong>${fmt(ctx.maxSingleFusions)}</strong></div>
-    <div><span>Cadence</span><strong>${escapeHtml(runLabel)}</strong></div>
-   </div>
-   <div class="fusion-step-list">
-    ${stepRows || '<p class="mode-muted">Aucune étape disponible.</p>'}
-   </div>
-   <p class="mode-muted">Les étapes supérieures dépendent aussi des doublons réellement obtenus pendant la chaîne.</p>
-  `
- }
-
  function refresh() {
   setInput.value = String(state.fusionUi.setId || "")
+  const qty = parseSafeQty(qtyInput.value || state.fusionUi.quantity || 1, 1, 25, 1)
+  state.fusionUi.quantity = qty
+  qtyInput.value = String(qty)
 
-  setCards.forEach((card) => {
-   const active = String(card.dataset.setId || "") === String(state.fusionUi.setId || "")
-   card.classList.toggle("active", active)
-  })
+  const fromRarity = String(state.fusionUi.fromRarity || "C").toUpperCase()
+  const row = getFusionRowByRarity(fromRarity)
+  const next = getNextRarityFromMeta(fromRarity) || "-"
+  const info = getDuplicateInfoForFusion(state.fusionUi.setId, fromRarity)
+  const cost = Number(row?.cost || 0)
+  const maxCycles = cost > 0 ? Math.floor(info.duplicates / cost) : 0
+  const requested = Math.max(0, Math.min(qty, maxCycles))
 
-  rarityButtons.forEach((btn) => {
-   const rarity = String(btn.dataset.rarity || "")
-   const active = rarity === String(state.fusionUi.fromRarity || "")
-   btn.classList.toggle("active", active)
-
-   const row = getFusionRowByRarity(rarity)
-   const info = getDuplicateInfoForFusion(state.fusionUi.setId, rarity)
-   const cost = Number(row?.cost || 0)
+  stepButtons.forEach((btn) => {
+   const rarity = String(btn.dataset.rarity || "").toUpperCase()
+   const btnRow = getFusionRowByRarity(rarity)
+   const btnInfo = getDuplicateInfoForFusion(state.fusionUi.setId, rarity)
+   const btnCost = Number(btnRow?.cost || 0)
    const stockTag = btn.querySelector("[data-fusion-stock]")
-   if (stockTag) stockTag.textContent = `${fmt(info.duplicates)}/${fmt(cost)}`
-   btn.classList.toggle("ready", cost > 0 && info.duplicates >= cost)
+   if (stockTag) stockTag.textContent = `${fmt(btnInfo.duplicates)}/${fmt(btnCost)}`
+   btn.classList.toggle("active", rarity === fromRarity)
+   btn.classList.toggle("ready", btnCost > 0 && btnInfo.duplicates >= btnCost)
+   btn.disabled = !btnRow
   })
 
-  runModeButtons.forEach((btn) => {
-   btn.classList.toggle("active", String(btn.dataset.runMode || "") === String(state.fusionUi.runMode || "1"))
-  })
-
-  syncTargetOptions()
-
-  const immediateTarget = getNextRarityFromMeta(state.fusionUi.fromRarity)
-  const forceChain = Boolean(state.fusionUi.targetRarity && state.fusionUi.targetRarity !== immediateTarget)
-  if (forceChain) state.fusionUi.chain = true
-  if (chainToggle) {
-   chainToggle.checked = Boolean(state.fusionUi.chain)
-   chainToggle.disabled = forceChain
+  if (infoLine) {
+   infoLine.textContent = `${fromRarity} → ${next} • ${fmt(info.duplicates)} doublons dispo • coût ${fmt(cost)} • prêt: ${fmt(requested)} fusion(s)`
   }
+  runBtn.disabled = !(state.fusionUi.setId && row && requested > 0)
+  runBtn.dataset.requested = String(requested)
+  runBtn.textContent = requested > 0 ? `Valider x${fmt(requested)}` : "Valider"
 
-  const ctx = getChainContext()
-  renderPreview(ctx)
+  renderFusionForgeIdle(state.fusionUi.setId, fromRarity)
   renderHistory()
-  renderFusionForgeIdle(ctx.setId, ctx.fromRarity)
-
-  const canRun = Boolean(ctx.setId && ctx.row && ctx.requestedCycles > 0 && ctx.chainSteps.length > 0)
-  runBtn.disabled = !canRun
-  const qtyLabel = ctx.requestedCycles > 0 ? `x${fmt(ctx.requestedCycles)} ` : ""
-  runBtn.textContent = ctx.chainEnabled
-   ? `Lancer ${qtyLabel}chaîne de fusion`
-   : `Fusionner ${qtyLabel}maintenant`
  }
 
- if (setInput) {
-  setInput.addEventListener("change", () => {
-   state.fusionUi.setId = String(setInput.value || "")
-   refresh()
-  })
- }
-
- setCards.forEach((card) => {
-  card.addEventListener("click", () => {
-   state.fusionUi.setId = String(card.dataset.setId || "")
-   refresh()
-  })
+ setInput.addEventListener("change", () => {
+  state.fusionUi.setId = String(setInput.value || "")
+  refresh()
  })
 
- rarityButtons.forEach((btn) => {
+ qtyInput.addEventListener("input", () => {
+  refresh()
+ })
+
+ stepButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
    state.fusionUi.fromRarity = String(btn.dataset.rarity || "C").toUpperCase()
-   state.fusionUi.targetRarity = ""
    refresh()
   })
  })
-
- runModeButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-   state.fusionUi.runMode = parseFusionRunMode(btn.dataset.runMode || "1")
-   refresh()
-  })
- })
-
- if (targetInput) {
-  targetInput.addEventListener("change", () => {
-   state.fusionUi.targetRarity = String(targetInput.value || "")
-   refresh()
-  })
- }
-
- if (chainToggle) {
-  chainToggle.addEventListener("change", () => {
-   state.fusionUi.chain = Boolean(chainToggle.checked)
-   refresh()
-  })
- }
 
  refresh()
 }
@@ -892,7 +767,7 @@ function playFusionForgeAnimation(payload = {}) {
  resultName.textContent = rewardName
  status.textContent = `Fusion ${fromRarity} → ${toRarity || "?"}`
 
- stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-burst", "phase-result", "phase-out")
+ stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
  result.classList.remove("visible")
  stage.setAttribute("data-busy", "1")
  void stage.offsetWidth
@@ -910,9 +785,6 @@ function playFusionForgeAnimation(payload = {}) {
    stage.classList.add("phase-converge")
    status.textContent = "Les fragments convergent vers le noyau..."
   })
-  queue(1680, () => {
-   stage.classList.add("phase-burst")
-  })
   queue(1980, () => {
    stage.classList.add("phase-result")
    result.classList.add("visible")
@@ -922,7 +794,7 @@ function playFusionForgeAnimation(payload = {}) {
    stage.classList.add("phase-out")
   })
   queue(4460, () => {
-   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-burst", "phase-result", "phase-out")
+   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
    stage.setAttribute("data-busy", "0")
    result.classList.remove("visible")
    status.textContent = `Dernier résultat: ${rewardName}`
@@ -1597,114 +1469,85 @@ function renderFusion() {
  const hasSets = unlockedSets.length > 0
  const hasRows = fusionRows.length > 0
  const activeSetId = String(state.fusionUi.setId || unlockedSets[0]?.id || "")
- const activeRarity = String(state.fusionUi.fromRarity || fusionRows[0]?.rarity || "C").toUpperCase()
- const activeRow = getFusionRowByRarity(activeRarity) || fusionRows[0] || null
- const immediateTarget = getNextRarityFromMeta(activeRarity) || "-"
  const totalDuplicates = fusionRows.reduce((sum, row) => {
   const info = getDuplicateInfoForFusion(activeSetId, row.rarity)
   return sum + Number(info.duplicates || 0)
  }, 0)
+ const activeRarity = String(state.fusionUi.fromRarity || fusionRows[0]?.rarity || "C").toUpperCase()
+ if (!state.fusionUi.quantity) state.fusionUi.quantity = 1
  panel.innerHTML = `
-  <section class="mode-shell mode-fusion">
+  <section class="mode-shell mode-fusion mode-fusion-simple">
    <header class="mode-hero">
     <div>
-     <h2>Forge de Fusion</h2>
-     <p>Place 5 doublons en orbite, converge vers le noyau, puis révèle la carte finale.</p>
+     <h2>Fusion simplifiée</h2>
+     <p>Choisis une conversion, une quantité, puis valide.</p>
     </div>
-    <div class="mode-kpi-grid mode-kpi-grid-4">
+    <div class="mode-kpi-grid">
      <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
-     <div class="mode-kpi"><span>Doublons disponibles</span><strong>${fmt(totalDuplicates)}</strong></div>
-     <div class="mode-kpi"><span>Conversion actuelle</span><strong>${escapeHtml(activeRarity)} → ${escapeHtml(immediateTarget)}</strong></div>
-     <div class="mode-kpi"><span>Coût source</span><strong>${fmt(Number(activeRow?.cost || 0))} doublons</strong></div>
+     <div class="mode-kpi"><span>Doublons</span><strong>${fmt(totalDuplicates)}</strong></div>
+     <div class="mode-kpi"><span>Session</span><strong>${fmt((state.fusionHistory || []).length)} fusions</strong></div>
     </div>
    </header>
-   <div class="mode-layout fusion-layout">
-    <article class="mode-card fusion-config-card">
-     <h3>Paramètres de forge</h3>
-     <label class="mode-label" for="fusionSetInput">Set ciblé</label>
-     <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
-     </select>
-     <div class="fusion-set-grid">
-      ${hasSets
-       ? unlockedSets.map((set, index) => `
-        <button type="button" class="fusion-set-card ${String(set.id) === activeSetId || (!activeSetId && index === 0) ? "active" : ""}" data-set-id="${escapeHtml(set.id)}">
-         <strong>${escapeHtml(set.name)}</strong>
-         <small>${fmt(Number(getSetProgressPct(set.id) || 0))}% complété</small>
-        </button>
-       `).join("")
-       : '<span class="mode-chip">Aucun set débloqué</span>'}
+   <article class="mode-card fusion-simple-card">
+    <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
+     <div class="fusion-simple-ring">
+      <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
+      <div class="fusion-forge-core fusion-simple-core"></div>
+      <div id="fusionForgeResult" class="fusion-forge-result">
+       <div class="fusion-forge-result-card">
+        <img id="fusionForgeResultImage" alt="Résultat de fusion">
+       </div>
+       <strong id="fusionForgeResultName">Carte finale</strong>
+      </div>
+     </div>
+     <div class="fusion-simple-anvil-box">
+      <img src="/assets/ui/enclume.png" alt="Enclume" class="fusion-simple-anvil">
+     </div>
+     <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
+    </div>
+
+    <div class="fusion-simple-controls">
+     <div class="fusion-simple-main-row">
+      <div>
+       <label class="mode-label" for="fusionSetInput">Set</label>
+       <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+        ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
+       </select>
+      </div>
+      <div>
+       <label class="mode-label" for="fusionQtyInput">Quantité</label>
+       <input id="fusionQtyInput" class="input" type="number" min="1" max="25" step="1" value="${fmt(state.fusionUi.quantity || 1)}">
+      </div>
+      <div class="fusion-simple-validate-cell">
+       <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Valider</button>
+      </div>
      </div>
 
-     <div class="fusion-separator"></div>
-     <label class="mode-label">Rareté source</label>
-     <div class="fusion-rarity-lane">
+     <div class="fusion-simple-step-grid">
       ${hasRows
        ? fusionRows.map((row) => {
         const token = String(row.rarity || "C").toUpperCase()
         const next = getNextRarityFromMeta(token)
         const info = getDuplicateInfoForFusion(activeSetId, token)
+        const active = token === activeRarity
         return `
-         <button type="button" class="fusion-rarity-node ${token === activeRarity ? "active" : ""}" data-rarity="${escapeHtml(token)}">
-          <span class="fusion-rarity-pair">${escapeHtml(token)} → ${escapeHtml(next || "-")}</span>
-          <small>${fmt(Number(row.cost || 0))} requis</small>
-          <strong data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</strong>
+         <button type="button" class="fusion-simple-step ${active ? "active" : ""}" data-rarity="${escapeHtml(token)}">
+          <span>${escapeHtml(token)} > ${escapeHtml(next || "-")}</span>
+          <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</small>
          </button>
         `
        }).join("")
-       : '<p class="mode-muted">Aucune rareté fusionnable disponible.</p>'}
+       : '<p class="mode-muted">Aucune conversion disponible.</p>'}
      </div>
 
-     <div class="fusion-options-grid">
-      <div>
-       <label class="mode-label" for="fusionTargetInput">Cible maximum</label>
-       <select id="fusionTargetInput" class="input input-select" ${hasRows ? "" : "disabled"}></select>
-      </div>
-      <label class="fusion-chain-toggle" for="fusionChainToggle">
-       <input id="fusionChainToggle" type="checkbox">
-       <span>Auto-chaîne jusqu'à la cible</span>
-      </label>
-     </div>
-
-     <div class="fusion-run-modes">
-      <button type="button" class="fusion-run-mode active" data-run-mode="1">x1</button>
-      <button type="button" class="fusion-run-mode" data-run-mode="5">x5</button>
-      <button type="button" class="fusion-run-mode" data-run-mode="max">MAX</button>
-     </div>
-
-     <div id="fusionPreviewBox" class="mode-preview fusion-preview-box"></div>
-
-     <div class="action-row fusion-actions">
-      <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Lancer la forge</button>
-     </div>
+     <p id="fusionInfoLine" class="mode-muted"></p>
      <div id="fusionResultBox" class="action-result mode-result"></div>
-    </article>
-
-    <div class="mode-right-stack fusion-side-stack">
-     <article class="mode-card fusion-forge-card">
-      <h3>Autel de convergence</h3>
-      <p class="mode-muted">Les 5 fragments orbitent, fusionnent au noyau, puis révèlent l'item final.</p>
-      <div id="fusionForgeStage" class="fusion-forge-stage" data-busy="0">
-       <div class="fusion-forge-aura"></div>
-       <div class="fusion-forge-platform"></div>
-       <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
-       <div class="fusion-forge-core"></div>
-       <div id="fusionForgeResult" class="fusion-forge-result">
-        <div class="fusion-forge-result-card">
-         <img id="fusionForgeResultImage" alt="Résultat de fusion">
-        </div>
-        <strong id="fusionForgeResultName">Carte finale</strong>
-       </div>
-       <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: sélectionne un set et une rareté.</p>
-      </div>
-     </article>
-
-     <article class="mode-card">
-      <h3>Historique de session</h3>
+     <div class="fusion-simple-history">
+      <h3>Historique</h3>
       <div id="fusionHistoryList" class="fusion-history-list"></div>
-     </article>
+     </div>
     </div>
-   </div>
+   </article>
   </section>
  `
  setupFusionPanel()

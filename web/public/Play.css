@@ -1097,10 +1097,6 @@
  box-shadow: 0 0 34px rgba(255, 233, 156, 0.72);
 }
 
-.fusion-forge-stage.phase-burst .fusion-forge-core {
- animation: fusionBurstFlash 0.24s ease-in-out 3;
-}
-
 .fusion-forge-result {
  position: absolute;
  left: 50%;
@@ -1207,12 +1203,6 @@
  0% { opacity: 0.82; }
  50% { opacity: 1; }
  100% { opacity: 0.82; }
-}
-
-@keyframes fusionBurstFlash {
- 0% { filter: brightness(1) saturate(1); }
- 50% { filter: brightness(1.6) saturate(1.35); }
- 100% { filter: brightness(1) saturate(1); }
 }
 
 @keyframes fusionResultPop {
