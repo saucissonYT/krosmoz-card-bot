@@ -38,14 +38,14 @@ const { generatePack }      = require("../systems/pack")
 const { rewardKamas }       = require("../systems/economy")
 const { checkAchievements } = require("../systems/achievementEngine")
 const { addXP }             = require("../systems/progressionSystem")
-const { addListing, buyCard, removeListing, getMarket } = require("../systems/market")
+const { addListing, buyCard, getMarket } = require("../systems/market")
 const {
  addFragmentToInventory, hasAllFragments,
  getMissingFragmentNumbers, getDistinctFragmentNumbers
 } = require("../systems/fragmentService")
 const {
- createGuild, joinGuild, leaveGuild, disbandGuild,
- getUserGuild, addGuildXP, xpRequired
+ createGuild, joinGuild, disbandGuild,
+ getUserGuild, addGuildXP
 } = require("../systems/guildSystem")
 
 const RUN = Date.now().toString(36).slice(-5)
@@ -233,7 +233,6 @@ test("7. Achievements se débloquent", () => {
 
 test("7b. Pas de doublon d'achievement", () => {
  const user = getUser(PLAYER)
- const before = [...user.achievements]
  checkAchievements(user, null)
  /* Vérifier unicité */
  const unique = [...new Set(user.achievements)]

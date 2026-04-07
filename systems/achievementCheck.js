@@ -18,7 +18,7 @@ const { checkAchievements } = require("./achievementEngine")
  * - puis on boucle jusqu'à ce que plus rien ne se débloque
  */
 
-function achievementCheck(user, trigger = "pack") {
+function achievementCheck(user, _trigger = "pack") {
 
  const allUnlocked = []
  const MAX_PASSES = 5

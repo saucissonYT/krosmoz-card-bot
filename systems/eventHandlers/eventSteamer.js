@@ -11,7 +11,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = []
+  const pack = []
 
   const size = 5
 

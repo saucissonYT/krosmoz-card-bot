@@ -12,7 +12,6 @@
    - dailySystem.js → dailyKamasBonus
 =============================================== */
 
-const { getProgression } = require("./progressionSystem")
 const { MAX_PLAYER_LEVEL } = require("./constants")
 
 /* ================= CALCUL DES BONUS ================= */

@@ -3,7 +3,7 @@
    Reset à minuit Paris (00:00 Europe/Paris), pas 24h glissantes.
 ================================================================ */
 
-const { getUser, save } = require("./userSystem")
+const { save } = require("./userSystem")
 const { getCards } = require("./cardRegistry")
 
 /* ---- Bonus helpers ---- */

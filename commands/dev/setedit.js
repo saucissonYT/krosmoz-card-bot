@@ -22,7 +22,7 @@ module.exports = {
   const rawSets = loadSets()
   const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
-  let output = []
+  const output = []
 
   for(const set of sets){
 

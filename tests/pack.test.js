@@ -130,7 +130,6 @@ test("pity SSR incrémente si pas de SSR dans le pack", () => {
  /* On fait plusieurs packs, au moins un devrait incrémenter */
  let incremented = false
  for (let i = 0; i < 20; i++) {
-  const before = user.pity.incarnam.SSR
   generatePack(user, "incarnam")
   if (user.pity.incarnam.SSR > 0) {
    incremented = true

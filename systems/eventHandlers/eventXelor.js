@@ -13,7 +13,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = [...basePack]
+  const pack = [...basePack]
 
   pack.sort((a,b)=> order.indexOf(a.rarity) - order.indexOf(b.rarity))
 
@@ -21,7 +21,7 @@ module.exports = {
   const removed = pack.splice(0, removeCount)
 
   const addCount = Math.floor(Math.random() * 3) + 1
-  let added = []
+  const added = []
 
   for(let i=0;i<addCount;i++){
    const c = random(cards)

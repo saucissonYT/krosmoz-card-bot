@@ -92,9 +92,7 @@ const state = {
  fusionUi: {
   setId: "",
   fromRarity: "C",
-  targetRarity: "U",
-  runMode: "1",
-  chain: false
+  quantity: 1
  },
  fusionHistory: []
 }
@@ -116,7 +114,6 @@ const SET_UNLOCK_RULES = [
 let packRevealResolve = null
 let packRevealEscHandlerBound = false
 let packRevealTimers = []
-const FUSION_AUTO_CHAIN_MAX_CALLS = 80
 const FUSION_MAX_CYCLES = 25
 
  function escapeHtml(value) {
@@ -339,33 +336,6 @@ function getDuplicateInfoForFusion(setId, rarity) {
  return { owned, duplicates, cardKinds: matches.length }
 }
 
-function getFusionStepChain(fromRarity, targetRarity) {
- const chain = []
- let current = String(fromRarity || "").toUpperCase()
- const target = String(targetRarity || "").toUpperCase()
- let guard = 0
- while (current && current !== target && guard < 20) {
-  const next = getNextRarityFromMeta(current)
-  if (!next) break
-  chain.push({ from: current, to: next, row: getFusionRowByRarity(current) })
-  current = next
-  guard += 1
- }
- return chain
-}
-
-function parseFusionRunMode(value) {
- const mode = String(value || "1")
- return ["1", "5", "max"].includes(mode) ? mode : "1"
-}
-
-function getRequestedFusionCycles(mode, maxAvailable) {
- const cap = Math.max(0, Math.min(FUSION_MAX_CYCLES, Number(maxAvailable || 0)))
- if (mode === "max") return cap
- if (mode === "5") return Math.min(5, cap)
- return Math.min(1, cap)
-}
-
 function getNextRarityFromMeta(rarity) {
  const order = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
  const idx = order.indexOf(String(rarity || "").toUpperCase())
@@ -547,7 +517,7 @@ function setupFusionPanel() {
  if (!rarityOptions.includes(String(state.fusionUi.fromRarity || ""))) {
   state.fusionUi.fromRarity = rarityOptions[0] || "C"
  }
- state.fusionUi.quantity = parseSafeQty(state.fusionUi.quantity || 1, 1, 25, 1)
+ state.fusionUi.quantity = parseSafeQty(state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
 
  function renderHistory() {
   if (!Array.isArray(state.fusionHistory) || !state.fusionHistory.length) {
@@ -570,7 +540,7 @@ function setupFusionPanel() {
 
  function refresh() {
   setInput.value = String(state.fusionUi.setId || "")
-  const qty = parseSafeQty(qtyInput.value || state.fusionUi.quantity || 1, 1, 25, 1)
+  const qty = parseSafeQty(qtyInput.value || state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
   state.fusionUi.quantity = qty
   qtyInput.value = String(qty)
 
@@ -1479,8 +1449,8 @@ function renderFusion() {
   <section class="mode-shell mode-fusion mode-fusion-simple">
    <header class="mode-hero">
     <div>
-     <h2>Fusion simplifiée</h2>
-     <p>Choisis une conversion, une quantité, puis valide.</p>
+     <h2>Forge d'enclume</h2>
+     <p>Sélectionne la conversion, règle la quantité, puis valide pour lancer la fusion orbitale.</p>
     </div>
     <div class="mode-kpi-grid">
      <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
@@ -1643,24 +1613,22 @@ async function handleFusionAction() {
 
  const setId = String(state.fusionUi.setId || document.getElementById("fusionSetInput")?.value || "").trim()
  const fromRarity = String(state.fusionUi.fromRarity || "").toUpperCase()
- const targetRarity = String(state.fusionUi.targetRarity || "").toUpperCase()
+ const qtyInput = document.getElementById("fusionQtyInput")
  const sourceRow = getFusionRowByRarity(fromRarity)
- const immediateTarget = getNextRarityFromMeta(fromRarity)
  const sourceInfo = getDuplicateInfoForFusion(setId, fromRarity)
- const maxSingleFusions = sourceRow?.cost ? Math.floor(sourceInfo.duplicates / Number(sourceRow.cost || 1)) : 0
- const forceChain = Boolean(targetRarity && targetRarity !== immediateTarget)
- const chainEnabled = Boolean(state.fusionUi.chain || forceChain)
- const chainSteps = chainEnabled
-  ? getFusionStepChain(fromRarity, targetRarity)
-  : [{ from: fromRarity, to: immediateTarget, row: sourceRow }]
- const requestedCycles = getRequestedFusionCycles(parseFusionRunMode(state.fusionUi.runMode), maxSingleFusions)
- if (!setId || !fromRarity || !sourceRow || !chainSteps.length || requestedCycles <= 0) {
+ const cost = Number(sourceRow?.cost || 0)
+ const maxSingleFusions = cost > 0 ? Math.floor(sourceInfo.duplicates / cost) : 0
+ const askedQty = parseSafeQty(qtyInput?.value || state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
+ state.fusionUi.quantity = askedQty
+ if (qtyInput) qtyInput.value = String(askedQty)
+ const requestedCycles = Math.max(0, Math.min(askedQty, maxSingleFusions))
+ if (!setId || !fromRarity || !sourceRow || requestedCycles <= 0) {
   showActionResult("fusionResultBox", "<p>Impossible de lancer la fusion avec les paramètres actuels.</p>", true)
   return
  }
 
  const runBtn = document.getElementById("fusionRunBtn")
- const baseLabel = String(runBtn?.textContent || "Lancer la forge")
+ const baseLabel = String(runBtn?.textContent || "Valider")
  let refreshed = false
 
  try {
@@ -1671,39 +1639,30 @@ async function handleFusionAction() {
   showActionResult("fusionResultBox", "<p>Canalisation des fragments...</p>")
 
   const logs = []
-  let calls = 0
   let interruption = ""
-  outer:
   for (let cycle = 0; cycle < requestedCycles; cycle++) {
-   for (const step of chainSteps) {
-    if (calls >= FUSION_AUTO_CHAIN_MAX_CALLS) {
-     interruption = "Limite de sécurité atteinte pour la chaîne automatique."
-     break outer
+   const res = await postJson("/api/game/fuse", { setId, rarity: fromRarity })
+   if (!res.ok) {
+    if (!logs.length) {
+     showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
+     return
     }
-    const res = await postJson("/api/game/fuse", { setId, rarity: step.from })
-    calls += 1
-    if (!res.ok) {
-     if (!logs.length) {
-      showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
-      return
-     }
-     interruption = String(res.data?.error || "Fusion interrompue.")
-     break outer
-    }
-
-    const data = res.data || {}
-    logs.push({
-     setId,
-     setName: getSetName(setId),
-     from: String(data.fromRarity || step.from || fromRarity),
-     to: String(data.toRarity || step.to || ""),
-     rewardName: String(data?.reward?.cardName || "Carte"),
-     rewardRarity: String(data?.reward?.rarity || data.toRarity || ""),
-     rewardImage: data?.reward?.imageUrl || null,
-     reward: data?.reward || null,
-     timestamp: Date.now()
-    })
+    interruption = String(res.data?.error || "Fusion interrompue.")
+    break
    }
+
+   const data = res.data || {}
+   logs.push({
+    setId,
+    setName: getSetName(setId),
+    from: String(data.fromRarity || fromRarity),
+    to: String(data.toRarity || getNextRarityFromMeta(fromRarity) || ""),
+    rewardName: String(data?.reward?.cardName || "Carte"),
+    rewardRarity: String(data?.reward?.rarity || data.toRarity || ""),
+    rewardImage: data?.reward?.imageUrl || null,
+    reward: data?.reward || null,
+    timestamp: Date.now()
+   })
   }
 
   if (!logs.length) {
@@ -1732,7 +1691,7 @@ async function handleFusionAction() {
   })).concat(state.fusionHistory || []).slice(0, 24)
 
   const summary = `
-   <p><strong>Forge terminée:</strong> ${fmt(logs.length)} fusion(s) validée(s)</p>
+   <p><strong>Forge terminée:</strong> ${fmt(logs.length)} fusion(s) validée(s) sur ${fmt(requestedCycles)} demandée(s)</p>
    <p>Dernier résultat: ${escapeHtml((last.rewardRarity ? `${last.rewardRarity} ` : "") + (last.rewardName || "Carte"))}</p>
    ${interruption ? `<p class="mode-muted">Arrêt partiel: ${escapeHtml(interruption)}</p>` : ""}
   `

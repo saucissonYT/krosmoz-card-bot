@@ -11,8 +11,8 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = [...basePack]
-  let added = []
+  const pack = [...basePack]
+  const added = []
 
   const bonus = Math.floor(Math.random() * 3) + 1
 

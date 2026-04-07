@@ -11,7 +11,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = [...basePack]
+  const pack = [...basePack]
 
   // +1 carte bonus
   pack.push(random(cards))

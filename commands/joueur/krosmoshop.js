@@ -8,7 +8,7 @@ const {
 
 const { getShop, buyFromShop } = require("../../systems/krosmoshop")
 const { getCards } = require("../../systems/cardRegistry")
-const { getUser, save } = require("../../systems/userSystem")
+const { getUser } = require("../../systems/userSystem")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { RARITY_EMOJI } = require("../../systems/constants")
 
@@ -27,7 +27,7 @@ module.exports = {
   const alreadyBought = user.krosmoshop?.[today] || {}
 
   const lines = shop.map(c => {
-   const card = cards.find(item => item.id == c.card)
+   const card = cards.find(item => String(item.id) === String(c.card))
    if (!card) return `Carte inconnue (ID:${c.card})`
 
    const count = user.cards?.[c.card] || 0
@@ -57,7 +57,7 @@ module.exports = {
    .setPlaceholder("Acheter une carte")
 
   shop.forEach(c => {
-   const card = cards.find(item => item.id == c.card)
+   const card = cards.find(item => String(item.id) === String(c.card))
    if (!card) return
 
    const count = user.cards?.[c.card] || 0
@@ -155,7 +155,7 @@ module.exports = {
     continue
    }
 
-   const card = cards.find(c => c.id == entry.card)
+   const card = cards.find(c => String(c.id) === String(entry.card))
    bought.push(`${RARITY_EMOJI[result.rarity]} **${card?.name || `#${entry.card}`}** • -${result.price} kamas`)
    totalSpent += result.price
 

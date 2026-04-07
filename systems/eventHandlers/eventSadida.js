@@ -3,8 +3,8 @@ module.exports = {
 
  generate(user, basePack){
 
-  let pack = [...basePack]
-  let duplicates = []
+  const pack = [...basePack]
+  const duplicates = []
   let count = 0
 
   for(const c of [...basePack]){

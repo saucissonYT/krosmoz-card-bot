@@ -19,7 +19,6 @@ const {
  dbLoadAllGuilds,
  dbSaveGuild,
  dbDeleteGuild,
- dbCountGuilds,
  dbListUserIds,
  dbLoadUser
 } = require("./database")
@@ -137,12 +136,6 @@ function xpRequired(level) {
  return 100 + level * 50
 }
 
-function getTotalXpForLevel(level) {
- let total = 0
- for (let i = 1; i <= level; i++) total += xpRequired(i)
- return total
-}
-
 function addGuildXP(guildId, amount) {
 
  const guild = guilds[guildId]
@@ -152,7 +145,7 @@ function addGuildXP(guildId, amount) {
  guild.stats.totalXpEarned = (guild.stats.totalXpEarned || 0) + amount
 
  let leveled  = false
- let oldLevel = guild.level
+ const oldLevel = guild.level
 
  while (guild.xp >= xpRequired(guild.level) && guild.level < 100) {
   guild.xp -= xpRequired(guild.level)

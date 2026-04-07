@@ -20,7 +20,7 @@ resetRegistry()
 
 const {
  addListing, buyCard, removeListing, addFragmentListing,
- getMarket, getUserListings, getListingType, FRAGMENT_MIN_PRICE
+ getMarket, getUserListings, getListingType
 } = require("../systems/market")
 const { getUser, save } = require("../systems/userSystem")
 

@@ -11,7 +11,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = [...basePack]
+  const pack = [...basePack]
 
   for(let i = 0; i < 3; i++){
    pack.push(random(cards))

@@ -24,7 +24,7 @@ const PATH = path.join(BASE, "devs.json")
 
 /* -------- LOAD -------- */
 
-let devs = readJsonSafe(PATH, {
+const devs = readJsonSafe(PATH, {
  owners: [ROOT_OWNER],
  devs:   []
 })

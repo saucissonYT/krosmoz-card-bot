@@ -34,7 +34,7 @@ module.exports = {
      .setRequired(false)
    )
 
-  const setOption = builder.addStringOption(option => {
+  builder.addStringOption(option => {
 
    option
     .setName("set")

@@ -21,7 +21,7 @@ module.exports = {
   }
 
   let pack
-  let meta = {}
+  const meta = {}
 
   if(Math.random() < 0.6){
 

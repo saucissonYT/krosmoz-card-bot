@@ -744,6 +744,182 @@
   linear-gradient(148deg, #171d42 0%, #121734 100%);
 }
 
+.mode-fusion.mode-fusion-simple {
+ gap: 14px;
+}
+
+.mode-fusion-simple .mode-hero {
+ border-color: rgba(138, 175, 255, 0.45);
+ background:
+  radial-gradient(circle at 16% 18%, rgba(96, 162, 255, 0.24), rgba(96, 162, 255, 0) 42%),
+  radial-gradient(circle at 84% 20%, rgba(201, 168, 76, 0.14), rgba(201, 168, 76, 0) 45%),
+  linear-gradient(150deg, #171d43 0%, #121733 100%);
+}
+
+.mode-fusion-simple .fusion-simple-card {
+ gap: 14px;
+ padding: 16px;
+ background:
+  linear-gradient(180deg, rgba(18, 25, 58, 0.98), rgba(14, 20, 50, 0.98)),
+  radial-gradient(circle at 30% 12%, rgba(115, 174, 255, 0.16), rgba(115, 174, 255, 0) 56%);
+}
+
+.mode-fusion-simple .fusion-simple-stage {
+ min-height: 470px;
+ border-color: rgba(255, 255, 255, 0.16);
+ padding: 16px 14px 56px;
+ background:
+  radial-gradient(circle at 50% 26%, rgba(108, 162, 255, 0.22), rgba(108, 162, 255, 0) 56%),
+  radial-gradient(circle at 50% 90%, rgba(201, 168, 76, 0.12), rgba(201, 168, 76, 0) 40%),
+  linear-gradient(180deg, rgba(14, 21, 50, 0.95), rgba(10, 14, 35, 0.98));
+}
+
+.mode-fusion-simple .fusion-simple-ring {
+ position: relative;
+ min-height: 300px;
+}
+
+.mode-fusion-simple .fusion-forge-orbit {
+ inset: 10px 0 136px;
+}
+
+.mode-fusion-simple .fusion-forge-orb {
+ width: 82px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-122px) rotate(calc(var(--angle) * -1));
+}
+
+.mode-fusion-simple .fusion-forge-orb-core {
+ width: 82px;
+ height: 82px;
+}
+
+.mode-fusion-simple .fusion-forge-core {
+ top: 40%;
+ width: 96px;
+ height: 96px;
+}
+
+.mode-fusion-simple .fusion-forge-result {
+ top: 40%;
+}
+
+.mode-fusion-simple .fusion-forge-result-card {
+ width: min(210px, 40vw);
+}
+
+.mode-fusion-simple .fusion-simple-anvil-box {
+ position: absolute;
+ left: 50%;
+ bottom: 46px;
+ width: min(390px, 82%);
+ transform: translateX(-50%);
+ display: grid;
+ place-items: center;
+ pointer-events: none;
+ z-index: 3;
+}
+
+.mode-fusion-simple .fusion-simple-anvil {
+ width: 100%;
+ max-width: 390px;
+ height: auto;
+ filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 20px rgba(201, 168, 76, 0.2));
+}
+
+.mode-fusion-simple .fusion-forge-status {
+ bottom: 12px;
+ font-size: 0.85rem;
+}
+
+.mode-fusion-simple .fusion-simple-controls {
+ display: grid;
+ gap: 10px;
+}
+
+.mode-fusion-simple .fusion-simple-main-row {
+ display: grid;
+ grid-template-columns: minmax(0, 1.2fr) minmax(110px, 170px) auto;
+ gap: 10px;
+ align-items: end;
+}
+
+.mode-fusion-simple .fusion-simple-validate-cell {
+ display: flex;
+ align-items: end;
+}
+
+.mode-fusion-simple .fusion-simple-validate-cell .btn {
+ min-height: 44px;
+ padding: 0 24px;
+}
+
+.mode-fusion-simple .fusion-simple-step-grid {
+ display: grid;
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.mode-fusion-simple .fusion-simple-step {
+ border: 1px solid rgba(255, 255, 255, 0.16);
+ border-radius: 10px;
+ background: #0f1535;
+ color: #e9eeff;
+ text-align: left;
+ padding: 9px 10px;
+ display: grid;
+ gap: 2px;
+ cursor: pointer;
+ transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.mode-fusion-simple .fusion-simple-step:hover {
+ border-color: rgba(201, 168, 76, 0.58);
+ transform: translateY(-1px);
+}
+
+.mode-fusion-simple .fusion-simple-step.active {
+ border-color: rgba(110, 172, 255, 0.84);
+ box-shadow: inset 0 0 0 1px rgba(110, 172, 255, 0.36);
+ background: #121a41;
+}
+
+.mode-fusion-simple .fusion-simple-step.ready {
+ border-color: rgba(201, 168, 76, 0.72);
+}
+
+.mode-fusion-simple .fusion-simple-step:disabled {
+ opacity: 0.55;
+ cursor: not-allowed;
+ transform: none;
+}
+
+.mode-fusion-simple .fusion-simple-step span {
+ font-weight: 700;
+ font-size: 0.84rem;
+}
+
+.mode-fusion-simple .fusion-simple-step small {
+ color: #9daada;
+ font-size: 0.74rem;
+}
+
+.mode-fusion-simple .fusion-simple-history {
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: 10px;
+ background: #0e1433;
+ padding: 10px;
+ display: grid;
+ gap: 8px;
+}
+
+.mode-fusion-simple .fusion-simple-history h3 {
+ margin: 0;
+}
+
+.mode-fusion-simple .fusion-simple-history .fusion-history-list {
+ max-height: 220px;
+}
+
 .mode-fusion .mode-layout.fusion-layout {
  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
 }
@@ -1977,6 +2153,33 @@ body.pack-opening-lock {
   width: 80px;
   height: 80px;
  }
+ .mode-fusion-simple .fusion-simple-main-row {
+  grid-template-columns: 1fr 1fr;
+ }
+ .mode-fusion-simple .fusion-simple-validate-cell {
+  grid-column: 1 / -1;
+ }
+ .mode-fusion-simple .fusion-simple-step-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+ }
+ .mode-fusion-simple .fusion-simple-stage {
+  min-height: 430px;
+ }
+ .mode-fusion-simple .fusion-forge-orbit {
+  inset: 14px 0 128px;
+ }
+ .mode-fusion-simple .fusion-forge-orb {
+  width: 74px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-108px) rotate(calc(var(--angle) * -1));
+ }
+ .mode-fusion-simple .fusion-forge-orb-core {
+  width: 74px;
+  height: 74px;
+ }
+ .mode-fusion-simple .fusion-forge-core {
+  width: 84px;
+  height: 84px;
+ }
  .pack-open-grid {
   justify-content: center;
  }
@@ -2051,6 +2254,35 @@ body.pack-opening-lock {
  }
  .fusion-forge-result strong {
   font-size: 0.9rem;
+ }
+ .mode-fusion-simple .fusion-simple-main-row {
+  grid-template-columns: 1fr;
+ }
+ .mode-fusion-simple .fusion-simple-step-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .mode-fusion-simple .fusion-simple-stage {
+  min-height: 386px;
+  padding-bottom: 52px;
+ }
+ .mode-fusion-simple .fusion-forge-orbit {
+  inset: 8px 0 118px;
+ }
+ .mode-fusion-simple .fusion-forge-orb {
+  width: 62px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-92px) rotate(calc(var(--angle) * -1));
+ }
+ .mode-fusion-simple .fusion-forge-orb-core {
+  width: 62px;
+  height: 62px;
+ }
+ .mode-fusion-simple .fusion-forge-core {
+  width: 72px;
+  height: 72px;
+ }
+ .mode-fusion-simple .fusion-simple-anvil-box {
+  width: min(280px, 85%);
+  bottom: 42px;
  }
  .pack-open-overlay {
   padding: 10px;

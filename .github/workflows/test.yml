@@ -53,6 +53,10 @@ jobs:
           echo "[]" > data/cards.json
           echo '{"owners":[],"devs":[]}' > data/devs.json
 
-      # 5. Lancer les tests
+      # 5. Lancer le lint
+      - name: Run lint
+        run: npm run lint
+
+      # 6. Lancer les tests
       - name: Run tests
         run: npm test

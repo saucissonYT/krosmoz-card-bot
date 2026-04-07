@@ -382,7 +382,7 @@ async function runFusion(i, originalInteraction, userId, setId, rarity){
  }[type]
 
  const usedLines   = Object.entries(usedCards).map(([id, q]) => {
-  const card = cards.find(c => c.id == id)
+  const card = cards.find(c => String(c.id) === String(id))
   return `${RARITY_EMOJI[card?.rarity || rarity]} ${card?.name || id} ×${q}`
  })
  const rewardLines = rewards.map(c => `${RARITY_EMOJI[c.rarity]} ${c.name}`)
@@ -542,7 +542,7 @@ async function runFusionMax(i, originalInteraction, userId, setId, rarity, total
   .sort((a, b) => b[1] - a[1])
   .slice(0, 10)
   .map(([id, count]) => {
-   const card = cards.find(c => c.id == id)
+   const card = cards.find(c => String(c.id) === String(id))
    return `${RARITY_EMOJI[card?.rarity || "?"]} ${card?.name || id}${count > 1 ? ` ×${count}` : ""}`
   })
 

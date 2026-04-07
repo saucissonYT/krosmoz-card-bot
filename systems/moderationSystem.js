@@ -32,10 +32,10 @@ const NOLUCK_PATH     = path.join(BASE, "noluck.json")
 /* ─── Chargement initial ─────────────────────────────────── */
 
 /** @type {Object<string, SanctionEntry>} */
-let sanctions = readJsonSafe(SANCTIONS_PATH, {})
+const sanctions = readJsonSafe(SANCTIONS_PATH, {})
 
 /** @type {Object<string, NoluckEntry>} */
-let noluck = readJsonSafe(NOLUCK_PATH, {})
+const noluck = readJsonSafe(NOLUCK_PATH, {})
 
 log.info("Moderation chargée", {
  sanctions: Object.keys(sanctions).length,

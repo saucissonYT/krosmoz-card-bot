@@ -6,6 +6,15 @@
  "parserOptions": {
   "ecmaVersion": 2021
  },
+ "overrides": [
+  {
+   "files": ["web/public/js/**/*.js"],
+   "env": {
+    "browser": true,
+    "node": false
+   }
+  }
+ ],
  "rules": {
   "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
   "no-undef": "error",

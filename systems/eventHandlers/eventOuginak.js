@@ -43,7 +43,7 @@ module.exports = {
   const huntLog = []
   const downgrades = []
 
-  let pack = basePack.map(c => {
+  const pack = basePack.map(c => {
 
    /* SSR : le prédateur respecte les légendes */
    if(c.rarity === "SSR") return c

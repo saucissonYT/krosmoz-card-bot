@@ -247,6 +247,7 @@ function buildSeasonAchievements(seasonId) {
   }
  ]
 }
+void buildSeasonAchievements
 
 function buildSeasonAchievementsV3(seasonId) {
  const theme = getSeasonTheme(seasonId)
@@ -364,6 +365,7 @@ const GLOBAL_ACHIEVEMENTS_V2 = [
  { id: "global_title_5",   name: "Porte-Voix",              description: "Posséder 5 titres débloqués.",          type: "titles_owned",  target: 5,      reward: { bpXp: 300 } },
  { id: "global_badge_3",   name: "Arborant la Gloire",      description: "Posséder 3 badges (succès débloqués).", type: "badges_owned",  target: 3,      reward: { bpXp: 400 } }
 ]
+void GLOBAL_ACHIEVEMENTS_V2
 
 const GLOBAL_ACHIEVEMENTS_V3 = [
  { id: "global_daily_1",    name: "Premier Lever",           description: "Reclamer le daily 1 fois.",             type: "daily_claims",   target: 1,      reward: { bpXp: 50 } },

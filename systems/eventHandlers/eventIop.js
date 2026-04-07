@@ -36,7 +36,7 @@ module.exports = {
 
   const rageLog = []
 
-  let pack = basePack.map(c => {
+  const pack = basePack.map(c => {
 
    /* Les S et SSR résistent à la rage */
    if(c.rarity === "S" || c.rarity === "SSR"){

@@ -2,7 +2,6 @@
 const { getCards, getCardsBySet } = require("./cardRegistry")
 const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
-const achievements = require("./achievementRegistry")
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
@@ -98,25 +97,6 @@ function generateCustomPack(pool,size=5){
  return Array.from({length:size},()=>pool[Math.floor(Math.random()*pool.length)])
 }
 
-/* ================= ACHIEVEMENTS ================= */
-
-function giveAchievement(user,id){
-
- if(!achievements[id]) return false
- if(!user.achievements) user.achievements=[]
- if(user.achievements.includes(id)) return false
-
- user.achievements.push(id)
-
- if(achievements[id].title){
-  if(!user.titles) user.titles=["Nouveau"]
-  if(!user.titles.includes(achievements[id].title))
-   user.titles.push(achievements[id].title)
- }
-
- return true
-}
-
 /* ================= PALINDROME ================= */
 
 /*
@@ -210,7 +190,7 @@ function openPack(user, setId, userId, options = {}){
   }
  }
 
- let discovered=[]
+ const discovered=[]
  let kamasGain=0
 
  if(!user.stats) user.stats={}
@@ -233,8 +213,6 @@ function openPack(user, setId, userId, options = {}){
  if(!user.shinyCards) user.shinyCards={}
 
  let ssrCount=0
- let sCount=0
-
  /* ---- Shiny chance bonus ---- */
  const baseShinyRate = 0.005
  const shinyRate = baseShinyRate + (bonuses.shinyBonus / 100)
@@ -262,7 +240,6 @@ function openPack(user, setId, userId, options = {}){
    }
 
   } else if(card.rarity==="S"){
-   sCount++
    user.stats.ssrStreak=0
   } else {
    user.stats.ssrStreak=0

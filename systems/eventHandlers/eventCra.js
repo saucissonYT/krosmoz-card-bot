@@ -8,7 +8,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = [...basePack]
+  const pack = [...basePack]
 
   // Fix : guard sur event.data + comparaison robuste avec Number()
   if(event.data?.targetId){

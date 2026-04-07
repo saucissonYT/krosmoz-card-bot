@@ -43,7 +43,7 @@ module.exports = {
   const cards = getCards()
 
   /* Conserver les cartes R+ du basePack */
-  let pack = basePack.filter(c =>
+  const pack = basePack.filter(c =>
    c.rarity !== "C" && c.rarity !== "U"
   )
 

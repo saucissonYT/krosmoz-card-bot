@@ -7,7 +7,6 @@ const { notifyAchievements } = require("../../systems/achievementNotifier")
 const {
  craftFromFragments,
  getCardCraftProgress,
- buildProgressBar,
  getCraftableSSRCards,
  isCraftableSSRCard
 } = require("../../systems/fragmentService")

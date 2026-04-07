@@ -58,7 +58,7 @@ module.exports = {
      const qty = user.cards[cardId]
      totalCards += qty
 
-     const card = cards.find(c => c.id == cardId)
+     const card = cards.find(c => String(c.id) === String(cardId))
      if (card?.rarity === "SSR") totalSSR += qty
     }
    }

@@ -40,8 +40,8 @@ module.exports = {
     ephemeral:true
    })
 
-  let removed = []
-  let notFound = []
+  const removed = []
+  const notFound = []
 
   for(const id of ids){
 

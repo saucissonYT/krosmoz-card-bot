@@ -1,14 +1,14 @@
-/* ═══════════════════════════════════════════════════════════════
-   TYPES & JSDOC — systems/types.js
+/*
+ TYPES & JSDOC - systems/types.js
 
-   Fichier de documentation JSDoc pour tous les systèmes.
-   Ce fichier ne contient PAS de logique — uniquement des typedefs
-   qui servent à l'autocomplétion et à la documentation.
+ Fichier de documentation JSDoc pour tous les systemes.
+ Ce fichier ne contient pas de logique: uniquement des typedefs.
 
-   Usage dans n'importe quel fichier :
-     /** @typedef {import("./types").Card} Card */
-     /** @typedef {import("./types").User} User */
-═══════════════════════════════════════════════════════════════ */
+ Usage dans n'importe quel fichier:
+   // @typedef {import("./types").Card} Card
+   // @typedef {import("./types").User} User
+*/
+
 
 /* ═══ CARTES ═══ */
 

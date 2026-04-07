@@ -20,8 +20,7 @@ const {
  getAllProgress,
  ensureUserQuests,
  getNextDailyReset,
- DAILY_BONUS,
- DAILY_COUNT
+ DAILY_BONUS
 } = require("../../systems/questSystem")
 
 const { getUser, save } = require("../../systems/userSystem")

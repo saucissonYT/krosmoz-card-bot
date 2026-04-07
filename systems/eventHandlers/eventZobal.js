@@ -15,7 +15,7 @@ module.exports = {
 
   const upgrades = []
 
-  let pack = basePack.map(c => {
+  const pack = basePack.map(c => {
 
    if(c.rarity === "SSR"){
     return c

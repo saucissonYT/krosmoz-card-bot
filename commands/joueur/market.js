@@ -71,7 +71,7 @@ function formatListing(listing, cards, averages) {
   return `ID:${listing.id} • 🧩 ${getFragmentDisplayName(listing.card, listing.fragmentNumber)} • ${listing.price} kamas • min ${minPrice}${avgText}`
  }
 
- const card = cards.find(c => c.id == listing.card)
+ const card = cards.find(c => String(c.id) === String(listing.card))
  const avg  = averages[`card:${listing.card}`] ? ` • 📊 ${averages[`card:${listing.card}`]}` : ""
  return `ID:${listing.id} • ${RARITY_EMOJI[card?.rarity || "C"]} ${card?.name || "?"} • ${listing.price} kamas${avg}`
 }

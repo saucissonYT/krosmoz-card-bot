@@ -1,6 +1,5 @@
 const { getCards, getCardsBySet } = require("./cardRegistry")
 const handlers = require("./eventHandlerRegistry")
-const { getEvent } = require("./eventSystem")
 
 /* ================================================
    EVENT PACK ENGINE — v2
@@ -187,7 +186,7 @@ function generateEventPack(user, event){
  }
 
  let pack = handlerResult.pack || basePack
- let meta = handlerResult.meta || {}
+ const meta = handlerResult.meta || {}
 
  // Sécurité : s'assurer que le pack est bien un tableau propre
  if(!Array.isArray(pack) || pack.length === 0){

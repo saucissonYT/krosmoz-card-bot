@@ -15,7 +15,6 @@ const {
  getGuild,
  createGuild,
  leaveGuild,
- joinGuild,
  getAllGuilds,
  getGuildRank,
  xpRequired,
@@ -57,7 +56,6 @@ module.exports = {
 
   if(!user.stats) user.stats = {}
 
-  let view      = "main"
   let questType = "daily" /* onglet quêtes actif */
 
   /* ================= BUILD FUNCTIONS ================= */
@@ -371,22 +369,18 @@ Coût : **${CREATE_COST} kamas**`
    /* ---- NAVIGATION ---- */
 
    if(i.customId === "guild_back"){
-    view = "main"
     return i.update(buildMain())
    }
 
    if(i.customId === "guild_members"){
-    view = "members"
     return i.update(buildMembers())
    }
 
    if(i.customId === "guild_quests"){
-    view = "quests"
     return i.update(buildQuests())
    }
 
    if(i.customId === "guild_bonuses"){
-    view = "bonuses"
     return i.update(buildBonuses())
    }
 
@@ -485,7 +479,7 @@ Coût : **${CREATE_COST} kamas**`
 
  /* ================= BUTTON HANDLER (pour index.js) ================= */
 
- async button(interaction){
+ async button(_interaction){
   /* Les boutons guild_ sont gérés par le collector interne */
  }
 

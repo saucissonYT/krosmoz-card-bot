@@ -50,7 +50,7 @@ module.exports = {
 
   const mutations = []
 
-  let pack = basePack.map(c => {
+  const pack = basePack.map(c => {
 
    /* SSR : déjà au sommet, pas de mutation */
    if(c.rarity === "SSR"){

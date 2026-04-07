@@ -16,9 +16,8 @@ dataManager.data.cards = []
 const { getUser, save } = require("../systems/userSystem")
 const {
  createGuild, joinGuild, leaveGuild, disbandGuild,
- kickMember, promoteOfficer, demoteOfficer, transferLeader,
- renameGuild, getGuild, getUserGuild, getGuildRank,
- xpRequired, addGuildXP, getAllGuilds,
+ promoteOfficer, getGuild, getUserGuild, getGuildRank,
+ xpRequired, addGuildXP,
  MAX_MEMBERS, CREATE_COST, RENAME_COST, MAX_OFFICERS
 } = require("../systems/guildSystem")
 

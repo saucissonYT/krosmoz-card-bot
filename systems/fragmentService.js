@@ -4,7 +4,7 @@ const path = require("path")
 const { CARDS_IMAGES_DIR } = require("./dataManager")
 const { getCard, getCards } = require("./cardRegistry")
 const { getUser, save } = require("./userSystem")
-const { writeAtomic, getBattlePassPaths } = require("./seasonService")
+const { writeAtomic } = require("./seasonService")
 
 const craftLocks = new Set()
 

@@ -24,10 +24,7 @@ const {
  getDb,
  dbLoadUser,
  dbSaveUser,
- dbDeleteUser,
- dbListUserIds,
  dbCountUsers,
- dbLeaderboard,
  dbLoadMarket,
  dbAddMarketListing,
  dbRemoveMarketListing,
@@ -214,7 +211,6 @@ function save() {
  */
 function syncMarketToDb() {
  try {
-  const db = getDb()
   const dbMarket = dbLoadMarket()
   const dbIds    = new Set(dbMarket.map(l => l.id))
   const memIds   = new Set(data.market.map(l => l.id))

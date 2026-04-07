@@ -12,8 +12,7 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { loadSets } = require("../../systems/setSystemFile")
 const {
- getFragmentInventoryRows,
- buildProgressBar
+ getFragmentInventoryRows
 } = require("../../systems/fragmentService")
 
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
@@ -303,7 +302,7 @@ module.exports = {
    const uniqueOwned = Object.keys(user.cards).length
    const totalOwned = Object.values(user.cards).reduce((a, b) => a + b, 0)
 
-   let footerParts = [
+   const footerParts = [
     `${data.length} résultats`,
     `Page ${page}/${totalPages}`,
     `${uniqueOwned} uniques / ${totalOwned} total`

@@ -1,5 +1,3 @@
-const { getCards } = require("./cardRegistry")
-
 function randomCard(pool){
  return pool[Math.floor(Math.random()*pool.length)]
 }

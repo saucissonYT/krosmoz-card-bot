@@ -266,7 +266,7 @@ async function launchPinata(channel) {
 
   /* Achievements */
   try {
-   const unlocked = achievementCheck(user, "pinata")
+   achievementCheck(user, "pinata")
    /* On ne notifie pas inline pour éviter le spam — les joueurs verront au prochain /balance */
   } catch (_) {}
 

@@ -209,7 +209,7 @@ module.exports = {
      user.cards[card.id] = (user.cards[card.id] || 0) + 1
     }
 
-    let revealed = []
+    const revealed = []
 
     for(let i = 0; i < Math.min(pack.length, DISPLAY_LIMIT); i++){
      revealed.push("❓ ???")
@@ -270,7 +270,7 @@ module.exports = {
 
    /* ================= REVEAL ================= */
 
-   let revealed = []
+   const revealed = []
 
    for(const card of pack){
 

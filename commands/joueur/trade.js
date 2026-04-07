@@ -142,7 +142,7 @@ module.exports = {
   for (const id in user.cards) {
    const qty = user.cards[id]
    if (qty > 0) {
-    const card = cards.find(c => c.id == id)
+    const card = cards.find(c => String(c.id) === String(id))
     if (!card) continue
     options.push({
      label: `${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
@@ -202,7 +202,7 @@ module.exports = {
    for (const id in target.cards) {
     const qty = target.cards[id]
     if (qty > 0) {
-     const card = cards.find(c => c.id == id)
+     const card = cards.find(c => String(c.id) === String(id))
      if (!card) continue
      options.push({
       label: `${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
@@ -234,8 +234,8 @@ module.exports = {
 
    trade.wantCard = interaction.values[0]
 
-   const giveCard = cards.find(c => c.id == trade.giveCard)
-   const wantCard = cards.find(c => c.id == trade.wantCard)
+   const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
+   const wantCard = cards.find(c => String(c.id) === String(trade.wantCard))
 
    const embed = new EmbedBuilder()
     .setTitle("🔄 Proposition d'échange")
@@ -284,8 +284,6 @@ module.exports = {
 
   /* ── Trade avec le bot (easter egg) ── */
   if (action === "accept" && trade.to === interaction.client.user.id) {
-
-   const stolenCard = cards.find(c => c.id == trade.giveCard)
 
    from.cards[trade.giveCard]--
    if (from.cards[trade.giveCard] <= 0) delete from.cards[trade.giveCard]

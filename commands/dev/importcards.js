@@ -1,12 +1,6 @@
 const fs = require("fs")
 const sharp = require("sharp")
 
-const {
- ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle
-} = require("discord.js")
-
 const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { resetRegistry } = require("../../systems/cardRegistry")
 const { isDev } = require("../../systems/devSystem")
@@ -117,7 +111,7 @@ module.exports={
     continue
    }
 
-   let setExists=sets.find(s=>s.id===set)
+   const setExists=sets.find(s=>s.id===set)
 
    if(!setExists){
 

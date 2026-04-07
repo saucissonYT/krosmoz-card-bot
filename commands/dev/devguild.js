@@ -175,7 +175,7 @@ module.exports = {
 
    if(!targetUser) return interaction.reply({ content:"❌ Précise un joueur.", ephemeral:true })
 
-   let guild = guildIdInput ? getGuild(guildIdInput) : null
+   const guild = guildIdInput ? getGuild(guildIdInput) : null
    if(!guild) return interaction.reply({ content:"❌ Précise un guild_id valide.", ephemeral:true })
 
    const result = devForceJoin(targetUser.id, guild.id)

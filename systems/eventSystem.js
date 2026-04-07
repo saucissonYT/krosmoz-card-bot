@@ -63,7 +63,7 @@ function startEvent(channel, forced=null){
 
  const tickets = randomTickets()
 
- let data = {}
+ const data = {}
 
  if(event.needsTarget){
   const sCards = getCards().filter(c=>c.rarity==="S")

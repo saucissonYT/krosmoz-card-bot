@@ -11,8 +11,7 @@ const {
  getSeasonTemplate,
  readJson,
  setCurrentSeasonState,
- toDateOnly,
- writeAtomic
+ toDateOnly
 } = require("./seasonService")
 
 const {
@@ -214,15 +213,6 @@ function acquireFileLock(lockPath, staleMs = FILE_LOCK_STALE_MS) {
 function releaseFileLock(lockPath) {
  try { fs.rmSync(lockPath, { force: true }) } catch (_) {}
 }
-
-function moveFileSafe(src, dst) {
- try { fs.renameSync(src, dst); return } catch (err) {
-  if (!["EXDEV", "EPERM", "EBUSY"].includes(err?.code)) throw err
- }
- fs.copyFileSync(src, dst)
- fs.rmSync(src, { force: true })
-}
-
 /* ─── Award reward ───────────────────────────────────────────────────────── */
 
 function awardReward(userId, reward) {
@@ -785,9 +775,9 @@ async function buyPremium(userId) {
 function devForceSeason(seasonId) {
  const current = ensureCurrentSeason()
  const cycle   = getSeasonCycle()
+ const today   = toDateOnly(new Date())
  const idx     = cycle.indexOf(seasonId)
  if (idx === -1) return { ok: false, error: "Saison inconnue." }
- const today = toDateOnly(new Date())
  const next = {
   schemaVersion: 1, activeSeason: seasonId, cycleIndex: idx,
   startDate: today, endDate: addDaysDateOnly(today, 21),
@@ -868,7 +858,6 @@ function runSeasonReset(options = {}) {
  const current = ensureCurrentSeason()
  const cycle   = getSeasonCycle()
  const nextIdx = (current.cycleIndex + 1) % cycle.length
- const today   = toDateOnly(new Date())
  const ids     = getAllProgressUserIds()
  const seasonTemplate = getSeasonTemplate(current.activeSeason)
  let rewardsToDistribute = 0
@@ -919,3 +908,4 @@ module.exports = {
  runSeasonReset,
  saveUserProgress
 }
+

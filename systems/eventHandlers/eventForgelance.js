@@ -13,7 +13,7 @@ module.exports = {
 
   const cards = getCards()
 
-  let pack = basePack.map(c => {
+  const pack = basePack.map(c => {
 
    const i = order.indexOf(c.rarity)
 

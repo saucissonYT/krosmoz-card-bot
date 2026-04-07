@@ -135,7 +135,7 @@ function addXP(user, amount){
 
  try{
   const { getUserGuildBonuses } = require("./guildBonuses")
-  const gBonuses = getUserGuildBonuses(user.odemonId || "")
+  getUserGuildBonuses(user.odemonId || "")
   /* Note: on ne peut pas facilement avoir le userId ici,
      donc le bonus guilde est appliqué en amont dans packEngine */
  }catch(e){}

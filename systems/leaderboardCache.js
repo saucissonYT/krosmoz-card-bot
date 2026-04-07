@@ -1,5 +1,4 @@
 const fs = require("fs")
-const path = require("path")
 
 const { USERS_DIR } = require("./dataManager")
 const { getUser } = require("./userSystem")

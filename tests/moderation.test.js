@@ -85,7 +85,7 @@ test("isSanctioned nettoie les sanctions expirées", () => {
 
  /* Petit délai pour garantir l'expiration */
  const start = Date.now()
- while (Date.now() - start < 5) {} /* busy wait 5ms */
+ while (Date.now() - start < 5) { void 0 } /* busy wait 5ms */
 
  assert.strictEqual(isSanctioned(id), false, "sanction expirée = non sanctionné")
 })
@@ -169,7 +169,7 @@ test("hasNoluck nettoie les entrées expirées", () => {
  setNoluck(id, 1, "expired", "mod")
 
  const start = Date.now()
- while (Date.now() - start < 5) {}
+ while (Date.now() - start < 5) { void 0 }
 
  assert.strictEqual(hasNoluck(id), false)
 })

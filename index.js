@@ -96,7 +96,7 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"))
 
 /* ─── GLOBAL ERROR HANDLERS ─── */
 
-process.on("unhandledRejection", (reason, promise) => {
+process.on("unhandledRejection", (reason, _promise) => {
  log.error("Unhandled Promise Rejection", {
   reason: reason instanceof Error ? reason : String(reason)
  })
