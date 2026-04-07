@@ -1,13 +1,11 @@
 .play-page .page {
- padding-top: 84px;
+ padding-top: 140px;
 }
 
-.play-menu-wrap {
- margin-bottom: 10px;
- padding: 10px;
- border: 1px solid rgba(255, 255, 255, 0.08);
- border-radius: 14px;
- background: #111327;
+.navbar-play-submenu {
+ width: min(1200px, calc(100% - 2rem));
+ margin: 0 auto 10px auto;
+ padding: 8px 0 2px;
 }
 
 .play-shell {

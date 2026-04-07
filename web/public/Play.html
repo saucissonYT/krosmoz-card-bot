@@ -24,21 +24,21 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
    </div>
   </div>
+  <div class="navbar-play-submenu">
+   <div class="play-tabs">
+    <button class="play-tab" data-mode="inventory">Inventaire</button>
+    <button class="play-tab" data-mode="packs">Packs</button>
+    <button class="play-tab" data-mode="fusion">Fusion</button>
+    <button class="play-tab" data-mode="craft">Craft</button>
+    <a class="play-tab-link" href="/profile/">Profil</a>
+    <a class="play-tab-link" href="/market">Marché</a>
+    <a class="play-tab-link" href="/achievements">Achievements</a>
+   </div>
+  </div>
  </nav>
 
  <div class="page">
   <div class="container">
-   <div class="play-menu-wrap">
-    <div class="play-tabs">
-     <button class="play-tab" data-mode="inventory">Inventaire</button>
-     <button class="play-tab" data-mode="packs">Packs</button>
-     <button class="play-tab" data-mode="fusion">Fusion</button>
-     <button class="play-tab" data-mode="craft">Craft</button>
-     <a class="play-tab-link" href="/profile/">Profil</a>
-     <a class="play-tab-link" href="/market">Marché</a>
-     <a class="play-tab-link" href="/achievements">Achievements</a>
-    </div>
-   </div>
    <section class="play-shell">
     <main class="play-main">
      <header class="play-head">
@@ -153,6 +153,10 @@
  function setInventoryView(view) {
   state.inventoryView = view
   state.selected = null
+  if (view === "fragments") {
+   const rarityFilter = document.getElementById("rarityFilter")
+   if (rarityFilter) rarityFilter.value = ""
+  }
   document.querySelectorAll(".play-subtab").forEach((btn) => {
    btn.classList.toggle("active", btn.dataset.view === view)
   })
@@ -420,6 +424,7 @@
  function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
   const subtabs = document.getElementById("inventorySubtabs")
+  const rarityFilter = document.getElementById("rarityFilter")
   const grid = document.getElementById("playGrid")
   const packsPanel = document.getElementById("playPacks")
   const fusionPanel = document.getElementById("playFusion")
@@ -428,6 +433,7 @@
 
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
+  rarityFilter.style.display = (state.mode === "inventory" && state.inventoryView === "fragments") ? "none" : ""
   grid.style.display = "grid"
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
