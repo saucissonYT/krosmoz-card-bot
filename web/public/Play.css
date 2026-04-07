@@ -839,7 +839,7 @@ body.pack-opening-lock {
  width: 100%;
  aspect-ratio: 0.69;
  transform-style: preserve-3d;
- transition: transform 1.08s cubic-bezier(0.2, 0.7, 0.2, 1);
+ transition: transform 1.25s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .pack-reveal-card.revealed .pack-reveal-inner {
@@ -903,6 +903,27 @@ body.pack-opening-lock {
  font-size: 0.76rem;
 }
 
+.pack-new-badge {
+ display: inline-block;
+ margin-left: 6px;
+ border: 1px solid rgba(255, 230, 153, 0.45);
+ border-radius: 999px;
+ padding: 2px 6px;
+ background: rgba(255, 230, 153, 0.16);
+ color: #ffeaa3;
+ font-size: 0.68rem;
+ font-weight: 700;
+}
+
+.pack-reveal-card.rarity-c .pack-reveal-front { border-color: rgba(139, 150, 184, 0.5); }
+.pack-reveal-card.rarity-u .pack-reveal-front { border-color: rgba(102, 180, 136, 0.55); }
+.pack-reveal-card.rarity-r .pack-reveal-front { border-color: rgba(88, 154, 255, 0.58); }
+.pack-reveal-card.rarity-sr .pack-reveal-front { border-color: rgba(147, 111, 255, 0.62); }
+.pack-reveal-card.rarity-hr .pack-reveal-front { border-color: rgba(255, 125, 201, 0.62); }
+.pack-reveal-card.rarity-ur .pack-reveal-front { border-color: rgba(76, 221, 255, 0.64); }
+.pack-reveal-card.rarity-s .pack-reveal-front { border-color: rgba(118, 203, 255, 0.68); }
+.pack-reveal-card.rarity-ssr .pack-reveal-front { border-color: rgba(242, 216, 123, 0.75); }
+
 .pack-reveal-card.rarity-ssr .pack-reveal-front {
  box-shadow: 0 0 28px rgba(234, 211, 121, 0.6), inset 0 0 0 1px rgba(234, 211, 121, 0.35);
 }
@@ -917,10 +938,127 @@ body.pack-opening-lock {
  box-shadow: 0 0 20px rgba(195, 143, 255, 0.4), inset 0 0 0 1px rgba(195, 143, 255, 0.25);
 }
 
+.pack-reveal-card.revealed.rarity-s .pack-reveal-front,
+.pack-reveal-card.revealed.rarity-ssr .pack-reveal-front {
+ animation: packRarePulse 1.8s ease-out 2;
+}
+
 .pack-open-foot {
  margin-top: 12px;
  color: #c6cbe6;
  font-size: 0.86rem;
+ opacity: 0;
+ transform: translateY(8px);
+ transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.pack-open-summary {
+ margin-top: 10px;
+ display: grid;
+ grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+ gap: 10px;
+ opacity: 0;
+ transform: translateY(8px);
+ transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.pack-open-overlay.complete .pack-open-foot,
+.pack-open-overlay.complete .pack-open-summary {
+ opacity: 1;
+ transform: translateY(0);
+}
+
+.pack-summary-block {
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: 10px;
+ background: #101633;
+ padding: 10px;
+}
+
+.pack-summary-block h4 {
+ color: #f0f3ff;
+ font-size: 0.92rem;
+ margin-bottom: 8px;
+}
+
+.pack-summary-list {
+ list-style: none;
+ margin: 0;
+ padding: 0;
+ display: grid;
+ gap: 7px;
+ max-height: 220px;
+ overflow: auto;
+}
+
+.pack-summary-row {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: 8px;
+ background: #0b122d;
+ padding: 7px 8px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+ gap: 8px;
+}
+
+.pack-summary-row span {
+ color: #e6eafc;
+ font-size: 0.82rem;
+}
+
+.pack-summary-row small {
+ color: #b3bcdf;
+ font-size: 0.76rem;
+}
+
+.pack-summary-row.rarity-s,
+.pack-summary-row.rarity-ssr {
+ border-color: rgba(242, 216, 123, 0.42);
+ background: rgba(176, 144, 53, 0.14);
+}
+
+.pack-summary-new {
+ display: inline-block;
+ margin-left: 6px;
+ color: #ffe595;
+ font-weight: 700;
+ font-size: 0.72rem;
+}
+
+.pack-pity-grid {
+ display: grid;
+ gap: 8px;
+}
+
+.pack-pity-grid > div {
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: 8px;
+ background: #0c1330;
+ padding: 8px;
+ display: grid;
+ gap: 2px;
+}
+
+.pack-pity-grid span {
+ color: #a9b3dd;
+ font-size: 0.75rem;
+}
+
+.pack-pity-grid strong {
+ color: #f2f5ff;
+ font-size: 1rem;
+}
+
+.pack-pity-grid small {
+ color: #9ca8d4;
+ font-size: 0.73rem;
+}
+
+@keyframes packRarePulse {
+ 0% { transform: scale(1); filter: brightness(1); }
+ 30% { transform: scale(1.03); filter: brightness(1.22); }
+ 100% { transform: scale(1); filter: brightness(1); }
 }
 
 .pack-open-actions {
@@ -977,6 +1115,9 @@ body.pack-opening-lock {
  }
  .pack-open-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+ }
+ .pack-open-summary {
+  grid-template-columns: 1fr;
  }
 }
 

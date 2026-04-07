@@ -1323,12 +1323,17 @@ app.post("/api/game/open-packs", async (req, res) => {
   const rarityCount = {}
   const grouped = new Map()
   const fragments = []
+  const discoveredCardIds = new Set()
 
   for (let i = 0; i < quantity; i++) {
    const result = openPack(user, setId, session.userId, { isSimpleCommandOpen: quantity === 1 })
    kamasGain += Number(result?.kamasGain || 0)
    xpGain += Number(result?.xpGain || 0)
    if (result?.fragment) fragments.push(result.fragment)
+   for (const discovered of (result?.discovered || [])) {
+    if (!discovered?.id) continue
+    discoveredCardIds.add(String(discovered.id))
+   }
 
    for (const card of (result?.pack || [])) {
     const rarity = String(card?.rarity || "C")
@@ -1342,10 +1347,12 @@ app.post("/api/game/open-packs", async (req, res) => {
       set: String(card.set || setId),
       image: card?.image ? `/assets/cards/${encodeURIComponent(String(card.set || setId))}/${encodeURIComponent(String(card.image))}` : null,
       shiny: Boolean(card?.shiny),
+      isNew: false,
       qty: 0
      })
     }
     grouped.get(key).qty += 1
+    if (discoveredCardIds.has(String(card.id))) grouped.get(key).isNew = true
    }
 
    pulls.push({
@@ -1369,6 +1376,13 @@ app.post("/api/game/open-packs", async (req, res) => {
   apiCache.invalidate(`profile:${session.userId}`)
   apiCache.invalidatePrefix("leaderboard:")
 
+  const pity = user.pity?.[setId] || { UR: 0, S: 0, SSR: 0 }
+  const pityCounters = {
+   UR: Number(pity?.UR || 0),
+   S: Number(pity?.S || 0),
+   SSR: Number(pity?.SSR || 0)
+  }
+
   res.json({
    ok: true,
    quantity,
@@ -1385,6 +1399,14 @@ app.post("/api/game/open-packs", async (req, res) => {
     RARITY_ORDER.indexOf(String(b.rarity)) - RARITY_ORDER.indexOf(String(a.rarity)) ||
     String(a.cardName).localeCompare(String(b.cardName), "fr")
    ),
+   pity: {
+    counters: pityCounters,
+    toGuaranteed: {
+     UR: Math.max(0, 10 - pityCounters.UR),
+     S: Math.max(0, 30 - pityCounters.S),
+     SSR: Math.max(0, 50 - pityCounters.SSR)
+    }
+   },
    pulls,
    unlockedAchievements: countUnlockedAchievements(unlocked)
   })

@@ -495,7 +495,9 @@
   packRevealResolve = null
   window.setTimeout(() => {
    const grid = document.getElementById("packOpenGrid")
+   const summary = document.getElementById("packOpenSummary")
    if (grid) grid.innerHTML = ""
+   if (summary) summary.innerHTML = ""
   }, 220)
   if (typeof resolver === "function") resolver()
  }
@@ -514,6 +516,7 @@
      <p id="packOpenMeta" class="pack-open-meta"></p>
      <div id="packOpenGrid" class="pack-open-grid"></div>
      <p id="packOpenFoot" class="pack-open-foot"></p>
+     <div id="packOpenSummary" class="pack-open-summary"></div>
      <div class="pack-open-actions">
       <button class="btn btn-gold" type="button" data-pack-close>Continuer</button>
      </div>
@@ -551,9 +554,11 @@
   const meta = document.getElementById("packOpenMeta")
   const grid = document.getElementById("packOpenGrid")
   const foot = document.getElementById("packOpenFoot")
+  const summary = document.getElementById("packOpenSummary")
   const result = getRevealCards(payload)
   const cards = result.visible
   const hiddenCount = result.hiddenCount
+  const allCards = Array.isArray(payload?.cards) ? payload.cards : []
   const qty = Number(payload?.quantity || 1)
   const kamasGain = Number(payload?.totals?.kamasGain || 0)
   const fragmentsGain = Number(payload?.totals?.fragments || 0)
@@ -564,8 +569,9 @@
   grid.innerHTML = cards.map((card, index) => {
    const rarity = getRarityToken(card?.rarity)
    const qtyLabel = Number(card?.qty || 0)
+   const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
    return `
-    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}" style="--reveal-delay:${620 + (index * 210)}ms">
+    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
      <div class="pack-reveal-inner">
       <div class="pack-reveal-face pack-reveal-back">
        <img src="${PACK_BACK_IMAGE}" alt="Dos de carte Krosmoz">
@@ -576,7 +582,7 @@
        </div>
        <div class="pack-reveal-front-meta">
         <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
-        <small>${qtyLabel > 1 ? `x${fmt(qtyLabel)}` : "x1"}</small>
+        <small>${qtyLabel > 1 ? `x${fmt(qtyLabel)}` : "x1"} ${newBadge}</small>
        </div>
       </div>
      </div>
@@ -585,8 +591,39 @@
   }).join("")
 
   foot.textContent = hiddenCount > 0
-   ? `+${fmt(hiddenCount)} carte(s) additionnelle(s) affichées dans le recap ci-dessous.`
-   : "Toutes les cartes tirées sont affichées."
+   ? `+${fmt(hiddenCount)} carte(s) en plus dans le recap ci-dessous.`
+   : "Toutes les cartes tirées sont listées dans le recap ci-dessous."
+
+  const pityCounters = payload?.pity?.counters || {}
+  const pityToGuaranteed = payload?.pity?.toGuaranteed || {}
+  const summaryItems = allCards.map((card) => {
+   const rarity = String(card?.rarity || "C")
+   const qtyLabel = Number(card?.qty || 0)
+   const newTag = Boolean(card?.isNew) ? '<span class="pack-summary-new">✨ NEW</span>' : ""
+   return `
+    <li class="pack-summary-row rarity-${getRarityToken(rarity).toLowerCase()}">
+     <span><strong>${escapeHtml(rarity)} ${escapeHtml(card?.cardName || "Carte")}</strong> ${newTag}</span>
+     <small>x${fmt(qtyLabel)}</small>
+    </li>
+   `
+  }).join("")
+
+  summary.innerHTML = `
+   <div class="pack-summary-block">
+    <h4>Recap de l'ouverture</h4>
+    <ul class="pack-summary-list">
+     ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
+    </ul>
+   </div>
+   <div class="pack-summary-block">
+    <h4>Pity (${escapeHtml(String(payload?.setId || "set"))})</h4>
+    <div class="pack-pity-grid">
+     <div><span>UR</span><strong>${fmt(Number(pityCounters.UR || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.UR || 0))} pack(s)</small></div>
+     <div><span>S</span><strong>${fmt(Number(pityCounters.S || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.S || 0))} pack(s)</small></div>
+     <div><span>SSR</span><strong>${fmt(Number(pityCounters.SSR || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.SSR || 0))} pack(s)</small></div>
+    </div>
+   </div>
+  `
 
   overlay.classList.remove("complete")
   overlay.setAttribute("aria-hidden", "false")
@@ -599,11 +636,11 @@
   cardEls.forEach((el, index) => {
     window.setTimeout(() => {
      el.classList.add("revealed")
-    }, 900 + (index * 260))
+    }, 1000 + (index * 560))
   })
   window.setTimeout(() => {
    overlay.classList.add("complete")
-  }, 1650 + (cardEls.length * 260))
+  }, 2300 + (cardEls.length * 560))
 
   return new Promise((resolve) => {
    packRevealResolve = resolve
