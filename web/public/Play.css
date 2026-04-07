@@ -1043,6 +1043,10 @@ body.pack-opening-lock {
  animation: rareCardShake 0.1s linear infinite;
 }
 
+.pack-open-overlay.open .pack-reveal-card.rare-focus.rare-focus-ssr .pack-reveal-inner {
+ animation: rareCardShakeStrong 0.08s linear infinite;
+}
+
 .pack-open-overlay.open .pack-reveal-card.rare-return {
  z-index: 22;
  transform: translateY(0) scale(1);
@@ -1370,6 +1374,15 @@ body.pack-opening-lock {
  100% { transform: translate3d(0, 0, 0) rotate(0deg); }
 }
 
+@keyframes rareCardShakeStrong {
+ 0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+ 20% { transform: translate3d(-3px, 1px, 0) rotate(-1.2deg); }
+ 40% { transform: translate3d(3px, -2px, 0) rotate(1.3deg); }
+ 60% { transform: translate3d(-2px, 2px, 0) rotate(-1deg); }
+ 80% { transform: translate3d(2px, -1px, 0) rotate(0.9deg); }
+ 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
 .play-empty {
  border: 1px dashed rgba(255, 255, 255, 0.2);
  border-radius: 10px;
@@ -1483,7 +1496,7 @@ body.pack-opening-lock {
  }
 
  .pack-open-overlay.open .pack-reveal-card.rare-focus {
-  transform: translate(var(--rare-shift-x), var(--rare-shift-y)) scale(1.32);
+  transform: translate(var(--rare-shift-x), var(--rare-shift-y)) scale(var(--rare-scale));
  }
  .pack-open-grid.pack-open-grid-six .pack-reveal-card {
   width: calc(50% - 6px);

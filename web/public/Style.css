@@ -409,6 +409,16 @@ body.auth-connected .hero {
  animation: fadeInUp 0.6s var(--ease) 0.3s both;
 }
 
+#heroPlayBtn {
+ min-width: 220px;
+ min-height: 64px;
+ padding: 20px 56px;
+ font-size: 1.2rem;
+ font-weight: 800;
+ letter-spacing: 0.04em;
+ justify-content: center;
+}
+
 /* -------- BUTTONS -------- */
 
 .btn {
