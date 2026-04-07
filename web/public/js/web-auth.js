@@ -24,12 +24,13 @@
    subnav.id = "globalPlaySubnav"
    subnav.className = "navbar-subnav"
    subnav.innerHTML = `
-    <div class="navbar-subnav-inner">
+   <div class="navbar-subnav-inner">
      <ul class="navbar-subnav-links">
       <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
       <li><a href="/play/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
       <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/market">Marché</a></li>
       <li><a href="/profile/">Profil</a></li>
      </ul>
     </div>
@@ -119,6 +120,20 @@
   link.classList.toggle("active", p === "/play" || p.startsWith("/play/"))
  }
 
+ function setTopMarketLinkVisibility(connected) {
+  if (!navLinks) return
+  const marketLink = navLinks.querySelector('a[href="/market"]')
+  if (!marketLink || !marketLink.parentElement) return
+  if (connected) {
+   marketLink.parentElement.style.display = "none"
+   marketLink.classList.remove("active")
+   return
+  }
+  marketLink.parentElement.style.display = ""
+  const p = String(window.location.pathname || "")
+  marketLink.classList.toggle("active", p === "/market" || p.startsWith("/market/"))
+ }
+
  let status = null
  try {
   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
@@ -131,6 +146,7 @@
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
   btn.textContent = "Connexion indisponible"
   btn.setAttribute("aria-disabled", "true")
   btn.style.pointerEvents = "none"
@@ -144,6 +160,7 @@
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
   btn.textContent = "Connexion Discord"
   const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
@@ -161,6 +178,7 @@
  setAuthState("")
  setProfileLink(me?.id || status.userId)
  setConnectedNavLink(true)
+ setTopMarketLinkVisibility(true)
 
  btn.textContent = "Deconnexion"
  btn.href = "#"
