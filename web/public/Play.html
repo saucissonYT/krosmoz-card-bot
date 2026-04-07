@@ -640,7 +640,13 @@ function completePackOpeningReveal() {
  if (!overlay || !overlay.classList.contains("open")) return
  for (const timer of packRevealTimers) window.clearTimeout(timer)
  packRevealTimers = []
- overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+ overlay.querySelectorAll(".pack-reveal-card").forEach((card) => {
+  card.classList.remove("rare-focus", "rare-return")
+  card.style.removeProperty("--rare-shift-x")
+  card.style.removeProperty("--rare-shift-y")
+  card.style.removeProperty("--rare-scale")
+  card.classList.add("revealed")
+ })
  overlay.querySelectorAll(".pack-reveal-tier").forEach((tier) => tier.classList.add("active"))
  overlay.classList.add("complete")
  const skipBtn = document.getElementById("packSkipBtn")
@@ -774,6 +780,57 @@ function showPackOpeningAnimation(payload) {
    `).join("")
   }
 
+  function isRareRevealCard(cardEl) {
+   return Boolean(cardEl?.classList?.contains("rarity-s") || cardEl?.classList?.contains("rarity-ssr"))
+  }
+
+  function setRareFocusPosition(cardEl) {
+   if (!cardEl) return
+   const dialog = overlay.querySelector(".pack-open-dialog")
+   if (!dialog) return
+   const cardRect = cardEl.getBoundingClientRect()
+   const dialogRect = dialog.getBoundingClientRect()
+   if (!cardRect.width || !cardRect.height || !dialogRect.width || !dialogRect.height) return
+   const cardCenterX = cardRect.left + (cardRect.width / 2)
+   const cardCenterY = cardRect.top + (cardRect.height / 2)
+   const targetCenterX = dialogRect.left + (dialogRect.width / 2)
+   const targetCenterY = dialogRect.top + (dialogRect.height * 0.5)
+   const shiftX = targetCenterX - cardCenterX
+   const shiftY = targetCenterY - cardCenterY
+   const scale = window.innerWidth < 720 ? 1.32 : 1.52
+   cardEl.style.setProperty("--rare-shift-x", `${Math.round(shiftX)}px`)
+   cardEl.style.setProperty("--rare-shift-y", `${Math.round(shiftY)}px`)
+   cardEl.style.setProperty("--rare-scale", String(scale))
+  }
+
+  function playRevealCardAnimation(cardEl) {
+   if (!cardEl) return
+   if (!isRareRevealCard(cardEl)) {
+    cardEl.classList.add("revealed")
+    return
+   }
+   setRareFocusPosition(cardEl)
+   cardEl.classList.remove("rare-return")
+   cardEl.classList.add("rare-focus")
+   const focusIn = 220
+   const focusHold = 340
+   const focusOut = 260
+   const flipTimer = window.setTimeout(() => {
+    cardEl.classList.add("revealed")
+   }, focusIn)
+   const settleTimer = window.setTimeout(() => {
+    cardEl.classList.remove("rare-focus")
+    cardEl.classList.add("rare-return")
+   }, focusIn + focusHold)
+   const clearTimer = window.setTimeout(() => {
+    cardEl.classList.remove("rare-return")
+    cardEl.style.removeProperty("--rare-shift-x")
+    cardEl.style.removeProperty("--rare-shift-y")
+    cardEl.style.removeProperty("--rare-scale")
+   }, focusIn + focusHold + focusOut)
+   packRevealTimers.push(flipTimer, settleTimer, clearTimer)
+  }
+
   function setFootText() {
    if (hasMultiGroups) {
     foot.textContent = "Ouverture progressive en etages (pack par pack). Fais defiler la fenetre pour tout voir."
@@ -835,10 +892,11 @@ function showPackOpeningAnimation(payload) {
      tierCards.forEach((cardEl, cardIndex) => {
       const revealAt = tierStart + (cardIndex * 95)
       const timer = window.setTimeout(() => {
-       cardEl.classList.add("revealed")
+       playRevealCardAnimation(cardEl)
       }, revealAt)
       packRevealTimers.push(timer)
-      latestRevealAt = Math.max(latestRevealAt, revealAt)
+      const rareExtra = isRareRevealCard(cardEl) ? 920 : 0
+      latestRevealAt = Math.max(latestRevealAt, revealAt + rareExtra)
      })
     })
     const doneTimer = window.setTimeout(() => {
@@ -851,15 +909,19 @@ function showPackOpeningAnimation(payload) {
    const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
    const revealStartDelay = 1400
    const revealStepDelay = 780
+   let latestRevealAt = 0
    cardEls.forEach((el, index) => {
+    const revealAt = revealStartDelay + (index * revealStepDelay)
     const timer = window.setTimeout(() => {
-     el.classList.add("revealed")
-    }, revealStartDelay + (index * revealStepDelay))
+     playRevealCardAnimation(el)
+    }, revealAt)
     packRevealTimers.push(timer)
+    const rareExtra = isRareRevealCard(el) ? 920 : 0
+    latestRevealAt = Math.max(latestRevealAt, revealAt + rareExtra)
    })
    const doneTimer = window.setTimeout(() => {
     showCompleteState()
-   }, 2800 + (cardEls.length * revealStepDelay))
+   }, latestRevealAt + 560)
    packRevealTimers.push(doneTimer)
   }
 

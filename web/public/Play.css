@@ -1023,11 +1023,30 @@ body.pack-opening-lock {
  transform: translateY(18px) scale(0.92);
  transition: opacity 0.55s ease, transform 0.7s ease;
  perspective: 1100px;
+ --rare-shift-x: 0px;
+ --rare-shift-y: 0px;
+ --rare-scale: 1.52;
 }
 
 .pack-open-overlay.open .pack-reveal-card {
  opacity: 1;
  transform: translateY(0) scale(1);
+}
+
+.pack-open-overlay.open .pack-reveal-card.rare-focus {
+ z-index: 80;
+ transform: translate(var(--rare-shift-x), var(--rare-shift-y)) scale(var(--rare-scale));
+ transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+}
+
+.pack-open-overlay.open .pack-reveal-card.rare-focus .pack-reveal-inner {
+ animation: rareCardShake 0.1s linear infinite;
+}
+
+.pack-open-overlay.open .pack-reveal-card.rare-return {
+ z-index: 22;
+ transform: translateY(0) scale(1);
+ transition: transform 0.28s cubic-bezier(0.16, 0.84, 0.24, 1);
 }
 
 .pack-reveal-inner {
@@ -1343,6 +1362,14 @@ body.pack-opening-lock {
  100% { opacity: 0; transform: scale(1.22); }
 }
 
+@keyframes rareCardShake {
+ 0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+ 25% { transform: translate3d(-2px, 1px, 0) rotate(-0.8deg); }
+ 50% { transform: translate3d(2px, -1px, 0) rotate(0.8deg); }
+ 75% { transform: translate3d(-1px, 1px, 0) rotate(-0.6deg); }
+ 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+}
+
 .play-empty {
  border: 1px dashed rgba(255, 255, 255, 0.2);
  border-radius: 10px;
@@ -1453,6 +1480,10 @@ body.pack-opening-lock {
  }
  .pack-reveal-card {
   width: calc(50% - 6px);
+ }
+
+ .pack-open-overlay.open .pack-reveal-card.rare-focus {
+  transform: translate(var(--rare-shift-x), var(--rare-shift-y)) scale(1.32);
  }
  .pack-open-grid.pack-open-grid-six .pack-reveal-card {
   width: calc(50% - 6px);
