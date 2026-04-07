@@ -341,6 +341,14 @@ function requireSession(req, res) {
  return session
 }
 
+function requireSessionPage(req, res) {
+ const session = resolveSession(req)
+ if (session) return session
+ const returnTo = sanitizeReturnPath(req.originalUrl) || "/play"
+ res.redirect(`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`)
+ return null
+}
+
 async function resolveDiscordUser(userId) {
  const now = Date.now()
  const cached = discordUserCache.get(userId)
@@ -1808,8 +1816,16 @@ app.get("/api/achievements", (req, res) => {
  app.get("/profile/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/profile", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/cards", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Cards.html")))
- app.get("/play", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Play.html")))
- app.get("/play/:tab", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Play.html")))
+ app.get("/play", (req, res) => {
+  const session = requireSessionPage(req, res)
+  if (!session) return
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ })
+ app.get("/play/:tab", (req, res) => {
+  const session = requireSessionPage(req, res)
+  if (!session) return
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ })
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
