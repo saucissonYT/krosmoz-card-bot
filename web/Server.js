@@ -208,7 +208,11 @@ function parseCookies(req) {
   if (idx < 0) return acc
   const k = chunk.slice(0, idx).trim()
   const v = chunk.slice(idx + 1).trim()
-  acc[k] = decodeURIComponent(v)
+  try {
+   acc[k] = decodeURIComponent(v)
+  } catch (_) {
+   acc[k] = v
+  }
   return acc
  }, {})
 }
@@ -1451,6 +1455,8 @@ app.get("/api/achievements", (req, res) => {
  app.get("/profile/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/profile", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/cards", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Cards.html")))
+ app.get("/play", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Play.html")))
+ app.get("/play/:tab", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Play.html")))
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))

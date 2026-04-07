@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Mon Jeu - Krosmoz Card</title>
+ <meta name="theme-color" content="#bfd46c">
+ <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+ <nav class="navbar scrolled">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/play" class="active">Mon Jeu</a></li>
+    <li><a href="/leaderboard">Classement</a></li>
+    <li><a href="/cards">Cartes</a></li>
+    <li><a href="/market">Marche</a></li>
+    <li><a href="/guild">Guildes</a></li>
+   </ul>
+   <div class="navbar-right">
+    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
+   </div>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+   <section class="play-shell">
+    <aside class="play-roster" id="playRoster"></aside>
+
+    <main class="play-main">
+     <header class="play-head">
+      <h1 id="playTitle">INVENTAIRE</h1>
+      <div class="play-tabs">
+       <button class="play-tab" data-mode="inventory">Inventaire</button>
+       <button class="play-tab" data-mode="profile">Carte Dresseur</button>
+       <button class="play-tab" data-mode="team">Mon Equipe</button>
+       <button class="play-tab" data-mode="dex">Monstrodex</button>
+      </div>
+     </header>
+
+     <div class="play-controls" id="playControls">
+      <input id="searchInput" class="input" placeholder="Rechercher...">
+      <select id="setFilter" class="input input-select">
+       <option value="">Tous les sets</option>
+      </select>
+      <select id="rarityFilter" class="input input-select">
+       <option value="">Toutes les raretes</option>
+       <option value="C">C</option>
+       <option value="U">U</option>
+       <option value="R">R</option>
+       <option value="SR">SR</option>
+       <option value="HR">HR</option>
+       <option value="UR">UR</option>
+       <option value="S">S</option>
+       <option value="SSR">SSR</option>
+      </select>
+      <button id="sortBtn" class="btn btn-outline">Tri Qte v</button>
+     </div>
+
+     <div class="play-subtabs" id="inventorySubtabs">
+      <button class="play-subtab active" data-view="cards">Cartes</button>
+      <button class="play-subtab" data-view="fragments">Fragments</button>
+     </div>
+
+     <div class="play-content">
+      <div id="playGrid" class="play-grid"></div>
+      <div id="playProfile" class="play-panel-alt" style="display:none"></div>
+      <div id="playTeam" class="play-panel-alt" style="display:none"></div>
+     </div>
+    </main>
+
+    <aside class="play-detail" id="playDetail">
+     <div class="play-detail-inner">
+      <h2>Selectionne un objet</h2>
+      <p>Choisis une carte ou un fragment pour afficher les details.</p>
+     </div>
+    </aside>
+   </section>
+  </div>
+ </div>
+
+ <script src="/js/web-auth.js"></script>
+ <script>
+ const MODE_PATH = {
+  inventory: "/play/inventory",
+  profile: "/play/profile",
+  team: "/play/team",
+  dex: "/play/dex"
+ }
+
+ const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+ const state = {
+  mode: "inventory",
+  inventoryView: "cards",
+  sortDesc: true,
+  me: null,
+  profile: null,
+  inventory: null,
+  groupedFragments: [],
+  dex: [],
+  selected: null
+ }
+
+ function escapeHtml(value) {
+  const div = document.createElement("div")
+  div.textContent = String(value || "")
+  return div.innerHTML
+ }
+
+ function fmt(n) {
+  return Number(n || 0).toLocaleString("fr-FR")
+ }
+
+ function rarityRank(rarity) {
+  const idx = RARITY_ORDER.indexOf(String(rarity || "").toUpperCase())
+  return idx >= 0 ? idx : 99
+ }
+
+ function parseModeFromPath() {
+  const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
+  return ["inventory", "profile", "team", "dex"].includes(tab) ? tab : "inventory"
+ }
+
+ function setMode(mode, updateUrl = true) {
+  state.mode = mode
+  state.selected = null
+  document.querySelectorAll(".play-tab").forEach((tab) => {
+   tab.classList.toggle("active", tab.dataset.mode === mode)
+  })
+  if (updateUrl && MODE_PATH[mode]) {
+    window.history.replaceState({}, "", MODE_PATH[mode])
+  }
+  renderCurrentMode()
+ }
+
+ function setInventoryView(view) {
+  state.inventoryView = view
+  state.selected = null
+  document.querySelectorAll(".play-subtab").forEach((btn) => {
+   btn.classList.toggle("active", btn.dataset.view === view)
+  })
+  renderCurrentMode()
+ }
+
+ function topTeam(cards, size = 6) {
+  return [...(cards || [])]
+   .sort((a, b) => Number(b.qty || 0) - Number(a.qty || 0) || rarityRank(a.rarity) - rarityRank(b.rarity))
+   .slice(0, size)
+ }
+
+ async function fetchJson(url, options = {}) {
+  const res = await fetch(url, { credentials: "same-origin", ...options })
+  let data = null
+  try {
+   data = await res.json()
+  } catch (_) {}
+  return { ok: res.ok, status: res.status, data }
+ }
+
+ async function requireLogin() {
+  const meRes = await fetchJson("/api/me")
+  if (!meRes.ok || !meRes.data || !meRes.data.id) {
+   const returnTo = `${window.location.pathname}${window.location.search || ""}`
+   document.getElementById("playGrid").innerHTML = `
+    <div class="play-empty">
+     <h3>Connexion Discord requise</h3>
+     <p>Connecte-toi pour acceder au gameplay web.</p>
+     <a class="btn btn-gold" href="/auth/discord?returnTo=${encodeURIComponent(returnTo)}">Se connecter</a>
+    </div>
+   `
+   throw new Error("not_connected")
+  }
+  state.me = meRes.data
+ }
+
+ function groupFragments(fragments = []) {
+  const grouped = new Map()
+  for (const fragment of fragments) {
+   const key = `${fragment.cardId}:${fragment.fragmentNumber}`
+   if (!grouped.has(key)) {
+    grouped.set(key, {
+     key,
+     itemType: "fragment",
+     cardId: String(fragment.cardId),
+     fragmentNumber: Number(fragment.fragmentNumber || 0),
+     cardName: fragment.cardName || `Carte ${fragment.cardId}`,
+     rarity: fragment.rarity || "SSR",
+     set: fragment.set || "unknown",
+     setName: fragment.setName || fragment.set || "unknown",
+     imageUrl: fragment.imageUrl || null,
+     qty: 0
+    })
+   }
+   grouped.get(key).qty += 1
+  }
+
+  return [...grouped.values()].sort((a, b) => {
+   return String(a.cardName).localeCompare(String(b.cardName), "fr") || a.fragmentNumber - b.fragmentNumber
+  })
+ }
+
+ async function loadData() {
+  await requireLogin()
+
+  const [profileRes, inventoryRes] = await Promise.all([
+   fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}`),
+   fetchJson("/api/me/inventory")
+  ])
+
+  if (profileRes.ok) state.profile = profileRes.data
+  if (inventoryRes.ok) state.inventory = inventoryRes.data
+  state.groupedFragments = groupFragments((state.inventory && state.inventory.fragments) || [])
+
+  const setSelect = document.getElementById("setFilter")
+  const sets = new Map()
+
+  for (const item of ((state.inventory && state.inventory.cards) || [])) {
+   sets.set(item.set, item.setName || item.set)
+  }
+  for (const item of state.groupedFragments) {
+   sets.set(item.set, item.setName || item.set)
+  }
+
+  const options = [...sets.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "fr"))
+  for (const [id, name] of options) {
+   const opt = document.createElement("option")
+   opt.value = id
+   opt.textContent = name
+   setSelect.appendChild(opt)
+  }
+
+  await loadDex()
+ }
+
+ async function loadDex() {
+  let page = 1
+  let pages = 1
+  const all = []
+
+  while (page <= pages && page <= 20) {
+   const res = await fetchJson(`/api/cards?page=${page}&limit=100`)
+   if (!res.ok) break
+   const payload = res.data || {}
+   for (const item of (payload.items || [])) {
+    all.push(item)
+   }
+   pages = Number(payload.pages || 1)
+   page += 1
+  }
+
+  const ownedCards = new Map(
+   (((state.inventory && state.inventory.cards) || []).map((card) => [String(card.cardId), Number(card.qty || 0)]))
+  )
+
+  state.dex = all.map((card) => ({
+   itemType: "card",
+   cardId: String(card.id),
+   cardName: card.name,
+   rarity: card.rarity,
+   set: card.set,
+   setName: card.setName || card.set,
+   imageUrl: card.imageUrl || null,
+   qty: Number(ownedCards.get(String(card.id)) || 0)
+  }))
+ }
+
+ function getActiveSource() {
+  if (state.mode === "dex") return state.dex
+  if (state.mode === "inventory" && state.inventoryView === "fragments") return state.groupedFragments
+  return (state.inventory && state.inventory.cards) || []
+ }
+
+ function getFilteredItems() {
+  const query = String(document.getElementById("searchInput").value || "").trim().toLowerCase()
+  const set = document.getElementById("setFilter").value
+  const rarity = document.getElementById("rarityFilter").value
+
+  const items = getActiveSource().filter((item) => {
+   if (query && !String(item.cardName || "").toLowerCase().includes(query)) return false
+   if (set && String(item.set) !== String(set)) return false
+   if (rarity && String(item.rarity) !== String(rarity)) return false
+   if (state.mode === "inventory" && state.inventoryView === "cards" && Number(item.qty || 0) <= 0) return false
+   return true
+  })
+
+  items.sort((a, b) => {
+   const qtyCmp = state.sortDesc
+    ? Number(b.qty || 0) - Number(a.qty || 0)
+    : Number(a.qty || 0) - Number(b.qty || 0)
+   if (qtyCmp !== 0) return qtyCmp
+   const rarityCmp = rarityRank(a.rarity) - rarityRank(b.rarity)
+   if (rarityCmp !== 0) return rarityCmp
+   return String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr")
+  })
+
+  return items
+ }
+
+ function renderRoster() {
+  const roster = document.getElementById("playRoster")
+  const team = topTeam((state.inventory && state.inventory.cards) || [], 8)
+
+  if (!team.length) {
+   roster.innerHTML = '<div class="play-roster-empty">Aucune carte</div>'
+   return
+  }
+
+  roster.innerHTML = team.map((member, idx) => `
+   <button class="play-roster-item ${idx === 0 ? "active" : ""}" data-card="${escapeHtml(member.cardId)}">
+    <img src="${escapeHtml(member.imageUrl || "")}" alt="${escapeHtml(member.cardName)}" onerror="this.style.visibility='hidden'">
+    <span>${fmt(member.qty)}</span>
+   </button>
+  `).join("")
+ }
+
+ function renderInventoryGrid() {
+  const grid = document.getElementById("playGrid")
+  const items = getFilteredItems()
+
+  if (!items.length) {
+   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun resultat avec ces filtres.</p></div>'
+   return
+  }
+
+  grid.innerHTML = items.map((item) => {
+   const selected = state.selected && String(state.selected.key || state.selected.cardId) === String(item.key || item.cardId)
+   let label = `x${fmt(item.qty)}`
+   if (state.mode === "dex") label = item.qty > 0 ? `Capture x${fmt(item.qty)}` : "Inconnu"
+   if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
+
+   return `
+    <button class="play-card ${selected ? "active" : ""}" data-id="${escapeHtml(item.key || item.cardId)}">
+     <div class="play-card-img-wrap">
+      ${item.imageUrl
+   ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${item.qty <= 0 ? "silhouette" : ""}">`
+   : "<span>?</span>"}
+     </div>
+     <div class="play-card-meta">
+      <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
+      <small>${escapeHtml(item.setName || item.set)} - ${escapeHtml(label)}</small>
+     </div>
+    </button>
+   `
+  }).join("")
+
+  if (!state.selected && items[0]) {
+   state.selected = items[0]
+   renderDetail(items[0])
+  }
+ }
+
+ function renderProfile() {
+  const p = state.profile || {}
+  const panel = document.getElementById("playProfile")
+  const level = Number(p.level || 1)
+  const xp = Number(p.xp || 0)
+  const xpRequired = Number(p.xpRequired || 1)
+  const pct = Math.max(0, Math.min(100, Math.round((xp / Math.max(1, xpRequired)) * 100)))
+  const equip = topTeam((state.inventory && state.inventory.cards) || [], 4)
+  const badges = (p.titles || []).slice(0, 6)
+  const party = topTeam((state.inventory && state.inventory.cards) || [], 6)
+
+  panel.innerHTML = `
+   <article class="play-profile-card">
+    <div class="play-profile-main">
+     <div class="play-profile-avatar">${(p.discord && p.discord.displayName ? p.discord.displayName : "KC").slice(0, 2).toUpperCase()}</div>
+     <div>
+      <h2>${escapeHtml((p.discord && (p.discord.displayName || p.discord.username)) || state.me.id || "Dresseur")}</h2>
+      <p>${escapeHtml(p.title || "Nouveau")} - Niveau ${level}</p>
+      <div class="play-xp-bar"><span style="width:${pct}%"></span></div>
+      <small>${fmt(xp)} / ${fmt(xpRequired)} XP</small>
+     </div>
+    </div>
+
+    <div class="play-profile-grid">
+     <section>
+      <h3>Equipement</h3>
+      <div class="play-equipment">
+       ${equip.map((item) => `
+        <button class="play-equip-slot" data-card="${escapeHtml(item.cardId)}">
+         ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}">` : "<span>?</span>"}
+        </button>
+       `).join("")}
+      </div>
+     </section>
+     <section>
+      <h3>Equipe</h3>
+      <div class="play-party-icons">
+       ${party.map((item) => `
+        <button class="play-party-item" data-card="${escapeHtml(item.cardId)}">
+         <img src="${escapeHtml(item.imageUrl || "")}" alt="${escapeHtml(item.cardName)}" onerror="this.style.visibility='hidden'">
+         <small>Niv ${fmt(item.qty)}</small>
+        </button>
+       `).join("")}
+      </div>
+     </section>
+    </div>
+
+    <div class="play-profile-stats">
+     <div><span>Kamas</span><strong>${fmt(p.kamas)}</strong></div>
+     <div><span>Cartes</span><strong>${fmt(p.totalCards)}</strong></div>
+     <div><span>Uniques</span><strong>${fmt(p.uniqueCards)} / ${fmt(p.maxCards)}</strong></div>
+     <div><span>Succes</span><strong>${fmt(p.achievements)}</strong></div>
+    </div>
+
+    <div class="play-badges">
+     ${badges.length ? badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("") : "<span>Aucun badge</span>"}
+    </div>
+   </article>
+  `
+ }
+
+ function renderTeam() {
+  const panel = document.getElementById("playTeam")
+  const team = topTeam((state.inventory && state.inventory.cards) || [], 6)
+
+  if (!team.length) {
+   panel.innerHTML = '<div class="play-empty"><h3>Equipe vide</h3></div>'
+   return
+  }
+
+  panel.innerHTML = `
+   <div class="play-team-list">
+    ${team.map((member) => {
+   const hp = Math.max(18, Math.min(100, 35 + Math.floor((rarityRank(member.rarity) + 1) * 8)))
+   const xp = Math.max(16, Math.min(100, 20 + (Number(member.qty || 0) % 81)))
+   return `
+      <button class="play-team-row" data-card="${escapeHtml(member.cardId)}">
+       <img src="${escapeHtml(member.imageUrl || "")}" alt="${escapeHtml(member.cardName)}" onerror="this.style.visibility='hidden'">
+       <div class="play-team-meta">
+        <strong>${escapeHtml(member.rarity || "C")} ${escapeHtml(member.cardName)}</strong>
+        <small>${escapeHtml(member.setName || member.set)} - Niv ${fmt(member.qty)}</small>
+        <div class="play-bars">
+         <div class="bar hp"><span style="width:${hp}%"></span></div>
+         <div class="bar xp"><span style="width:${xp}%"></span></div>
+        </div>
+       </div>
+      </button>
+     `
+  }).join("")}
+   </div>
+  `
+ }
+
+ function renderDetail(item) {
+  const detail = document.getElementById("playDetail")
+  if (!item) {
+   detail.innerHTML = '<div class="play-detail-inner"><h2>Selectionne un objet</h2></div>'
+   return
+  }
+
+  const rarityFactor = rarityRank(item.rarity) + 1
+  const score = Math.max(50, rarityFactor * 97 + Number(item.qty || 0) * 2)
+  const avgPrice = Math.max(120, rarityFactor * 780 + Number(item.qty || 0) * 14)
+  const seen = Number(item.qty || 0) > 0
+
+  const fragmentInfo = item.itemType === "fragment"
+   ? `<div><span>Fragment</span><strong>${item.fragmentNumber}/5</strong></div>`
+   : ""
+
+  const dexInfo = state.mode === "dex"
+   ? `<div><span>Statut</span><strong>${seen ? "Capture" : "Non capture"}</strong></div>`
+   : ""
+
+  detail.innerHTML = `
+   <div class="play-detail-inner">
+    <h2>${escapeHtml(item.cardName)}</h2>
+    <p>${escapeHtml(item.rarity || "C")} - ${escapeHtml(item.setName || item.set)}</p>
+    <div class="play-detail-img">
+     ${item.imageUrl
+   ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${!seen ? "silhouette" : ""}">`
+   : "<span>?</span>"}
+    </div>
+    <div class="play-detail-stats">
+     <div><span>Quantite</span><strong>${fmt(item.qty || 0)}</strong></div>
+     <div><span>ID</span><strong>#${escapeHtml(item.cardId)}</strong></div>
+     ${fragmentInfo}
+     ${dexInfo}
+     <div><span>Puissance</span><strong>${fmt(score)}</strong></div>
+     <div><span>Prix moyen</span><strong>${fmt(avgPrice)} kamas</strong></div>
+    </div>
+    <p class="play-detail-lore">Entree Krosmoz: objet rare utilise dans les packs, la fusion et les echanges entre joueurs.</p>
+   </div>
+  `
+ }
+
+ function updateSortLabel() {
+  document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri Qte v" : "Tri Qte ^"
+ }
+
+ function syncPanelVisibility() {
+  const controls = document.getElementById("playControls")
+  const subtabs = document.getElementById("inventorySubtabs")
+  const grid = document.getElementById("playGrid")
+  const profilePanel = document.getElementById("playProfile")
+  const teamPanel = document.getElementById("playTeam")
+  const title = document.getElementById("playTitle")
+
+  controls.style.display = "grid"
+  subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
+  grid.style.display = "grid"
+  profilePanel.style.display = "none"
+  teamPanel.style.display = "none"
+
+  if (state.mode === "profile") {
+   title.textContent = "CARTE DE DRESSEUR"
+   controls.style.display = "none"
+   grid.style.display = "none"
+   profilePanel.style.display = "block"
+  } else if (state.mode === "team") {
+   title.textContent = "MON EQUIPE"
+   controls.style.display = "none"
+   grid.style.display = "none"
+   teamPanel.style.display = "block"
+  } else if (state.mode === "dex") {
+   title.textContent = "MONSTRODEX"
+  } else {
+   title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
+  }
+ }
+
+ function renderCurrentMode() {
+  syncPanelVisibility()
+
+  if (state.mode === "profile") {
+   renderProfile()
+   const top = topTeam((state.inventory && state.inventory.cards) || [], 1)[0]
+   if (top) renderDetail(top)
+   return
+  }
+
+  if (state.mode === "team") {
+   renderTeam()
+   const top = topTeam((state.inventory && state.inventory.cards) || [], 1)[0]
+   if (top) renderDetail(top)
+   return
+  }
+
+  renderInventoryGrid()
+ }
+
+ function findItemById(id) {
+  return getActiveSource().find((x) => String(x.key || x.cardId) === String(id))
+   || ((state.inventory && state.inventory.cards) || []).find((x) => String(x.cardId) === String(id))
+   || state.groupedFragments.find((x) => String(x.key) === String(id))
+   || state.dex.find((x) => String(x.cardId) === String(id))
+ }
+
+ function bindEvents() {
+  document.getElementById("navToggle").addEventListener("click", () => {
+   document.getElementById("navLinks").classList.toggle("open")
+  })
+
+  document.querySelectorAll(".play-tab").forEach((tab) => {
+   tab.addEventListener("click", () => setMode(tab.dataset.mode))
+  })
+
+  document.querySelectorAll(".play-subtab").forEach((btn) => {
+   btn.addEventListener("click", () => setInventoryView(btn.dataset.view))
+  })
+
+  document.getElementById("searchInput").addEventListener("input", renderCurrentMode)
+  document.getElementById("setFilter").addEventListener("change", renderCurrentMode)
+  document.getElementById("rarityFilter").addEventListener("change", renderCurrentMode)
+  document.getElementById("sortBtn").addEventListener("click", () => {
+   state.sortDesc = !state.sortDesc
+   updateSortLabel()
+   renderCurrentMode()
+  })
+
+  document.getElementById("playGrid").addEventListener("click", (event) => {
+   const btn = event.target.closest(".play-card")
+   if (!btn) return
+   const item = findItemById(btn.dataset.id)
+   if (!item) return
+   state.selected = item
+   renderDetail(item)
+   renderCurrentMode()
+  })
+
+  document.getElementById("playTeam").addEventListener("click", (event) => {
+   const row = event.target.closest(".play-team-row")
+   if (!row) return
+   const item = findItemById(row.dataset.card)
+   if (!item) return
+   state.selected = item
+   renderDetail(item)
+  })
+
+  document.getElementById("playProfile").addEventListener("click", (event) => {
+   const slot = event.target.closest("[data-card]")
+   if (!slot) return
+   const item = findItemById(slot.dataset.card)
+   if (!item) return
+   state.selected = item
+   renderDetail(item)
+  })
+
+  document.getElementById("playRoster").addEventListener("click", (event) => {
+   const row = event.target.closest(".play-roster-item")
+   if (!row) return
+   const item = findItemById(row.dataset.card)
+   if (!item) return
+   state.selected = item
+   renderDetail(item)
+   document.querySelectorAll(".play-roster-item").forEach((x) => x.classList.remove("active"))
+   row.classList.add("active")
+  })
+ }
+
+ async function bootstrap() {
+  bindEvents()
+  updateSortLabel()
+  setMode(parseModeFromPath(), false)
+
+  try {
+   await loadData()
+   renderRoster()
+   renderCurrentMode()
+  } catch (_) {}
+ }
+
+ bootstrap()
+ </script>
+</body>
+</html>
