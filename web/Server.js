@@ -405,6 +405,8 @@ function computeGlobalStats() {
   totalKamas: row.totalKamas,
   packsOpened: row.packsOpened,
   fusions: row.fusions,
+  rouletteSpins: row.rouletteSpins,
+  pinataParticipations: row.pinataParticipations,
   achievements: row.achievements,
   guilds: guilds.length
  }

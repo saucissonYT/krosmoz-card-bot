@@ -511,7 +511,9 @@ function dbGlobalStats() {
    COALESCE(SUM(ssr_count), 0)    AS ssrOwned,
    COALESCE(SUM(packs_opened), 0) AS packsOpened,
    COALESCE(SUM(achievements), 0) AS achievements,
-   COALESCE(SUM(CAST(json_extract(data, '$.stats.fusions') AS INTEGER)), 0) AS fusions
+   COALESCE(SUM(CAST(json_extract(data, '$.stats.fusions') AS INTEGER)), 0) AS fusions,
+   COALESCE(SUM(CAST(json_extract(data, '$.stats.rouletteSpins') AS INTEGER)), 0) AS rouletteSpins,
+   COALESCE(SUM(CAST(json_extract(data, '$.stats.pinataParticipations') AS INTEGER)), 0) AS pinataParticipations
   FROM users
  `).get()
  return row

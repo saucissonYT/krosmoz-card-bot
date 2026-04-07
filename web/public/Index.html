@@ -88,6 +88,18 @@
      <div class="stat-label">Packs ouverts</div>
     </div>
     <div class="stat-item">
+     <div class="stat-value" id="stat-fusions">—</div>
+     <div class="stat-label">Fusions</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-roulettes">—</div>
+     <div class="stat-label">Roulettes</div>
+    </div>
+    <div class="stat-item">
+     <div class="stat-value" id="stat-pinatas">—</div>
+     <div class="stat-label">Pinatas</div>
+    </div>
+    <div class="stat-item">
      <div class="stat-value" id="stat-ssr">—</div>
      <div class="stat-label">SSR possédées</div>
     </div>
@@ -408,6 +420,9 @@
    animateValue(document.getElementById("stat-players"), data.players)
    animateValue(document.getElementById("stat-cards"), data.totalCards)
    animateValue(document.getElementById("stat-packs"), data.packsOpened)
+   animateValue(document.getElementById("stat-fusions"), Number(data.fusions || 0))
+   animateValue(document.getElementById("stat-roulettes"), Number(data.rouletteSpins || 0))
+   animateValue(document.getElementById("stat-pinatas"), Number(data.pinataParticipations || 0))
    animateValue(document.getElementById("stat-ssr"), data.ssrOwned)
    animateValue(document.getElementById("stat-guilds"), data.guilds)
    animateValue(document.getElementById("stat-achievements"), data.achievements)
