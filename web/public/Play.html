@@ -92,7 +92,11 @@
   gameMeta: null,
   selected: null
  }
- const PACK_BACK_IMAGE = "/assets/ui/carte-du-krosmoz.jpg"
+ const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
+ const PACK_BACK_IMAGE_BY_RARITY = {
+  S: "/assets/ui/pack-back-s.png",
+  SSR: "/assets/ui/pack-back-ssr.png"
+ }
  const SET_UNLOCK_THRESHOLD_PCT = 70
 const SET_UNLOCK_RULES = [
   { id: "incarnam", name: "Incarnam", levelRequired: 1, prevSet: null },
@@ -471,6 +475,11 @@ let packRevealTimers = []
   return String(rarity || "C").toUpperCase().replace(/[^A-Z]/g, "") || "C"
  }
 
+ function getPackBackImageForRarity(rarity) {
+  const token = getRarityToken(rarity)
+  return PACK_BACK_IMAGE_BY_RARITY[token] || PACK_BACK_IMAGE_DEFAULT
+ }
+
  function getPctClass(percent) {
   const pct = Number(percent || 0)
   if (pct >= 100) return "pct-100"
@@ -621,12 +630,13 @@ function showPackOpeningAnimation(payload) {
 
   grid.innerHTML = cards.map((card, index) => {
    const rarity = getRarityToken(card?.rarity)
+   const backImage = getPackBackImageForRarity(rarity)
    const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
    return `
     <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
      <div class="pack-reveal-inner">
       <div class="pack-reveal-face pack-reveal-back">
-       <img src="${PACK_BACK_IMAGE}" alt="Dos de carte Krosmoz">
+       <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
       </div>
       <div class="pack-reveal-face pack-reveal-front">
        <div class="pack-reveal-front-image">
