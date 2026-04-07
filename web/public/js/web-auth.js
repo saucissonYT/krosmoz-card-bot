@@ -42,6 +42,19 @@
 
  function setConnectedNavLink(connected) {
   if (!navLinks) return
+  const existingPlayLink = navLinks.querySelector('a[href="/play"]')
+  if (existingPlayLink && existingPlayLink.parentElement && existingPlayLink.parentElement.id !== "globalPlayNavItem") {
+   if (!connected) {
+    existingPlayLink.parentElement.style.display = "none"
+    existingPlayLink.classList.remove("active")
+    return
+   }
+   existingPlayLink.parentElement.style.display = ""
+   const p = String(window.location.pathname || "")
+   existingPlayLink.classList.toggle("active", p === "/play" || p.startsWith("/play/"))
+   return
+  }
+
   let playLi = navLinks.querySelector("#globalPlayNavItem")
   if (!connected) {
    if (playLi) playLi.remove()
