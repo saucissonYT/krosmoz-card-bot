@@ -94,7 +94,7 @@
  }
  const PACK_BACK_IMAGE = "/assets/ui/carte-du-krosmoz.jpg"
  const SET_UNLOCK_THRESHOLD_PCT = 70
- const SET_UNLOCK_RULES = [
+const SET_UNLOCK_RULES = [
   { id: "incarnam", name: "Incarnam", levelRequired: 1, prevSet: null },
   { id: "astrub", name: "Astrub", levelRequired: 11, prevSet: "incarnam" },
   { id: "amakna", name: "Amakna", levelRequired: 36, prevSet: "astrub" },
@@ -102,9 +102,10 @@
   { id: "kelba", name: "Kelba", levelRequired: 66, prevSet: "sufokia" },
   { id: "katrepat", name: "Katrepat", levelRequired: 81, prevSet: "kelba" },
   { id: "sberg", name: "Sberg", levelRequired: 96, prevSet: "katrepat" }
- ]
- let packRevealResolve = null
- let packRevealEscHandlerBound = false
+]
+let packRevealResolve = null
+let packRevealEscHandlerBound = false
+let packRevealTimers = []
 
  function escapeHtml(value) {
   const div = document.createElement("div")
@@ -389,7 +390,7 @@
    const openQty = parseSafeQty(openQtyInput?.value, 1, 25, 1)
    if (buyQtyInput) buyQtyInput.value = String(buyQty)
    if (openQtyInput) openQtyInput.value = String(openQty)
-   if (totalBox) totalBox.textContent = `${fmt(price * buyQty)} kamas`
+   if (totalBox) totalBox.textContent = `💰 ${fmt(price * buyQty)}`
    if (buyStockBox) buyStockBox.textContent = `${fmt(stock + buyQty)} packs après achat`
    if (stockBox) {
     const left = Math.max(0, stock - openQty)
@@ -508,13 +509,16 @@
   }
  }
 
- function closePackOpeningOverlay() {
-  const overlay = document.getElementById("packOpenOverlay")
-  if (!overlay || !overlay.classList.contains("open")) return
-  overlay.classList.remove("open")
-  overlay.classList.remove("complete")
-  overlay.setAttribute("aria-hidden", "true")
-  document.body.classList.remove("pack-opening-lock")
+function closePackOpeningOverlay() {
+ const overlay = document.getElementById("packOpenOverlay")
+ if (!overlay || !overlay.classList.contains("open")) return
+ for (const timer of packRevealTimers) window.clearTimeout(timer)
+ packRevealTimers = []
+ overlay.classList.remove("open")
+ overlay.classList.remove("complete")
+ overlay.classList.remove("multi-open")
+ overlay.setAttribute("aria-hidden", "true")
+ document.body.classList.remove("pack-opening-lock")
   const resolver = packRevealResolve
   packRevealResolve = null
   window.setTimeout(() => {
@@ -526,7 +530,7 @@
   if (typeof resolver === "function") resolver()
  }
 
- function ensurePackOpeningOverlay() {
+function ensurePackOpeningOverlay() {
   let overlay = document.getElementById("packOpenOverlay")
   if (!overlay) {
    overlay = document.createElement("div")
@@ -534,6 +538,12 @@
    overlay.className = "pack-open-overlay"
    overlay.setAttribute("aria-hidden", "true")
    overlay.innerHTML = `
+    <div class="pack-starfield pack-starfield-base" aria-hidden="true"></div>
+    <div class="pack-starfield pack-starfield-mid" aria-hidden="true"></div>
+    <div class="pack-starfield pack-starfield-top" aria-hidden="true"></div>
+    <div class="pack-stardust" aria-hidden="true">
+     ${Array.from({ length: 16 }, (_, idx) => `<span class="pack-stardust-dot dot-${idx + 1}"></span>`).join("")}
+    </div>
     <div class="pack-open-dialog" role="dialog" aria-modal="true" aria-label="Ouverture de pack">
      <button class="pack-open-close" type="button" data-pack-close aria-label="Fermer">×</button>
      <h3 id="packOpenTitle">Ouverture du Krosmoz</h3>
@@ -542,6 +552,7 @@
      <p id="packOpenFoot" class="pack-open-foot"></p>
      <div id="packOpenSummary" class="pack-open-summary"></div>
      <div class="pack-open-actions">
+      <button class="btn btn-outline" type="button" id="packSkipBtn">Skip animation</button>
       <button class="btn btn-gold" type="button" data-pack-close>Continuer</button>
      </div>
     </div>
@@ -563,10 +574,24 @@
    packRevealEscHandlerBound = true
   }
 
-  return overlay
- }
+ return overlay
+}
 
- function showPackOpeningAnimation(payload) {
+function completePackOpeningReveal() {
+ const overlay = document.getElementById("packOpenOverlay")
+ if (!overlay || !overlay.classList.contains("open")) return
+ for (const timer of packRevealTimers) window.clearTimeout(timer)
+ packRevealTimers = []
+ overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+ overlay.classList.add("complete")
+ const skipBtn = document.getElementById("packSkipBtn")
+ if (skipBtn) {
+  skipBtn.disabled = true
+  skipBtn.style.display = "none"
+ }
+}
+
+function showPackOpeningAnimation(payload) {
   const overlay = ensurePackOpeningOverlay()
   if (typeof packRevealResolve === "function") {
    const previous = packRevealResolve
@@ -582,14 +607,17 @@
   const result = getRevealCards(payload)
   const cards = result.visible
   const hiddenCount = result.hiddenCount
-  const allCards = Array.isArray(payload?.cards) ? payload.cards : []
-  const revealCards = Array.isArray(payload?.revealCards) ? payload.revealCards : []
-  const qty = Number(payload?.quantity || 1)
-  const kamasGain = Number(payload?.totals?.kamasGain || 0)
-  const fragmentsGain = Number(payload?.totals?.fragments || 0)
+ const allCards = Array.isArray(payload?.cards) ? payload.cards : []
+ const revealCards = Array.isArray(payload?.revealCards) ? payload.revealCards : []
+ const qty = Number(payload?.quantity || 1)
+ const kamasGain = Number(payload?.totals?.kamasGain || 0)
+ const fragmentsGain = Number(payload?.totals?.fragments || 0)
+ const skipBtn = document.getElementById("packSkipBtn")
+ for (const timer of packRevealTimers) window.clearTimeout(timer)
+ packRevealTimers = []
 
   title.textContent = "Ouverture du Krosmoz"
-  meta.textContent = `x${fmt(qty)} pack(s) | +${fmt(kamasGain)} kamas | ${fmt(fragmentsGain)} fragment(s)`
+  meta.textContent = `x${fmt(qty)} pack(s) | +💰 ${fmt(kamasGain)} | ${fmt(fragmentsGain)} fragment(s)`
 
   grid.innerHTML = cards.map((card, index) => {
    const rarity = getRarityToken(card?.rarity)
@@ -672,21 +700,38 @@
   `
 
   overlay.classList.remove("complete")
+  overlay.classList.toggle("multi-open", qty > 1)
   overlay.setAttribute("aria-hidden", "false")
   document.body.classList.add("pack-opening-lock")
+  if (skipBtn) {
+   skipBtn.disabled = false
+   skipBtn.style.display = ""
+   skipBtn.onclick = () => completePackOpeningReveal()
+  }
   window.requestAnimationFrame(() => {
    overlay.classList.add("open")
   })
 
   const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
+  const center = (cardEls.length - 1) / 2
   cardEls.forEach((el, index) => {
-    window.setTimeout(() => {
-     el.classList.add("revealed")
-    }, 1000 + (index * 560))
+   const tilt = (index - center) * 1.3
+   el.style.setProperty("--pack-tilt", `${Math.max(-8, Math.min(8, tilt))}deg`)
   })
-  window.setTimeout(() => {
+  cardEls.forEach((el, index) => {
+   const timer = window.setTimeout(() => {
+     el.classList.add("revealed")
+   }, 1000 + (index * 560))
+   packRevealTimers.push(timer)
+  })
+  const doneTimer = window.setTimeout(() => {
    overlay.classList.add("complete")
+   if (skipBtn) {
+    skipBtn.disabled = true
+    skipBtn.style.display = "none"
+   }
   }, 2300 + (cardEls.length * 560))
+  packRevealTimers.push(doneTimer)
 
   return new Promise((resolve) => {
    packRevealResolve = resolve
@@ -720,11 +765,9 @@
       <h2>Gestion des Packs</h2>
       <p>Achète puis ouvre tes packs sur le set de ton choix.</p>
      </div>
-     <div class="mode-kpi-grid mode-kpi-grid-4">
-      <div class="mode-kpi"><span>Prix unité</span><strong>${fmt(packPrice)} k</strong></div>
+     <div class="mode-kpi-grid mode-kpi-grid-2">
       <div class="mode-kpi"><span>Stock actuel</span><strong>${fmt(stock)}</strong></div>
-      <div class="mode-kpi"><span>Kamas</span><strong>${fmt(kamas)}</strong></div>
-      <div class="mode-kpi"><span>Sets débloqués</span><strong>${fmt(unlockedSets.length)}</strong></div>
+      <div class="mode-kpi"><span>Kamas</span><strong>💰 ${fmt(kamas)}</strong></div>
      </div>
     </header>
     <div class="mode-layout">
@@ -736,7 +779,7 @@
        <div class="pack-profile-main">
         <strong>${escapeHtml(playerName)}</strong>
         <small>${escapeHtml(playerTitle)} • Niveau ${fmt(level)}</small>
-        <small>${escapeHtml(guildName)} • ${fmt(kamas)} kamas</small>
+        <small>${escapeHtml(guildName)} • 💰 ${fmt(kamas)}</small>
        </div>
       </div>
       <div class="pack-next-unlock">
@@ -776,13 +819,12 @@
 
      <article class="mode-card">
       <h3>Achat de packs</h3>
-      <p class="mode-muted">Achete des packs avec tes kamas.</p>
+      <p class="mode-muted">Achete des packs avec tes 💰.</p>
       <label class="mode-label" for="buyPackQty">Quantité à acheter</label>
       <input id="buyPackQty" class="input" type="number" min="1" max="50" step="1" value="1">
-      <div class="mode-inline-stats mode-inline-stats-3">
-       <div><span>Kamas disponibles</span><strong>${fmt(kamas)} kamas</strong></div>
-       <div><span>Prix unite</span><strong>${fmt(packPrice)} kamas</strong></div>
-       <div><span>Cout total</span><strong id="packTotalCost">${fmt(packPrice)} kamas</strong></div>
+      <div class="mode-inline-stats">
+       <div><span>Kamas disponibles</span><strong>💰 ${fmt(kamas)}</strong></div>
+       <div><span>Cout total</span><strong id="packTotalCost">💰 ${fmt(packPrice)}</strong></div>
       </div>
       <div class="mode-inline-stats">
        <div><span>Stock actuel</span><strong>${fmt(stock)} packs</strong></div>
@@ -928,7 +970,7 @@
    showActionResult("packBuyResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
    return
   }
-  showActionResult("packBuyResultBox", `<p><strong>Achat valide:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
+  showActionResult("packBuyResultBox", `<p><strong>Achat valide:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: 💰 ${fmt(res.data?.kamas || 0)}</p>`)
   await reloadGameplayDataAndRender()
  }
 
@@ -940,7 +982,7 @@
    showActionResult("packOpenResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
    return
   }
-  showActionResult("packOpenResultBox", `<p><strong>Ouverture terminee:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
+  showActionResult("packOpenResultBox", `<p><strong>Ouverture terminee:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: 💰 ${fmt(res.data?.totals?.kamasGain || 0)} - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
   await showPackOpeningAnimation(res.data)
   await reloadGameplayDataAndRender()
  }
