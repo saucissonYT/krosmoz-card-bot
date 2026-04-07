@@ -402,18 +402,29 @@ body.auth-connected .hero {
 }
 
 .hero-buttons {
+ display: grid;
+ gap: 14px;
+ justify-items: center;
+ animation: fadeInUp 0.6s var(--ease) 0.3s both;
+}
+
+.hero-buttons-main {
  display: flex;
  gap: 16px;
  justify-content: center;
  flex-wrap: wrap;
- animation: fadeInUp 0.6s var(--ease) 0.3s both;
+}
+
+.hero-buttons-cta {
+ display: flex;
+ justify-content: center;
 }
 
 #heroPlayBtn {
- min-width: 220px;
- min-height: 64px;
- padding: 20px 56px;
- font-size: 1.2rem;
+ min-width: 260px;
+ min-height: 72px;
+ padding: 22px 64px;
+ font-size: 1.32rem;
  font-weight: 800;
  letter-spacing: 0.04em;
  justify-content: center;
@@ -1501,7 +1512,8 @@ body.auth-connected .hero {
 @media (max-width: 480px) {
  .container { padding: 0 16px; }
  .stats-bar { grid-template-columns: 1fr 1fr; gap: 10px; }
- .hero-buttons { flex-direction: column; align-items: center; }
+ .hero-buttons-main { flex-direction: column; align-items: center; }
+ #heroPlayBtn { min-width: 220px; min-height: 66px; padding: 18px 48px; font-size: 1.16rem; }
  .rarity-grid { grid-template-columns: repeat(2, 1fr); }
  .toolbar { grid-template-columns: 1fr; }
  .cards-dense { grid-template-columns: 1fr; }
