@@ -1476,65 +1476,73 @@ function renderFusion() {
     </div>
    </header>
    <article class="mode-card fusion-simple-card">
-    <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
-     <div class="fusion-simple-ring">
-      <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
-      <div class="fusion-forge-core fusion-simple-core"></div>
-      <div id="fusionForgeResult" class="fusion-forge-result">
-       <div class="fusion-forge-result-card">
-        <img id="fusionForgeResultImage" alt="Résultat de fusion">
+    <div class="fusion-simple-workspace">
+     <div class="fusion-simple-left">
+      <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
+       <div class="fusion-simple-ring">
+        <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
+        <div id="fusionForgeResult" class="fusion-forge-result">
+         <div class="fusion-forge-result-card">
+          <img id="fusionForgeResultImage" alt="Résultat de fusion">
+         </div>
+         <strong id="fusionForgeResultName">Carte finale</strong>
+        </div>
        </div>
-       <strong id="fusionForgeResultName">Carte finale</strong>
+       <div class="fusion-simple-anvil-box">
+        <img src="/assets/ui/enclume.png" alt="Enclume" class="fusion-simple-anvil">
+       </div>
+       <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
       </div>
      </div>
-     <div class="fusion-simple-anvil-box">
-      <img src="/assets/ui/enclume.png" alt="Enclume" class="fusion-simple-anvil">
-     </div>
-     <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
+
+     <aside class="fusion-simple-right">
+      <div class="fusion-simple-controls">
+       <div class="fusion-simple-main-row">
+        <div class="fusion-simple-set-cell">
+         <label class="mode-label" for="fusionSetInput">Set</label>
+         <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+          ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
+         </select>
+        </div>
+        <div class="fusion-simple-qty-actions">
+         <div>
+          <label class="mode-label" for="fusionQtyInput">Quantité</label>
+          <input id="fusionQtyInput" class="input" type="number" min="1" max="25" step="1" value="${fmt(state.fusionUi.quantity || 1)}">
+         </div>
+         <div class="fusion-simple-validate-cell">
+          <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Valider</button>
+         </div>
+        </div>
+       </div>
+
+       <div class="fusion-simple-step-grid">
+        ${hasRows
+         ? fusionRows.map((row) => {
+          const token = String(row.rarity || "C").toUpperCase()
+          const next = getNextRarityFromMeta(token)
+          const info = getDuplicateInfoForFusion(activeSetId, token)
+          const active = token === activeRarity
+          const nextEmoji = next ? getRarityEmoji(next) : ""
+          const tokenEmoji = getRarityEmoji(token)
+          return `
+           <button type="button" class="fusion-simple-step ${active ? "active" : ""}" data-rarity="${escapeHtml(token)}">
+            <span>${escapeHtml(tokenEmoji)} ${escapeHtml(token)} > ${escapeHtml(nextEmoji)} ${escapeHtml(next || "-")}</span>
+            <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</small>
+           </button>
+          `
+         }).join("")
+         : '<p class="mode-muted">Aucune conversion disponible.</p>'}
+       </div>
+
+       <p id="fusionInfoLine" class="mode-muted"></p>
+       <div id="fusionResultBox" class="action-result mode-result"></div>
+      </div>
+     </aside>
     </div>
 
-    <div class="fusion-simple-controls">
-     <div class="fusion-simple-main-row">
-      <div>
-       <label class="mode-label" for="fusionSetInput">Set</label>
-       <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-        ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
-       </select>
-      </div>
-      <div>
-       <label class="mode-label" for="fusionQtyInput">Quantité</label>
-       <input id="fusionQtyInput" class="input" type="number" min="1" max="25" step="1" value="${fmt(state.fusionUi.quantity || 1)}">
-      </div>
-      <div class="fusion-simple-validate-cell">
-       <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Valider</button>
-      </div>
-     </div>
-
-     <div class="fusion-simple-step-grid">
-      ${hasRows
-       ? fusionRows.map((row) => {
-        const token = String(row.rarity || "C").toUpperCase()
-        const next = getNextRarityFromMeta(token)
-        const info = getDuplicateInfoForFusion(activeSetId, token)
-        const active = token === activeRarity
-        const nextEmoji = next ? getRarityEmoji(next) : ""
-        const tokenEmoji = getRarityEmoji(token)
-        return `
-         <button type="button" class="fusion-simple-step ${active ? "active" : ""}" data-rarity="${escapeHtml(token)}">
-          <span>${escapeHtml(tokenEmoji)} ${escapeHtml(token)} > ${escapeHtml(nextEmoji)} ${escapeHtml(next || "-")}</span>
-          <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</small>
-         </button>
-        `
-       }).join("")
-       : '<p class="mode-muted">Aucune conversion disponible.</p>'}
-     </div>
-
-     <p id="fusionInfoLine" class="mode-muted"></p>
-     <div id="fusionResultBox" class="action-result mode-result"></div>
-     <div class="fusion-simple-history">
-      <h3>Historique</h3>
-      <div id="fusionHistoryList" class="fusion-history-list"></div>
-     </div>
+    <div class="fusion-simple-history">
+     <h3>Historique</h3>
+     <div id="fusionHistoryList" class="fusion-history-list"></div>
     </div>
    </article>
   </section>
