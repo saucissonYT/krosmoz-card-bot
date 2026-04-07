@@ -741,16 +741,18 @@ function showPackOpeningAnimation(payload) {
    return `
     <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
      <div class="pack-reveal-inner">
-      <div class="pack-reveal-face pack-reveal-back">
-       <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
-      </div>
-      <div class="pack-reveal-face pack-reveal-front">
-       <div class="pack-reveal-front-image">
-       ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
+      <div class="pack-reveal-core">
+       <div class="pack-reveal-face pack-reveal-back">
+        <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
        </div>
-       <div class="pack-reveal-front-meta">
-        <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
-        <small>x1 ${newBadge}</small>
+       <div class="pack-reveal-face pack-reveal-front">
+        <div class="pack-reveal-front-image">
+        ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
+        </div>
+        <div class="pack-reveal-front-meta">
+         <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
+         <small>x1 ${newBadge}</small>
+        </div>
        </div>
       </div>
      </div>
@@ -789,32 +791,35 @@ function showPackOpeningAnimation(payload) {
   function getRevealProfile(cardEl, mode = "single") {
    const rarity = getRevealRarity(cardEl)
    const baseGap = mode === "multi" ? 95 : 780
+   const flipDuration = 1250
    if (rarity === "SSR") {
     const focusIn = 220
-    const focusHold = 2000
+    const rectoHold = 2000
     const focusOut = 320
-    const nextGap = focusIn + focusHold + focusOut + (mode === "multi" ? 160 : 220)
+    const nextGap = focusIn + flipDuration + rectoHold + focusOut + (mode === "multi" ? 160 : 220)
     return {
      rarity,
      isRare: true,
      focusIn,
-     focusHold,
+     rectoHold,
      focusOut,
+     flipDuration,
      scale: window.innerWidth < 720 ? 1.85 : 2,
      nextGap
     }
    }
    if (rarity === "S") {
     const focusIn = 190
-    const focusHold = 2000
+    const rectoHold = 2000
     const focusOut = 260
-    const nextGap = focusIn + focusHold + focusOut + (mode === "multi" ? 160 : 220)
+    const nextGap = focusIn + flipDuration + rectoHold + focusOut + (mode === "multi" ? 160 : 220)
     return {
      rarity,
      isRare: true,
      focusIn,
-     focusHold,
+     rectoHold,
      focusOut,
+     flipDuration,
      scale: window.innerWidth < 720 ? 1.62 : 1.82,
      nextGap
     }
@@ -823,8 +828,9 @@ function showPackOpeningAnimation(payload) {
     rarity,
     isRare: false,
     focusIn: 0,
-    focusHold: 0,
+    rectoHold: 0,
     focusOut: 0,
+    flipDuration: 0,
     scale: 1,
     nextGap: baseGap
    }
@@ -860,21 +866,23 @@ function showPackOpeningAnimation(payload) {
    if (profile.rarity === "SSR") cardEl.classList.add("rare-focus-ssr")
    cardEl.classList.add("rare-focus")
    const focusIn = profile.focusIn
-   const focusHold = profile.focusHold
+   const rectoHold = profile.rectoHold
+   const flipDuration = profile.flipDuration
    const focusOut = profile.focusOut
    const flipTimer = window.setTimeout(() => {
     cardEl.classList.add("revealed")
    }, focusIn)
+   const settleAt = focusIn + flipDuration + rectoHold
    const settleTimer = window.setTimeout(() => {
     cardEl.classList.remove("rare-focus")
     cardEl.classList.add("rare-return")
-   }, focusIn + focusHold)
+   }, settleAt)
    const clearTimer = window.setTimeout(() => {
     cardEl.classList.remove("rare-return", "rare-focus-ssr")
     cardEl.style.removeProperty("--rare-shift-x")
     cardEl.style.removeProperty("--rare-shift-y")
     cardEl.style.removeProperty("--rare-scale")
-   }, focusIn + focusHold + focusOut)
+   }, settleAt + focusOut)
    packRevealTimers.push(flipTimer, settleTimer, clearTimer)
   }
 

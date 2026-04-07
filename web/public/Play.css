@@ -1059,11 +1059,18 @@ body.pack-opening-lock {
  aspect-ratio: 0.69;
  border-radius: 12px;
  box-shadow: none;
+}
+
+.pack-reveal-core {
+ position: relative;
+ width: 100%;
+ height: 100%;
+ border-radius: 12px;
  transform-style: preserve-3d;
  transition: transform 1.25s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.pack-reveal-card.revealed .pack-reveal-inner {
+.pack-reveal-card.revealed .pack-reveal-core {
  transform: rotateY(180deg);
 }
 
