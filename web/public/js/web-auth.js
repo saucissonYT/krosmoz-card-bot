@@ -45,7 +45,7 @@
    playEl.className = "btn btn-gold btn-auth-top btn-play-top"
    right.insertBefore(playEl, btn)
   }
-  playEl.textContent = isPlayPage ? "Hub Jeu" : "Jouer"
+  playEl.textContent = isPlayPage ? "Accueil Jeu" : "Jouer"
   if (connected) {
    playEl.href = "/play"
    return

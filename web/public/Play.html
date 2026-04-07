@@ -36,9 +36,9 @@
       <h1 id="playTitle">INVENTAIRE</h1>
       <div class="play-tabs">
        <button class="play-tab" data-mode="inventory">Inventaire</button>
-       <button class="play-tab" data-mode="profile">Carte Dresseur</button>
-       <button class="play-tab" data-mode="team">Mon Equipe</button>
-       <button class="play-tab" data-mode="dex">Monstrodex</button>
+       <button class="play-tab" data-mode="profile">Profil</button>
+       <button class="play-tab" data-mode="team">Deck</button>
+       <button class="play-tab" data-mode="dex">Catalogue</button>
       </div>
      </header>
 
@@ -329,7 +329,7 @@
   grid.innerHTML = items.map((item) => {
    const selected = state.selected && String(state.selected.key || state.selected.cardId) === String(item.key || item.cardId)
    let label = `x${fmt(item.qty)}`
-   if (state.mode === "dex") label = item.qty > 0 ? `Capture x${fmt(item.qty)}` : "Inconnu"
+   if (state.mode === "dex") label = item.qty > 0 ? `Possede x${fmt(item.qty)}` : "Non possede"
    if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
 
    return `
@@ -463,7 +463,7 @@
    : ""
 
   const dexInfo = state.mode === "dex"
-   ? `<div><span>Statut</span><strong>${seen ? "Capture" : "Non capture"}</strong></div>`
+   ? `<div><span>Statut</span><strong>${seen ? "Possede" : "Non possede"}</strong></div>`
    : ""
 
   detail.innerHTML = `
@@ -507,17 +507,17 @@
   teamPanel.style.display = "none"
 
   if (state.mode === "profile") {
-   title.textContent = "CARTE DE DRESSEUR"
+   title.textContent = "PROFIL JOUEUR"
    controls.style.display = "none"
    grid.style.display = "none"
    profilePanel.style.display = "block"
   } else if (state.mode === "team") {
-   title.textContent = "MON EQUIPE"
+   title.textContent = "MON DECK"
    controls.style.display = "none"
    grid.style.display = "none"
    teamPanel.style.display = "block"
   } else if (state.mode === "dex") {
-   title.textContent = "MONSTRODEX"
+   title.textContent = "CATALOGUE CARTES"
   } else {
    title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
   }
