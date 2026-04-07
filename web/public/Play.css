@@ -1039,11 +1039,11 @@ body.pack-opening-lock {
  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
 }
 
-.pack-open-overlay.open .pack-reveal-card.rare-focus .pack-reveal-inner {
+.pack-open-overlay.open .pack-reveal-card.rare-focus:not(.revealed) .pack-reveal-inner {
  animation: rareCardShake 0.1s linear infinite;
 }
 
-.pack-open-overlay.open .pack-reveal-card.rare-focus.rare-focus-ssr .pack-reveal-inner {
+.pack-open-overlay.open .pack-reveal-card.rare-focus.rare-focus-ssr:not(.revealed) .pack-reveal-inner {
  animation: rareCardShakeStrong 0.08s linear infinite;
 }
 
