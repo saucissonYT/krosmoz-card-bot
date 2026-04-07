@@ -593,6 +593,7 @@ function completePackOpeningReveal() {
  for (const timer of packRevealTimers) window.clearTimeout(timer)
  packRevealTimers = []
  overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+ overlay.querySelectorAll(".pack-reveal-tier").forEach((tier) => tier.classList.add("active"))
  overlay.classList.add("complete")
  const skipBtn = document.getElementById("packSkipBtn")
  const replayBtn = document.getElementById("packReplayBtn")
@@ -677,40 +678,57 @@ function showPackOpeningAnimation(payload) {
   meta.textContent = `x${fmt(qty)} pack(s) | +💰 ${fmt(kamasGain)} | ${fmt(fragmentsGain)} fragment(s)`
   const revealGroups = buildPackRevealGroups(payload, revealCards)
   const hasMultiGroups = qty > 1 && revealGroups.length > 1
-  let activeGroupIndex = 0
+  const firstGroupCards = Array.isArray(revealGroups[0]?.cards) ? revealGroups[0].cards : []
 
-  function renderGridForCards(cardsToRender) {
-   const cards = Array.isArray(cardsToRender) ? cardsToRender : []
-   grid.classList.toggle("pack-open-grid-six", cards.length === 6)
-   overlay.classList.toggle("single-pack-six", qty === 1 && cards.length === 6)
-   grid.innerHTML = cards.map((card) => {
-    const rarity = getRarityToken(card?.rarity)
-    const backImage = getPackBackImageForRarity(rarity)
-    const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
-    return `
-     <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
-      <div class="pack-reveal-inner">
-       <div class="pack-reveal-face pack-reveal-back">
-        <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
+  function renderCardMarkup(card) {
+   const rarity = getRarityToken(card?.rarity)
+   const backImage = getPackBackImageForRarity(rarity)
+   const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
+   return `
+    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
+     <div class="pack-reveal-inner">
+      <div class="pack-reveal-face pack-reveal-back">
+       <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
+      </div>
+      <div class="pack-reveal-face pack-reveal-front">
+       <div class="pack-reveal-front-image">
+       ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
        </div>
-       <div class="pack-reveal-face pack-reveal-front">
-        <div class="pack-reveal-front-image">
-        ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
-        </div>
-        <div class="pack-reveal-front-meta">
-         <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
-         <small>x1 ${newBadge}</small>
-        </div>
+       <div class="pack-reveal-front-meta">
+        <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
+        <small>x1 ${newBadge}</small>
        </div>
       </div>
-     </article>
-    `
-   }).join("")
+     </div>
+    </article>
+   `
   }
 
-  function setFootText(cardsToRender) {
+  function renderSingleGroup(cardsToRender) {
+   const cards = Array.isArray(cardsToRender) ? cardsToRender : []
+   grid.classList.remove("pack-open-grid-stack")
+   grid.classList.toggle("pack-open-grid-six", cards.length === 6)
+   overlay.classList.toggle("single-pack-six", qty === 1 && cards.length === 6)
+   grid.innerHTML = cards.map((card) => renderCardMarkup(card)).join("")
+  }
+
+  function renderMultiStack() {
+   grid.classList.remove("pack-open-grid-six")
+   grid.classList.add("pack-open-grid-stack")
+   overlay.classList.remove("single-pack-six")
+   grid.innerHTML = revealGroups.map((group) => `
+    <section class="pack-reveal-tier" data-tier-index="${Math.max(0, Number(group.index || 1) - 1)}">
+     <header class="pack-reveal-tier-head">Pack ${fmt(group.index)}${group.lucky ? " • Lucky" : ""} • ${fmt((group.cards || []).length)} cartes</header>
+     <div class="pack-reveal-tier-cards ${(group.cards || []).length === 6 ? "pack-reveal-tier-cards-six" : ""}">
+      ${(group.cards || []).map((card) => renderCardMarkup(card)).join("")}
+     </div>
+    </section>
+   `).join("")
+  }
+
+  function setFootText() {
    if (hasMultiGroups) {
-    foot.textContent = `Ouverture ${fmt(activeGroupIndex + 1)}/${fmt(revealGroups.length)} • ${fmt(cardsToRender.length)} carte(s)`
+    foot.textContent = "Ouverture progressive en etages (pack par pack). Fais defiler la fenetre pour tout voir."
     return
    }
    foot.textContent = "Toutes les cartes tirées sont listées dans le recap ci-dessous."
@@ -728,15 +746,16 @@ function showPackOpeningAnimation(payload) {
    }
   }
 
-  function runRevealForActiveGroup(animated) {
+  function runRevealAnimation(animated) {
    for (const timer of packRevealTimers) window.clearTimeout(timer)
    packRevealTimers = []
    overlay.classList.remove("complete")
-
-   const currentGroup = revealGroups[Math.max(0, Math.min(revealGroups.length - 1, activeGroupIndex))] || { cards: [] }
-   const cardsToReveal = Array.isArray(currentGroup.cards) ? currentGroup.cards : []
-   renderGridForCards(cardsToReveal)
-   setFootText(cardsToReveal)
+   if (hasMultiGroups) {
+    renderMultiStack()
+   } else {
+    renderSingleGroup(firstGroupCards)
+   }
+   setFootText()
 
    if (replayBtn) {
     replayBtn.disabled = true
@@ -745,6 +764,7 @@ function showPackOpeningAnimation(payload) {
 
    if (!animated) {
     grid.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+    grid.querySelectorAll(".pack-reveal-tier").forEach((tier) => tier.classList.add("active"))
     showCompleteState()
     return
    }
@@ -752,6 +772,32 @@ function showPackOpeningAnimation(payload) {
    if (skipBtn) {
     skipBtn.disabled = false
     skipBtn.style.display = ""
+   }
+
+   if (hasMultiGroups) {
+    const tiers = [...grid.querySelectorAll(".pack-reveal-tier")]
+    let latestRevealAt = 0
+    tiers.forEach((tier, tierIndex) => {
+     const tierCards = [...tier.querySelectorAll(".pack-reveal-card")]
+     const tierStart = 380 + (tierIndex * 520)
+     const tierMarkTimer = window.setTimeout(() => {
+      tier.classList.add("active")
+     }, Math.max(0, tierStart - 110))
+     packRevealTimers.push(tierMarkTimer)
+     tierCards.forEach((cardEl, cardIndex) => {
+      const revealAt = tierStart + (cardIndex * 95)
+      const timer = window.setTimeout(() => {
+       cardEl.classList.add("revealed")
+      }, revealAt)
+      packRevealTimers.push(timer)
+      latestRevealAt = Math.max(latestRevealAt, revealAt)
+     })
+    })
+    const doneTimer = window.setTimeout(() => {
+     showCompleteState()
+    }, latestRevealAt + 460)
+    packRevealTimers.push(doneTimer)
+    return
    }
 
    const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
@@ -763,7 +809,6 @@ function showPackOpeningAnimation(payload) {
     }, revealStartDelay + (index * revealStepDelay))
     packRevealTimers.push(timer)
    })
-
    const doneTimer = window.setTimeout(() => {
     showCompleteState()
    }, 2800 + (cardEls.length * revealStepDelay))
@@ -771,28 +816,8 @@ function showPackOpeningAnimation(payload) {
   }
 
   if (selectorBox) {
-   if (hasMultiGroups) {
-    selectorBox.style.display = "grid"
-    selectorBox.innerHTML = `
-     <label class="mode-label" for="packRevealSelect">Ouverture</label>
-     <select id="packRevealSelect" class="input input-select">
-      ${revealGroups.map((group, index) =>
-       `<option value="${index}">Pack ${fmt(group.index)}${group.lucky ? " • Lucky" : ""} (${fmt(group.cards.length)} cartes)</option>`
-      ).join("")}
-     </select>
-    `
-    const select = selectorBox.querySelector("#packRevealSelect")
-    if (select) {
-     select.value = String(activeGroupIndex)
-     select.addEventListener("change", () => {
-      activeGroupIndex = Math.max(0, Math.min(revealGroups.length - 1, Number(select.value || 0)))
-      runRevealForActiveGroup(false)
-     })
-    }
-   } else {
-    selectorBox.style.display = "none"
-    selectorBox.innerHTML = ""
-   }
+   selectorBox.style.display = "none"
+   selectorBox.innerHTML = ""
   }
 
   const pityCounters = payload?.pity?.counters || {}
@@ -872,7 +897,7 @@ function showPackOpeningAnimation(payload) {
    overlay.classList.add("open")
   })
 
-  runRevealForActiveGroup(true)
+  runRevealAnimation(true)
 
   return new Promise((resolve) => {
    packRevealResolve = resolve
