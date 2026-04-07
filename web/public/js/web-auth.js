@@ -2,6 +2,7 @@
  const btn = document.getElementById("globalAuthBtn")
  if (!btn) return
  const right = btn.parentElement
+ const navLinks = document.getElementById("navLinks")
 
  function setAuthState(text) {
   if (!right) return
@@ -39,6 +40,30 @@
   profileEl.href = `/profile/${encodeURIComponent(String(userId))}`
  }
 
+ function setConnectedNavLink(connected) {
+  if (!navLinks) return
+  let playLi = navLinks.querySelector("#globalPlayNavItem")
+  if (!connected) {
+   if (playLi) playLi.remove()
+   return
+  }
+
+  if (!playLi) {
+   playLi = document.createElement("li")
+   playLi.id = "globalPlayNavItem"
+   const a = document.createElement("a")
+   a.href = "/play"
+   a.textContent = "Mon Jeu"
+   playLi.appendChild(a)
+   navLinks.appendChild(playLi)
+  }
+
+  const link = playLi.querySelector("a")
+  if (!link) return
+  const p = String(window.location.pathname || "")
+  link.classList.toggle("active", p === "/play" || p.startsWith("/play/"))
+ }
+
  let status = null
  try {
   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
@@ -48,6 +73,7 @@
  if (!status?.enabled) {
   setAuthState("")
   setProfileLink(null)
+  setConnectedNavLink(false)
   btn.textContent = "Connexion indisponible"
   btn.setAttribute("aria-disabled", "true")
   btn.style.pointerEvents = "none"
@@ -58,6 +84,7 @@
  if (!status.connected) {
   setAuthState("")
   setProfileLink(null)
+  setConnectedNavLink(false)
   btn.textContent = "Connexion Discord"
   const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
@@ -72,6 +99,7 @@
 
  setAuthState("")
  setProfileLink(me?.id || status.userId)
+ setConnectedNavLink(true)
 
  btn.textContent = "Deconnexion"
  btn.href = "#"
