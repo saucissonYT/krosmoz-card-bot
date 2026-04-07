@@ -128,6 +128,14 @@ body::after {
  padding-top: 80px;
 }
 
+body.auth-connected .page {
+ padding-top: 118px;
+}
+
+body.auth-connected .hero {
+ padding-top: 156px;
+}
+
 /* -------- NAVBAR -------- */
 
 .navbar {
@@ -218,6 +226,55 @@ body::after {
 
 .navbar-links a:hover::after,
 .navbar-links a.active::after {
+ width: 100%;
+}
+
+.navbar-subnav {
+ border-top: 1px solid rgba(201, 168, 76, 0.08);
+}
+
+.navbar-subnav-inner {
+ max-width: 1700px;
+ margin: 0 auto;
+ padding: 6px 38px 8px;
+}
+
+.navbar-subnav-links {
+ display: flex;
+ gap: 22px;
+ list-style: none;
+ align-items: center;
+ white-space: nowrap;
+ overflow-x: auto;
+}
+
+.navbar-subnav-links a {
+ font-size: 0.92rem;
+ font-weight: 500;
+ color: var(--text-secondary);
+ position: relative;
+ padding: 4px 0;
+ transition: color 0.25s var(--ease);
+}
+
+.navbar-subnav-links a::after {
+ content: '';
+ position: absolute;
+ bottom: -2px;
+ left: 0;
+ width: 0;
+ height: 2px;
+ background: var(--gold);
+ transition: width 0.3s var(--ease);
+}
+
+.navbar-subnav-links a:hover,
+.navbar-subnav-links a.active {
+ color: var(--gold);
+}
+
+.navbar-subnav-links a:hover::after,
+.navbar-subnav-links a.active::after {
  width: 100%;
 }
 
@@ -430,7 +487,13 @@ body::after {
   padding: 0 24px;
   column-gap: 16px;
  }
+ .navbar-subnav-inner {
+  padding: 6px 24px 8px;
+ }
  .navbar-links {
+  gap: 16px;
+ }
+ .navbar-subnav-links {
   gap: 16px;
  }
  .navbar-links a {
@@ -1375,6 +1438,10 @@ body::after {
 @media (max-width: 768px) {
  .navbar-links { display: none; }
  .nav-toggle { display: block; }
+ .navbar-subnav-inner { padding: 6px 16px 8px; }
+ .navbar-subnav-links { gap: 14px; }
+ body.auth-connected .page { padding-top: 112px; }
+ body.auth-connected .hero { padding-top: 148px; }
 
  .navbar-links.open {
   display: flex;

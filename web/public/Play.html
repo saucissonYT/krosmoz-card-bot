@@ -24,17 +24,6 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
    </div>
   </div>
-  <div class="navbar-play-submenu">
-   <div class="play-tabs">
-    <button class="play-tab" data-mode="inventory">Inventaire</button>
-    <button class="play-tab" data-mode="packs">Packs</button>
-    <button class="play-tab" data-mode="fusion">Fusion</button>
-    <button class="play-tab" data-mode="craft">Craft</button>
-    <a class="play-tab-link" href="/profile/">Profil</a>
-    <a class="play-tab-link" href="/market">Marché</a>
-    <a class="play-tab-link" href="/achievements">Achievements</a>
-   </div>
-  </div>
  </nav>
 
  <div class="page">
@@ -143,8 +132,8 @@
  function setMode(mode, updateUrl = true) {
   state.mode = mode
   state.selected = null
-  document.querySelectorAll(".play-tab[data-mode]").forEach((tab) => {
-   tab.classList.toggle("active", tab.dataset.mode === mode)
+  document.querySelectorAll("[data-play-mode]").forEach((tab) => {
+   tab.classList.toggle("active", tab.dataset.playMode === mode)
   })
   if (updateUrl && MODE_PATH[mode]) window.history.replaceState({}, "", MODE_PATH[mode])
   renderCurrentMode()
@@ -472,8 +461,11 @@
    document.getElementById("navLinks").classList.toggle("open")
   })
 
-  document.querySelectorAll(".play-tab[data-mode]").forEach((tab) => {
-   tab.addEventListener("click", () => setMode(tab.dataset.mode))
+  document.addEventListener("click", (event) => {
+   const link = event.target.closest("[data-play-mode]")
+   if (!link) return
+   event.preventDefault()
+   setMode(link.dataset.playMode)
   })
 
   document.querySelectorAll(".play-subtab").forEach((btn) => {

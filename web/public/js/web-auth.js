@@ -3,10 +3,49 @@
  if (!btn) return
  const right = btn.parentElement
  const navLinks = document.getElementById("navLinks")
+ const navbar = document.querySelector(".navbar")
 
  function setAuthBodyClass(connected) {
   if (!document || !document.body) return
   document.body.classList.toggle("auth-connected", Boolean(connected))
+ }
+
+ function setPlaySubnav(connected) {
+  if (!navbar) return
+  let subnav = navbar.querySelector("#globalPlaySubnav")
+
+  if (!connected) {
+    if (subnav) subnav.remove()
+    return
+  }
+
+  if (!subnav) {
+   subnav = document.createElement("div")
+   subnav.id = "globalPlaySubnav"
+   subnav.className = "navbar-subnav"
+   subnav.innerHTML = `
+    <div class="navbar-subnav-inner">
+     <ul class="navbar-subnav-links">
+      <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
+      <li><a href="/play/packs" data-play-mode="packs">Packs</a></li>
+      <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
+      <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/profile/">Profil</a></li>
+      <li><a href="/market">Marché</a></li>
+      <li><a href="/achievements">Achievements</a></li>
+     </ul>
+    </div>
+   `
+   navbar.appendChild(subnav)
+  }
+
+  const p = String(window.location.pathname || "")
+  subnav.querySelectorAll("a").forEach((a) => {
+   const href = String(a.getAttribute("href") || "")
+   const isPlayMode = Boolean(a.dataset.playMode) && p.startsWith("/play/")
+   const active = isPlayMode ? (href === p) : (href === p || (href !== "/" && p.startsWith(`${href}/`)))
+   a.classList.toggle("active", active)
+  })
  }
 
  function setAuthState(text) {
@@ -90,6 +129,7 @@
 
  if (!status?.enabled) {
   setAuthBodyClass(false)
+  setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
@@ -102,6 +142,7 @@
 
  if (!status.connected) {
   setAuthBodyClass(false)
+  setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
@@ -118,6 +159,7 @@
  } catch (_) {}
 
  setAuthBodyClass(true)
+ setPlaySubnav(true)
  setAuthState("")
  setProfileLink(me?.id || status.userId)
  setConnectedNavLink(true)

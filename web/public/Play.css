@@ -2,19 +2,8 @@
  padding-top: 84px;
 }
 
-.navbar-play-submenu {
- display: none;
- max-width: 1700px;
- margin: 0 auto;
- padding: 0 38px 8px;
-}
-
-body.auth-connected .navbar-play-submenu {
- display: block;
-}
-
-body.play-page.auth-connected .page {
- padding-top: 140px;
+.play-page.auth-connected .page {
+ padding-top: 118px;
 }
 
 .play-shell {
@@ -476,6 +465,9 @@ body.play-page.auth-connected .page {
 }
 
 @media (max-width: 640px) {
+ .play-page.auth-connected .page {
+  padding-top: 112px;
+ }
  .play-shell {
   grid-template-columns: 1fr;
  }
