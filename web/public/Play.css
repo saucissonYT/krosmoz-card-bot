@@ -929,6 +929,15 @@ body.pack-opening-lock {
  margin-bottom: 14px;
 }
 
+.pack-open-pack-selector {
+ display: grid;
+ grid-template-columns: auto minmax(220px, 320px);
+ align-items: center;
+ justify-content: center;
+ gap: 8px;
+ margin-bottom: 12px;
+}
+
 .pack-open-grid {
  display: flex;
  flex-wrap: wrap;
@@ -936,6 +945,10 @@ body.pack-opening-lock {
  align-items: flex-start;
  gap: 12px;
  min-height: 250px;
+}
+
+.pack-open-grid.pack-open-grid-six .pack-reveal-card {
+ width: min(100%, 128px);
 }
 
 .pack-reveal-card {
@@ -950,14 +963,6 @@ body.pack-opening-lock {
 .pack-open-overlay.open .pack-reveal-card {
  opacity: 1;
  transform: translateY(0) scale(1);
-}
-
-.pack-open-overlay.multi-open .pack-reveal-card {
- transform: translateY(18px) scale(0.92) rotate(var(--pack-tilt, 0deg));
-}
-
-.pack-open-overlay.open.multi-open .pack-reveal-card {
- transform: translateY(0) scale(1) rotate(var(--pack-tilt, 0deg));
 }
 
 .pack-reveal-inner {
@@ -1043,54 +1048,29 @@ body.pack-opening-lock {
  font-weight: 700;
 }
 
-.pack-reveal-card.rarity-c .pack-reveal-front { border-color: rgba(139, 150, 184, 0.5); }
-.pack-reveal-card.rarity-u .pack-reveal-front { border-color: rgba(102, 180, 136, 0.55); }
-.pack-reveal-card.rarity-r .pack-reveal-front { border-color: rgba(88, 154, 255, 0.58); }
-.pack-reveal-card.rarity-sr .pack-reveal-front { border-color: rgba(147, 111, 255, 0.62); }
-.pack-reveal-card.rarity-hr .pack-reveal-front { border-color: rgba(255, 125, 201, 0.62); }
-.pack-reveal-card.rarity-ur .pack-reveal-front { border-color: rgba(76, 221, 255, 0.64); }
-.pack-reveal-card.rarity-s .pack-reveal-front { border-color: rgba(118, 203, 255, 0.68); }
-.pack-reveal-card.rarity-ssr .pack-reveal-front { border-color: rgba(242, 216, 123, 0.75); }
-
-.pack-reveal-card.rarity-c .pack-reveal-front,
-.pack-reveal-card.rarity-u .pack-reveal-front,
-.pack-reveal-card.rarity-r .pack-reveal-front,
-.pack-reveal-card.rarity-sr .pack-reveal-front,
-.pack-reveal-card.rarity-hr .pack-reveal-front,
-.pack-reveal-card.rarity-ur .pack-reveal-front,
-.pack-reveal-card.rarity-s .pack-reveal-front,
-.pack-reveal-card.rarity-ssr .pack-reveal-front {
- box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08);
-}
-
-.pack-reveal-card.rarity-ssr .pack-reveal-front {
- box-shadow: 0 0 28px rgba(234, 211, 121, 0.6), inset 0 0 0 1px rgba(234, 211, 121, 0.35);
-}
-
-.pack-reveal-card.rarity-s .pack-reveal-front,
-.pack-reveal-card.rarity-ur .pack-reveal-front {
- box-shadow: 0 0 24px rgba(120, 186, 255, 0.5), inset 0 0 0 1px rgba(120, 186, 255, 0.32);
-}
-
-.pack-reveal-card.rarity-hr .pack-reveal-front,
-.pack-reveal-card.rarity-sr .pack-reveal-front {
- box-shadow: 0 0 20px rgba(195, 143, 255, 0.4), inset 0 0 0 1px rgba(195, 143, 255, 0.25);
-}
-
-.pack-reveal-card.revealed.rarity-s .pack-reveal-front,
-.pack-reveal-card.revealed.rarity-ssr .pack-reveal-front {
- animation: packRarePulse 1.8s ease-out 2;
+.pack-reveal-card.revealed.rarity-s .pack-reveal-inner,
+.pack-reveal-card.revealed.rarity-ssr .pack-reveal-inner {
+ animation: packRareSnap 0.22s ease-out 3;
 }
 
 .pack-reveal-card.revealed.rarity-s::after,
 .pack-reveal-card.revealed.rarity-ssr::after {
  content: "";
  position: absolute;
- inset: -6px;
- border-radius: 16px;
+ inset: -10px;
+ border-radius: 18px;
  pointer-events: none;
- background: radial-gradient(circle at center, rgba(255, 235, 154, 0.2), rgba(255, 235, 154, 0) 68%);
- animation: packRareAura 1.6s ease-out 2;
+ opacity: 0;
+ mix-blend-mode: screen;
+ animation: packRareBlink 0.12s steps(2, end) 8;
+}
+
+.pack-reveal-card.revealed.rarity-s::after {
+ background: radial-gradient(circle at center, rgba(130, 214, 255, 0.95), rgba(130, 214, 255, 0) 64%);
+}
+
+.pack-reveal-card.revealed.rarity-ssr::after {
+ background: radial-gradient(circle at center, rgba(255, 228, 132, 0.98), rgba(255, 228, 132, 0) 64%);
 }
 
 .pack-open-foot {
@@ -1240,9 +1220,9 @@ body.pack-opening-lock {
  font-family: "JetBrains Mono", monospace;
 }
 
-@keyframes packRarePulse {
+@keyframes packRareSnap {
  0% { transform: scale(1); filter: brightness(1); }
- 30% { transform: scale(1.03); filter: brightness(1.22); }
+ 40% { transform: scale(1.08); filter: brightness(1.35) contrast(1.12); }
  100% { transform: scale(1); filter: brightness(1); }
 }
 
@@ -1254,6 +1234,10 @@ body.pack-opening-lock {
 }
 
 #packSkipBtn {
+ min-width: 132px;
+}
+
+#packReplayBtn {
  min-width: 132px;
 }
 
@@ -1281,10 +1265,10 @@ body.pack-opening-lock {
  100% { transform: translate3d(38px, -120px, 0) scale(1.08); opacity: 0; }
 }
 
-@keyframes packRareAura {
- 0% { opacity: 0.2; transform: scale(0.95); }
- 45% { opacity: 0.95; transform: scale(1.03); }
- 100% { opacity: 0; transform: scale(1.1); }
+@keyframes packRareBlink {
+ 0% { opacity: 0; transform: scale(0.88); }
+ 50% { opacity: 1; transform: scale(1.08); }
+ 100% { opacity: 0; transform: scale(1.22); }
 }
 
 .play-empty {
@@ -1339,6 +1323,10 @@ body.pack-opening-lock {
  .pack-open-summary {
   grid-template-columns: 1fr;
  }
+ .pack-open-pack-selector {
+  grid-template-columns: 1fr;
+  justify-content: stretch;
+ }
 }
 
 @media (max-width: 640px) {
@@ -1373,6 +1361,9 @@ body.pack-opening-lock {
   min-height: 180px;
  }
  .pack-reveal-card {
+  width: calc(50% - 6px);
+ }
+ .pack-open-grid.pack-open-grid-six .pack-reveal-card {
   width: calc(50% - 6px);
  }
 }

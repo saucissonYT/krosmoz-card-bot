@@ -1,4 +1,4 @@
-require("dotenv").config()
+﻿require("dotenv").config()
 
 const path = require("path")
 
@@ -19,8 +19,6 @@ const { startWebServer, setWebHooks } = require("../web/Server")
 const { startPinataScheduler } = require("../systems/pinataEvent")
 
 const log = createLogger("BOOT")
-
-const ONLINE_RP_CHANNEL_ID = "1487121269018329178"
 
 function initializeSystems() {
  const timer = createTimer("initSystems")
@@ -54,24 +52,7 @@ async function bootstrap() {
   } catch (error) {
    log.error("Erreur deploy commands", { err: error })
   }
-
-  try {
-   const channel = await client.channels.fetch(ONLINE_RP_CHANNEL_ID)
-   if (channel && channel.isTextBased()) {
-    await channel.send(
-     "Les runes vibrent, les cartes s'eveillent. Krosmoz Card est a nouveau operationnel."
-    )
-   } else {
-    log.warn("Salon RP non textuel", { channelId: ONLINE_RP_CHANNEL_ID })
-   }
-  } catch (error) {
-   log.warn("Impossible d'envoyer le message de demarrage", {
-    channelId: ONLINE_RP_CHANNEL_ID,
-    err: error.message
-   })
-  }
-
-  /* ── Piñata scheduler ── */
+  /* â”€â”€ PiÃ±ata scheduler â”€â”€ */
   startPinataScheduler(client)
  })
 

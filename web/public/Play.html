@@ -524,6 +524,7 @@ function closePackOpeningOverlay() {
  overlay.classList.remove("open")
  overlay.classList.remove("complete")
  overlay.classList.remove("multi-open")
+ overlay.classList.remove("single-pack-six")
  overlay.setAttribute("aria-hidden", "true")
  document.body.classList.remove("pack-opening-lock")
   const resolver = packRevealResolve
@@ -555,11 +556,13 @@ function ensurePackOpeningOverlay() {
      <button class="pack-open-close" type="button" data-pack-close aria-label="Fermer">×</button>
      <h3 id="packOpenTitle">Ouverture du Krosmoz</h3>
      <p id="packOpenMeta" class="pack-open-meta"></p>
+     <div id="packOpenPackSelector" class="pack-open-pack-selector" style="display:none"></div>
      <div id="packOpenGrid" class="pack-open-grid"></div>
      <p id="packOpenFoot" class="pack-open-foot"></p>
      <div id="packOpenSummary" class="pack-open-summary"></div>
      <div class="pack-open-actions">
       <button class="btn btn-outline" type="button" id="packSkipBtn">Skip animation</button>
+      <button class="btn btn-outline" type="button" id="packReplayBtn" style="display:none">Relancer</button>
       <button class="btn btn-gold" type="button" data-pack-close>Continuer</button>
      </div>
     </div>
@@ -592,10 +595,56 @@ function completePackOpeningReveal() {
  overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
  overlay.classList.add("complete")
  const skipBtn = document.getElementById("packSkipBtn")
+ const replayBtn = document.getElementById("packReplayBtn")
  if (skipBtn) {
   skipBtn.disabled = true
   skipBtn.style.display = "none"
  }
+ if (replayBtn) {
+  replayBtn.disabled = false
+  replayBtn.style.display = ""
+ }
+}
+
+function buildPackRevealGroups(payload, revealCards) {
+ const groups = []
+ const pulls = Array.isArray(payload?.pulls) ? payload.pulls : []
+ let cursor = 0
+
+ if (pulls.length) {
+  pulls.forEach((pull, index) => {
+   const expectedSize = pull?.luckyPack ? 6 : 5
+   const cards = revealCards.slice(cursor, cursor + expectedSize)
+   cursor += expectedSize
+   if (!cards.length) return
+   groups.push({
+    index: index + 1,
+    lucky: Boolean(pull?.luckyPack),
+    cards
+   })
+  })
+ }
+
+ while (cursor < revealCards.length) {
+  const nextCards = revealCards.slice(cursor, cursor + 5)
+  if (!nextCards.length) break
+  groups.push({
+   index: groups.length + 1,
+   lucky: nextCards.length === 6,
+   cards: nextCards
+  })
+  cursor += 5
+ }
+
+ if (!groups.length) {
+  groups.push({
+   index: 1,
+   lucky: revealCards.length === 6,
+   cards: revealCards.slice()
+  })
+ }
+
+ return groups
 }
 
 function showPackOpeningAnimation(payload) {
@@ -608,51 +657,143 @@ function showPackOpeningAnimation(payload) {
 
   const title = document.getElementById("packOpenTitle")
   const meta = document.getElementById("packOpenMeta")
+  const selectorBox = document.getElementById("packOpenPackSelector")
   const grid = document.getElementById("packOpenGrid")
   const foot = document.getElementById("packOpenFoot")
   const summary = document.getElementById("packOpenSummary")
-  const result = getRevealCards(payload)
-  const cards = result.visible
-  const hiddenCount = result.hiddenCount
  const allCards = Array.isArray(payload?.cards) ? payload.cards : []
- const revealCards = Array.isArray(payload?.revealCards) ? payload.revealCards : []
+ const revealCards = Array.isArray(payload?.revealCards) && payload.revealCards.length
+  ? payload.revealCards.slice()
+  : expandGroupedCards(payload?.cards || [])
  const qty = Number(payload?.quantity || 1)
  const kamasGain = Number(payload?.totals?.kamasGain || 0)
  const fragmentsGain = Number(payload?.totals?.fragments || 0)
  const skipBtn = document.getElementById("packSkipBtn")
+ const replayBtn = document.getElementById("packReplayBtn")
  for (const timer of packRevealTimers) window.clearTimeout(timer)
  packRevealTimers = []
 
   title.textContent = "Ouverture du Krosmoz"
   meta.textContent = `x${fmt(qty)} pack(s) | +💰 ${fmt(kamasGain)} | ${fmt(fragmentsGain)} fragment(s)`
+  const revealGroups = buildPackRevealGroups(payload, revealCards)
+  const hasMultiGroups = qty > 1 && revealGroups.length > 1
+  let activeGroupIndex = 0
 
-  grid.innerHTML = cards.map((card, index) => {
-   const rarity = getRarityToken(card?.rarity)
-   const backImage = getPackBackImageForRarity(rarity)
-   const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
-   return `
-    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
-     <div class="pack-reveal-inner">
-      <div class="pack-reveal-face pack-reveal-back">
-       <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
-      </div>
-      <div class="pack-reveal-face pack-reveal-front">
-       <div class="pack-reveal-front-image">
-       ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
+  function renderGridForCards(cardsToRender) {
+   const cards = Array.isArray(cardsToRender) ? cardsToRender : []
+   grid.classList.toggle("pack-open-grid-six", cards.length === 6)
+   overlay.classList.toggle("single-pack-six", qty === 1 && cards.length === 6)
+   grid.innerHTML = cards.map((card) => {
+    const rarity = getRarityToken(card?.rarity)
+    const backImage = getPackBackImageForRarity(rarity)
+    const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
+    return `
+     <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
+      <div class="pack-reveal-inner">
+       <div class="pack-reveal-face pack-reveal-back">
+        <img src="${backImage}" alt="Dos de carte Krosmoz ${escapeHtml(rarity)}">
        </div>
-       <div class="pack-reveal-front-meta">
-        <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
-        <small>x1 ${newBadge}</small>
+       <div class="pack-reveal-face pack-reveal-front">
+        <div class="pack-reveal-front-image">
+        ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
+        </div>
+        <div class="pack-reveal-front-meta">
+         <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
+         <small>x1 ${newBadge}</small>
+        </div>
        </div>
       </div>
-     </div>
-    </article>
-   `
-  }).join("")
+     </article>
+    `
+   }).join("")
+  }
 
-  foot.textContent = hiddenCount > 0
-   ? `+${fmt(hiddenCount)} carte(s) en plus dans le recap ci-dessous.`
-   : "Toutes les cartes tirées sont listées dans le recap ci-dessous."
+  function setFootText(cardsToRender) {
+   if (hasMultiGroups) {
+    foot.textContent = `Ouverture ${fmt(activeGroupIndex + 1)}/${fmt(revealGroups.length)} • ${fmt(cardsToRender.length)} carte(s)`
+    return
+   }
+   foot.textContent = "Toutes les cartes tirées sont listées dans le recap ci-dessous."
+  }
+
+  function showCompleteState() {
+   overlay.classList.add("complete")
+   if (skipBtn) {
+    skipBtn.disabled = true
+    skipBtn.style.display = "none"
+   }
+   if (replayBtn) {
+    replayBtn.disabled = false
+    replayBtn.style.display = ""
+   }
+  }
+
+  function runRevealForActiveGroup(animated) {
+   for (const timer of packRevealTimers) window.clearTimeout(timer)
+   packRevealTimers = []
+   overlay.classList.remove("complete")
+
+   const currentGroup = revealGroups[Math.max(0, Math.min(revealGroups.length - 1, activeGroupIndex))] || { cards: [] }
+   const cardsToReveal = Array.isArray(currentGroup.cards) ? currentGroup.cards : []
+   renderGridForCards(cardsToReveal)
+   setFootText(cardsToReveal)
+
+   if (replayBtn) {
+    replayBtn.disabled = true
+    replayBtn.style.display = "none"
+   }
+
+   if (!animated) {
+    grid.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+    showCompleteState()
+    return
+   }
+
+   if (skipBtn) {
+    skipBtn.disabled = false
+    skipBtn.style.display = ""
+   }
+
+   const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
+   const revealStartDelay = 1400
+   const revealStepDelay = 780
+   cardEls.forEach((el, index) => {
+    const timer = window.setTimeout(() => {
+     el.classList.add("revealed")
+    }, revealStartDelay + (index * revealStepDelay))
+    packRevealTimers.push(timer)
+   })
+
+   const doneTimer = window.setTimeout(() => {
+    showCompleteState()
+   }, 2800 + (cardEls.length * revealStepDelay))
+   packRevealTimers.push(doneTimer)
+  }
+
+  if (selectorBox) {
+   if (hasMultiGroups) {
+    selectorBox.style.display = "grid"
+    selectorBox.innerHTML = `
+     <label class="mode-label" for="packRevealSelect">Ouverture</label>
+     <select id="packRevealSelect" class="input input-select">
+      ${revealGroups.map((group, index) =>
+       `<option value="${index}">Pack ${fmt(group.index)}${group.lucky ? " • Lucky" : ""} (${fmt(group.cards.length)} cartes)</option>`
+      ).join("")}
+     </select>
+    `
+    const select = selectorBox.querySelector("#packRevealSelect")
+    if (select) {
+     select.value = String(activeGroupIndex)
+     select.addEventListener("change", () => {
+      activeGroupIndex = Math.max(0, Math.min(revealGroups.length - 1, Number(select.value || 0)))
+      runRevealForActiveGroup(false)
+     })
+    }
+   } else {
+    selectorBox.style.display = "none"
+    selectorBox.innerHTML = ""
+   }
+  }
 
   const pityCounters = payload?.pity?.counters || {}
   const pityToGuaranteed = payload?.pity?.toGuaranteed || {}
@@ -680,7 +821,7 @@ function showPackOpeningAnimation(payload) {
   summary.innerHTML = `
    <div class="pack-summary-block">
     <h4>Recap de l'ouverture</h4>
-    <p class="pack-summary-meta">${fmt(revealCards.length || cards.length)} carte(s) tiree(s) • ${fmt(totalNew)} nouvelle(s)</p>
+    <p class="pack-summary-meta">${fmt(revealCards.length)} carte(s) tiree(s) • ${fmt(totalNew)} nouvelle(s)</p>
     <ul class="pack-summary-list">
      ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
     </ul>
@@ -708,7 +849,7 @@ function showPackOpeningAnimation(payload) {
   `
 
   overlay.classList.remove("complete")
-  overlay.classList.toggle("multi-open", qty > 1)
+  overlay.classList.toggle("multi-open", hasMultiGroups)
   overlay.setAttribute("aria-hidden", "false")
   document.body.classList.add("pack-opening-lock")
   if (skipBtn) {
@@ -716,30 +857,22 @@ function showPackOpeningAnimation(payload) {
    skipBtn.style.display = ""
    skipBtn.onclick = () => completePackOpeningReveal()
   }
+  if (replayBtn) {
+   replayBtn.disabled = true
+   replayBtn.style.display = "none"
+   replayBtn.onclick = () => {
+    replayBtn.disabled = true
+    closePackOpeningOverlay()
+    window.setTimeout(() => {
+     handleOpenPacksAction().catch(() => {})
+    }, 180)
+   }
+  }
   window.requestAnimationFrame(() => {
    overlay.classList.add("open")
   })
 
-  const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
-  const center = (cardEls.length - 1) / 2
-  cardEls.forEach((el, index) => {
-   const tilt = (index - center) * 1.3
-   el.style.setProperty("--pack-tilt", `${Math.max(-8, Math.min(8, tilt))}deg`)
-  })
-  cardEls.forEach((el, index) => {
-   const timer = window.setTimeout(() => {
-     el.classList.add("revealed")
-   }, 1000 + (index * 560))
-   packRevealTimers.push(timer)
-  })
-  const doneTimer = window.setTimeout(() => {
-   overlay.classList.add("complete")
-   if (skipBtn) {
-    skipBtn.disabled = true
-    skipBtn.style.display = "none"
-   }
-  }, 2300 + (cardEls.length * 560))
-  packRevealTimers.push(doneTimer)
+  runRevealForActiveGroup(true)
 
   return new Promise((resolve) => {
    packRevealResolve = resolve
