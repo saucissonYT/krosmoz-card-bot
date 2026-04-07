@@ -29,8 +29,6 @@
  <div class="page">
   <div class="container">
    <section class="play-shell">
-    <aside class="play-roster" id="playRoster"></aside>
-
     <main class="play-main">
      <header class="play-head">
       <h1 id="playTitle">INVENTAIRE</h1>
@@ -39,8 +37,11 @@
       <button class="play-tab" data-mode="profile">Profil</button>
       <button class="play-tab" data-mode="team">Collection</button>
       <button class="play-tab" data-mode="dex">Catalogue</button>
-      <button class="play-tab" data-mode="actions">Actions</button>
+      <button class="play-tab" data-mode="packs">Packs</button>
+      <button class="play-tab" data-mode="fusion">Fusion</button>
+      <button class="play-tab" data-mode="craft">Craft</button>
       <button class="play-tab" data-mode="market">Marche</button>
+      <a class="play-tab-link" href="/achievements">Succes</a>
      </div>
      </header>
 
@@ -72,7 +73,9 @@
       <div id="playGrid" class="play-grid"></div>
       <div id="playProfile" class="play-panel-alt" style="display:none"></div>
       <div id="playTeam" class="play-panel-alt" style="display:none"></div>
-      <div id="playActions" class="play-panel-alt" style="display:none"></div>
+      <div id="playPacks" class="play-panel-alt" style="display:none"></div>
+      <div id="playFusion" class="play-panel-alt" style="display:none"></div>
+      <div id="playCraft" class="play-panel-alt" style="display:none"></div>
       <div id="playMarket" class="play-panel-alt" style="display:none"></div>
      </div>
     </main>
@@ -91,10 +94,12 @@
  <script>
  const MODE_PATH = {
   inventory: "/play/inventory",
- profile: "/play/profile",
- team: "/play/team",
- dex: "/play/dex",
-  actions: "/play/actions",
+  profile: "/play/profile",
+  team: "/play/team",
+  dex: "/play/dex",
+  packs: "/play/packs",
+  fusion: "/play/fusion",
+  craft: "/play/craft",
   market: "/play/market"
  }
 
@@ -109,7 +114,6 @@
   groupedFragments: [],
   dex: [],
   gameMeta: null,
-  achievements: null,
   marketItems: [],
   myListings: [],
   selected: null
@@ -129,7 +133,7 @@
 
  function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "profile", "team", "dex", "actions", "market"].includes(tab) ? tab : "inventory"
+  return ["inventory", "profile", "team", "dex", "packs", "fusion", "craft", "market"].includes(tab) ? tab : "inventory"
  }
 
  async function fetchJson(url, options = {}) {
@@ -244,16 +248,14 @@
  async function loadData() {
   await requireLogin()
 
-  const [profileRes, inventoryRes, gameMetaRes, achievementsRes] = await Promise.all([
+  const [profileRes, inventoryRes, gameMetaRes] = await Promise.all([
    fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}`),
    fetchJson("/api/me/inventory"),
-   fetchJson("/api/game/meta"),
-   fetchJson("/api/achievements?category=all")
+   fetchJson("/api/game/meta")
   ])
   if (profileRes.ok) state.profile = profileRes.data
   if (inventoryRes.ok) state.inventory = inventoryRes.data
   if (gameMetaRes.ok) state.gameMeta = gameMetaRes.data
-  if (achievementsRes.ok) state.achievements = achievementsRes.data
   state.groupedFragments = groupFragments((state.inventory && state.inventory.fragments) || [])
 
   const setSelect = document.getElementById("setFilter")
@@ -305,21 +307,6 @@
   return [...(cards || [])]
    .sort((a, b) => Number(b.qty || 0) - Number(a.qty || 0) || rarityRank(a.rarity) - rarityRank(b.rarity))
    .slice(0, size)
- }
-
- function renderRoster() {
-  const roster = document.getElementById("playRoster")
-  const team = topTeam((state.inventory && state.inventory.cards) || [], 8)
-  if (!team.length) {
-   roster.innerHTML = '<div class="play-roster-empty">Aucune carte</div>'
-   return
-  }
-  roster.innerHTML = team.map((member, idx) => `
-   <button class="play-roster-item ${idx === 0 ? "active" : ""}" data-card="${escapeHtml(member.cardId)}">
-    <img src="${escapeHtml(member.imageUrl || "")}" alt="${escapeHtml(member.cardName)}" onerror="this.style.visibility='hidden'">
-    <span>${fmt(member.qty)}</span>
-   </button>
-  `).join("")
  }
 
  function renderInventoryGrid() {
@@ -435,20 +422,15 @@
   })).sort((a, b) => Number(b.canCraft) - Number(a.canCraft) || b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
  }
 
- function renderActions() {
-  const panel = document.getElementById("playActions")
+ function renderPacks() {
+  const panel = document.getElementById("playPacks")
   const meta = state.gameMeta || {}
   const unlockedSets = meta.unlockedSets || []
-  const fusionRows = meta.fusion || []
-  const crafts = getCraftCandidates()
-  const ach = state.achievements || {}
-
   const hasSets = unlockedSets.length > 0
-  const hasCraft = crafts.length > 0
   panel.innerHTML = `
    <section class="action-grid">
     <article class="action-box">
-     <h3>Packs</h3>
+     <h3>PACKS</h3>
      <p class="action-sub">Prix: ${fmt(meta.packPrice || 0)} kamas - Stock: ${fmt(meta.packStock || (state.profile && state.profile.packs) || 0)}</p>
      <label>Set</label>
      <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
@@ -460,18 +442,29 @@
       <button id="buyPacksBtn" class="btn btn-outline">Acheter packs</button>
       <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir packs</button>
      </div>
-     ${hasSets ? "" : '<p class="action-sub">Aucun set debloque pour le moment.</p>'}
+     
      <div id="packResultBox" class="action-result"></div>
     </article>
+   </section>
+  `
+ }
 
+ function renderFusion() {
+  const panel = document.getElementById("playFusion")
+  const meta = state.gameMeta || {}
+  const unlockedSets = meta.unlockedSets || []
+  const fusionRows = meta.fusion || []
+  const hasSets = unlockedSets.length > 0
+  panel.innerHTML = `
+   <section class="action-grid">
     <article class="action-box">
-     <h3>Fusion</h3>
+     <h3>FUSION</h3>
      <p class="action-sub">Fusionne tes doublons pour monter en rarete.</p>
      <label>Set</label>
      <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
      </select>
-     <label>Rareté source</label>
+     <label>Rarete source</label>
      <select id="fusionRarityInput" class="input input-select">
       ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (cout ${fmt(row.cost)} doublons)</option>`).join("")}
      </select>
@@ -480,10 +473,19 @@
      </div>
      <div id="fusionResultBox" class="action-result"></div>
     </article>
+   </section>
+  `
+ }
 
+ function renderCraft() {
+  const panel = document.getElementById("playCraft")
+  const crafts = getCraftCandidates()
+  const hasCraft = crafts.length > 0
+  panel.innerHTML = `
+   <section class="action-grid">
     <article class="action-box">
-     <h3>Craft SSR</h3>
-     <p class="action-sub">Craft via fragments (1-5).</p>
+     <h3>CRAFT</h3>
+     <p class="action-sub">Craft SSR via fragments (1-5).</p>
      <label>Carte</label>
      <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
       ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} (${item.uniqueCount}/5)</option>`).join("")}
@@ -491,26 +493,8 @@
      <div class="action-row">
       <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter</button>
      </div>
-     ${hasCraft ? "" : '<p class="action-sub">Aucun fragment disponible.</p>'}
+     
      <div id="craftResultBox" class="action-result"></div>
-    </article>
-
-    <article class="action-box">
-     <h3>Succes</h3>
-     <p class="action-sub">Progression globale du profil web.</p>
-     <div class="action-stats">
-      <div><span>Total</span><strong>${fmt(ach.total || 0)}</strong></div>
-      <div><span>Debloques</span><strong>${fmt(ach.unlocked || 0)}</strong></div>
-      <div><span>Taux</span><strong>${ach.total ? `${Math.round(((ach.unlocked || 0) / ach.total) * 100)}%` : "0%"}</strong></div>
-     </div>
-     <div class="action-scroll">
-      ${Object.entries(ach.categories || {}).map(([key, stat]) => `
-        <div class="action-cat-row">
-         <span>${escapeHtml(key)}</span>
-         <strong>${fmt(stat.unlocked || 0)} / ${fmt(stat.total || 0)}</strong>
-        </div>
-      `).join("") || '<p class="action-sub">Aucune donnee.</p>'}
-     </div>
     </article>
    </section>
   `
@@ -599,10 +583,12 @@
  function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
   const subtabs = document.getElementById("inventorySubtabs")
-  const grid = document.getElementById("playGrid")
-  const profilePanel = document.getElementById("playProfile")
-  const teamPanel = document.getElementById("playTeam")
-  const actionsPanel = document.getElementById("playActions")
+ const grid = document.getElementById("playGrid")
+ const profilePanel = document.getElementById("playProfile")
+ const teamPanel = document.getElementById("playTeam")
+  const packsPanel = document.getElementById("playPacks")
+  const fusionPanel = document.getElementById("playFusion")
+  const craftPanel = document.getElementById("playCraft")
   const marketPanel = document.getElementById("playMarket")
   const title = document.getElementById("playTitle")
 
@@ -611,7 +597,9 @@
   grid.style.display = "grid"
   profilePanel.style.display = "none"
   teamPanel.style.display = "none"
-  actionsPanel.style.display = "none"
+  packsPanel.style.display = "none"
+  fusionPanel.style.display = "none"
+  craftPanel.style.display = "none"
   marketPanel.style.display = "none"
 
   if (state.mode === "profile") {
@@ -624,11 +612,21 @@
    controls.style.display = "none"
    grid.style.display = "none"
    teamPanel.style.display = "block"
-  } else if (state.mode === "actions") {
-   title.textContent = "ACTIONS DU JEU"
+  } else if (state.mode === "packs") {
+   title.textContent = "PACKS"
    controls.style.display = "none"
    grid.style.display = "none"
-   actionsPanel.style.display = "block"
+   packsPanel.style.display = "block"
+  } else if (state.mode === "fusion") {
+   title.textContent = "FUSION"
+   controls.style.display = "none"
+   grid.style.display = "none"
+   fusionPanel.style.display = "block"
+  } else if (state.mode === "craft") {
+   title.textContent = "CRAFT"
+   controls.style.display = "none"
+   grid.style.display = "none"
+   craftPanel.style.display = "block"
   } else if (state.mode === "market") {
    title.textContent = "MARCHE JOUEURS"
    controls.style.display = "none"
@@ -655,8 +653,18 @@
    if (top) renderDetail(top)
    return
   }
-  if (state.mode === "actions") {
-   renderActions()
+  if (state.mode === "packs") {
+   renderPacks()
+   renderDetail(state.selected || null)
+   return
+  }
+  if (state.mode === "fusion") {
+   renderFusion()
+   renderDetail(state.selected || null)
+   return
+  }
+  if (state.mode === "craft") {
+   renderCraft()
    renderDetail(state.selected || null)
    return
   }
@@ -692,10 +700,9 @@
    return
   }
   await loadData()
-  renderRoster()
   renderCurrentMode()
   alert("Annonce creee.")
- }
+}
 
  async function handleBuyListing(listingId) {
   const res = await postJson("/api/market/buy", { listingId: Number(listingId) })
@@ -704,10 +711,9 @@
    return
   }
   await loadData()
-  renderRoster()
   renderCurrentMode()
   alert("Achat valide.")
- }
+}
 
  async function handleRemoveListing(listingId) {
   const res = await postJson("/api/market/remove", { listingId: Number(listingId) })
@@ -726,11 +732,10 @@
   box.innerHTML = html || ""
  }
 
- async function reloadGameplayDataAndRender() {
+async function reloadGameplayDataAndRender() {
   await loadData()
-  renderRoster()
   renderCurrentMode()
- }
+}
 
  async function handleBuyPacksAction() {
   const qty = Number(document.getElementById("actionPackQty")?.value || 1)
@@ -803,7 +808,7 @@
   document.getElementById("navToggle").addEventListener("click", () => {
    document.getElementById("navLinks").classList.toggle("open")
   })
-  document.querySelectorAll(".play-tab").forEach((tab) => {
+  document.querySelectorAll(".play-tab[data-mode]").forEach((tab) => {
    tab.addEventListener("click", () => setMode(tab.dataset.mode))
   })
   document.querySelectorAll(".play-subtab").forEach((btn) => {
@@ -846,17 +851,6 @@
    renderDetail(item)
   })
 
-  document.getElementById("playRoster").addEventListener("click", (event) => {
-    const row = event.target.closest(".play-roster-item")
-    if (!row) return
-    const item = findItemById(row.dataset.card)
-    if (!item) return
-    state.selected = item
-    renderDetail(item)
-    document.querySelectorAll(".play-roster-item").forEach((x) => x.classList.remove("active"))
-    row.classList.add("active")
-  })
-
   document.getElementById("playDetail").addEventListener("click", (event) => {
    if (event.target && event.target.id === "sellSelectedBtn") {
     handleSellSelected().catch(() => {})
@@ -879,7 +873,7 @@
    }
   })
 
-  document.getElementById("playActions").addEventListener("click", (event) => {
+  document.getElementById("playPacks").addEventListener("click", (event) => {
    if (event.target && event.target.id === "buyPacksBtn") {
     handleBuyPacksAction().catch(() => {})
     return
@@ -888,10 +882,15 @@
     handleOpenPacksAction().catch(() => {})
     return
    }
+  })
+
+  document.getElementById("playFusion").addEventListener("click", (event) => {
    if (event.target && event.target.id === "fusionBtn") {
     handleFusionAction().catch(() => {})
-    return
    }
+  })
+
+  document.getElementById("playCraft").addEventListener("click", (event) => {
    if (event.target && event.target.id === "craftBtn") {
     handleCraftAction().catch(() => {})
    }
@@ -901,9 +900,8 @@
  async function bootstrap() {
   bindEvents()
   setMode(parseModeFromPath(), false)
-  try {
+ try {
    await loadData()
-   renderRoster()
    renderCurrentMode()
   } catch (_) {}
  }
