@@ -4,6 +4,7 @@
  const right = btn.parentElement
  const navLinks = document.getElementById("navLinks")
  const navbar = document.querySelector(".navbar")
+ const heroPlayBtn = document.getElementById("heroPlayBtn")
 
  function setAuthBodyClass(connected) {
   if (!document || !document.body) return
@@ -148,6 +149,13 @@
   setProfileLink(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
+  if (heroPlayBtn) {
+   heroPlayBtn.textContent = "JOUER"
+   heroPlayBtn.href = "#"
+   heroPlayBtn.setAttribute("aria-disabled", "true")
+   heroPlayBtn.style.pointerEvents = "none"
+   heroPlayBtn.style.opacity = "0.6"
+  }
   btn.textContent = "Connexion indisponible"
   btn.setAttribute("aria-disabled", "true")
   btn.style.pointerEvents = "none"
@@ -162,6 +170,13 @@
   setProfileLink(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
+  if (heroPlayBtn) {
+   heroPlayBtn.textContent = "JOUER"
+   heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
+   heroPlayBtn.removeAttribute("aria-disabled")
+   heroPlayBtn.style.pointerEvents = ""
+   heroPlayBtn.style.opacity = ""
+  }
   btn.textContent = "Connexion Discord"
   const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
@@ -180,6 +195,13 @@
  setProfileLink(me?.id || status.userId)
  setConnectedNavLink(true)
  setTopMarketLinkVisibility(true)
+ if (heroPlayBtn) {
+  heroPlayBtn.textContent = "JOUER"
+  heroPlayBtn.href = "/play"
+  heroPlayBtn.removeAttribute("aria-disabled")
+  heroPlayBtn.style.pointerEvents = ""
+  heroPlayBtn.style.opacity = ""
+ }
 
  btn.textContent = "Deconnexion"
  btn.href = "#"
