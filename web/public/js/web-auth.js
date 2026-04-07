@@ -2,18 +2,21 @@
  const btn = document.getElementById("globalAuthBtn")
  if (!btn) return
  const right = btn.parentElement
- const isPlayPage = String(window.location.pathname || "").startsWith("/play")
 
  function setAuthState(text) {
   if (!right) return
   let stateEl = right.querySelector("#globalAuthState")
+  if (!text) {
+   if (stateEl) stateEl.remove()
+   return
+  }
   if (!stateEl) {
    stateEl = document.createElement("span")
    stateEl.id = "globalAuthState"
    stateEl.className = "auth-state-top"
    right.insertBefore(stateEl, btn)
   }
-  stateEl.textContent = text || ""
+  stateEl.textContent = text
  }
 
  function setProfileLink(userId) {
@@ -36,23 +39,6 @@
   profileEl.href = `/profile/${encodeURIComponent(String(userId))}`
  }
 
- function setPlayLink(connected) {
-  if (!right) return
-  let playEl = right.querySelector("#globalPlayBtn")
-  if (!playEl) {
-   playEl = document.createElement("a")
-   playEl.id = "globalPlayBtn"
-   playEl.className = "btn btn-gold btn-auth-top btn-play-top"
-   right.insertBefore(playEl, btn)
-  }
-  playEl.textContent = isPlayPage ? "Accueil Jeu" : "Jouer"
-  if (connected) {
-   playEl.href = "/play"
-   return
-  }
-  playEl.href = "/auth/discord?returnTo=%2Fplay"
- }
-
  let status = null
  try {
   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
@@ -62,7 +48,6 @@
  if (!status?.enabled) {
   setAuthState("")
   setProfileLink(null)
-  setPlayLink(false)
   btn.textContent = "Connexion indisponible"
   btn.setAttribute("aria-disabled", "true")
   btn.style.pointerEvents = "none"
@@ -73,7 +58,6 @@
  if (!status.connected) {
   setAuthState("")
   setProfileLink(null)
-  setPlayLink(false)
   btn.textContent = "Connexion Discord"
   const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
@@ -86,10 +70,8 @@
   if (meRes.ok) me = await meRes.json()
  } catch (_) {}
 
- const name = me?.discord?.displayName || me?.discord?.username || status.userId || "inconnu"
- setAuthState(`Connecte en tant que ${name}`)
+ setAuthState("")
  setProfileLink(me?.id || status.userId)
- setPlayLink(true)
 
  btn.textContent = "Deconnexion"
  btn.href = "#"
