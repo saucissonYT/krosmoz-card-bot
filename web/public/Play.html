@@ -793,7 +793,7 @@ function showPackOpeningAnimation(payload) {
    const baseGap = mode === "multi" ? 95 : 780
    const flipDuration = 1250
    if (rarity === "SSR") {
-    const focusIn = 220
+    const focusIn = 1250
     const rectoHold = 2000
     const focusOut = 320
     const nextGap = focusIn + flipDuration + rectoHold + focusOut + (mode === "multi" ? 160 : 220)
@@ -810,7 +810,7 @@ function showPackOpeningAnimation(payload) {
    }
    if (rarity === "S") {
     const focusIn = 190
-    const rectoHold = 2000
+    const rectoHold = 900
     const focusOut = 260
     const nextGap = focusIn + flipDuration + rectoHold + focusOut + (mode === "multi" ? 160 : 220)
     return {
