@@ -470,17 +470,41 @@
   return String(rarity || "C").toUpperCase().replace(/[^A-Z]/g, "") || "C"
  }
 
+ function getPctClass(percent) {
+  const pct = Number(percent || 0)
+  if (pct >= 100) return "pct-100"
+  if (pct >= 70) return "pct-70"
+  if (pct >= 50) return "pct-50"
+  return "pct-0"
+ }
+
+ function expandGroupedCards(cards = []) {
+  const expanded = []
+  for (const item of cards || []) {
+   const qty = Math.max(1, Number(item?.qty || 1))
+   for (let i = 0; i < qty; i++) {
+    expanded.push({
+     cardId: String(item?.cardId || ""),
+     cardName: String(item?.cardName || "Carte"),
+     rarity: String(item?.rarity || "C"),
+     set: String(item?.set || ""),
+     image: item?.image || null,
+     shiny: Boolean(item?.shiny),
+     isNew: Boolean(item?.isNew)
+    })
+   }
+  }
+  return expanded
+ }
+
  function getRevealCards(payload) {
-  const cards = Array.isArray(payload?.cards) ? payload.cards.slice() : []
-  cards.sort((a, b) =>
-   rarityRank(String(b?.rarity || "")) - rarityRank(String(a?.rarity || "")) ||
-   Number(b?.qty || 0) - Number(a?.qty || 0) ||
-   String(a?.cardName || "").localeCompare(String(b?.cardName || ""), "fr")
-  )
-  const maxCards = 14
+  const reveal = Array.isArray(payload?.revealCards) && payload.revealCards.length
+   ? payload.revealCards.slice()
+   : expandGroupedCards(payload?.cards || [])
+  const maxCards = 24
   return {
-   visible: cards.slice(0, maxCards),
-   hiddenCount: Math.max(0, cards.length - maxCards)
+   visible: reveal.slice(0, maxCards),
+   hiddenCount: Math.max(0, reveal.length - maxCards)
   }
  }
 
@@ -559,6 +583,7 @@
   const cards = result.visible
   const hiddenCount = result.hiddenCount
   const allCards = Array.isArray(payload?.cards) ? payload.cards : []
+  const revealCards = Array.isArray(payload?.revealCards) ? payload.revealCards : []
   const qty = Number(payload?.quantity || 1)
   const kamasGain = Number(payload?.totals?.kamasGain || 0)
   const fragmentsGain = Number(payload?.totals?.fragments || 0)
@@ -568,7 +593,6 @@
 
   grid.innerHTML = cards.map((card, index) => {
    const rarity = getRarityToken(card?.rarity)
-   const qtyLabel = Number(card?.qty || 0)
    const newBadge = Boolean(card?.isNew) ? '<span class="pack-new-badge">✨ NEW</span>' : ""
    return `
     <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
@@ -578,11 +602,11 @@
       </div>
       <div class="pack-reveal-face pack-reveal-front">
        <div class="pack-reveal-front-image">
-        ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
+       ${card?.image ? `<img src="${escapeHtml(card.image)}" alt="${escapeHtml(card.cardName)}">` : "<span>?</span>"}
        </div>
        <div class="pack-reveal-front-meta">
         <strong>${escapeHtml(card?.rarity || "C")} ${escapeHtml(card?.cardName || "Carte")}</strong>
-        <small>${qtyLabel > 1 ? `x${fmt(qtyLabel)}` : "x1"} ${newBadge}</small>
+        <small>x1 ${newBadge}</small>
        </div>
       </div>
      </div>
@@ -608,19 +632,41 @@
    `
   }).join("")
 
+  const totalNew = revealCards.filter((card) => Boolean(card?.isNew)).length
+
+  const pityUr = Number(pityCounters.UR || 0)
+  const pityS = Number(pityCounters.S || 0)
+  const pitySsr = Number(pityCounters.SSR || 0)
+  const urPct = Math.max(0, Math.min(100, Math.round((pityUr / 10) * 100)))
+  const sPct = Math.max(0, Math.min(100, Math.round((pityS / 30) * 100)))
+  const ssrPct = Math.max(0, Math.min(100, Math.round((pitySsr / 50) * 100)))
+
   summary.innerHTML = `
    <div class="pack-summary-block">
     <h4>Recap de l'ouverture</h4>
+    <p class="pack-summary-meta">${fmt(revealCards.length || cards.length)} carte(s) tiree(s) • ${fmt(totalNew)} nouvelle(s)</p>
     <ul class="pack-summary-list">
      ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
     </ul>
    </div>
    <div class="pack-summary-block">
     <h4>Pity (${escapeHtml(String(payload?.setId || "set"))})</h4>
-    <div class="pack-pity-grid">
-     <div><span>UR</span><strong>${fmt(Number(pityCounters.UR || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.UR || 0))} pack(s)</small></div>
-     <div><span>S</span><strong>${fmt(Number(pityCounters.S || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.S || 0))} pack(s)</small></div>
-     <div><span>SSR</span><strong>${fmt(Number(pityCounters.SSR || 0))}</strong><small>Garantie dans ${fmt(Number(pityToGuaranteed.SSR || 0))} pack(s)</small></div>
+    <div class="pack-pity-grid pack-pity-grid-bars">
+     <div class="pack-pity-row">
+      <div class="pack-pity-head"><span>UR</span><strong>${fmt(pityUr)}/10</strong></div>
+      <div class="set-bar"><div class="set-bar-fill ${getPctClass(urPct)}" style="width:${urPct}%"></div></div>
+      <small>Garantie dans ${fmt(Number(pityToGuaranteed.UR || 0))} pack(s)</small>
+     </div>
+     <div class="pack-pity-row">
+      <div class="pack-pity-head"><span>S</span><strong>${fmt(pityS)}/30</strong></div>
+      <div class="set-bar"><div class="set-bar-fill ${getPctClass(sPct)}" style="width:${sPct}%"></div></div>
+      <small>Garantie dans ${fmt(Number(pityToGuaranteed.S || 0))} pack(s)</small>
+     </div>
+     <div class="pack-pity-row">
+      <div class="pack-pity-head"><span>SSR</span><strong>${fmt(pitySsr)}/50</strong></div>
+      <div class="set-bar"><div class="set-bar-fill ${getPctClass(ssrPct)}" style="width:${ssrPct}%"></div></div>
+      <small>Garantie dans ${fmt(Number(pityToGuaranteed.SSR || 0))} pack(s)</small>
+     </div>
     </div>
    </div>
   `

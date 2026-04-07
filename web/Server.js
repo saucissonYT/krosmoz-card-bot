@@ -1324,24 +1324,36 @@ app.post("/api/game/open-packs", async (req, res) => {
   const grouped = new Map()
   const fragments = []
   const discoveredCardIds = new Set()
+  const revealCards = []
 
   for (let i = 0; i < quantity; i++) {
    const result = openPack(user, setId, session.userId, { isSimpleCommandOpen: quantity === 1 })
    kamasGain += Number(result?.kamasGain || 0)
    xpGain += Number(result?.xpGain || 0)
    if (result?.fragment) fragments.push(result.fragment)
+   const discoveredThisPull = new Set((result?.discovered || []).map((card) => String(card?.id || "")))
    for (const discovered of (result?.discovered || [])) {
     if (!discovered?.id) continue
     discoveredCardIds.add(String(discovered.id))
    }
 
    for (const card of (result?.pack || [])) {
+    const cardId = String(card?.id || "")
     const rarity = String(card?.rarity || "C")
     rarityCount[rarity] = Number(rarityCount[rarity] || 0) + 1
     const key = `${card.id}:${card.shiny ? 1 : 0}`
+    revealCards.push({
+     cardId,
+     cardName: String(card?.name || `Carte ${card?.id}`),
+     rarity,
+     set: String(card?.set || setId),
+     image: card?.image ? `/assets/cards/${encodeURIComponent(String(card.set || setId))}/${encodeURIComponent(String(card.image))}` : null,
+     shiny: Boolean(card?.shiny),
+     isNew: discoveredThisPull.has(cardId)
+    })
     if (!grouped.has(key)) {
      grouped.set(key, {
-      cardId: String(card.id),
+      cardId,
       cardName: String(card.name || `Carte ${card.id}`),
       rarity,
       set: String(card.set || setId),
@@ -1399,6 +1411,7 @@ app.post("/api/game/open-packs", async (req, res) => {
     RARITY_ORDER.indexOf(String(b.rarity)) - RARITY_ORDER.indexOf(String(a.rarity)) ||
     String(a.cardName).localeCompare(String(b.cardName), "fr")
    ),
+   revealCards,
    pity: {
     counters: pityCounters,
     toGuaranteed: {
