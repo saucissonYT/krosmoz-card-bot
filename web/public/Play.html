@@ -790,25 +790,33 @@ function showPackOpeningAnimation(payload) {
    const rarity = getRevealRarity(cardEl)
    const baseGap = mode === "multi" ? 95 : 780
    if (rarity === "SSR") {
+    const focusIn = 220
+    const focusHold = 2000
+    const focusOut = 320
+    const nextGap = focusIn + focusHold + focusOut + (mode === "multi" ? 160 : 220)
     return {
      rarity,
      isRare: true,
-     focusIn: 220,
-     focusHold: 2000,
-     focusOut: 320,
+     focusIn,
+     focusHold,
+     focusOut,
      scale: window.innerWidth < 720 ? 1.85 : 2,
-     nextGap: mode === "multi" ? 2720 : 3020
+     nextGap
     }
    }
    if (rarity === "S") {
+    const focusIn = 190
+    const focusHold = 2000
+    const focusOut = 260
+    const nextGap = focusIn + focusHold + focusOut + (mode === "multi" ? 160 : 220)
     return {
      rarity,
      isRare: true,
-     focusIn: 190,
-     focusHold: 900,
-     focusOut: 260,
+     focusIn,
+     focusHold,
+     focusOut,
      scale: window.innerWidth < 720 ? 1.62 : 1.82,
-     nextGap: mode === "multi" ? 1460 : 1680
+     nextGap
     }
    }
    return {
