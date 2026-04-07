@@ -4,14 +4,13 @@
 
 .play-shell {
  display: grid;
- grid-template-columns: 1fr 340px;
+ grid-template-columns: 1fr;
  gap: 14px;
  align-items: stretch;
  min-height: calc(100vh - 110px);
 }
 
-.play-main,
-.play-detail {
+.play-main {
  background: #111327;
  border: 1px solid rgba(255, 255, 255, 0.08);
  border-radius: 14px;
@@ -22,9 +21,7 @@
 }
 
 .play-head {
- display: flex;
- align-items: center;
- justify-content: space-between;
+ display: grid;
  gap: 10px;
  margin-bottom: 12px;
 }
@@ -76,7 +73,7 @@
 
 .play-controls {
  display: grid;
- grid-template-columns: 1.2fr 0.8fr 0.8fr auto;
+ grid-template-columns: 1.2fr 0.8fr 0.8fr auto auto;
  gap: 8px;
  margin-bottom: 10px;
 }

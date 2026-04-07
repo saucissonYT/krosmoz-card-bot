@@ -16,7 +16,7 @@
     <li><a href="/">Accueil</a></li>
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/market">Marche</a></li>
+    <li><a href="/market">Marché</a></li>
     <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
@@ -33,16 +33,15 @@
      <header class="play-head">
       <h1 id="playTitle">INVENTAIRE</h1>
       <div class="play-tabs">
-      <button class="play-tab" data-mode="inventory">Inventaire</button>
-      <button class="play-tab" data-mode="profile">Profil</button>
-      <button class="play-tab" data-mode="team">Collection</button>
-      <button class="play-tab" data-mode="dex">Catalogue</button>
-      <button class="play-tab" data-mode="packs">Packs</button>
-      <button class="play-tab" data-mode="fusion">Fusion</button>
-      <button class="play-tab" data-mode="craft">Craft</button>
-      <button class="play-tab" data-mode="market">Marche</button>
-      <a class="play-tab-link" href="/achievements">Succes</a>
-     </div>
+       <button class="play-tab" data-mode="inventory">Inventaire</button>
+       <button class="play-tab" data-mode="collection">Collection</button>
+       <button class="play-tab" data-mode="packs">Packs</button>
+       <button class="play-tab" data-mode="fusion">Fusion</button>
+       <button class="play-tab" data-mode="craft">Craft</button>
+       <a class="play-tab-link" href="/profile/">Profil</a>
+       <a class="play-tab-link" href="/market">Marché</a>
+       <a class="play-tab-link" href="/achievements">Achievements</a>
+      </div>
      </header>
 
      <div class="play-controls" id="playControls">
@@ -51,7 +50,7 @@
        <option value="">Tous les sets</option>
       </select>
       <select id="rarityFilter" class="input input-select">
-       <option value="">Toutes les raretes</option>
+       <option value="">Toutes les raretés</option>
        <option value="C">C</option>
        <option value="U">U</option>
        <option value="R">R</option>
@@ -61,7 +60,8 @@
        <option value="S">S</option>
        <option value="SSR">SSR</option>
       </select>
-      <button id="sortBtn" class="btn btn-outline">Tri Qte v</button>
+      <button id="sortBtn" class="btn btn-outline">Tri Qté v</button>
+      <button id="collectionOwnedToggle" class="btn btn-outline" style="display:none">Collection: Possédées</button>
      </div>
 
      <div class="play-subtabs" id="inventorySubtabs">
@@ -71,21 +71,11 @@
 
      <div class="play-content">
       <div id="playGrid" class="play-grid"></div>
-      <div id="playProfile" class="play-panel-alt" style="display:none"></div>
-      <div id="playTeam" class="play-panel-alt" style="display:none"></div>
       <div id="playPacks" class="play-panel-alt" style="display:none"></div>
       <div id="playFusion" class="play-panel-alt" style="display:none"></div>
       <div id="playCraft" class="play-panel-alt" style="display:none"></div>
-      <div id="playMarket" class="play-panel-alt" style="display:none"></div>
      </div>
     </main>
-
-    <aside class="play-detail" id="playDetail">
-     <div class="play-detail-inner">
-      <h2>Selectionne un objet</h2>
-      <p>Choisis une carte ou un fragment pour afficher les details.</p>
-     </div>
-    </aside>
    </section>
   </div>
  </div>
@@ -94,13 +84,10 @@
  <script>
  const MODE_PATH = {
   inventory: "/play/inventory",
-  profile: "/play/profile",
-  team: "/play/team",
-  dex: "/play/dex",
+  collection: "/play/collection",
   packs: "/play/packs",
   fusion: "/play/fusion",
-  craft: "/play/craft",
-  market: "/play/market"
+  craft: "/play/craft"
  }
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
@@ -108,14 +95,13 @@
   mode: "inventory",
   inventoryView: "cards",
   sortDesc: true,
+  collectionOwnedOnly: true,
   me: null,
   profile: null,
   inventory: null,
   groupedFragments: [],
   dex: [],
   gameMeta: null,
-  marketItems: [],
-  myListings: [],
   selected: null
  }
 
@@ -133,7 +119,7 @@
 
  function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "profile", "team", "dex", "packs", "fusion", "craft", "market"].includes(tab) ? tab : "inventory"
+  return ["inventory", "collection", "packs", "fusion", "craft"].includes(tab) ? tab : "inventory"
  }
 
  async function fetchJson(url, options = {}) {
@@ -153,24 +139,14 @@
 
  async function requireLogin() {
   const meRes = await fetchJson("/api/me")
-  if (!meRes.ok || !meRes.data || !meRes.data.id) {
-   const returnTo = `${window.location.pathname}${window.location.search || ""}`
-   document.getElementById("playGrid").innerHTML = `
-    <div class="play-empty">
-     <h3>Connexion Discord requise</h3>
-     <p>Connecte-toi pour acceder au gameplay web.</p>
-     <a class="btn btn-gold" href="/auth/discord?returnTo=${encodeURIComponent(returnTo)}">Se connecter</a>
-    </div>
-   `
-   throw new Error("not_connected")
-  }
+  if (!meRes.ok || !meRes.data || !meRes.data.id) throw new Error("not_connected")
   state.me = meRes.data
  }
 
  function setMode(mode, updateUrl = true) {
   state.mode = mode
   state.selected = null
-  document.querySelectorAll(".play-tab").forEach((tab) => {
+  document.querySelectorAll(".play-tab[data-mode]").forEach((tab) => {
    tab.classList.toggle("active", tab.dataset.mode === mode)
   })
   if (updateUrl && MODE_PATH[mode]) window.history.replaceState({}, "", MODE_PATH[mode])
@@ -236,15 +212,6 @@
   }))
  }
 
- async function loadMarket() {
-  const [marketRes, myRes] = await Promise.all([
-   fetchJson("/api/market?page=1&limit=50"),
-   fetchJson("/api/me/listings")
-  ])
-  state.marketItems = marketRes.ok ? (marketRes.data?.items || []) : []
-  state.myListings = myRes.ok ? (myRes.data?.items || []) : []
- }
-
  async function loadData() {
   await requireLogin()
 
@@ -263,6 +230,7 @@
   const sets = new Map()
   for (const item of ((state.inventory && state.inventory.cards) || [])) sets.set(item.set, item.setName || item.set)
   for (const item of state.groupedFragments) sets.set(item.set, item.setName || item.set)
+  for (const item of (state.dex || [])) sets.set(item.set, item.setName || item.set)
   const options = [...sets.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "fr"))
   for (const [id, name] of options) {
    const opt = document.createElement("option")
@@ -271,11 +239,11 @@
    setSelect.appendChild(opt)
   }
 
-  await Promise.all([loadDex(), loadMarket()])
+  await loadDex()
  }
 
  function getActiveSource() {
-  if (state.mode === "dex") return state.dex
+  if (state.mode === "collection") return state.dex
   if (state.mode === "inventory" && state.inventoryView === "fragments") return state.groupedFragments
   return (state.inventory && state.inventory.cards) || []
  }
@@ -290,6 +258,7 @@
    if (set && String(item.set) !== String(set)) return false
    if (rarity && String(item.rarity) !== String(rarity)) return false
    if (state.mode === "inventory" && state.inventoryView === "cards" && Number(item.qty || 0) <= 0) return false
+   if (state.mode === "collection" && state.collectionOwnedOnly && Number(item.qty || 0) <= 0) return false
    return true
   })
 
@@ -303,101 +272,30 @@
   return items
  }
 
- function topTeam(cards, size = 8) {
-  return [...(cards || [])]
-   .sort((a, b) => Number(b.qty || 0) - Number(a.qty || 0) || rarityRank(a.rarity) - rarityRank(b.rarity))
-   .slice(0, size)
- }
-
  function renderInventoryGrid() {
   const grid = document.getElementById("playGrid")
   const items = getFilteredItems()
   if (!items.length) {
-   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun resultat avec ces filtres.</p></div>'
+   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun résultat avec ces filtres.</p></div>'
    return
   }
   grid.innerHTML = items.map((item) => {
-   const selected = state.selected && String(state.selected.key || state.selected.cardId) === String(item.key || item.cardId)
    let label = `x${fmt(item.qty)}`
-   if (state.mode === "dex") label = item.qty > 0 ? `Possede x${fmt(item.qty)}` : "Non possede"
    if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
+   if (state.mode === "collection") label = Number(item.qty || 0) > 0 ? `Possédée x${fmt(item.qty)}` : "Non possédée"
+   const silhouette = state.mode === "collection" && Number(item.qty || 0) <= 0
    return `
-    <button class="play-card ${selected ? "active" : ""}" data-id="${escapeHtml(item.key || item.cardId)}">
+    <article class="play-card">
      <div class="play-card-img-wrap">
-      ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${item.qty <= 0 ? "silhouette" : ""}">` : "<span>?</span>"}
+      ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${silhouette ? "silhouette" : ""}">` : "<span>?</span>"}
      </div>
      <div class="play-card-meta">
       <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
       <small>${escapeHtml(item.setName || item.set)} - ${escapeHtml(label)}</small>
      </div>
-    </button>
+    </article>
    `
   }).join("")
-
-  if (!state.selected && items[0]) {
-   state.selected = items[0]
-   renderDetail(items[0])
-  }
- }
-
- function renderProfile() {
-  const p = state.profile || {}
-  const panel = document.getElementById("playProfile")
-  const level = Number(p.level || 1)
-  const xp = Number(p.xp || 0)
-  const xpRequired = Number(p.xpRequired || 1)
-  const pct = Math.max(0, Math.min(100, Math.round((xp / Math.max(1, xpRequired)) * 100)))
-  const team = topTeam((state.inventory && state.inventory.cards) || [], 6)
-
-  panel.innerHTML = `
-   <article class="play-profile-card">
-    <div class="play-profile-main">
-     <div class="play-profile-avatar">${(p.discord?.displayName || "KC").slice(0, 2).toUpperCase()}</div>
-     <div>
-      <h2>${escapeHtml((p.discord && (p.discord.displayName || p.discord.username)) || state.me.id || "Joueur")}</h2>
-      <p>${escapeHtml(p.title || "Nouveau")} - Niveau ${level}</p>
-      <div class="play-xp-bar"><span style="width:${pct}%"></span></div>
-      <small>${fmt(xp)} / ${fmt(xpRequired)} XP</small>
-     </div>
-    </div>
-    <div class="play-profile-stats">
-     <div><span>Kamas</span><strong>${fmt(p.kamas)}</strong></div>
-     <div><span>Cartes</span><strong>${fmt(p.totalCards)}</strong></div>
-     <div><span>Uniques</span><strong>${fmt(p.uniqueCards)} / ${fmt(p.maxCards)}</strong></div>
-     <div><span>Succes</span><strong>${fmt(p.achievements)}</strong></div>
-    </div>
-    <div class="play-party-icons">
-     ${team.map((item) => `
-      <button class="play-party-item" data-card="${escapeHtml(item.cardId)}">
-       <img src="${escapeHtml(item.imageUrl || "")}" alt="${escapeHtml(item.cardName)}" onerror="this.style.visibility='hidden'">
-       <small>x${fmt(item.qty)}</small>
-      </button>
-     `).join("")}
-    </div>
-   </article>
-  `
- }
-
- function renderTeam() {
-  const panel = document.getElementById("playTeam")
-  const team = topTeam((state.inventory && state.inventory.cards) || [], 6)
-  if (!team.length) {
-   panel.innerHTML = '<div class="play-empty"><h3>Collection vide</h3></div>'
-   return
-  }
-  panel.innerHTML = `
-   <div class="play-team-list">
-    ${team.map((member) => `
-      <button class="play-team-row" data-card="${escapeHtml(member.cardId)}">
-       <img src="${escapeHtml(member.imageUrl || "")}" alt="${escapeHtml(member.cardName)}" onerror="this.style.visibility='hidden'">
-       <div class="play-team-meta">
-        <strong>${escapeHtml(member.rarity || "C")} ${escapeHtml(member.cardName)}</strong>
-        <small>${escapeHtml(member.setName || member.set)} - x${fmt(member.qty)}</small>
-       </div>
-      </button>
-    `).join("")}
-   </div>
-  `
  }
 
  function getCraftCandidates() {
@@ -408,8 +306,6 @@
     grouped.set(id, {
      cardId: id,
      cardName: frag.cardName,
-     imageUrl: frag.imageUrl || null,
-     setName: frag.setName || frag.set || "unknown",
      numbers: new Set()
     })
    }
@@ -417,9 +313,8 @@
   }
   return [...grouped.values()].map((x) => ({
    ...x,
-   uniqueCount: x.numbers.size,
-   canCraft: [1, 2, 3, 4, 5].every((n) => x.numbers.has(n))
-  })).sort((a, b) => Number(b.canCraft) - Number(a.canCraft) || b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
+   uniqueCount: x.numbers.size
+  })).sort((a, b) => b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
  }
 
  function renderPacks() {
@@ -431,18 +326,17 @@
    <section class="action-grid">
     <article class="action-box">
      <h3>PACKS</h3>
-     <p class="action-sub">Prix: ${fmt(meta.packPrice || 0)} kamas - Stock: ${fmt(meta.packStock || (state.profile && state.profile.packs) || 0)}</p>
+     <p class="action-sub">Prix: ${fmt(meta.packPrice || 0)} kamas - Stock: ${fmt(meta.packStock || 0)}</p>
      <label>Set</label>
      <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
      </select>
-     <label>Quantite</label>
+     <label>Quantité</label>
      <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
      <div class="action-row">
       <button id="buyPacksBtn" class="btn btn-outline">Acheter packs</button>
       <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir packs</button>
      </div>
-     
      <div id="packResultBox" class="action-result"></div>
     </article>
    </section>
@@ -459,14 +353,14 @@
    <section class="action-grid">
     <article class="action-box">
      <h3>FUSION</h3>
-     <p class="action-sub">Fusionne tes doublons pour monter en rarete.</p>
+     <p class="action-sub">Fusionne tes doublons pour monter en rareté.</p>
      <label>Set</label>
      <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
      </select>
-     <label>Rarete source</label>
+     <label>Rareté source</label>
      <select id="fusionRarityInput" class="input input-select">
-      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (cout ${fmt(row.cost)} doublons)</option>`).join("")}
+      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (coût ${fmt(row.cost)} doublons)</option>`).join("")}
      </select>
      <div class="action-row">
       <button id="fusionBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Fusionner</button>
@@ -493,126 +387,90 @@
      <div class="action-row">
       <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter</button>
      </div>
-     
      <div id="craftResultBox" class="action-result"></div>
     </article>
    </section>
   `
  }
 
- function renderMarket() {
-  const panel = document.getElementById("playMarket")
-  panel.innerHTML = `
-   <div class="market-box">
-    <div class="market-head">
-     <h3>Annonces du marche</h3>
-     <button class="btn btn-outline" id="refreshMarketBtn">Rafraichir</button>
-    </div>
-    <div class="market-list">
-     ${state.marketItems.length ? state.marketItems.map((item) => `
-      <article class="market-row">
-       <img src="${escapeHtml(item.imageUrl || "")}" alt="${escapeHtml(item.cardName)}" onerror="this.style.visibility='hidden'">
-       <div>
-        <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
-        <small>${escapeHtml(item.setName || item.set)}${item.type === "fragment" ? ` - Fragment ${item.fragmentNumber}/5` : ""}</small>
-       </div>
-       <div class="market-actions">
-        <span>${fmt(item.price)} k</span>
-        <button class="btn btn-gold buy-listing-btn" data-id="${item.id}">Acheter</button>
-       </div>
-      </article>
-     `).join("") : '<div class="play-empty"><p>Aucune annonce</p></div>'}
-    </div>
-   </div>
-   <div class="market-box">
-    <h3>Mes annonces</h3>
-    <div class="market-list">
-     ${state.myListings.length ? state.myListings.map((item) => `
-      <article class="market-row mine">
-       <img src="${escapeHtml(item.imageUrl || "")}" alt="${escapeHtml(item.cardName)}" onerror="this.style.visibility='hidden'">
-       <div>
-        <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
-        <small>${escapeHtml(item.setName || item.set)}${item.type === "fragment" ? ` - Fragment ${item.fragmentNumber}/5` : ""}</small>
-       </div>
-       <div class="market-actions">
-        <span>${fmt(item.price)} k</span>
-        <button class="btn btn-outline remove-listing-btn" data-id="${item.id}">Retirer</button>
-       </div>
-      </article>
-     `).join("") : '<div class="play-empty"><p>Aucune annonce personnelle</p></div>'}
-    </div>
-   </div>
-  `
+ function showActionResult(boxId, html, error = false) {
+  const box = document.getElementById(boxId)
+  if (!box) return
+  box.classList.toggle("error", Boolean(error))
+  box.innerHTML = html || ""
  }
 
- function renderDetail(item) {
-  const detail = document.getElementById("playDetail")
-  if (!item) {
-   detail.innerHTML = '<div class="play-detail-inner"><h2>Selectionne un objet</h2></div>'
+ async function reloadGameplayDataAndRender() {
+  await loadData()
+  renderCurrentMode()
+ }
+
+ async function handleBuyPacksAction() {
+  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const res = await postJson("/api/game/buy-packs", { quantity: qty })
+  if (!res.ok) {
+   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
    return
   }
-  const seen = Number(item.qty || 0) > 0
-  const sellZone = state.mode === "inventory" ? `
-   <div class="sell-box">
-    <label for="sellPriceInput">Prix de vente (kamas)</label>
-    <div class="sell-inline">
-     <input id="sellPriceInput" class="input" type="number" min="1" step="1" placeholder="Ex: 2500">
-     <button id="sellSelectedBtn" class="btn btn-gold">Vendre</button>
-    </div>
-   </div>
-  ` : ""
+  showActionResult("packResultBox", `<p><strong>Achat validé:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
+  await reloadGameplayDataAndRender()
+ }
 
-  detail.innerHTML = `
-   <div class="play-detail-inner">
-    <h2>${escapeHtml(item.cardName)}</h2>
-    <p>${escapeHtml(item.rarity || "C")} - ${escapeHtml(item.setName || item.set)}</p>
-    <div class="play-detail-img">
-     ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}" class="${!seen ? "silhouette" : ""}">` : "<span>?</span>"}
-    </div>
-    <div class="play-detail-stats">
-     <div><span>Quantite</span><strong>${fmt(item.qty || 0)}</strong></div>
-     <div><span>ID</span><strong>#${escapeHtml(item.cardId)}</strong></div>
-     ${item.itemType === "fragment" ? `<div><span>Fragment</span><strong>${item.fragmentNumber}/5</strong></div>` : ""}
-     ${state.mode === "dex" ? `<div><span>Statut</span><strong>${seen ? "Possede" : "Non possede"}</strong></div>` : ""}
-    </div>
-    ${sellZone}
-   </div>
-  `
+ async function handleOpenPacksAction() {
+  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const setId = String(document.getElementById("actionSetInput")?.value || "").trim()
+  const res = await postJson("/api/game/open-packs", { quantity: qty, setId })
+  if (!res.ok) {
+   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
+   return
+  }
+  showActionResult("packResultBox", `<p><strong>Ouverture terminée:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
+  await reloadGameplayDataAndRender()
+ }
+
+ async function handleFusionAction() {
+  const setId = String(document.getElementById("fusionSetInput")?.value || "").trim()
+  const rarity = String(document.getElementById("fusionRarityInput")?.value || "").trim()
+  const res = await postJson("/api/game/fuse", { setId, rarity })
+  if (!res.ok) {
+   showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
+   return
+  }
+  showActionResult("fusionResultBox", `<p><strong>Fusion validée:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p><p>Récompense: ${escapeHtml(res.data?.reward?.cardName || "Carte")}</p>`)
+  await reloadGameplayDataAndRender()
+ }
+
+ async function handleCraftAction() {
+  const cardId = String(document.getElementById("craftCardInput")?.value || "").trim()
+  const res = await postJson("/api/game/craft", { cardId })
+  if (!res.ok) {
+   showActionResult("craftResultBox", `<p>${escapeHtml(res.data?.error || "Craft impossible.")}</p>`, true)
+   return
+  }
+  showActionResult("craftResultBox", `<p><strong>Craft SSR validé:</strong> ${escapeHtml(res.data?.card?.cardName || "Carte")}</p>`)
+  await reloadGameplayDataAndRender()
  }
 
  function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
   const subtabs = document.getElementById("inventorySubtabs")
- const grid = document.getElementById("playGrid")
- const profilePanel = document.getElementById("playProfile")
- const teamPanel = document.getElementById("playTeam")
+  const collectionToggle = document.getElementById("collectionOwnedToggle")
+  const grid = document.getElementById("playGrid")
   const packsPanel = document.getElementById("playPacks")
   const fusionPanel = document.getElementById("playFusion")
   const craftPanel = document.getElementById("playCraft")
-  const marketPanel = document.getElementById("playMarket")
   const title = document.getElementById("playTitle")
 
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
+  collectionToggle.style.display = state.mode === "collection" ? "inline-flex" : "none"
+  collectionToggle.textContent = state.collectionOwnedOnly ? "Collection: Possédées" : "Collection: Possédées + manquantes"
   grid.style.display = "grid"
-  profilePanel.style.display = "none"
-  teamPanel.style.display = "none"
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
   craftPanel.style.display = "none"
-  marketPanel.style.display = "none"
 
-  if (state.mode === "profile") {
-   title.textContent = "PROFIL JOUEUR"
-   controls.style.display = "none"
-   grid.style.display = "none"
-   profilePanel.style.display = "block"
-  } else if (state.mode === "team") {
-   title.textContent = "COLLECTION"
-   controls.style.display = "none"
-   grid.style.display = "none"
-   teamPanel.style.display = "block"
-  } else if (state.mode === "packs") {
+  if (state.mode === "packs") {
    title.textContent = "PACKS"
    controls.style.display = "none"
    grid.style.display = "none"
@@ -627,13 +485,8 @@
    controls.style.display = "none"
    grid.style.display = "none"
    craftPanel.style.display = "block"
-  } else if (state.mode === "market") {
-   title.textContent = "MARCHE JOUEURS"
-   controls.style.display = "none"
-   grid.style.display = "none"
-   marketPanel.style.display = "block"
-  } else if (state.mode === "dex") {
-   title.textContent = "CATALOGUE CARTES"
+  } else if (state.mode === "collection") {
+   title.textContent = "COLLECTION"
   } else {
    title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
   }
@@ -641,269 +494,62 @@
 
  function renderCurrentMode() {
   syncPanelVisibility()
-  if (state.mode === "profile") {
-   renderProfile()
-   const top = topTeam((state.inventory && state.inventory.cards) || [], 1)[0]
-   if (top) renderDetail(top)
-   return
-  }
-  if (state.mode === "team") {
-   renderTeam()
-   const top = topTeam((state.inventory && state.inventory.cards) || [], 1)[0]
-   if (top) renderDetail(top)
-   return
-  }
-  if (state.mode === "packs") {
-   renderPacks()
-   renderDetail(state.selected || null)
-   return
-  }
-  if (state.mode === "fusion") {
-   renderFusion()
-   renderDetail(state.selected || null)
-   return
-  }
-  if (state.mode === "craft") {
-   renderCraft()
-   renderDetail(state.selected || null)
-   return
-  }
-  if (state.mode === "market") {
-   renderMarket()
-   return
-  }
+  if (state.mode === "packs") return renderPacks()
+  if (state.mode === "fusion") return renderFusion()
+  if (state.mode === "craft") return renderCraft()
   renderInventoryGrid()
- }
-
- function findItemById(id) {
-  return getActiveSource().find((x) => String(x.key || x.cardId) === String(id))
-   || ((state.inventory && state.inventory.cards) || []).find((x) => String(x.cardId) === String(id))
-   || state.groupedFragments.find((x) => String(x.key) === String(id))
-   || state.dex.find((x) => String(x.cardId) === String(id))
- }
-
- async function handleSellSelected() {
-  if (!state.selected) return
-  const input = document.getElementById("sellPriceInput")
-  const price = Number(input && input.value)
-  if (!Number.isFinite(price) || price <= 0) {
-   alert("Prix invalide.")
-   return
-  }
-  const payload = state.selected.itemType === "fragment"
-   ? { cardId: state.selected.cardId, fragmentNumber: state.selected.fragmentNumber, price }
-   : { cardId: state.selected.cardId, price }
-  const endpoint = state.selected.itemType === "fragment" ? "/api/market/sell-fragment" : "/api/market/sell-card"
-  const res = await postJson(endpoint, payload)
-  if (!res.ok) {
-   alert(res.data?.error || "Vente impossible.")
-   return
-  }
-  await loadData()
-  renderCurrentMode()
-  alert("Annonce creee.")
-}
-
- async function handleBuyListing(listingId) {
-  const res = await postJson("/api/market/buy", { listingId: Number(listingId) })
-  if (!res.ok) {
-   alert(res.data?.error || "Achat impossible.")
-   return
-  }
-  await loadData()
-  renderCurrentMode()
-  alert("Achat valide.")
-}
-
- async function handleRemoveListing(listingId) {
-  const res = await postJson("/api/market/remove", { listingId: Number(listingId) })
-  if (!res.ok) {
-   alert(res.data?.error || "Suppression impossible.")
-   return
-  }
-  await loadMarket()
-  renderCurrentMode()
- }
-
- function showActionResult(boxId, html, error = false) {
-  const box = document.getElementById(boxId)
-  if (!box) return
-  box.classList.toggle("error", Boolean(error))
-  box.innerHTML = html || ""
- }
-
-async function reloadGameplayDataAndRender() {
-  await loadData()
-  renderCurrentMode()
-}
-
- async function handleBuyPacksAction() {
-  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
-  const res = await postJson("/api/game/buy-packs", { quantity: qty })
-  if (!res.ok) {
-   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
-   return
-  }
-  showActionResult("packResultBox", `
-   <p><strong>Achat valide:</strong> x${fmt(res.data?.quantity || qty)} packs</p>
-   <p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>
-  `)
-  await reloadGameplayDataAndRender()
- }
-
- async function handleOpenPacksAction() {
-  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
-  const setId = String(document.getElementById("actionSetInput")?.value || "").trim()
-  const res = await postJson("/api/game/open-packs", { quantity: qty, setId })
-  if (!res.ok) {
-   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
-   return
-  }
-  const cards = res.data?.cards || []
-  const top = cards.slice(0, 3).map((card) => `${escapeHtml(card.rarity)} ${escapeHtml(card.cardName)} x${fmt(card.qty)}`).join("<br>")
-  showActionResult("packResultBox", `
-   <p><strong>Ouverture terminee:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p>
-   <p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>
-   <p>${top || "Aucune carte remontee."}</p>
-  `)
-  await reloadGameplayDataAndRender()
- }
-
- async function handleFusionAction() {
-  const setId = String(document.getElementById("fusionSetInput")?.value || "").trim()
-  const rarity = String(document.getElementById("fusionRarityInput")?.value || "").trim()
-  const res = await postJson("/api/game/fuse", { setId, rarity })
-  if (!res.ok) {
-   showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
-   return
-  }
-  const reward = res.data?.reward || {}
-  showActionResult("fusionResultBox", `
-   <p><strong>Fusion validee:</strong> ${escapeHtml(res.data?.fromRarity || rarity)} -> ${escapeHtml(res.data?.toRarity || "")}</p>
-   <p>Recompense: ${escapeHtml(reward.rarity || "")} ${escapeHtml(reward.cardName || "Carte")}</p>
-   <p>Doublons restants: ${fmt(res.data?.remainingDuplicates || 0)}</p>
-  `)
-  await reloadGameplayDataAndRender()
- }
-
- async function handleCraftAction() {
-  const cardId = String(document.getElementById("craftCardInput")?.value || "").trim()
-  const res = await postJson("/api/game/craft", { cardId })
-  if (!res.ok) {
-   const progress = res.data?.progress
-   const progressText = progress ? ` (${fmt(progress.ownedCount || 0)}/5)` : ""
-   showActionResult("craftResultBox", `<p>${escapeHtml((res.data?.error || "Craft impossible.") + progressText)}</p>`, true)
-   return
-  }
-  const card = res.data?.card || {}
-  showActionResult("craftResultBox", `
-   <p><strong>Craft SSR valide:</strong> ${escapeHtml(card.cardName || "Carte")}</p>
-   <p>${escapeHtml(card.rarity || "SSR")} - ${escapeHtml(card.set || "unknown")}</p>
-   ${res.data?.titleUnlocked ? `<p>Titre: ${escapeHtml(res.data.titleUnlocked)}</p>` : ""}
-  `)
-  await reloadGameplayDataAndRender()
  }
 
  function bindEvents() {
   document.getElementById("navToggle").addEventListener("click", () => {
    document.getElementById("navLinks").classList.toggle("open")
   })
+
   document.querySelectorAll(".play-tab[data-mode]").forEach((tab) => {
    tab.addEventListener("click", () => setMode(tab.dataset.mode))
   })
+
   document.querySelectorAll(".play-subtab").forEach((btn) => {
    btn.addEventListener("click", () => setInventoryView(btn.dataset.view))
   })
+
   document.getElementById("searchInput").addEventListener("input", renderCurrentMode)
   document.getElementById("setFilter").addEventListener("change", renderCurrentMode)
   document.getElementById("rarityFilter").addEventListener("change", renderCurrentMode)
+  document.getElementById("collectionOwnedToggle").addEventListener("click", () => {
+   state.collectionOwnedOnly = !state.collectionOwnedOnly
+   renderCurrentMode()
+  })
+
   document.getElementById("sortBtn").addEventListener("click", () => {
    state.sortDesc = !state.sortDesc
-   document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri Qte v" : "Tri Qte ^"
+   document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri Qté v" : "Tri Qté ^"
    renderCurrentMode()
-  })
-
-  document.getElementById("playGrid").addEventListener("click", (event) => {
-   const btn = event.target.closest(".play-card")
-   if (!btn) return
-   const item = findItemById(btn.dataset.id)
-   if (!item) return
-   state.selected = item
-   renderDetail(item)
-   renderCurrentMode()
-  })
-
-  document.getElementById("playTeam").addEventListener("click", (event) => {
-   const row = event.target.closest(".play-team-row")
-   if (!row) return
-   const item = findItemById(row.dataset.card)
-   if (!item) return
-   state.selected = item
-   renderDetail(item)
-  })
-
-  document.getElementById("playProfile").addEventListener("click", (event) => {
-   const slot = event.target.closest("[data-card]")
-   if (!slot) return
-   const item = findItemById(slot.dataset.card)
-   if (!item) return
-   state.selected = item
-   renderDetail(item)
-  })
-
-  document.getElementById("playDetail").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "sellSelectedBtn") {
-    handleSellSelected().catch(() => {})
-   }
-  })
-
-  document.getElementById("playMarket").addEventListener("click", (event) => {
-   const buyBtn = event.target.closest(".buy-listing-btn")
-   if (buyBtn) {
-    handleBuyListing(buyBtn.dataset.id).catch(() => {})
-    return
-   }
-   const removeBtn = event.target.closest(".remove-listing-btn")
-   if (removeBtn) {
-    handleRemoveListing(removeBtn.dataset.id).catch(() => {})
-    return
-   }
-   if (event.target && event.target.id === "refreshMarketBtn") {
-    loadMarket().then(renderCurrentMode).catch(() => {})
-   }
   })
 
   document.getElementById("playPacks").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "buyPacksBtn") {
-    handleBuyPacksAction().catch(() => {})
-    return
-   }
-   if (event.target && event.target.id === "openPacksBtn") {
-    handleOpenPacksAction().catch(() => {})
-    return
-   }
+   if (event.target && event.target.id === "buyPacksBtn") return handleBuyPacksAction().catch(() => {})
+   if (event.target && event.target.id === "openPacksBtn") return handleOpenPacksAction().catch(() => {})
   })
 
   document.getElementById("playFusion").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "fusionBtn") {
-    handleFusionAction().catch(() => {})
-   }
+   if (event.target && event.target.id === "fusionBtn") return handleFusionAction().catch(() => {})
   })
 
   document.getElementById("playCraft").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "craftBtn") {
-    handleCraftAction().catch(() => {})
-   }
+   if (event.target && event.target.id === "craftBtn") return handleCraftAction().catch(() => {})
   })
  }
 
  async function bootstrap() {
   bindEvents()
   setMode(parseModeFromPath(), false)
- try {
+  try {
    await loadData()
    renderCurrentMode()
-  } catch (_) {}
+  } catch (_) {
+   window.location.href = "/"
+  }
  }
 
  bootstrap()
