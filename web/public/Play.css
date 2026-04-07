@@ -1194,7 +1194,7 @@ body.pack-opening-lock {
  animation: packRareBlink 0.12s steps(2, end) 8;
 }
 
-.pack-reveal-card.rare-focus-ssr.revealed::after {
+.pack-reveal-card.no-rare-flash.revealed::after {
  animation: none;
  opacity: 0;
 }

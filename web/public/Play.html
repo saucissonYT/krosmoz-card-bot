@@ -641,7 +641,7 @@ function completePackOpeningReveal() {
  for (const timer of packRevealTimers) window.clearTimeout(timer)
  packRevealTimers = []
  overlay.querySelectorAll(".pack-reveal-card").forEach((card) => {
-  card.classList.remove("rare-focus", "rare-return", "rare-focus-ssr")
+  card.classList.remove("rare-focus", "rare-return", "rare-focus-ssr", "no-rare-flash")
   card.style.removeProperty("--rare-shift-x")
   card.style.removeProperty("--rare-shift-y")
   card.style.removeProperty("--rare-scale")
@@ -863,6 +863,7 @@ function showPackOpeningAnimation(payload) {
    }
    setRareFocusPosition(cardEl, profile)
    cardEl.classList.remove("rare-return", "rare-focus-ssr")
+   cardEl.classList.add("no-rare-flash")
    if (profile.rarity === "SSR") cardEl.classList.add("rare-focus-ssr")
    cardEl.classList.add("rare-focus")
    const focusIn = profile.focusIn
