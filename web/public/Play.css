@@ -1,11 +1,20 @@
 .play-page .page {
- padding-top: 140px;
+ padding-top: 84px;
 }
 
 .navbar-play-submenu {
- width: min(1200px, calc(100% - 2rem));
- margin: 0 auto 10px auto;
- padding: 8px 0 2px;
+ display: none;
+ max-width: 1700px;
+ margin: 0 auto;
+ padding: 0 38px 8px;
+}
+
+body.auth-connected .navbar-play-submenu {
+ display: block;
+}
+
+body.play-page.auth-connected .page {
+ padding-top: 140px;
 }
 
 .play-shell {
@@ -443,6 +452,9 @@
 }
 
 @media (max-width: 1200px) {
+ .navbar-play-submenu {
+  padding: 0 24px 8px;
+ }
  .play-shell {
   grid-template-columns: 1fr;
  }

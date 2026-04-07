@@ -4,6 +4,11 @@
  const right = btn.parentElement
  const navLinks = document.getElementById("navLinks")
 
+ function setAuthBodyClass(connected) {
+  if (!document || !document.body) return
+  document.body.classList.toggle("auth-connected", Boolean(connected))
+ }
+
  function setAuthState(text) {
   if (!right) return
   let stateEl = right.querySelector("#globalAuthState")
@@ -84,6 +89,7 @@
  } catch (_) {}
 
  if (!status?.enabled) {
+  setAuthBodyClass(false)
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
@@ -95,6 +101,7 @@
  }
 
  if (!status.connected) {
+  setAuthBodyClass(false)
   setAuthState("")
   setProfileLink(null)
   setConnectedNavLink(false)
@@ -110,6 +117,7 @@
   if (meRes.ok) me = await meRes.json()
  } catch (_) {}
 
+ setAuthBodyClass(true)
  setAuthState("")
  setProfileLink(me?.id || status.userId)
  setConnectedNavLink(true)
