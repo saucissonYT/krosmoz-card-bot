@@ -344,8 +344,7 @@ function requireSession(req, res) {
 function requireSessionPage(req, res) {
  const session = resolveSession(req)
  if (session) return session
- const returnTo = sanitizeReturnPath(req.originalUrl) || "/play"
- res.redirect(`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`)
+ res.redirect("/")
  return null
 }
 
