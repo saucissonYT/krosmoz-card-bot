@@ -793,31 +793,85 @@
  height: clamp(360px, 52vh, 440px);
  min-height: 0;
  border-color: rgba(255, 255, 255, 0.15);
- padding: 14px 12px 8px;
+ padding: 0;
  background:
   radial-gradient(circle at 50% 16%, rgba(108, 162, 255, 0.22), rgba(108, 162, 255, 0) 56%),
   radial-gradient(circle at 50% 100%, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0) 40%),
   linear-gradient(180deg, rgba(14, 21, 50, 0.95), rgba(10, 14, 35, 0.98));
 }
 
+.mode-fusion-simple .fusion-ornement-frame {
+ position: absolute;
+ inset: 0;
+ pointer-events: none;
+ z-index: 6;
+}
+
+.mode-fusion-simple .fusion-ornement {
+ position: absolute;
+ display: block;
+ background-repeat: no-repeat;
+}
+
+.mode-fusion-simple .fusion-ornement-top {
+ left: 58px;
+ right: 58px;
+ top: 0;
+ height: 54px;
+ background-image: url("/assets/ui/ornement-haut.png");
+ background-position: center top;
+ background-size: 100% 100%;
+}
+
+.mode-fusion-simple .fusion-ornement-bottom {
+ left: 0;
+ right: 0;
+ bottom: 0;
+ height: 112px;
+ background-image: url("/assets/ui/ornement-bas.png");
+ background-position: center bottom;
+ background-size: 100% 100%;
+}
+
+.mode-fusion-simple .fusion-ornement-left {
+ left: 0;
+ top: 0;
+ bottom: 0;
+ width: 68px;
+ background-image: url("/assets/ui/ornement-gauche.png");
+ background-position: left center;
+ background-size: 100% 100%;
+}
+
+.mode-fusion-simple .fusion-ornement-right {
+ right: 0;
+ top: 0;
+ bottom: 0;
+ width: 68px;
+ background-image: url("/assets/ui/ornement-droit.png");
+ background-position: right center;
+ background-size: 100% 100%;
+}
+
 .mode-fusion-simple .fusion-simple-ring {
  position: relative;
  height: 100%;
  min-height: 0;
+ z-index: 2;
 }
 
 .mode-fusion-simple .fusion-forge-orbit {
- inset: 18px 0 118px;
+ inset: 68px 70px 136px;
 }
 
 .mode-fusion-simple .fusion-forge-orb {
- width: 72px;
- transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-88px) rotate(calc(var(--angle) * -1));
+ width: 68px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-74px) rotate(calc(var(--angle) * -1));
 }
 
 .mode-fusion-simple .fusion-forge-orb-core {
- width: 72px;
- height: 72px;
+ width: 68px;
+ height: 68px;
 }
 
 .mode-fusion-simple .fusion-forge-core {
@@ -835,7 +889,7 @@
 .mode-fusion-simple .fusion-simple-anvil-box {
  position: absolute;
  left: 50%;
- bottom: -6px;
+ bottom: 24px;
  width: min(330px, 68%);
  transform: translateX(-50%);
  display: grid;
@@ -2219,19 +2273,31 @@ body.pack-opening-lock {
   height: 390px;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 14px 0 108px;
+  inset: 56px 56px 116px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 66px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-82px) rotate(calc(var(--angle) * -1));
+  width: 62px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-66px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 66px;
-  height: 66px;
+  width: 62px;
+  height: 62px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(300px, 64%);
-  bottom: -4px;
+  width: min(280px, 64%);
+  bottom: 14px;
+ }
+ .mode-fusion-simple .fusion-ornement-top {
+  left: 46px;
+  right: 46px;
+  height: 46px;
+ }
+ .mode-fusion-simple .fusion-ornement-left,
+ .mode-fusion-simple .fusion-ornement-right {
+  width: 54px;
+ }
+ .mode-fusion-simple .fusion-ornement-bottom {
+  height: 92px;
  }
  .pack-open-grid {
   justify-content: center;
@@ -2327,22 +2393,34 @@ body.pack-opening-lock {
  }
  .mode-fusion-simple .fusion-simple-stage {
   height: 350px;
-  padding-bottom: 8px;
+  padding-bottom: 0;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 10px 0 102px;
+  inset: 48px 44px 100px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 56px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-70px) rotate(calc(var(--angle) * -1));
+  width: 52px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-54px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(240px, 60%);
-  bottom: -3px;
+  width: min(220px, 58%);
+  bottom: 10px;
+ }
+ .mode-fusion-simple .fusion-ornement-top {
+  left: 38px;
+  right: 38px;
+  height: 38px;
+ }
+ .mode-fusion-simple .fusion-ornement-left,
+ .mode-fusion-simple .fusion-ornement-right {
+  width: 42px;
+ }
+ .mode-fusion-simple .fusion-ornement-bottom {
+  height: 80px;
  }
  .pack-open-overlay {
   padding: 10px;

@@ -1466,8 +1466,8 @@ function renderFusion() {
   <section class="mode-shell mode-fusion mode-fusion-simple">
    <header class="mode-hero">
     <div>
-     <h2>Forge d'enclume</h2>
-     <p>Sélectionne la conversion, règle la quantité, puis valide pour lancer la fusion orbitale.</p>
+     <h2>La Forge de Volkaragnar</h2>
+     <p>Sélectionne la conversion, règle la quantité, puis valide pour lancer la fusion.</p>
     </div>
     <div class="mode-kpi-grid">
      <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
@@ -1479,6 +1479,12 @@ function renderFusion() {
     <div class="fusion-simple-workspace">
      <div class="fusion-simple-left">
       <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
+       <div class="fusion-ornement-frame" aria-hidden="true">
+        <span class="fusion-ornement fusion-ornement-top"></span>
+        <span class="fusion-ornement fusion-ornement-right"></span>
+        <span class="fusion-ornement fusion-ornement-bottom"></span>
+        <span class="fusion-ornement fusion-ornement-left"></span>
+       </div>
        <div class="fusion-simple-ring">
         <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
         <div id="fusionForgeResult" class="fusion-forge-result">
