@@ -93,6 +93,16 @@
   selected: null
  }
  const PACK_BACK_IMAGE = "/assets/ui/carte-du-krosmoz.jpg"
+ const SET_UNLOCK_THRESHOLD_PCT = 70
+ const SET_UNLOCK_RULES = [
+  { id: "incarnam", name: "Incarnam", levelRequired: 1, prevSet: null },
+  { id: "astrub", name: "Astrub", levelRequired: 11, prevSet: "incarnam" },
+  { id: "amakna", name: "Amakna", levelRequired: 36, prevSet: "astrub" },
+  { id: "sufokia", name: "Sufokia", levelRequired: 51, prevSet: "amakna" },
+  { id: "kelba", name: "Kelba", levelRequired: 66, prevSet: "sufokia" },
+  { id: "katrepat", name: "Katrepat", levelRequired: 81, prevSet: "kelba" },
+  { id: "sberg", name: "Sberg", levelRequired: 96, prevSet: "katrepat" }
+ ]
  let packRevealResolve = null
  let packRevealEscHandlerBound = false
 
@@ -326,16 +336,53 @@
   return `${String(set.name || set.id)} - ${pct}%`
  }
 
+ function getSetName(setId) {
+  const id = String(setId || "")
+  const byRule = SET_UNLOCK_RULES.find((row) => String(row.id) === id)
+  if (byRule?.name) return byRule.name
+  const byProfile = (state.profile?.setProgress || []).find((row) => String(row.id) === id)
+  return String(byProfile?.name || id || "Set")
+ }
+
+ function getNextSetUnlockInfo(unlockedSetIds = []) {
+  const unlocked = new Set((unlockedSetIds || []).map((id) => String(id)))
+  const currentLevel = Number(state.profile?.level || state.me?.level || 1)
+
+  for (const rule of SET_UNLOCK_RULES) {
+   if (unlocked.has(String(rule.id))) continue
+   const prevSetPct = rule.prevSet ? Number(getSetProgressPct(rule.prevSet) || 0) : 0
+   return {
+    ...rule,
+    currentLevel,
+    prevSetPct,
+    missingLevels: Math.max(0, Number(rule.levelRequired || 1) - currentLevel),
+    missingPct: Math.max(0, SET_UNLOCK_THRESHOLD_PCT - prevSetPct),
+    prevSetName: rule.prevSet ? getSetName(rule.prevSet) : null
+   }
+  }
+
+  return null
+ }
+
  function setupPacksPanel(meta) {
   const buyQtyInput = document.getElementById("buyPackQty")
   const openQtyInput = document.getElementById("openPackQty")
   const totalBox = document.getElementById("packTotalCost")
+  const buyStockBox = document.getElementById("packStockAfterBuy")
   const stockBox = document.getElementById("packStockNow")
   const setInput = document.getElementById("actionSetInput")
   const openHint = document.getElementById("openHint")
   const openQtyPreview = document.getElementById("packOpenQtyPreview")
+  const setCards = [...document.querySelectorAll(".pack-set-card[data-set-id]")]
   const price = Number(meta.packPrice || 0)
   const stock = Number(meta.packStock || 0)
+
+  function syncActiveSetCard() {
+   const selectedId = String(setInput?.value || "")
+   setCards.forEach((card) => {
+    card.classList.toggle("active", String(card.dataset.setId || "") === selectedId)
+   })
+  }
 
   function refresh() {
    const buyQty = parseSafeQty(buyQtyInput?.value, 1, 50, 1)
@@ -343,20 +390,29 @@
    if (buyQtyInput) buyQtyInput.value = String(buyQty)
    if (openQtyInput) openQtyInput.value = String(openQty)
    if (totalBox) totalBox.textContent = `${fmt(price * buyQty)} kamas`
+   if (buyStockBox) buyStockBox.textContent = `${fmt(stock + buyQty)} packs après achat`
    if (stockBox) {
     const left = Math.max(0, stock - openQty)
     stockBox.textContent = `${fmt(left)} packs après ouverture`
    }
    if (openQtyPreview) openQtyPreview.textContent = `x${fmt(openQty)} pack(s) a ouvrir`
    if (openHint) {
-    const selectedName = String(setInput?.selectedOptions?.[0]?.textContent || "Set")
+    const selectedName = String(setInput?.selectedOptions?.[0]?.dataset?.setName || setInput?.selectedOptions?.[0]?.textContent || "Set")
     openHint.textContent = `Ouverture ciblee sur ${selectedName}`
    }
+   syncActiveSetCard()
   }
 
   if (buyQtyInput) buyQtyInput.addEventListener("input", refresh)
   if (openQtyInput) openQtyInput.addEventListener("input", refresh)
   if (setInput) setInput.addEventListener("change", refresh)
+  setCards.forEach((card) => {
+   card.addEventListener("click", () => {
+    if (!setInput) return
+    setInput.value = String(card.dataset.setId || "")
+    refresh()
+   })
+  })
   refresh()
  }
 
@@ -557,15 +613,23 @@
  function renderPacks() {
   const panel = document.getElementById("playPacks")
   const meta = state.gameMeta || {}
- const unlockedSets = meta.unlockedSets || []
+  const unlockedSets = meta.unlockedSets || []
   const unlockedSetRows = unlockedSets.map((set) => ({
    id: String(set.id),
    name: String(set.name || set.id),
    pct: getSetProgressPct(set.id)
   }))
+  const unlockedSetIds = unlockedSetRows.map((set) => String(set.id))
+  const nextUnlock = getNextSetUnlockInfo(unlockedSetIds)
   const hasSets = unlockedSets.length > 0
   const stock = Number(meta.packStock || 0)
   const packPrice = Number(meta.packPrice || 0)
+  const kamas = Number(state.me?.kamas || state.profile?.kamas || 0)
+  const level = Number(state.profile?.level || state.me?.level || 1)
+  const guildName = String(state.profile?.guild?.name || "Sans guilde")
+  const playerName = String(state.profile?.discord?.displayName || state.profile?.discord?.username || "Joueur")
+  const playerInitial = playerName ? playerName.charAt(0).toUpperCase() : "J"
+  const playerTitle = String(state.profile?.title || state.me?.title || "Nouveau")
   panel.innerHTML = `
    <section class="mode-shell mode-packs">
     <header class="mode-hero">
@@ -573,9 +637,10 @@
       <h2>Gestion des Packs</h2>
       <p>Achète puis ouvre tes packs sur le set de ton choix.</p>
      </div>
-     <div class="mode-kpi-grid">
+     <div class="mode-kpi-grid mode-kpi-grid-4">
       <div class="mode-kpi"><span>Prix unité</span><strong>${fmt(packPrice)} k</strong></div>
       <div class="mode-kpi"><span>Stock actuel</span><strong>${fmt(stock)}</strong></div>
+      <div class="mode-kpi"><span>Kamas</span><strong>${fmt(kamas)}</strong></div>
       <div class="mode-kpi"><span>Sets débloqués</span><strong>${fmt(unlockedSets.length)}</strong></div>
      </div>
     </header>
@@ -583,10 +648,35 @@
      <article class="mode-card">
       <h3>Ouverture de packs</h3>
       <p class="mode-muted">Choisis ton set puis ouvre tes packs.</p>
+      <div class="pack-profile-mini">
+       <div class="pack-profile-avatar">${escapeHtml(playerInitial)}</div>
+       <div class="pack-profile-main">
+        <strong>${escapeHtml(playerName)}</strong>
+        <small>${escapeHtml(playerTitle)} • Niveau ${fmt(level)}</small>
+        <small>${escapeHtml(guildName)} • ${fmt(kamas)} kamas</small>
+       </div>
+      </div>
+      <div class="pack-next-unlock">
+       ${nextUnlock
+        ? `<strong>Prochain set: ${escapeHtml(nextUnlock.name)}</strong>
+           <p>Débloquage: niveau ${fmt(nextUnlock.levelRequired)} ou ${escapeHtml(nextUnlock.prevSetName || "set precedent")} ${SET_UNLOCK_THRESHOLD_PCT}%.</p>
+           <small>Actuel: niveau ${fmt(nextUnlock.currentLevel)} • ${escapeHtml(nextUnlock.prevSetName || "set")} ${fmt(nextUnlock.prevSetPct)}%</small>`
+        : `<strong>Tous les sets principaux sont débloqués.</strong><small>Tu peux ouvrir tous les packs du mode progression.</small>`}
+      </div>
       <label class="mode-label" for="actionSetInput">Set ciblé</label>
       <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-       ${unlockedSetRows.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
+       ${unlockedSetRows.map((set) => `<option value="${escapeHtml(set.id)}" data-set-name="${escapeHtml(set.name)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
       </select>
+      <div class="pack-set-grid">
+       ${hasSets
+        ? unlockedSetRows.map((set, index) => `
+          <button type="button" class="pack-set-card ${index === 0 ? "active" : ""}" data-set-id="${escapeHtml(set.id)}">
+           <strong>${escapeHtml(set.name)}</strong>
+           <small>${set.pct === null ? "Progression ?" : `${fmt(set.pct)}%`}</small>
+          </button>
+        `).join("")
+        : '<span class="mode-chip">Aucun set debloque</span>'}
+      </div>
       <label class="mode-label" for="openPackQty">Quantité à ouvrir</label>
       <input id="openPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
       <div class="mode-inline-stats">
@@ -594,11 +684,6 @@
        <div><span>Projection stock</span><strong id="packStockNow">${fmt(Math.max(0, stock - 1))} packs après ouverture</strong></div>
       </div>
       <p id="packOpenQtyPreview" class="mode-muted">x1 pack(s) a ouvrir</p>
-      <div class="mode-chip-row">
-       ${hasSets
-        ? unlockedSetRows.map((set) => `<span class="mode-chip mode-chip-ok">${escapeHtml(set.name)} - ${set.pct === null ? "?" : set.pct}%</span>`).join("")
-        : '<span class="mode-chip">Aucun set debloque</span>'}
-      </div>
       <div class="action-row">
        <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir</button>
       </div>
@@ -611,15 +696,17 @@
       <p class="mode-muted">Achete des packs avec tes kamas.</p>
       <label class="mode-label" for="buyPackQty">Quantité à acheter</label>
       <input id="buyPackQty" class="input" type="number" min="1" max="50" step="1" value="1">
-      <div class="mode-inline-stats">
+      <div class="mode-inline-stats mode-inline-stats-3">
+       <div><span>Kamas disponibles</span><strong>${fmt(kamas)} kamas</strong></div>
        <div><span>Prix unite</span><strong>${fmt(packPrice)} kamas</strong></div>
        <div><span>Cout total</span><strong id="packTotalCost">${fmt(packPrice)} kamas</strong></div>
       </div>
+      <div class="mode-inline-stats">
+       <div><span>Stock actuel</span><strong>${fmt(stock)} packs</strong></div>
+       <div><span>Projection stock</span><strong id="packStockAfterBuy">${fmt(stock + 1)} packs après achat</strong></div>
+      </div>
       <div class="action-row">
        <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
-      </div>
-      <div class="mode-info-box">
-       <p>Astuce: achète en lot puis ouvre sur le set de ton choix a gauche.</p>
       </div>
       <div id="packBuyResultBox" class="action-result mode-result"></div>
      </article>

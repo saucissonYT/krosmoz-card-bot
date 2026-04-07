@@ -464,6 +464,10 @@
  gap: 8px;
 }
 
+.mode-kpi-grid.mode-kpi-grid-4 {
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .mode-kpi {
  border: 1px solid rgba(255, 255, 255, 0.12);
  border-radius: 10px;
@@ -622,6 +626,104 @@
 
 .mode-packs .mode-layout {
  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pack-profile-mini {
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: 10px;
+ background: #0f1431;
+ padding: 10px;
+ display: grid;
+ grid-template-columns: 38px 1fr;
+ gap: 10px;
+ align-items: center;
+}
+
+.pack-profile-avatar {
+ width: 38px;
+ height: 38px;
+ border-radius: 999px;
+ background: rgba(201, 168, 76, 0.2);
+ border: 1px solid rgba(201, 168, 76, 0.4);
+ color: #f1d898;
+ display: grid;
+ place-items: center;
+ font-weight: 700;
+}
+
+.pack-profile-main {
+ display: grid;
+ gap: 2px;
+}
+
+.pack-profile-main strong {
+ color: #f3f5ff;
+ font-size: 0.92rem;
+}
+
+.pack-profile-main small {
+ color: #a7aed2;
+ font-size: 0.78rem;
+}
+
+.pack-next-unlock {
+ border: 1px solid rgba(117, 141, 211, 0.35);
+ border-radius: 10px;
+ background: rgba(80, 112, 204, 0.08);
+ padding: 10px;
+ display: grid;
+ gap: 4px;
+}
+
+.pack-next-unlock strong {
+ color: #e4ebff;
+ font-size: 0.9rem;
+}
+
+.pack-next-unlock p {
+ color: #bcc8f0;
+ font-size: 0.82rem;
+}
+
+.pack-next-unlock small {
+ color: #95a6de;
+ font-size: 0.76rem;
+}
+
+.pack-set-grid {
+ display: grid;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.pack-set-card {
+ border: 1px solid rgba(255, 255, 255, 0.14);
+ border-radius: 10px;
+ background: #10163a;
+ color: #e9edff;
+ text-align: left;
+ padding: 8px 9px;
+ cursor: pointer;
+ display: grid;
+ gap: 2px;
+}
+
+.pack-set-card strong {
+ font-size: 0.84rem;
+}
+
+.pack-set-card small {
+ color: #9ca6cf;
+ font-size: 0.74rem;
+}
+
+.pack-set-card:hover {
+ border-color: rgba(201, 168, 76, 0.5);
+}
+
+.pack-set-card.active {
+ border-color: rgba(201, 168, 76, 0.75);
+ background: rgba(201, 168, 76, 0.12);
 }
 
 .mode-fusion .mode-hero {
@@ -855,6 +957,9 @@ body.pack-opening-lock {
  .mode-kpi-grid {
   grid-template-columns: 1fr;
  }
+ .mode-kpi-grid.mode-kpi-grid-4 {
+  grid-template-columns: 1fr;
+ }
  .mode-layout {
   grid-template-columns: 1fr;
  }
@@ -866,6 +971,9 @@ body.pack-opening-lock {
  }
  .play-profile-stats {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+ .pack-set-grid {
+  grid-template-columns: 1fr;
  }
  .pack-open-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
