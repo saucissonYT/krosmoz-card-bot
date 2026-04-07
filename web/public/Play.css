@@ -948,7 +948,13 @@ body.pack-opening-lock {
 }
 
 .pack-open-grid.pack-open-grid-six .pack-reveal-card {
- width: min(100%, 128px);
+ width: calc((100% - 40px) / 6);
+ min-width: 0;
+}
+
+.pack-open-grid.pack-open-grid-six {
+ flex-wrap: nowrap;
+ gap: 8px;
 }
 
 .pack-reveal-card {
@@ -1319,6 +1325,13 @@ body.pack-opening-lock {
  }
  .pack-open-grid {
   justify-content: center;
+ }
+ .pack-open-grid.pack-open-grid-six {
+  flex-wrap: wrap;
+  gap: 10px;
+ }
+ .pack-open-grid.pack-open-grid-six .pack-reveal-card {
+  width: calc(33.333% - 8px);
  }
  .pack-open-summary {
   grid-template-columns: 1fr;
