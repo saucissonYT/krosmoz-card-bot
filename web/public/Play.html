@@ -312,30 +312,50 @@
   return { found, missing, unique: found.length, total }
  }
 
+ function getSetProgressPct(setId) {
+  const progress = Array.isArray(state.profile?.setProgress) ? state.profile.setProgress : []
+  const row = progress.find((item) => String(item.id) === String(setId))
+  if (!row) return null
+  const pct = Number(row.pct)
+  return Number.isFinite(pct) ? Math.max(0, Math.min(100, Math.round(pct))) : null
+ }
+
+ function formatSetWithProgress(set) {
+  const pct = getSetProgressPct(set.id)
+  if (pct === null) return String(set.name || set.id)
+  return `${String(set.name || set.id)} - ${pct}%`
+ }
+
  function setupPacksPanel(meta) {
-  const qtyInput = document.getElementById("actionPackQty")
+  const buyQtyInput = document.getElementById("buyPackQty")
+  const openQtyInput = document.getElementById("openPackQty")
   const totalBox = document.getElementById("packTotalCost")
   const stockBox = document.getElementById("packStockNow")
   const setInput = document.getElementById("actionSetInput")
   const openHint = document.getElementById("openHint")
+  const openQtyPreview = document.getElementById("packOpenQtyPreview")
   const price = Number(meta.packPrice || 0)
   const stock = Number(meta.packStock || 0)
 
   function refresh() {
-   const qty = parseSafeQty(qtyInput?.value, 1, 25, 1)
-   if (qtyInput) qtyInput.value = String(qty)
-   if (totalBox) totalBox.textContent = `${fmt(price * qty)} kamas`
+   const buyQty = parseSafeQty(buyQtyInput?.value, 1, 50, 1)
+   const openQty = parseSafeQty(openQtyInput?.value, 1, 25, 1)
+   if (buyQtyInput) buyQtyInput.value = String(buyQty)
+   if (openQtyInput) openQtyInput.value = String(openQty)
+   if (totalBox) totalBox.textContent = `${fmt(price * buyQty)} kamas`
    if (stockBox) {
-    const left = Math.max(0, stock - qty)
+    const left = Math.max(0, stock - openQty)
     stockBox.textContent = `${fmt(left)} packs après ouverture`
    }
+   if (openQtyPreview) openQtyPreview.textContent = `x${fmt(openQty)} pack(s) a ouvrir`
    if (openHint) {
-    const selected = String(setInput?.selectedOptions?.[0]?.textContent || "Set")
-    openHint.textContent = `Ouverture ciblée sur ${selected}`
+    const selectedName = String(setInput?.selectedOptions?.[0]?.textContent || "Set")
+    openHint.textContent = `Ouverture ciblee sur ${selectedName}`
    }
   }
 
-  if (qtyInput) qtyInput.addEventListener("input", refresh)
+  if (buyQtyInput) buyQtyInput.addEventListener("input", refresh)
+  if (openQtyInput) openQtyInput.addEventListener("input", refresh)
   if (setInput) setInput.addEventListener("change", refresh)
   refresh()
  }
@@ -489,7 +509,7 @@
    const rarity = getRarityToken(card?.rarity)
    const qtyLabel = Number(card?.qty || 0)
    return `
-    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}" style="--reveal-delay:${420 + (index * 140)}ms">
+    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}" style="--reveal-delay:${620 + (index * 210)}ms">
      <div class="pack-reveal-inner">
       <div class="pack-reveal-face pack-reveal-back">
        <img src="${PACK_BACK_IMAGE}" alt="Dos de carte Krosmoz">
@@ -523,11 +543,11 @@
   cardEls.forEach((el, index) => {
     window.setTimeout(() => {
      el.classList.add("revealed")
-    }, 500 + (index * 160))
+    }, 900 + (index * 260))
   })
   window.setTimeout(() => {
    overlay.classList.add("complete")
-  }, 850 + (cardEls.length * 160))
+  }, 1650 + (cardEls.length * 260))
 
   return new Promise((resolve) => {
    packRevealResolve = resolve
@@ -537,7 +557,12 @@
  function renderPacks() {
   const panel = document.getElementById("playPacks")
   const meta = state.gameMeta || {}
-  const unlockedSets = meta.unlockedSets || []
+ const unlockedSets = meta.unlockedSets || []
+  const unlockedSetRows = unlockedSets.map((set) => ({
+   id: String(set.id),
+   name: String(set.name || set.id),
+   pct: getSetProgressPct(set.id)
+  }))
   const hasSets = unlockedSets.length > 0
   const stock = Number(meta.packStock || 0)
   const packPrice = Number(meta.packPrice || 0)
@@ -556,37 +581,47 @@
     </header>
     <div class="mode-layout">
      <article class="mode-card">
-      <h3>Achat & Ouverture</h3>
-      <p class="mode-muted">Une quantité unique est utilisée pour acheter ou ouvrir.</p>
-      <label class="mode-label" for="actionPackQty">Quantité</label>
-      <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
+      <h3>Ouverture de packs</h3>
+      <p class="mode-muted">Choisis ton set puis ouvre tes packs.</p>
       <label class="mode-label" for="actionSetInput">Set ciblé</label>
       <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
+       ${unlockedSetRows.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
       </select>
+      <label class="mode-label" for="openPackQty">Quantité à ouvrir</label>
+      <input id="openPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
       <div class="mode-inline-stats">
-       <div><span>Coût total</span><strong id="packTotalCost">${fmt(packPrice)} kamas</strong></div>
+       <div><span>Stock actuel</span><strong>${fmt(stock)} packs</strong></div>
        <div><span>Projection stock</span><strong id="packStockNow">${fmt(Math.max(0, stock - 1))} packs après ouverture</strong></div>
       </div>
+      <p id="packOpenQtyPreview" class="mode-muted">x1 pack(s) a ouvrir</p>
+      <div class="mode-chip-row">
+       ${hasSets
+        ? unlockedSetRows.map((set) => `<span class="mode-chip mode-chip-ok">${escapeHtml(set.name)} - ${set.pct === null ? "?" : set.pct}%</span>`).join("")
+        : '<span class="mode-chip">Aucun set debloque</span>'}
+      </div>
       <div class="action-row">
-       <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
        <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir</button>
       </div>
       <p id="openHint" class="mode-muted"></p>
-      <div id="packResultBox" class="action-result mode-result"></div>
+      <div id="packOpenResultBox" class="action-result mode-result"></div>
      </article>
 
      <article class="mode-card">
-      <h3>Sets disponibles</h3>
-      <p class="mode-muted">Seuls les sets débloqués peuvent être ouverts.</p>
-      <div class="mode-chip-row">
-       ${hasSets
-        ? unlockedSets.map((set) => `<span class="mode-chip mode-chip-ok">${escapeHtml(set.name)}</span>`).join("")
-        : '<span class="mode-chip">Aucun set débloqué</span>'}
+      <h3>Achat de packs</h3>
+      <p class="mode-muted">Achete des packs avec tes kamas.</p>
+      <label class="mode-label" for="buyPackQty">Quantité à acheter</label>
+      <input id="buyPackQty" class="input" type="number" min="1" max="50" step="1" value="1">
+      <div class="mode-inline-stats">
+       <div><span>Prix unite</span><strong>${fmt(packPrice)} kamas</strong></div>
+       <div><span>Cout total</span><strong id="packTotalCost">${fmt(packPrice)} kamas</strong></div>
+      </div>
+      <div class="action-row">
+       <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
       </div>
       <div class="mode-info-box">
-       <p>Astuce: ouvre en petite quantité pour mieux piloter ton stock et tes kamas.</p>
+       <p>Astuce: achète en lot puis ouvre sur le set de ton choix a gauche.</p>
       </div>
+      <div id="packBuyResultBox" class="action-result mode-result"></div>
      </article>
     </div>
    </section>
@@ -717,25 +752,25 @@
  }
 
  async function handleBuyPacksAction() {
-  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const qty = parseSafeQty(document.getElementById("buyPackQty")?.value, 1, 50, 1)
   const res = await postJson("/api/game/buy-packs", { quantity: qty })
   if (!res.ok) {
-   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
+   showActionResult("packBuyResultBox", `<p>${escapeHtml(res.data?.error || "Achat impossible.")}</p>`, true)
    return
   }
-  showActionResult("packResultBox", `<p><strong>Achat validé:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
+  showActionResult("packBuyResultBox", `<p><strong>Achat valide:</strong> x${fmt(res.data?.quantity || qty)} packs</p><p>Stock: ${fmt(res.data?.packStock || 0)} - Solde: ${fmt(res.data?.kamas || 0)} kamas</p>`)
   await reloadGameplayDataAndRender()
  }
 
  async function handleOpenPacksAction() {
-  const qty = Number(document.getElementById("actionPackQty")?.value || 1)
+  const qty = parseSafeQty(document.getElementById("openPackQty")?.value, 1, 25, 1)
   const setId = String(document.getElementById("actionSetInput")?.value || "").trim()
   const res = await postJson("/api/game/open-packs", { quantity: qty, setId })
   if (!res.ok) {
-   showActionResult("packResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
+   showActionResult("packOpenResultBox", `<p>${escapeHtml(res.data?.error || "Ouverture impossible.")}</p>`, true)
    return
   }
-  showActionResult("packResultBox", `<p><strong>Ouverture terminée:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
+  showActionResult("packOpenResultBox", `<p><strong>Ouverture terminee:</strong> x${fmt(res.data?.quantity || qty)} pack(s)</p><p>Gain: ${fmt(res.data?.totals?.kamasGain || 0)} kamas - Fragments: ${fmt(res.data?.totals?.fragments || 0)}</p>`)
   await showPackOpeningAnimation(res.data)
   await reloadGameplayDataAndRender()
  }
