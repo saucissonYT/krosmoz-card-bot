@@ -278,30 +278,173 @@
   })).sort((a, b) => b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
  }
 
+ function parseSafeQty(value, min, max, fallback = 1) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.max(min, Math.min(max, Math.floor(n)))
+ }
+
+ function getFusionRowByRarity(rarity) {
+  const rows = (state.gameMeta && state.gameMeta.fusion) || []
+  return rows.find((row) => String(row.rarity || "").toUpperCase() === String(rarity || "").toUpperCase()) || null
+ }
+
+ function getNextRarityFromMeta(rarity) {
+  const order = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+  const idx = order.indexOf(String(rarity || "").toUpperCase())
+  if (idx < 0 || idx >= order.length - 1) return null
+  return order[idx + 1]
+ }
+
+ function getFragmentProgressForCard(cardId) {
+  const numbers = new Set()
+  let total = 0
+  for (const frag of state.groupedFragments || []) {
+   if (String(frag.cardId) !== String(cardId)) continue
+   numbers.add(Number(frag.fragmentNumber || 0))
+   total += Number(frag.qty || 0)
+  }
+  const found = [...numbers].sort((a, b) => a - b).filter((x) => x >= 1 && x <= 5)
+  const missing = [1, 2, 3, 4, 5].filter((x) => !numbers.has(x))
+  return { found, missing, unique: found.length, total }
+ }
+
+ function setupPacksPanel(meta) {
+  const qtyInput = document.getElementById("actionPackQty")
+  const totalBox = document.getElementById("packTotalCost")
+  const stockBox = document.getElementById("packStockNow")
+  const setInput = document.getElementById("actionSetInput")
+  const openHint = document.getElementById("openHint")
+  const price = Number(meta.packPrice || 0)
+  const stock = Number(meta.packStock || 0)
+
+  function refresh() {
+   const qty = parseSafeQty(qtyInput?.value, 1, 25, 1)
+   if (qtyInput) qtyInput.value = String(qty)
+   if (totalBox) totalBox.textContent = `${fmt(price * qty)} kamas`
+   if (stockBox) {
+    const left = Math.max(0, stock - qty)
+    stockBox.textContent = `${fmt(left)} packs après ouverture`
+   }
+   if (openHint) {
+    const selected = String(setInput?.selectedOptions?.[0]?.textContent || "Set")
+    openHint.textContent = `Ouverture ciblée sur ${selected}`
+   }
+  }
+
+  if (qtyInput) qtyInput.addEventListener("input", refresh)
+  if (setInput) setInput.addEventListener("change", refresh)
+  refresh()
+ }
+
+ function setupFusionPanel() {
+  const rarityInput = document.getElementById("fusionRarityInput")
+  const fromBox = document.getElementById("fusionFromRarity")
+  const toBox = document.getElementById("fusionToRarity")
+  const costBox = document.getElementById("fusionCostLabel")
+
+  function refresh() {
+   const rarity = String(rarityInput?.value || "")
+   const row = getFusionRowByRarity(rarity)
+   const toRarity = getNextRarityFromMeta(rarity)
+   if (fromBox) fromBox.textContent = rarity || "-"
+   if (toBox) toBox.textContent = toRarity || "-"
+   if (costBox) costBox.textContent = `${fmt(Number(row?.cost || 0))} doublons`
+  }
+
+  if (rarityInput) rarityInput.addEventListener("change", refresh)
+  refresh()
+ }
+
+ function setupCraftPanel(crafts) {
+  const select = document.getElementById("craftCardInput")
+  const preview = document.getElementById("craftPreview")
+  const readyTag = document.getElementById("craftReadyTag")
+
+  function refresh() {
+   const id = String(select?.value || "")
+   const selected = crafts.find((item) => String(item.cardId) === id) || null
+   if (!selected || !preview) {
+    if (preview) preview.innerHTML = '<p class="mode-muted">Aucune carte craftable pour l’instant.</p>'
+    if (readyTag) readyTag.textContent = "0/5"
+    return
+   }
+   const progress = getFragmentProgressForCard(selected.cardId)
+   const foundBadges = progress.found.map((n) => `<span class="mode-chip mode-chip-ok">Fragment ${n}</span>`).join("")
+   const missingBadges = progress.missing.map((n) => `<span class="mode-chip">Manque ${n}</span>`).join("")
+   preview.innerHTML = `
+    <p><strong>${escapeHtml(selected.cardName)}</strong> - ${progress.unique}/5 fragments uniques</p>
+    <div class="mode-chip-row">
+     ${foundBadges || ""}
+     ${missingBadges || ""}
+    </div>
+    <p class="mode-muted">Fragments totaux en stock: ${fmt(progress.total)}</p>
+   `
+   if (readyTag) readyTag.textContent = `${progress.unique}/5`
+  }
+
+  if (select) select.addEventListener("change", refresh)
+  refresh()
+ }
+
  function renderPacks() {
   const panel = document.getElementById("playPacks")
   const meta = state.gameMeta || {}
   const unlockedSets = meta.unlockedSets || []
   const hasSets = unlockedSets.length > 0
+  const stock = Number(meta.packStock || 0)
+  const packPrice = Number(meta.packPrice || 0)
   panel.innerHTML = `
-   <section class="action-grid">
-    <article class="action-box">
-     <h3>PACKS</h3>
-     <p class="action-sub">Prix: ${fmt(meta.packPrice || 0)} kamas - Stock: ${fmt(meta.packStock || 0)}</p>
-     <label>Set</label>
-     <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
-     </select>
-     <label>Quantité</label>
-     <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
-     <div class="action-row">
-      <button id="buyPacksBtn" class="btn btn-outline">Acheter packs</button>
-      <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir packs</button>
+   <section class="mode-shell mode-packs">
+    <header class="mode-hero">
+     <div>
+      <h2>Gestion des Packs</h2>
+      <p>Achète puis ouvre tes packs sur le set de ton choix.</p>
      </div>
-     <div id="packResultBox" class="action-result"></div>
-    </article>
+     <div class="mode-kpi-grid">
+      <div class="mode-kpi"><span>Prix unité</span><strong>${fmt(packPrice)} k</strong></div>
+      <div class="mode-kpi"><span>Stock actuel</span><strong>${fmt(stock)}</strong></div>
+      <div class="mode-kpi"><span>Sets débloqués</span><strong>${fmt(unlockedSets.length)}</strong></div>
+     </div>
+    </header>
+    <div class="mode-layout">
+     <article class="mode-card">
+      <h3>Achat & Ouverture</h3>
+      <p class="mode-muted">Une quantité unique est utilisée pour acheter ou ouvrir.</p>
+      <label class="mode-label" for="actionPackQty">Quantité</label>
+      <input id="actionPackQty" class="input" type="number" min="1" max="25" step="1" value="1">
+      <label class="mode-label" for="actionSetInput">Set ciblé</label>
+      <select id="actionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
+      </select>
+      <div class="mode-inline-stats">
+       <div><span>Coût total</span><strong id="packTotalCost">${fmt(packPrice)} kamas</strong></div>
+       <div><span>Projection stock</span><strong id="packStockNow">${fmt(Math.max(0, stock - 1))} packs après ouverture</strong></div>
+      </div>
+      <div class="action-row">
+       <button id="buyPacksBtn" class="btn btn-outline">Acheter</button>
+       <button id="openPacksBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Ouvrir</button>
+      </div>
+      <p id="openHint" class="mode-muted"></p>
+      <div id="packResultBox" class="action-result mode-result"></div>
+     </article>
+
+     <article class="mode-card">
+      <h3>Sets disponibles</h3>
+      <p class="mode-muted">Seuls les sets débloqués peuvent être ouverts.</p>
+      <div class="mode-chip-row">
+       ${hasSets
+        ? unlockedSets.map((set) => `<span class="mode-chip mode-chip-ok">${escapeHtml(set.name)}</span>`).join("")
+        : '<span class="mode-chip">Aucun set débloqué</span>'}
+      </div>
+      <div class="mode-info-box">
+       <p>Astuce: ouvre en petite quantité pour mieux piloter ton stock et tes kamas.</p>
+      </div>
+     </article>
+    </div>
    </section>
   `
+  setupPacksPanel(meta)
  }
 
  function renderFusion() {
@@ -310,26 +453,60 @@
   const unlockedSets = meta.unlockedSets || []
   const fusionRows = meta.fusion || []
   const hasSets = unlockedSets.length > 0
+  const hasRows = fusionRows.length > 0
   panel.innerHTML = `
-   <section class="action-grid">
-    <article class="action-box">
-     <h3>FUSION</h3>
-     <p class="action-sub">Fusionne tes doublons pour monter en rareté.</p>
-     <label>Set</label>
-     <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-      ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
-     </select>
-     <label>Rareté source</label>
-     <select id="fusionRarityInput" class="input input-select">
-      ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)} (coût ${fmt(row.cost)} doublons)</option>`).join("")}
-     </select>
-     <div class="action-row">
-      <button id="fusionBtn" class="btn btn-gold" ${hasSets ? "" : "disabled"}>Fusionner</button>
+   <section class="mode-shell mode-fusion">
+    <header class="mode-hero">
+     <div>
+      <h2>Atelier de Fusion</h2>
+      <p>Convertis des doublons en cartes de rareté supérieure.</p>
      </div>
-     <div id="fusionResultBox" class="action-result"></div>
-    </article>
+     <div class="mode-kpi-grid">
+      <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
+      <div class="mode-kpi"><span>Raretés fusionnables</span><strong>${fmt(fusionRows.length)}</strong></div>
+      <div class="mode-kpi"><span>Règle</span><strong>1 fusion = 1 carte</strong></div>
+     </div>
+    </header>
+    <div class="mode-layout">
+     <article class="mode-card">
+      <h3>Paramètres de fusion</h3>
+      <label class="mode-label" for="fusionSetInput">Set</label>
+      <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
+       ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(set.name)}</option>`).join("")}
+      </select>
+      <label class="mode-label" for="fusionRarityInput">Rareté source</label>
+      <select id="fusionRarityInput" class="input input-select" ${hasRows ? "" : "disabled"}>
+       ${fusionRows.map((row) => `<option value="${escapeHtml(row.rarity)}">${escapeHtml(row.rarity)}</option>`).join("")}
+      </select>
+      <div class="mode-inline-stats mode-inline-stats-3">
+       <div><span>De</span><strong id="fusionFromRarity">-</strong></div>
+       <div><span>Vers</span><strong id="fusionToRarity">-</strong></div>
+       <div><span>Coût</span><strong id="fusionCostLabel">0 doublons</strong></div>
+      </div>
+      <div class="action-row">
+       <button id="fusionBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Lancer la fusion</button>
+      </div>
+      <div id="fusionResultBox" class="action-result mode-result"></div>
+     </article>
+
+     <article class="mode-card">
+      <h3>Table des coûts</h3>
+      <div class="mode-rows">
+       ${hasRows
+        ? fusionRows.map((row) => {
+         const next = getNextRarityFromMeta(row.rarity)
+         return `<div class="mode-row"><span>${escapeHtml(row.rarity)} → ${escapeHtml(next || "-")}</span><strong>${fmt(row.cost)} doublons</strong></div>`
+        }).join("")
+        : '<p class="mode-muted">Aucune rareté fusionnable disponible.</p>'}
+      </div>
+      <div class="mode-info-box">
+       <p>La fusion consomme des doublons d’un set et donne une carte aléatoire de la rareté cible.</p>
+      </div>
+     </article>
+    </div>
    </section>
   `
+  setupFusionPanel()
  }
 
  function renderCraft() {
@@ -337,21 +514,47 @@
   const crafts = getCraftCandidates()
   const hasCraft = crafts.length > 0
   panel.innerHTML = `
-   <section class="action-grid">
-    <article class="action-box">
-     <h3>CRAFT</h3>
-     <p class="action-sub">Craft SSR via fragments (1-5).</p>
-     <label>Carte</label>
-     <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
-      ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} (${item.uniqueCount}/5)</option>`).join("")}
-     </select>
-     <div class="action-row">
-      <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter</button>
+   <section class="mode-shell mode-craft">
+    <header class="mode-hero">
+     <div>
+      <h2>Forge de Craft</h2>
+      <p>Assemble 5 fragments uniques (1 a 5) pour créer une SSR.</p>
      </div>
-     <div id="craftResultBox" class="action-result"></div>
-    </article>
+     <div class="mode-kpi-grid">
+      <div class="mode-kpi"><span>Cartes prêtes</span><strong>${fmt(crafts.filter((x) => x.uniqueCount >= 5).length)}</strong></div>
+      <div class="mode-kpi"><span>Candidates</span><strong>${fmt(crafts.length)}</strong></div>
+      <div class="mode-kpi"><span>Seuil craft</span><strong id="craftReadyTag">${hasCraft ? `${crafts[0].uniqueCount}/5` : "0/5"}</strong></div>
+     </div>
+    </header>
+    <div class="mode-layout">
+     <article class="mode-card">
+      <h3>Carte a crafter</h3>
+      <label class="mode-label" for="craftCardInput">Sélection</label>
+      <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
+       ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} (${item.uniqueCount}/5)</option>`).join("")}
+      </select>
+      <div id="craftPreview" class="mode-preview"></div>
+      <div class="action-row">
+       <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter SSR</button>
+      </div>
+      <div id="craftResultBox" class="action-result mode-result"></div>
+     </article>
+
+     <article class="mode-card">
+      <h3>Conditions</h3>
+      <ul class="mode-list">
+       <li>Fragments requis: 1, 2, 3, 4 et 5.</li>
+       <li>Chaque numéro doit être unique pour la carte ciblée.</li>
+       <li>Le craft consomme les fragments et crée une SSR.</li>
+      </ul>
+      <div class="mode-info-box">
+       <p>Si une carte est à 4/5, va chercher le fragment manquant au marché pour finir plus vite.</p>
+      </div>
+     </article>
+    </div>
    </section>
   `
+  setupCraftPanel(crafts)
  }
 
  function showActionResult(boxId, html, error = false) {
