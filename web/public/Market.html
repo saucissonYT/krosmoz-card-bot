@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Marché Live — Krosmoz Card</title>
+ <title>March&eacute; Live - Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -26,7 +26,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">â˜°</button>
    </div>
   </div>
  </nav>
@@ -34,14 +34,9 @@
  <div class="page">
   <div class="container">
    <section class="market-shell">
-    <header class="market-hero fade-in">
-     <p class="market-kicker">Echanges entre joueurs</p>
-     <h1 class="section-title">Marche des aventuriers</h1>
-     <p class="section-subtitle">Achete et vends cartes ou fragments au meilleur prix.</p>
-     <div class="market-hero-notes">
-      <p class="notice-strip fade-in stagger-1">Note: certains visuels peuvent paraitre flous selon la source des images.</p>
-      <div id="walletInfo" class="notice-strip market-wallet fade-in stagger-2" style="display:none"></div>
-     </div>
+        <header class="market-hero fade-in">
+     <h1 class="section-title">March&eacute; des aventuriers</h1>
+     <p class="section-subtitle">achete et vends des cartes ou fragments au meilleur prix</p>
     </header>
 
     <div id="tradePanel" class="trade-panel market-trade-panel fade-in stagger-2" style="display:none">
@@ -101,8 +96,8 @@
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>ðŸŽ´ <a href="/">Krosmoz Card</a> â€” <span class="market-footer-domain">krosmozcard.fr</span></p>
+    <p style="margin-top:8px"><a href="/about">Ã€ propos Â· Contact Â· Mentions lÃ©gales</a></p>
    </footer>
   </div>
  </div>
@@ -116,14 +111,14 @@
  const state = { page: 1, limit: 20, me: null, connected: false }
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
  const RARITY_EMOJI = {
-  C: "⚪",
-  U: "🟢",
-  R: "🔵",
-  SR: "🟣",
-  HR: "🔴",
-  UR: "🟡",
-  S: "✨",
-  SSR: "🌈"
+  C: "âšª",
+  U: "ðŸŸ¢",
+  R: "ðŸ”µ",
+  SR: "ðŸŸ£",
+  HR: "ðŸ”´",
+  UR: "ðŸŸ¡",
+  S: "âœ¨",
+  SSR: "ðŸŒˆ"
  }
 
  function escapeHtml(str) {
@@ -201,7 +196,7 @@
 
   const kamas = Number(state.me.kamas || 0).toLocaleString("fr-FR")
   box.style.display = "block"
-  box.textContent = `💰 Tes kamas: ${kamas}`
+  box.textContent = `ðŸ’° Tes kamas: ${kamas}`
  }
 
  function listingCard(item) {
@@ -249,9 +244,9 @@
   const root = document.getElementById("pagination")
   if (pages <= 1) { root.innerHTML = ""; return }
   root.innerHTML = `
-   <button class="btn btn-outline" ${page <= 1 ? "disabled" : ""} data-page="${page - 1}">← Précédent</button>
+   <button class="btn btn-outline" ${page <= 1 ? "disabled" : ""} data-page="${page - 1}">â† PrÃ©cÃ©dent</button>
    <span class="pagination-meta">Page ${page} / ${pages}</span>
-   <button class="btn btn-outline" ${page >= pages ? "disabled" : ""} data-page="${page + 1}">Suivant →</button>
+   <button class="btn btn-outline" ${page >= pages ? "disabled" : ""} data-page="${page + 1}">Suivant â†’</button>
   `
   root.querySelectorAll("button[data-page]").forEach((btn) => {
    btn.addEventListener("click", () => {
@@ -264,7 +259,7 @@
  async function loadMarket() {
   const grid = document.getElementById("marketGrid")
   const meta = document.getElementById("resultMeta")
-  grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du marché...</p></div>`
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du marchÃ©...</p></div>`
 
   const res = await api(`/api/market?${qs()}`)
   if (!res.ok) {
@@ -278,7 +273,7 @@
 
   const items = data.items || []
   if (!items.length) {
-   grid.innerHTML = `<div class="loading"><p>Aucune annonce trouvée.</p></div>`
+   grid.innerHTML = `<div class="loading"><p>Aucune annonce trouvÃ©e.</p></div>`
    renderPagination(1, 1)
    return
   }
@@ -305,9 +300,9 @@
      const kind = listing.type === "fragment"
       ? `fragment ${listing.fragmentNumber}/5`
       : "carte"
-     showToast(`Achat confirmé: ${kind} ajouté à ton inventaire.`)
+     showToast(`Achat confirmÃ©: ${kind} ajoutÃ© Ã  ton inventaire.`)
     } else {
-     showToast("Achat confirmé et inventaire mis à jour.")
+     showToast("Achat confirmÃ© et inventaire mis Ã  jour.")
     }
 
     await refreshConnectedData()
@@ -330,7 +325,7 @@
      body: JSON.stringify({ listingId })
     })
     if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
-    showToast("Annonce retirée.")
+    showToast("Annonce retirÃ©e.")
     await refreshConnectedData()
     await loadMarket()
    })
@@ -363,8 +358,8 @@
 
   sortedCards.forEach((c) => {
    const rarity = String(c.rarity || "C")
-   const emoji = RARITY_EMOJI[rarity] || "⚪"
-   cardSelect.appendChild(option(c.cardId, `${emoji} ${c.cardName} [${rarity}] ×${c.qty}`))
+   const emoji = RARITY_EMOJI[rarity] || "âšª"
+   cardSelect.appendChild(option(c.cardId, `${emoji} ${c.cardName} [${rarity}] Ã—${c.qty}`))
   })
   if (!sortedCards.length) cardSelect.appendChild(option("", "Aucune carte vendable"))
 
@@ -379,10 +374,10 @@
 
   sortedFrags.forEach((f, idx) => {
    const rarity = String(f.rarity || "SSR")
-   const rarityEmoji = RARITY_EMOJI[rarity] || "🌈"
+   const rarityEmoji = RARITY_EMOJI[rarity] || "ðŸŒˆ"
    fragSelect.appendChild(option(
     `${f.cardId}|${f.fragmentNumber}|${idx}`,
-    `🧩 ${rarityEmoji} ${f.cardName} — fragment ${f.fragmentNumber}/5`
+    `ðŸ§© ${rarityEmoji} ${f.cardName} â€” fragment ${f.fragmentNumber}/5`
    ))
   })
   if (!sortedFrags.length) fragSelect.appendChild(option("", "Aucun fragment vendable"))
@@ -392,10 +387,10 @@
   box.innerHTML = `
    <h2>Mes annonces (${myListings.length})</h2>
    ${myListings.length ? `
-    <div class="listing-mini">
+    <div class="listing-mini market-listing-scroll">
      ${myListings.map((l) => `
       <div class="listing-mini-row">
-       <span>${escapeHtml(l.cardName)} ${l.type === "fragment" ? `(frag ${l.fragmentNumber}/5)` : ""} — ${Number(l.price || 0).toLocaleString("fr-FR")} kamas</span>
+       <span>${escapeHtml(l.cardName)} ${l.type === "fragment" ? `(frag ${l.fragmentNumber}/5)` : ""} â€” ${Number(l.price || 0).toLocaleString("fr-FR")} kamas</span>
        <button class="btn btn-outline mini-remove" data-id="${l.id}">Retirer</button>
       </div>
      `).join("")}
@@ -412,7 +407,7 @@
      body: JSON.stringify({ listingId })
     })
     if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
-    showToast("Annonce retirée.")
+    showToast("Annonce retirÃ©e.")
     await refreshConnectedData()
     await loadMarket()
    })

@@ -180,6 +180,12 @@
  font-size: 1.9rem;
 }
 
+.play-subtitle {
+ color: #c8d0ee;
+ margin-top: -2px;
+ font-size: 0.96rem;
+}
+
 .play-tabs,
 .play-subtabs {
  display: flex;
@@ -279,6 +285,28 @@
 .play-card-meta small {
  color: #a3a7bf;
  font-size: 0.8rem;
+}
+
+.play-card-actions {
+ margin-top: 8px;
+ display: grid;
+}
+
+.play-card-sell-btn {
+ min-height: 34px;
+ font-size: 0.78rem;
+ border-color: rgba(201, 168, 76, 0.5);
+ background: rgba(11, 17, 43, 0.82);
+ color: #f3dfab;
+}
+
+.play-card-sell-btn:hover {
+ border-color: rgba(201, 168, 76, 0.84);
+ background: rgba(18, 26, 61, 0.95);
+}
+
+.inventory-action-box {
+ margin-bottom: 10px;
 }
 
 .play-panel-alt {
@@ -957,14 +985,14 @@
 }
 
 .mode-fusion-simple .fusion-forge-orb {
- width: 94px;
- transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-118px) rotate(calc(var(--angle) * -1));
+ width: 110px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-136px) rotate(calc(var(--angle) * -1));
  z-index: 8;
 }
 
 .mode-fusion-simple .fusion-forge-orb-core {
- width: 94px;
- height: 94px;
+ width: 110px;
+ height: 110px;
 }
 
 .mode-fusion-simple .fusion-forge-core {
@@ -2410,12 +2438,12 @@ body.pack-opening-lock {
   inset: 0;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 86px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-104px) rotate(calc(var(--angle) * -1));
+  width: 96px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-116px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 86px;
-  height: 86px;
+  width: 96px;
+  height: 96px;
  }
  .pack-open-grid {
   justify-content: center;
@@ -2517,12 +2545,12 @@ body.pack-opening-lock {
   inset: 0;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 76px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-88px) rotate(calc(var(--angle) * -1));
+  width: 86px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-98px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 76px;
-  height: 76px;
+  width: 86px;
+  height: 86px;
  }
  .fusion-skip-btn {
   right: 10px;

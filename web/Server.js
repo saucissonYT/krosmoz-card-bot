@@ -3,11 +3,12 @@ const express = require("express")
 const fs = require("fs")
 const path = require("path")
 
-const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST } = require("../systems/constants")
+const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST, SELL_PRICE } = require("../systems/constants")
 const { getUser, save } = require("../systems/userSystem")
 const { addBattlePassXP } = require("../systems/battlePassService")
 const { achievementCheck } = require("../systems/achievementCheck")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
+const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../systems/sellHelper")
 const { sortSetsByDisplayOrder } = require("../systems/setOrder")
 const { openPack } = require("../systems/packEngine")
 const { craftFromFragments } = require("../systems/fragmentService")
@@ -853,21 +854,27 @@ function buildInventoryPayload(userId) {
  const sets = getSets()
  const cardsById = new Map(cards.map((c) => [String(c.id), c]))
  const setNames = getCardSetNameMap(sets)
+ const sellMultiplier = getSeasonSellMultiplier()
+ const sellBonusPercent = getSellBonusPercent(sellMultiplier)
 
  const cardItems = Object.entries(user.cards || {})
   .map(([cardId, qty]) => {
    const card = cardsById.get(String(cardId))
    const setId = card?.set || "unknown"
+   const rarity = String(card?.rarity || "C").toUpperCase()
+   const baseSellPrice = Number(SELL_PRICE[rarity] || 1)
    return {
     cardId: String(cardId),
     qty: Number(qty || 0),
     cardName: card?.name || `Carte ${cardId}`,
-    rarity: card?.rarity || "C",
+    rarity,
     set: setId,
     setName: setNames.get(String(setId)) || String(setId),
     imageUrl: card?.image && card?.set
      ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-     : null
+     : null,
+    sellPrice: computeSellPrice(baseSellPrice, sellMultiplier),
+    sellBonusPercent
    }
   })
   .filter((x) => x.qty > 0)
@@ -1288,6 +1295,63 @@ app.post("/api/game/buy-packs", (req, res) => {
   })
  } catch (e) {
   console.error("[WEB] /api/game/buy-packs:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/game/sell-card", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const cardId = String(req.body?.cardId || "").trim()
+  if (!cardId) return res.status(400).json({ error: "cardId manquant." })
+
+  const user = getUser(session.userId)
+  const cards = getCards()
+  const card = cards.find((row) => String(row.id) === cardId)
+  if (!card) return res.status(404).json({ error: "Carte introuvable." })
+
+  const qtyBefore = Number(user.cards?.[cardId] || 0)
+  if (qtyBefore <= 0) return res.status(400).json({ error: "Tu ne possedes plus cette carte." })
+
+  const rarity = String(card.rarity || "C").toUpperCase()
+  const baseSellPrice = Number(SELL_PRICE[rarity] || 1)
+  const sellMultiplier = getSeasonSellMultiplier()
+  const sellBonusPercent = getSellBonusPercent(sellMultiplier)
+  const gain = computeSellPrice(baseSellPrice, sellMultiplier)
+
+  user.cards[cardId] = qtyBefore - 1
+  if (user.cards[cardId] <= 0) delete user.cards[cardId]
+
+  const kamasBefore = Number(user.kamas || 0)
+  user.kamas = kamasBefore + gain
+
+  if (!user.stats) user.stats = {}
+  user.stats.cardsSold = Number(user.stats.cardsSold || 0) + 1
+
+  const unlocked = achievementCheck(user, "economy")
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   sold: {
+    cardId,
+    cardName: String(card.name || `Carte ${cardId}`),
+    rarity,
+    gain,
+    sellBonusPercent,
+    remainingQty: Math.max(0, Number(user.cards?.[cardId] || 0)),
+    kamasBefore,
+    kamasAfter: Number(user.kamas || 0)
+   },
+   kamas: Number(user.kamas || 0),
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/sell-card:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })

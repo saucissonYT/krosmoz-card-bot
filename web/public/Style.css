@@ -803,12 +803,62 @@ body.auth-connected .hero {
 
 /* -------- LEADERBOARD PAGE -------- */
 
+.leaderboard-shell {
+ padding-top: 40px;
+ display: grid;
+ gap: 14px;
+}
+
+.leaderboard-hero {
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ border-radius: var(--radius-lg);
+ padding: 18px 20px;
+ background:
+  radial-gradient(circle at 16% 20%, rgba(201, 168, 76, 0.18), rgba(201, 168, 76, 0) 46%),
+  radial-gradient(circle at 84% 18%, rgba(125, 188, 255, 0.16), rgba(125, 188, 255, 0) 48%),
+  linear-gradient(148deg, rgba(14, 21, 50, 0.88), rgba(9, 13, 34, 0.9));
+ box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 24px rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-hero .section-title,
+.leaderboard-hero .section-subtitle {
+ text-align: left;
+}
+
+.leaderboard-hero .section-subtitle {
+ margin-bottom: 0;
+ color: #d5ddfd;
+ font-size: 0.98rem;
+}
+
+.leaderboard-tabs-wrap {
+ display: grid;
+ gap: 8px;
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: var(--radius);
+ padding: 12px;
+ background: rgba(10, 14, 35, 0.78);
+}
+
+.leaderboard-active-label {
+ margin: 0;
+ color: #aeb9e8;
+ font-size: 0.88rem;
+}
+
+.leaderboard-content-shell {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: var(--radius);
+ background: rgba(10, 14, 35, 0.78);
+ padding: 8px 10px;
+}
+
 .leaderboard-tabs {
  display: flex;
  gap: 8px;
  flex-wrap: wrap;
- justify-content: center;
- margin-bottom: 32px;
+ justify-content: flex-start;
+ margin-bottom: 0;
 }
 
 .tab-btn {
@@ -1195,6 +1245,39 @@ body.auth-connected .hero {
  margin-bottom: 10px;
 }
 
+body.market-page .market-hero {
+ text-align: center;
+}
+
+body.market-page .market-hero .section-subtitle {
+ color: #23305d;
+ font-weight: 700;
+}
+
+body.achievements-page .section-subtitle {
+ color: #23305d;
+ font-weight: 700;
+}
+
+body.achievements-page #completionToggle,
+body.achievements-page #refreshBtn {
+ background: rgba(8, 13, 34, 0.9);
+ border-color: rgba(77, 95, 148, 0.75);
+ color: #e4ebff;
+}
+
+body.achievements-page #completionToggle:hover,
+body.achievements-page #refreshBtn:hover {
+ background: rgba(12, 19, 46, 0.96);
+ border-color: rgba(99, 122, 190, 0.82);
+ color: #f2f6ff;
+}
+
+body.achievements-page #achMeta {
+ color: #23305d;
+ font-weight: 700;
+}
+
 .market-hero-notes {
  display: grid;
  gap: 8px;
@@ -1291,7 +1374,7 @@ body.auth-connected .hero {
 }
 
 body.market-page .market-dense {
- grid-template-columns: repeat(5, minmax(0, 1fr));
+ grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .achievements-grid {
@@ -1335,8 +1418,8 @@ body.market-page .market-dense {
 .market-card {
  display: grid;
  grid-template-rows: auto auto 1fr auto;
- gap: 9px;
- padding: 12px;
+ gap: 6px;
+ padding: 8px;
  border-color: rgba(255, 255, 255, 0.1);
  background:
   radial-gradient(circle at 88% 14%, rgba(201, 168, 76, 0.11), rgba(201, 168, 76, 0) 40%),
@@ -1366,22 +1449,22 @@ body.market-page .market-dense {
 
 .market-card-title {
  margin: 0 !important;
- font-size: 0.98rem !important;
- min-height: 2.6em;
+ font-size: 0.84rem !important;
+ min-height: 2.15em;
 }
 
 .market-card-body {
  display: grid;
- gap: 5px;
+ gap: 2px;
 }
 
 .market-card-line {
  display: flex;
  justify-content: space-between;
- gap: 8px;
+ gap: 6px;
  align-items: baseline;
  margin: 0 !important;
- font-size: 0.82rem !important;
+ font-size: 0.75rem !important;
  color: #b5c2ea !important;
 }
 
@@ -1398,7 +1481,7 @@ body.market-page .market-dense {
 .market-card-footer {
  margin-top: auto;
  display: grid;
- gap: 8px;
+ gap: 6px;
 }
 
 .market-card .action-row {
@@ -1407,7 +1490,17 @@ body.market-page .market-dense {
 
 .market-price {
  margin: 0 !important;
- font-size: 0.95rem;
+ font-size: 0.84rem;
+}
+
+body.market-page .market-card .chip {
+ font-size: 0.65rem;
+ padding: 2px 6px;
+}
+
+body.market-page .market-footer-domain {
+ color: #7483b4;
+ font-weight: 600;
 }
 
 .catalog-card.card-incomplete {
@@ -1578,6 +1671,12 @@ body.market-page .market-dense {
  margin-top: 8px;
 }
 
+.market-listing-scroll {
+ max-height: 224px;
+ overflow: auto;
+ padding-right: 4px;
+}
+
 .listing-mini-row {
  display: flex;
  justify-content: space-between;
@@ -1696,6 +1795,9 @@ body.market-page .market-dense {
  .market-shell { gap: 12px; }
  .market-hero { padding: 14px; }
  .market-controls-head { flex-direction: column; align-items: flex-start; gap: 4px; }
+ .leaderboard-shell { gap: 12px; }
+ .leaderboard-hero { padding: 14px; }
+ .leaderboard-tabs-wrap { padding: 10px; }
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .auth-inner { flex-direction: column; align-items: flex-start; }
@@ -1727,6 +1829,7 @@ body.market-page .market-dense {
  .toolbar { grid-template-columns: 1fr; }
  .market-kicker { font-size: 0.72rem; }
  .market-card-title { min-height: 0; }
+ .leaderboard-active-label { font-size: 0.82rem; }
  .cards-dense { grid-template-columns: 1fr; }
  .market-dense { grid-template-columns: 1fr; }
  .achievements-grid { grid-template-columns: 1fr; }

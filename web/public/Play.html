@@ -46,7 +46,8 @@ if (__initialPlayTab === "fusion") {
     <main class="play-main">
      <header class="play-head">
       <h1 id="playTitle">INVENTAIRE</h1>
-     </header>
+      <p id="playSubtitle" class="play-subtitle">Consulte ton inventaire et fait le tri dans ton inventaire.</p>
+      </header>
 
      <div class="play-controls" id="playControls">
       <input id="searchInput" class="input" placeholder="Rechercher...">
@@ -71,6 +72,8 @@ if (__initialPlayTab === "fusion") {
       <button class="play-subtab active" data-view="cards">Cartes</button>
       <button class="play-subtab" data-view="fragments">Fragments</button>
      </div>
+
+     <div id="inventoryActionBox" class="action-result inventory-action-box"></div>
 
      <div class="play-content">
       <div id="playGrid" class="play-grid"></div>
@@ -295,8 +298,24 @@ function setMode(mode, updateUrl = true) {
    return
   }
   grid.innerHTML = items.map((item) => {
+   const isCard = state.inventoryView === "cards" && String(item.itemType || "card") !== "fragment"
    let label = `x${fmt(item.qty)}`
    if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
+   const sellPrice = Number(item.sellPrice || 0)
+   const sellAction = isCard
+    ? `
+      <div class="play-card-actions">
+       <button
+        type="button"
+        class="btn btn-outline play-card-sell-btn"
+        data-card-id="${escapeHtml(item.cardId)}"
+        data-card-name="${escapeHtml(item.cardName || "Carte")}"
+        data-sell-price="${sellPrice}">
+        Vendre (${fmt(sellPrice)} kamas)
+       </button>
+      </div>
+     `
+    : ""
    return `
     <article class="play-card">
      <div class="play-card-img-wrap">
@@ -306,9 +325,40 @@ function setMode(mode, updateUrl = true) {
       <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
       <small>${escapeHtml(item.setName || item.set)} - ${escapeHtml(label)}</small>
      </div>
+     ${sellAction}
     </article>
    `
   }).join("")
+
+  grid.querySelectorAll(".play-card-sell-btn").forEach((btn) => {
+   btn.addEventListener("click", async (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const cardId = String(btn.dataset.cardId || "").trim()
+    const cardName = String(btn.dataset.cardName || "Carte")
+    const sellPrice = Number(btn.dataset.sellPrice || 0)
+    if (!cardId || !Number.isFinite(sellPrice) || sellPrice <= 0) {
+     showActionResult("inventoryActionBox", "<p>Prix de vente indisponible pour cette carte.</p>", true)
+     return
+    }
+    const ok = window.confirm(`Vendre 1 exemplaire de ${cardName} pour ${fmt(sellPrice)} kamas ?`)
+    if (!ok) return
+    btn.disabled = true
+    btn.textContent = "Vente..."
+    const res = await postJson("/api/game/sell-card", { cardId })
+    if (!res.ok) {
+     showActionResult("inventoryActionBox", `<p>${escapeHtml(res.data?.error || "Vente impossible.")}</p>`, true)
+     renderCurrentMode()
+     return
+    }
+    const sold = res.data?.sold || {}
+    await reloadGameplayDataAndRender()
+    showActionResult(
+     "inventoryActionBox",
+     `<p><strong>Carte vendue :</strong> ${escapeHtml(sold.cardName || cardName)} (${escapeHtml(sold.rarity || "")})</p><p>Gain: +${fmt(Number(sold.gain || sellPrice))} kamas • Solde: ${fmt(Number(sold.kamasAfter || res.data?.kamas || 0))} kamas</p>`
+    )
+   })
+  })
  }
 
 function getCraftCandidates() {
@@ -1927,6 +1977,7 @@ function renderCraft() {
   if (!box) return
   box.classList.toggle("error", Boolean(error))
   box.innerHTML = html || ""
+  box.style.display = String(html || "").trim() ? "block" : "none"
  }
 
  async function reloadGameplayDataAndRender() {
@@ -2171,10 +2222,20 @@ async function handleCraftAction() {
   const fusionPanel = document.getElementById("playFusion")
   const craftPanel = document.getElementById("playCraft")
   const title = document.getElementById("playTitle")
+  const subtitle = document.getElementById("playSubtitle")
+  const inventoryActionBox = document.getElementById("inventoryActionBox")
 
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
   rarityFilter.style.display = (state.mode === "inventory" && state.inventoryView === "fragments") ? "none" : ""
+  if (subtitle) subtitle.style.display = state.mode === "inventory" ? "block" : "none"
+  if (inventoryActionBox) {
+   if (state.mode !== "inventory") {
+    inventoryActionBox.style.display = "none"
+   } else if (!String(inventoryActionBox.innerHTML || "").trim()) {
+    inventoryActionBox.style.display = "none"
+   }
+  }
   grid.style.display = "grid"
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
@@ -2197,6 +2258,11 @@ async function handleCraftAction() {
    craftPanel.style.display = "block"
   } else {
    title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
+   if (subtitle) {
+    subtitle.textContent = state.inventoryView === "fragments"
+     ? "Consulte tes fragments et prépare tes crafts SSR."
+     : "Consulte ton inventaire et fait le tri dans ton inventaire."
+   }
   }
  }
 
