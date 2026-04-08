@@ -268,19 +268,19 @@
 
    return `
     <article class="bp-step bp-side-${side}">
-     <div class="bp-step-copy ${side === "left" ? "" : "empty"}">
-      ${side === "left" ? `<h3>Etape ${String(level).padStart(2, "0")}</h3><p>${stateLabel}</p>` : ""}
-     </div>
-     <div class="bp-step-node">
-      <div class="${nodeClass}">
-       <span class="bp-node-level">Palier ${level}</span>
-       <span class="bp-node-free">🎁 ${escapeHtml(freeText)}</span>
-       <span class="bp-node-premium">💎 ${escapeHtml(premiumText)}</span>
-       <span class="bp-node-check">✓</span>
+      <div class="bp-node-cluster">
+       <div class="bp-step-node">
+        <div class="${nodeClass}">
+         <span class="bp-node-level">Palier ${level}</span>
+         <span class="bp-node-free">🎁 ${escapeHtml(freeText)}</span>
+         <span class="bp-node-premium">💎 ${escapeHtml(premiumText)}</span>
+         <span class="bp-node-check">✓</span>
+        </div>
+       </div>
+       <div class="bp-step-copy">
+        <h3>Etape ${String(level).padStart(2, "0")}</h3>
+        <p>${stateLabel}</p>
       </div>
-     </div>
-     <div class="bp-step-copy ${side === "right" ? "" : "empty"}">
-      ${side === "right" ? `<h3>Etape ${String(level).padStart(2, "0")}</h3><p>${stateLabel}</p>` : ""}
      </div>
     </article>
    `
