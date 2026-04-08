@@ -5,14 +5,29 @@ const path = require("path")
 
 const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST, SELL_PRICE } = require("../systems/constants")
 const { getUser, save } = require("../systems/userSystem")
+const { addXP } = require("../systems/progressionSystem")
 const { addBattlePassXP } = require("../systems/battlePassService")
 const { achievementCheck } = require("../systems/achievementCheck")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
 const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../systems/sellHelper")
 const { sortSetsByDisplayOrder } = require("../systems/setOrder")
 const { openPack } = require("../systems/packEngine")
-const { craftFromFragments } = require("../systems/fragmentService")
+const {
+ craftFromFragments,
+ rollFragmentForEvent,
+ grantRolledFragment
+} = require("../systems/fragmentService")
 const { isSetUnlocked } = require("../systems/setUnlockSystem")
+const {
+ getEvent,
+ isEventActive,
+ initUserEvent,
+ canUseEventPack,
+ registerEventPack,
+ claimFirstPack
+} = require("../systems/eventSystem")
+const { generateEventPack } = require("../systems/eventPackEngine")
+const { applyEventRewards } = require("../systems/rewardSystem")
 const {
  addListing,
  addFragmentListing,
@@ -22,6 +37,7 @@ const {
 } = require("../systems/market")
 const { getAllGuilds } = require("../systems/guildSystem")
 const achievementRegistry = require("../systems/achievementRegistry")
+const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
 const {
@@ -55,9 +71,45 @@ const ACHIEVEMENT_CATEGORIES = [
  "progression",
  "secret"
 ]
+const WEB_EVENTS_RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+const WEB_PINATA_DURATION_MS = 60 * 1000
+const WEB_PINATA_COOLDOWN_MS = 12 * 60 * 1000
+const WEB_PINATA_ALLOWED_EMOJIS = ["🪅", "🎉", "⭐", "🔥", "💰", "🌈", "🧩", "🎴"]
+const WEB_PINATA_TIERS = [
+ { minScore: 1, label: "🥉 Bronze", kamas: [100, 300], xp: 10, bpXp: 30, cardChance: 0, cardPool: [], fragmentChance: 0 },
+ { minScore: 5, label: "🥈 Argent", kamas: [300, 700], xp: 25, bpXp: 60, cardChance: 0.25, cardPool: ["C", "U"], fragmentChance: 0 },
+ { minScore: 10, label: "🥇 Or", kamas: [700, 1400], xp: 50, bpXp: 100, cardChance: 0.4, cardPool: ["C", "U", "R"], fragmentChance: 0.1 },
+ { minScore: 18, label: "💎 Diamant", kamas: [1400, 2500], xp: 100, bpXp: 150, cardChance: 0.55, cardPool: ["C", "U", "R", "SR"], fragmentChance: 0.18 },
+ { minScore: 28, label: "🌈 Krosmique", kamas: [2500, 4000], xp: 160, bpXp: 220, cardChance: 0.7, cardPool: ["C", "U", "R", "SR", "UR"], fragmentChance: 0.25 }
+]
+const WEB_PINATA_MULTIPLIERS = [
+ { min: 1, mult: 1.0 },
+ { min: 4, mult: 1.25 },
+ { min: 8, mult: 1.5 },
+ { min: 13, mult: 1.75 },
+ { min: 21, mult: 2.0 }
+]
+const WEB_PINATA_SSR_CHANCE_KROSMIQUE = 0.02
+const webPinataState = {
+ roundId: 0,
+ active: false,
+ startedAt: 0,
+ endsAt: 0,
+ nextStartAt: Date.now() + 2 * 60 * 1000,
+ participants: new Map(),
+ rewardsByUser: new Map(),
+ lastResults: [],
+ lastSummary: null
+}
 const webHooks = {
  onWebMarketBuy: null
 }
+const {
+ pickLot: pickRouletteLot,
+ updateRouletteStats: updateRouletteStatsFromCommand,
+ applyReward: applyRouletteRewardFromCommand,
+ formatReward: formatRouletteReward
+} = rouletteGameplay
 
 /* ── Journal d'activité en mémoire (ring buffer) ── */
 const ACTIVITY_LOG_MAX = 200
@@ -195,6 +247,224 @@ function getNextRarity(rarity) {
  if (index < 0) return null
  if (index >= RARITY_ORDER.indexOf("SSR")) return null
  return RARITY_ORDER[index + 1]
+}
+
+function randInt(min, max) {
+ const lo = Number(min)
+ const hi = Number(max)
+ if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi < lo) return 0
+ return Math.floor(Math.random() * (hi - lo + 1)) + lo
+}
+
+function pickWebPinataTier(score) {
+ let result = null
+ for (const tier of WEB_PINATA_TIERS) {
+  if (Number(score || 0) >= Number(tier.minScore || 0)) result = tier
+ }
+ return result
+}
+
+function getWebPinataMultiplier(participantCount) {
+ let multiplier = 1
+ for (const row of WEB_PINATA_MULTIPLIERS) {
+  if (participantCount >= Number(row.min || 0)) multiplier = Number(row.mult || 1)
+ }
+ return multiplier
+}
+
+function pickRandomCardByRarities(cards, rarityPool) {
+ const pool = cards.filter((card) => rarityPool.includes(String(card?.rarity || "")))
+ if (!pool.length) return null
+ return pool[Math.floor(Math.random() * pool.length)]
+}
+
+function startWebPinataRound(now = Date.now()) {
+ webPinataState.roundId += 1
+ webPinataState.active = true
+ webPinataState.startedAt = now
+ webPinataState.endsAt = now + WEB_PINATA_DURATION_MS
+ webPinataState.participants = new Map()
+ webPinataState.rewardsByUser = new Map()
+ webPinataState.lastResults = []
+ webPinataState.lastSummary = null
+ pushActivity({ kind: "pinata_start_web", roundId: webPinataState.roundId })
+}
+
+async function finalizeWebPinataRound() {
+ const now = Date.now()
+ const entries = [...webPinataState.participants.entries()]
+ const participantCount = entries.length
+ const multiplier = getWebPinataMultiplier(participantCount)
+ const cards = getCards()
+ const resultRows = []
+
+ for (const [userId, participant] of entries) {
+  const totalReactions = Number(participant?.totalReactions || 0)
+  const uniqueCount = participant?.uniqueEmojis instanceof Set ? participant.uniqueEmojis.size : 0
+  const score = totalReactions + (uniqueCount * 2)
+  const tier = pickWebPinataTier(score)
+  if (!tier) continue
+
+  const user = getUser(String(userId))
+  if (!user.stats) user.stats = {}
+  if (!user.cards) user.cards = {}
+
+  const kamas = Math.floor(randInt(tier.kamas[0], tier.kamas[1]) * multiplier)
+  const xp = Math.floor(Number(tier.xp || 0) * multiplier)
+  user.kamas = Number(user.kamas || 0) + kamas
+  user.stats.kamasEarned = Number(user.stats.kamasEarned || 0) + kamas
+  user.stats.totalKamasEarned = Number(user.stats.totalKamasEarned || 0) + kamas
+  addXP(user, xp)
+
+  let cardReward = null
+  let ssrWon = false
+  const isKrosmique = Number(tier.minScore || 0) === Number(WEB_PINATA_TIERS[WEB_PINATA_TIERS.length - 1].minScore || 0)
+  if (Math.random() < Number(tier.cardChance || 0)) {
+   if (isKrosmique && Math.random() < WEB_PINATA_SSR_CHANCE_KROSMIQUE) {
+    const ssrCard = pickRandomCardByRarities(cards, ["SSR"])
+    if (ssrCard) {
+      user.cards[ssrCard.id] = Number(user.cards[ssrCard.id] || 0) + 1
+      user.stats.ssrPulled = Number(user.stats.ssrPulled || 0) + 1
+      user.stats.pinataSSRWon = Number(user.stats.pinataSSRWon || 0) + 1
+      ssrWon = true
+      cardReward = {
+       cardId: String(ssrCard.id),
+       cardName: String(ssrCard.name || `Carte ${ssrCard.id}`),
+       rarity: String(ssrCard.rarity || "SSR"),
+       imageUrl: ssrCard?.image && ssrCard?.set
+        ? `/assets/cards/${encodeURIComponent(String(ssrCard.set))}/${encodeURIComponent(String(ssrCard.image))}`
+        : null
+      }
+    }
+   }
+   if (!cardReward) {
+    const card = pickRandomCardByRarities(cards, tier.cardPool || [])
+    if (card) {
+     user.cards[card.id] = Number(user.cards[card.id] || 0) + 1
+     cardReward = {
+      cardId: String(card.id),
+      cardName: String(card.name || `Carte ${card.id}`),
+      rarity: String(card.rarity || "C"),
+      imageUrl: card?.image && card?.set
+       ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+       : null
+     }
+    }
+   }
+  }
+
+  let fragmentReward = null
+  const rolled = rollFragmentForEvent(Number(tier.fragmentChance || 0))
+  if (rolled) {
+   grantRolledFragment(String(userId), rolled, "pinata-web")
+   fragmentReward = {
+    cardId: String(rolled.cardId),
+    fragmentNumber: Number(rolled.fragmentNumber || 0)
+   }
+  }
+
+  user.stats.pinataParticipations = Number(user.stats.pinataParticipations || 0) + 1
+  user.stats.pinataReactionsTotal = Number(user.stats.pinataReactionsTotal || 0) + totalReactions
+  user.stats.pinataKamasWon = Number(user.stats.pinataKamasWon || 0) + kamas
+
+  const unlocked = achievementCheck(user, "pinata")
+  try {
+   await addBattlePassXP(String(userId), Number(tier.bpXp || 0), "manual")
+  } catch (_) {}
+  save(String(userId))
+
+  const row = {
+   userId: String(userId),
+   totalReactions,
+   uniqueCount,
+   score,
+   tier: String(tier.label || "Participant"),
+   kamas,
+   xp,
+   ssrWon,
+   card: cardReward,
+   fragment: fragmentReward,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  }
+  webPinataState.rewardsByUser.set(String(userId), row)
+  resultRows.push(row)
+ }
+
+ resultRows.sort((a, b) => b.score - a.score)
+ webPinataState.lastResults = resultRows.slice(0, 50)
+ webPinataState.lastSummary = {
+  roundId: webPinataState.roundId,
+  endedAt: now,
+  participants: participantCount,
+  multiplier,
+  totalKamas: resultRows.reduce((sum, row) => sum + Number(row.kamas || 0), 0),
+  totalCards: resultRows.filter((row) => row.card).length,
+  totalSSR: resultRows.filter((row) => row.ssrWon).length,
+  totalFragments: resultRows.filter((row) => row.fragment).length
+ }
+
+ webPinataState.active = false
+ webPinataState.startedAt = 0
+ webPinataState.endsAt = 0
+ webPinataState.nextStartAt = now + WEB_PINATA_COOLDOWN_MS
+ pushActivity({ kind: "pinata_web", participants: participantCount })
+ apiCache.invalidatePrefix("leaderboard:")
+}
+
+async function ensureWebPinataLifecycle() {
+ const now = Date.now()
+ if (!webPinataState.active && now >= Number(webPinataState.nextStartAt || 0)) {
+  startWebPinataRound(now)
+ }
+ if (webPinataState.active && now >= Number(webPinataState.endsAt || 0)) {
+  await finalizeWebPinataRound()
+ }
+}
+
+function getWebPinataView(userId) {
+ const participantCount = webPinataState.participants.size
+ const meParticipant = userId ? webPinataState.participants.get(String(userId)) : null
+ const meReward = userId ? webPinataState.rewardsByUser.get(String(userId)) : null
+ const reactedEmojis = meParticipant?.uniqueEmojis instanceof Set
+  ? [...meParticipant.uniqueEmojis.values()]
+  : []
+
+ const leaderboard = (webPinataState.lastResults || []).slice(0, 6).map((row) => ({
+  userId: String(row.userId),
+  score: Number(row.score || 0),
+  tier: String(row.tier || "Participant"),
+  kamas: Number(row.kamas || 0),
+  ssrWon: Boolean(row.ssrWon)
+ }))
+
+ return {
+  active: Boolean(webPinataState.active),
+  roundId: Number(webPinataState.roundId || 0),
+  startedAt: webPinataState.startedAt || null,
+  endsAt: webPinataState.endsAt || null,
+  nextStartAt: webPinataState.nextStartAt || null,
+  durationMs: WEB_PINATA_DURATION_MS,
+  cooldownMs: WEB_PINATA_COOLDOWN_MS,
+  allowedEmojis: WEB_PINATA_ALLOWED_EMOJIS,
+  participants: participantCount,
+  my: {
+   totalReactions: Number(meParticipant?.totalReactions || 0),
+   uniqueCount: reactedEmojis.length,
+   emojis: reactedEmojis,
+   reward: meReward || null
+  },
+  summary: webPinataState.lastSummary || null,
+  leaderboard
+ }
+}
+
+function buildEventVoiceLine(event, pack) {
+ const voice = event?.voiceLines || {}
+ const hasSSR = (pack || []).some((card) => String(card?.rarity || "") === "SSR")
+ const hasS = (pack || []).some((card) => String(card?.rarity || "") === "S")
+ const pool = hasSSR ? (voice.SSR || []) : hasS ? (voice.S || []) : []
+ if (!pool.length) return null
+ return String(pool[Math.floor(Math.random() * pool.length)] || "").trim() || null
 }
 
 function getUserDuplicateCountForRarityInSet(user, cards, setId, rarity) {
@@ -842,6 +1112,7 @@ function buildMePayload(userId) {
   xp,
   xpRequired: required,
   kamas: user.kamas || 0,
+  packs: Number(user.packs || 0),
   cardsCount: Object.values(user.cards || {}).reduce((a, b) => a + b, 0),
   uniqueCards: Object.keys(user.cards || {}).length,
   fragmentsCount: Array.isArray(user.fragments) ? user.fragments.length : 0
@@ -978,6 +1249,7 @@ function createWebApp() {
  app.use("/api/market/remove", marketLimiter)
  const gameLimiter = createRateLimiter({ windowMs: 60000, max: 40 })
  app.use("/api/game/", gameLimiter)
+ app.use("/api/events/", gameLimiter)
 
  /* ── CSRF : POST API doit être application/json ── */
  app.use("/api/", (req, res, next) => {
@@ -1622,6 +1894,298 @@ app.post("/api/game/craft", async (req, res) => {
  }
 })
 
+app.get("/api/events/state", async (req, res) => {
+ try {
+  await ensureWebPinataLifecycle()
+  const session = resolveSession(req)
+  const connected = Boolean(session)
+  const event = getEvent()
+  const eventActive = isEventActive() && Boolean(event)
+
+  let me = null
+  let roulette = { canSpin: false, cooldownMs: 0, lastSpin: null }
+  let tickets = { total: 0, used: 0, remaining: 0 }
+  if (connected && session) {
+   const user = getUser(session.userId)
+   me = buildMePayload(session.userId)
+   const now = Date.now()
+   const lastSpinTs = user.stats?.rouletteLastSpin ? new Date(user.stats.rouletteLastSpin).getTime() : 0
+   const cooldownMs = Math.max(0, (60 * 60 * 1000) - Math.max(0, now - lastSpinTs))
+   roulette = {
+    canSpin: cooldownMs <= 0,
+    cooldownMs,
+    lastSpin: user.stats?.rouletteLastSpin || null,
+    spins: Number(user.stats?.rouletteSpins || 0),
+    jackpots: Number(user.stats?.rouletteJackpot || 0)
+   }
+
+   if (eventActive) {
+    const beforeEventState = `${user.event?.uid || ""}:${user.event?.tickets || ""}:${user.event?.used || ""}`
+    initUserEvent(user)
+    tickets.total = Number(user.event?.tickets || 0)
+    tickets.used = Number(user.event?.used || 0)
+    tickets.remaining = Math.max(0, tickets.total - tickets.used)
+    const afterEventState = `${user.event?.uid || ""}:${user.event?.tickets || ""}:${user.event?.used || ""}`
+    if (beforeEventState !== afterEventState) save(session.userId)
+   }
+  }
+
+  const eventView = eventActive
+   ? {
+    active: true,
+    key: String(event.key),
+    name: String(event.name || "Event"),
+    effect: String(event.effect || ""),
+    startText: String(event.start || ""),
+    midText: String(event.mid || ""),
+    endText: String(event.end || ""),
+    needsTarget: Boolean(event.needsTarget),
+    targetName: String(event?.data?.targetName || ""),
+    ticketsPerPlayer: Number(event.tickets || 0),
+    stats: {
+     packs: Number(event.stats?.packs || 0),
+     ssr: Number(event.stats?.ssr || 0),
+     totalCards: Number(event.stats?.totalCards || 0)
+    },
+    endTime: Number(event.endTime || 0)
+   }
+   : { active: false }
+
+  res.json({
+   connected,
+   me,
+   roulette,
+   tickets,
+   event: eventView,
+   pinata: getWebPinataView(session?.userId || null)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/events/state:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/events/roulette/spin", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const user = getUser(session.userId)
+  if (!user.stats) user.stats = {}
+  const now = Date.now()
+  const lastSpin = user.stats.rouletteLastSpin ? new Date(user.stats.rouletteLastSpin).getTime() : 0
+  const elapsed = now - lastSpin
+  const cooldownMs = (60 * 60 * 1000) - elapsed
+  if (cooldownMs > 0) {
+   return res.status(400).json({ error: "Roulette en recharge.", cooldownMs })
+  }
+
+  const lot = pickRouletteLot()
+  updateRouletteStatsFromCommand(user, lot, now)
+  await applyRouletteRewardFromCommand({ user: { id: String(session.userId) } }, user, lot)
+  await addBattlePassXP(session.userId, "roulette_spin")
+  const unlocked = achievementCheck(user, "roulette")
+
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   lot: {
+    id: Number(lot.id || 0),
+    name: String(lot.name || "Lot"),
+    emoji: String(lot.emoji || "🎡"),
+    rarity: String(lot.rarity || "commun")
+   },
+   rewardText: formatRouletteReward(lot.reward || {}),
+   stats: {
+    kamas: Number(user.kamas || 0),
+    packs: Number(user.packs || 0),
+    spins: Number(user.stats.rouletteSpins || 0),
+    jackpots: Number(user.stats.rouletteJackpot || 0)
+   },
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/events/roulette/spin:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/events/eventpack/open", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const event = getEvent()
+  if (!isEventActive() || !event) {
+   return res.status(400).json({ error: "Aucun event des dieux n'est actif." })
+  }
+
+  const user = getUser(session.userId)
+  if (!user.stats) user.stats = {}
+  if (!user.cards) user.cards = {}
+
+  initUserEvent(user)
+  const check = canUseEventPack(user)
+  if (!check?.ok) return res.status(400).json({ error: String(check?.error || "Ticket indisponible.") })
+
+  const isFirstPack = claimFirstPack()
+  user.event.used = Number(user.event.used || 0) + 1
+
+  const generated = generateEventPack(user, event)
+  const pack = Array.isArray(generated?.pack) ? generated.pack.filter(Boolean) : []
+  const meta = generated?.meta || {}
+  if (!pack.length) return res.status(400).json({ error: "Pack d'event invalide." })
+
+  const discoveredIds = new Set()
+  for (const card of pack) {
+   if (!card?.id) continue
+   if (!user.cards[card.id] || Number(user.cards[card.id]) <= 0) discoveredIds.add(String(card.id))
+  }
+  for (const card of pack) {
+   if (!card?.id) continue
+   user.cards[card.id] = Number(user.cards[card.id] || 0) + 1
+  }
+
+  const kamasBeforeEventPack = Number(user.kamas || 0)
+  const reward = applyEventRewards(user, pack, event, meta) || {}
+  const kamasGainEventPack = Math.max(0, Number(user.kamas || 0) - kamasBeforeEventPack)
+  await addBattlePassXP(session.userId, "event_pack")
+  registerEventPack(pack)
+
+  let fragment = null
+  const rolled = rollFragmentForEvent(0.55)
+  if (rolled) {
+   grantRolledFragment(session.userId, rolled, "event-web")
+   fragment = { cardId: String(rolled.cardId), fragmentNumber: Number(rolled.fragmentNumber || 0) }
+  }
+
+  user.stats.eventPacksOpened = Number(user.stats.eventPacksOpened || 0) + 1
+  if (!user.stats.eventPacksByClass) user.stats.eventPacksByClass = {}
+  user.stats.eventPacksByClass[event.key] = Number(user.stats.eventPacksByClass[event.key] || 0) + 1
+  if (!Array.isArray(user.stats.eventsParticipated)) user.stats.eventsParticipated = []
+  if (!user.stats.eventsParticipated.includes(event.key)) user.stats.eventsParticipated.push(event.key)
+  if (isFirstPack) user.stats.firstEventPacks = Number(user.stats.firstEventPacks || 0) + 1
+  if (Number(user.event?.used || 0) >= Number(user.event?.tickets || 0)) {
+   user.stats.ticketsFullyUsed = Number(user.stats.ticketsFullyUsed || 0) + 1
+   const elapsed = Date.now() - Number(user.event?.startTime || Date.now())
+   if (elapsed <= 120000) user.stats.speedTickets = true
+  }
+
+  const ssrInPack = pack.filter((card) => String(card?.rarity || "") === "SSR").length
+  if (ssrInPack > 0) {
+   user.stats.ssrPulled = Number(user.stats.ssrPulled || 0) + ssrInPack
+   user.stats.ssrFromEvent = Number(user.stats.ssrFromEvent || 0) + ssrInPack
+   if (!user.stats.ssrByClass) user.stats.ssrByClass = {}
+   user.stats.ssrByClass[event.key] = Number(user.stats.ssrByClass[event.key] || 0) + ssrInPack
+  }
+  if (event.key === "enutrof" && meta?.jackpot) user.stats.jackpotEnutrof = Number(user.stats.jackpotEnutrof || 0) + 1
+  if (event.key === "feca" && reward?.jackpotMessage) user.stats.jackpotFeca = Number(user.stats.jackpotFeca || 0) + 1
+
+  const unlocked = [
+   ...achievementCheck(user, "event"),
+   ...achievementCheck(user, "fragment"),
+   ...achievementCheck(user, "collection"),
+   ...achievementCheck(user, "rng")
+  ]
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  const cardsPayload = pack.map((card, index) => ({
+   key: `${card.id}-${index}`,
+   cardId: String(card.id),
+   cardName: String(card.name || `Carte ${card.id}`),
+   rarity: String(card.rarity || "C"),
+   set: String(card.set || ""),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null,
+   isNew: discoveredIds.has(String(card.id))
+  }))
+
+  const tickets = {
+   total: Number(user.event?.tickets || 0),
+   used: Number(user.event?.used || 0),
+   remaining: Math.max(0, Number(user.event?.tickets || 0) - Number(user.event?.used || 0))
+  }
+
+  res.json({
+   ok: true,
+   event: {
+    key: String(event.key),
+    name: String(event.name || "Event"),
+    jackpotMessage: reward?.jackpotMessage || null,
+    voiceLine: buildEventVoiceLine(event, pack)
+   },
+   tickets,
+   gains: {
+    kamas: kamasGainEventPack,
+    xp: Number(reward?.xp || 0),
+    ssrInPack,
+    fragment
+   },
+   cards: cardsPayload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/events/eventpack/open:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/events/pinata/react", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+  await ensureWebPinataLifecycle()
+
+  if (!webPinataState.active) {
+   return res.status(400).json({
+    error: "Aucune piñata active.",
+    nextStartAt: webPinataState.nextStartAt
+   })
+  }
+
+  const emoji = String(req.body?.emoji || "").trim()
+  if (!WEB_PINATA_ALLOWED_EMOJIS.includes(emoji)) {
+   return res.status(400).json({ error: "Emoji de réaction invalide." })
+  }
+
+  const userId = String(session.userId)
+  let participant = webPinataState.participants.get(userId)
+  if (!participant) {
+   participant = {
+    totalReactions: 0,
+    uniqueEmojis: new Set()
+   }
+   webPinataState.participants.set(userId, participant)
+  }
+
+  if (participant.uniqueEmojis.has(emoji)) {
+   return res.status(400).json({ error: "Tu as déjà utilisé cet emoji sur cette piñata." })
+  }
+
+  participant.uniqueEmojis.add(emoji)
+  participant.totalReactions += 1
+  const score = participant.totalReactions + (participant.uniqueEmojis.size * 2)
+
+  res.json({
+   ok: true,
+   score,
+   totalReactions: participant.totalReactions,
+   uniqueCount: participant.uniqueEmojis.size,
+   participants: webPinataState.participants.size,
+   pinata: getWebPinataView(userId)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/events/pinata/react:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
 app.get("/api/achievements", (req, res) => {
  try {
    const session = resolveSession(req)
@@ -1927,6 +2491,7 @@ app.get("/api/achievements", (req, res) => {
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
+ app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/achievements", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Achievements.html")))
