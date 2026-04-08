@@ -890,6 +890,7 @@
 
 .mode-fusion.mode-fusion-simple {
  gap: 14px;
+ --fusion-stage-height: clamp(420px, 58vh, 520px);
 }
 
 .mode-fusion-simple .mode-hero {
@@ -929,12 +930,12 @@
 
 .mode-fusion-simple .fusion-simple-right {
  padding: 12px;
- height: clamp(360px, 52vh, 440px);
+ height: calc(var(--fusion-stage-height) + 24px);
  overflow: auto;
 }
 
 .mode-fusion-simple .fusion-simple-stage {
- height: clamp(420px, 58vh, 520px);
+ height: var(--fusion-stage-height);
  min-height: 0;
  border-color: rgba(255, 255, 255, 0.15);
  padding: 0;
@@ -952,12 +953,12 @@
 }
 
 .mode-fusion-simple .fusion-forge-orbit {
- inset: 22px 40px 188px;
+ inset: 0;
 }
 
 .mode-fusion-simple .fusion-forge-orb {
  width: 94px;
- transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-124px) rotate(calc(var(--angle) * -1));
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-118px) rotate(calc(var(--angle) * -1));
  z-index: 8;
 }
 
@@ -971,31 +972,21 @@
 }
 
 .mode-fusion-simple .fusion-forge-result {
- top: 34%;
+ top: 50%;
  z-index: 14;
+ transform: translate(-50%, -50%) scale(0.6);
 }
 
 .mode-fusion-simple .fusion-forge-result-card {
  width: min(198px, 30vw);
 }
 
-.mode-fusion-simple .fusion-simple-anvil-box {
- position: absolute;
- left: 50%;
- bottom: -34px;
- width: min(360px, 72%);
- transform: translateX(-50%);
- display: grid;
- place-items: center;
- pointer-events: none;
- z-index: 3;
+.mode-fusion-simple .fusion-forge-result.visible {
+ transform: translate(-50%, -50%) scale(1);
 }
 
-.mode-fusion-simple .fusion-simple-anvil {
- width: 100%;
- max-width: 360px;
- height: auto;
- filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.48));
+.mode-fusion-simple .fusion-forge-stage.phase-out .fusion-forge-result {
+ transform: translate(-50%, -50%) scale(0.78);
 }
 
 .mode-fusion-simple .fusion-forge-status {
@@ -2416,19 +2407,15 @@ body.pack-opening-lock {
   height: 430px;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 18px 30px 156px;
+  inset: 0;
  }
  .mode-fusion-simple .fusion-forge-orb {
   width: 86px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-108px) rotate(calc(var(--angle) * -1));
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-104px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
   width: 86px;
   height: 86px;
- }
- .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(320px, 68%);
-  bottom: -26px;
  }
  .pack-open-grid {
   justify-content: center;
@@ -2527,19 +2514,15 @@ body.pack-opening-lock {
   padding-bottom: 0;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 16px 24px 136px;
+  inset: 0;
  }
  .mode-fusion-simple .fusion-forge-orb {
   width: 76px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-92px) rotate(calc(var(--angle) * -1));
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-88px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
   width: 76px;
   height: 76px;
- }
- .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(250px, 64%);
-  bottom: -18px;
  }
  .fusion-skip-btn {
   right: 10px;

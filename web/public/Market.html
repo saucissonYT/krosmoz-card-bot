@@ -33,15 +33,20 @@
 
  <div class="page">
   <div class="container">
-   <section style="padding-top:40px">
-    <h1 class="section-title fade-in">🛒 Marché en temps réel</h1>
-    <p class="section-subtitle fade-in stagger-1">Cartes et fragments listés par les joueurs</p>
-    <p class="notice-strip fade-in stagger-1">Certaines images peuvent paraître floues: cela vient de la qualité des visuels sources de l'encyclopédie Wakfu.</p>
-    <div id="walletInfo" class="notice-strip fade-in stagger-2" style="display:none"></div>
+   <section class="market-shell">
+    <header class="market-hero fade-in">
+     <p class="market-kicker">Echanges entre joueurs</p>
+     <h1 class="section-title">Marche des aventuriers</h1>
+     <p class="section-subtitle">Achete et vends cartes ou fragments au meilleur prix.</p>
+     <div class="market-hero-notes">
+      <p class="notice-strip fade-in stagger-1">Note: certains visuels peuvent paraitre flous selon la source des images.</p>
+      <div id="walletInfo" class="notice-strip market-wallet fade-in stagger-2" style="display:none"></div>
+     </div>
+    </header>
 
-    <div id="tradePanel" class="trade-panel fade-in stagger-2" style="display:none">
+    <div id="tradePanel" class="trade-panel market-trade-panel fade-in stagger-2" style="display:none">
      <div class="trade-col">
-      <h3>Vendre une carte</h3>
+      <h3>Mettre une carte en vente</h3>
       <div class="inline-form">
        <select id="sellCardSelect" class="input input-select"></select>
        <input id="sellCardPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
@@ -49,7 +54,7 @@
       </div>
      </div>
      <div class="trade-col">
-      <h3>Vendre un fragment</h3>
+      <h3>Mettre un fragment en vente</h3>
       <div class="inline-form">
        <select id="sellFragmentSelect" class="input input-select"></select>
        <input id="sellFragmentPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
@@ -60,32 +65,37 @@
 
     <div id="myListingsBox" class="profile-card fade-in stagger-2" style="display:none"></div>
 
-    <div class="toolbar market-toolbar fade-in stagger-2">
-     <input id="searchInput" class="input" placeholder="Nom de carte..." />
-     <select id="typeSelect" class="input input-select">
-      <option value="all">Type: Tous</option>
-      <option value="card">Cartes</option>
-      <option value="fragment">Fragments</option>
-     </select>
-     <select id="raritySelect" class="input input-select">
-      <option value="">Rareté (toutes)</option>
-      <option>C</option><option>U</option><option>R</option><option>SR</option>
-      <option>HR</option><option>UR</option><option>S</option><option>SSR</option>
-     </select>
-     <select id="setSelect" class="input input-select">
-      <option value="">Set (tous)</option>
-     </select>
-     <input id="minPriceInput" class="input" type="number" min="1" placeholder="Prix min">
-     <input id="maxPriceInput" class="input" type="number" min="1" placeholder="Prix max">
-     <select id="sortSelect" class="input input-select">
-      <option value="recent">Tri: Récent</option>
-      <option value="price_asc">Prix croissant</option>
-      <option value="price_desc">Prix décroissant</option>
-     </select>
-     <button id="refreshBtn" class="btn btn-outline">Actualiser</button>
+    <div class="market-controls-card fade-in stagger-2">
+     <div class="market-controls-head">
+      <h2>Filtrer les annonces</h2>
+      <p>Affinage instantane par type, rarete, set et prix.</p>
+     </div>
+     <div class="toolbar market-toolbar">
+      <input id="searchInput" class="input" placeholder="Nom de carte..." />
+      <select id="typeSelect" class="input input-select">
+       <option value="all">Type: Tous</option>
+       <option value="card">Cartes</option>
+       <option value="fragment">Fragments</option>
+      </select>
+      <select id="raritySelect" class="input input-select">
+       <option value="">Rarete (toutes)</option>
+       <option>C</option><option>U</option><option>R</option><option>SR</option>
+       <option>HR</option><option>UR</option><option>S</option><option>SSR</option>
+      </select>
+      <select id="setSelect" class="input input-select">
+       <option value="">Set (tous)</option>
+      </select>
+      <input id="minPriceInput" class="input" type="number" min="1" placeholder="Prix min">
+      <input id="maxPriceInput" class="input" type="number" min="1" placeholder="Prix max">
+      <select id="sortSelect" class="input input-select">
+       <option value="recent">Tri: Recent</option>
+       <option value="price_asc">Prix croissant</option>
+       <option value="price_desc">Prix decroissant</option>
+      </select>
+      <button id="refreshBtn" class="btn btn-outline">Actualiser</button>
+     </div>
+     <div id="resultMeta" class="result-meta market-meta"></div>
     </div>
-
-    <div id="resultMeta" class="result-meta"></div>
     <div id="marketGrid" class="catalog-grid market-dense"></div>
     <div id="pagination" class="pagination"></div>
    </section>
@@ -197,9 +207,12 @@
  function listingCard(item) {
   const seller = item.sellerProfile?.displayName || item.seller
   const isMine = state.connected && state.me && String(item.seller) === String(state.me.id)
-  const fragment = item.type === "fragment"
-   ? `<p>Fragment: slot ${item.fragmentNumber}/5</p><p>Prix min: ${(item.minimumPrice || 0).toLocaleString("fr-FR")} kamas</p>`
-   : `<p>Type: carte complète</p>`
+  const fragmentInfo = item.type === "fragment"
+   ? `
+      <p class="market-card-line"><span>Fragment</span><strong>${item.fragmentNumber}/5</strong></p>
+      <p class="market-card-line"><span>Prix mini</span><strong>${Number(item.minimumPrice || 0).toLocaleString("fr-FR")} kamas</strong></p>
+     `
+   : `<p class="market-card-line"><span>Type</span><strong>Carte complete</strong></p>`
   const image = item.imageUrl
    ? `<div class="card-thumb-wrap"><img class="card-thumb" loading="lazy" src="${item.imageUrl}" alt="${escapeHtml(item.cardName)}" onerror="this.parentElement.style.display='none'"></div>`
    : ""
@@ -211,22 +224,27 @@
     : `<button class="btn btn-outline action-buy" data-id="${item.id}">Acheter</button>`
 
   return `
-   <article class="catalog-card">
+   <article class="catalog-card market-card">
     ${image}
-    <div class="catalog-card-head">
-     <span class="chip chip-rarity">${item.rarity}</span>
-     <span class="chip">${item.type === "fragment" ? "Fragment" : "Carte"}</span>
+    <div class="market-card-top">
+     <div class="catalog-card-head">
+      <span class="chip chip-rarity">${item.rarity}</span>
+      <span class="chip">${item.type === "fragment" ? "Fragment" : "Carte"}</span>
+     </div>
+     <p class="market-card-set">${escapeHtml(item.setName)}</p>
     </div>
-    <h3>${escapeHtml(item.cardName)}</h3>
-    <p>Set: ${escapeHtml(item.setName)}</p>
-    ${fragment}
-    <p>Vendeur: ${escapeHtml(seller)}</p>
-    <p class="price-line">${Number(item.price || 0).toLocaleString("fr-FR")} kamas</p>
-    <div class="action-row">${action}</div>
+    <h3 class="market-card-title">${escapeHtml(item.cardName)}</h3>
+    <div class="market-card-body">
+     <p class="market-card-line"><span>Vendeur</span><strong>${escapeHtml(seller)}</strong></p>
+     ${fragmentInfo}
+    </div>
+    <div class="market-card-footer">
+     <p class="price-line market-price">${Number(item.price || 0).toLocaleString("fr-FR")} kamas</p>
+     <div class="action-row">${action}</div>
+    </div>
    </article>
   `
  }
-
  function renderPagination(page, pages) {
   const root = document.getElementById("pagination")
   if (pages <= 1) { root.innerHTML = ""; return }
