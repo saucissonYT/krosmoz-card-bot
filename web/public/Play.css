@@ -14,6 +14,14 @@
   url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
 }
 
+.play-page.route-craft-bg,
+.play-page.craft-bg-active {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.56), rgba(5, 8, 22, 0.64)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.24), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20craft.png") center / cover no-repeat fixed;
+}
+
 .play-page.route-pack-bg,
 .play-page.pack-bg-active {
  background:
@@ -31,6 +39,11 @@
 
 .play-page.route-fusion-bg .page,
 .play-page.fusion-bg-active .page {
+ background: transparent;
+}
+
+.play-page.route-craft-bg .page,
+.play-page.craft-bg-active .page {
  background: transparent;
 }
 
@@ -53,6 +66,22 @@
 
 .play-page.fusion-mode-active .play-content {
  min-height: 0;
+}
+
+.play-page.fusion-mode-active #playFusion.play-panel-alt {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
+}
+
+.play-page.fusion-mode-active #playCraft.play-panel-alt {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
 }
 
 .play-page.packs-mode-active .play-main {

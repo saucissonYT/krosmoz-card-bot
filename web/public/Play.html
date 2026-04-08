@@ -10,12 +10,14 @@
 </head>
 <body class="play-page">
 <script>
- const __initialPlayTab = String(window.location.pathname || "").split("/")[2] || ""
- if (__initialPlayTab === "fusion") {
-  document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active")
- } else if (__initialPlayTab === "packs") {
-  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
- }
+const __initialPlayTab = String(window.location.pathname || "").split("/")[2] || ""
+if (__initialPlayTab === "fusion") {
+ document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active")
+} else if (__initialPlayTab === "craft") {
+ document.body.classList.add("route-craft-bg", "craft-bg-active", "fusion-mode-active")
+} else if (__initialPlayTab === "packs") {
+ document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
+}
 </script>
 <nav class="navbar scrolled">
   <div class="navbar-inner">
@@ -102,7 +104,11 @@ const state = {
   fromRarity: "C",
   quantity: 1
  },
- fusionHistory: []
+ fusionHistory: [],
+ craftUi: {
+  cardId: ""
+ },
+ craftHistory: []
 }
  const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
  const PACK_BACK_IMAGE_BY_RARITY = {
@@ -165,9 +171,12 @@ const FUSION_MAX_CYCLES = 25
 function setMode(mode, updateUrl = true) {
   state.mode = mode
   state.selected = null
+  const isForgeMode = mode === "fusion" || mode === "craft"
   document.body.classList.toggle("route-fusion-bg", mode === "fusion")
   document.body.classList.toggle("fusion-bg-active", mode === "fusion")
-  document.body.classList.toggle("fusion-mode-active", mode === "fusion")
+  document.body.classList.toggle("route-craft-bg", mode === "craft")
+  document.body.classList.toggle("craft-bg-active", mode === "craft")
+  document.body.classList.toggle("fusion-mode-active", isForgeMode)
   document.body.classList.toggle("route-pack-bg", mode === "packs")
   document.body.classList.toggle("pack-bg-active", mode === "packs")
   document.body.classList.toggle("packs-mode-active", mode === "packs")
@@ -296,14 +305,17 @@ function setMode(mode, updateUrl = true) {
   }).join("")
  }
 
- function getCraftCandidates() {
-  const grouped = new Map()
-  for (const frag of state.groupedFragments || []) {
-   const id = String(frag.cardId)
-   if (!grouped.has(id)) {
-    grouped.set(id, {
+function getCraftCandidates() {
+ const grouped = new Map()
+ for (const frag of state.groupedFragments || []) {
+  const id = String(frag.cardId)
+  if (!grouped.has(id)) {
+   grouped.set(id, {
      cardId: id,
      cardName: frag.cardName,
+     set: String(frag.set || "unknown"),
+     setName: String(frag.setName || frag.set || "Set"),
+     imageUrl: frag.imageUrl || null,
      numbers: new Set()
     })
    }
@@ -626,33 +638,103 @@ function setupFusionPanel() {
 }
 
 function setupCraftPanel(crafts) {
-  const select = document.getElementById("craftCardInput")
-  const preview = document.getElementById("craftPreview")
-  const readyTag = document.getElementById("craftReadyTag")
+ const select = document.getElementById("craftCardInput")
+ const preview = document.getElementById("craftPreview")
+ const readyTag = document.getElementById("craftReadyTag")
+ const infoLine = document.getElementById("craftInfoLine")
+ const runBtn = document.getElementById("craftBtn")
+ const stepButtons = [...document.querySelectorAll(".fusion-simple-step[data-card-id]")]
+ const historyBox = document.getElementById("craftHistoryList")
+ if (!select || !preview || !readyTag || !runBtn || !historyBox) return
 
-  function refresh() {
-   const id = String(select?.value || "")
-   const selected = crafts.find((item) => String(item.cardId) === id) || null
-   if (!selected || !preview) {
-    if (preview) preview.innerHTML = '<p class="mode-muted">Aucune carte craftable pour l’instant.</p>'
-    if (readyTag) readyTag.textContent = "0/5"
-    return
-   }
-   const progress = getFragmentProgressForCard(selected.cardId)
-   const foundBadges = progress.found.map((n) => `<span class="mode-chip mode-chip-ok">Fragment ${n}</span>`).join("")
-   const missingBadges = progress.missing.map((n) => `<span class="mode-chip">Manque ${n}</span>`).join("")
-   preview.innerHTML = `
-    <p><strong>${escapeHtml(selected.cardName)}</strong> - ${progress.unique}/5 fragments uniques</p>
-    <div class="mode-chip-row">
-     ${foundBadges || ""}
-     ${missingBadges || ""}
+ const options = crafts.map((item) => String(item.cardId))
+ if (!options.includes(String(state.craftUi.cardId || ""))) {
+  state.craftUi.cardId = options[0] || ""
+ }
+
+ function renderHistory() {
+  if (!Array.isArray(state.craftHistory) || !state.craftHistory.length) {
+   historyBox.innerHTML = '<p class="mode-muted">Aucun craft dans cette session.</p>'
+   return
+  }
+  historyBox.innerHTML = state.craftHistory.slice(0, 10).map((entry) => `
+   <article class="fusion-history-item">
+    <div>
+     <strong>🌟 ${escapeHtml(entry.cardName || "Carte")}</strong>
+     <small>${escapeHtml(entry.setName || "Set")}</small>
     </div>
-    <p class="mode-muted">Fragments totaux en stock: ${fmt(progress.total)}</p>
-   `
-   if (readyTag) readyTag.textContent = `${progress.unique}/5`
+    <div>
+     <span>${escapeHtml(entry.rarity || "SSR")}</span>
+     <small>${new Date(Number(entry.timestamp || Date.now())).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
+    </div>
+   </article>
+  `).join("")
+ }
+
+ function refresh() {
+  const selectedId = String(state.craftUi.cardId || select.value || "")
+  const selected = crafts.find((item) => String(item.cardId) === selectedId) || null
+  if (selected) {
+   state.craftUi.cardId = String(selected.cardId)
+   select.value = String(selected.cardId)
   }
 
- if (select) select.addEventListener("change", refresh)
+  stepButtons.forEach((btn) => {
+   const cardId = String(btn.dataset.cardId || "")
+   const candidate = crafts.find((item) => String(item.cardId) === cardId)
+   const stockTag = btn.querySelector("[data-craft-stock]")
+   if (!candidate || !stockTag) return
+   stockTag.textContent = `${fmt(candidate.uniqueCount)}/5 fragments uniques`
+   btn.classList.toggle("active", selected && cardId === String(selected.cardId))
+   btn.classList.toggle("ready", Number(candidate.uniqueCount || 0) >= 5)
+  })
+
+  if (!selected) {
+   preview.innerHTML = '<p class="mode-muted">Aucune carte craftable pour l\'instant.</p>'
+   readyTag.textContent = "0/5"
+   if (infoLine) infoLine.textContent = "Aucune cible disponible."
+   runBtn.disabled = true
+   renderCraftForgeIdle("")
+   renderHistory()
+   return
+  }
+
+  const progress = getFragmentProgressForCard(selected.cardId)
+  const foundBadges = progress.found.map((n) => `<span class="mode-chip mode-chip-ok">Fragment ${n}</span>`).join("")
+  const missingBadges = progress.missing.map((n) => `<span class="mode-chip">Manque ${n}</span>`).join("")
+  readyTag.textContent = `${progress.unique}/5`
+  preview.innerHTML = `
+   <p><strong>${escapeHtml(selected.cardName)}</strong> • ${escapeHtml(selected.setName || "Set")}</p>
+   <div class="mode-chip-row">
+    ${foundBadges || ""}
+    ${missingBadges || ""}
+   </div>
+   <p class="mode-muted">Fragments uniques: ${fmt(progress.unique)}/5 • total en stock: ${fmt(progress.total)}</p>
+  `
+  if (infoLine) {
+   const missingText = progress.missing.length ? `manque: ${progress.missing.join(", ")}` : "prêt pour craft"
+   infoLine.textContent = `🌟 ${selected.cardName} • ${progress.unique}/5 • ${missingText}`
+  }
+  const busy = String(document.getElementById("craftForgeStage")?.getAttribute("data-busy") || "0") === "1"
+  runBtn.disabled = progress.unique < 5 || busy
+  runBtn.textContent = progress.unique >= 5 ? "Crafter SSR" : "Fragments incomplets"
+
+  renderCraftForgeIdle(selected.cardId)
+  renderHistory()
+ }
+
+ select.addEventListener("change", () => {
+  state.craftUi.cardId = String(select.value || "")
+  refresh()
+ })
+
+ stepButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+   state.craftUi.cardId = String(btn.dataset.cardId || "")
+   refresh()
+  })
+ })
+
  refresh()
 }
 
@@ -711,7 +793,7 @@ function buildFusionForgeOrbitMarkup(fragments = [], fallbackRarity = "C") {
    <div class="fusion-forge-orb-core">
     ${fragment?.imageUrl
      ? `<img src="${escapeHtml(fragment.imageUrl)}" alt="${escapeHtml(fragment.cardName || "Fragment")}">`
-     : `<span>${escapeHtml(String(fragment?.rarity || fallbackRarity).charAt(0))}</span>`}
+     : `<span>${escapeHtml(String(fragment?.label || String(fragment?.rarity || fallbackRarity).charAt(0)))}</span>`}
    </div>
   </div>
  `).join("")
@@ -805,9 +887,150 @@ function playFusionForgeAnimation(payload = {}) {
  })
 }
 
-function getRarityToken(rarity) {
-  return String(rarity || "C").toUpperCase().replace(/[^A-Z]/g, "") || "C"
+function getCraftAnimationFragments(cardId, needed = 5) {
+ const safeNeeded = Math.max(1, Number(needed || 5))
+ const byNumber = new Map()
+ for (const frag of state.groupedFragments || []) {
+  if (String(frag.cardId) !== String(cardId)) continue
+  const number = Number(frag.fragmentNumber || 0)
+  if (number < 1 || number > 5) continue
+  if (!byNumber.has(number)) {
+   byNumber.set(number, {
+    cardName: String(frag.cardName || "Fragment"),
+    imageUrl: frag.imageUrl || null,
+    qty: Number(frag.qty || 0)
+   })
+  }
  }
+
+ const slots = []
+ for (let number = 1; number <= 5 && slots.length < safeNeeded; number++) {
+  const row = byNumber.get(number)
+  if (row && row.qty > 0) {
+   slots.push({
+    cardName: `${row.cardName} - Fragment ${number}/5`,
+    imageUrl: row.imageUrl,
+    rarity: "SSR",
+    label: String(number)
+   })
+  } else {
+   slots.push({
+    cardName: `Fragment ${number}/5 manquant`,
+    imageUrl: null,
+    rarity: "SSR",
+    label: String(number)
+   })
+  }
+ }
+
+ while (slots.length < safeNeeded) {
+  slots.push({
+   cardName: "Fragment",
+   imageUrl: null,
+   rarity: "SSR",
+   label: String(slots.length + 1)
+  })
+ }
+
+ return slots.slice(0, safeNeeded)
+}
+
+function renderCraftForgeIdle(cardId) {
+ const stage = document.getElementById("craftForgeStage")
+ const orbit = document.getElementById("craftForgeOrbit")
+ const result = document.getElementById("craftForgeResult")
+ const resultName = document.getElementById("craftForgeResultName")
+ const status = document.getElementById("craftForgeStatus")
+ if (!stage || !orbit || !result || !resultName || !status) return
+ if (String(stage.getAttribute("data-busy") || "0") === "1") return
+
+ const selected = getCraftCandidates().find((item) => String(item.cardId) === String(cardId)) || null
+ orbit.innerHTML = buildFusionForgeOrbitMarkup(getCraftAnimationFragments(cardId, 5), "SSR")
+ result.classList.remove("visible")
+ resultName.textContent = "Carte SSR finale"
+
+ if (!selected) {
+  status.textContent = "Prêt: sélectionne une carte à crafter."
+  return
+ }
+
+ const progress = getFragmentProgressForCard(selected.cardId)
+ status.textContent = `Prêt: ${selected.cardName} (${progress.unique}/5 fragments uniques)`
+}
+
+function playCraftForgeAnimation(payload = {}) {
+ const stage = document.getElementById("craftForgeStage")
+ const orbit = document.getElementById("craftForgeOrbit")
+ const result = document.getElementById("craftForgeResult")
+ const resultImage = document.getElementById("craftForgeResultImage")
+ const resultName = document.getElementById("craftForgeResultName")
+ const status = document.getElementById("craftForgeStatus")
+ if (!stage || !orbit || !result || !resultName || !status) return Promise.resolve()
+
+ if (Array.isArray(stage._fusionTimers)) {
+  for (const timer of stage._fusionTimers) window.clearTimeout(timer)
+ }
+ stage._fusionTimers = []
+
+ const reward = payload?.reward || {}
+ const fragments = Array.isArray(payload?.fragments) ? payload.fragments.slice(0, 5) : []
+ orbit.innerHTML = buildFusionForgeOrbitMarkup(fragments, "SSR")
+
+ const rewardName = `${String(reward?.rarity || "SSR").trim()} ${String(reward?.cardName || "Carte mystère").trim()}`.trim()
+ if (resultImage) {
+  if (reward?.imageUrl) {
+   resultImage.src = String(reward.imageUrl)
+   resultImage.alt = rewardName
+   resultImage.style.display = ""
+  } else {
+   resultImage.removeAttribute("src")
+   resultImage.alt = rewardName
+   resultImage.style.display = "none"
+  }
+ }
+ resultName.textContent = rewardName
+ status.textContent = "Craft fragments → SSR"
+
+ stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
+ result.classList.remove("visible")
+ stage.setAttribute("data-busy", "1")
+ void stage.offsetWidth
+ stage.classList.add("animating", "phase-spin")
+
+ return new Promise((resolve) => {
+  const queue = (delay, callback) => {
+   const timer = window.setTimeout(() => {
+    callback()
+   }, delay)
+   stage._fusionTimers.push(timer)
+  }
+
+  queue(860, () => {
+   stage.classList.add("phase-converge")
+   status.textContent = "Les fragments s'assemblent..."
+  })
+  queue(1980, () => {
+   stage.classList.add("phase-result")
+   result.classList.add("visible")
+   status.textContent = "Craft SSR réussi"
+  })
+  queue(4020, () => {
+   stage.classList.add("phase-out")
+  })
+  queue(4460, () => {
+   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
+   stage.setAttribute("data-busy", "0")
+   result.classList.remove("visible")
+   status.textContent = `Dernier craft: ${rewardName}`
+   stage._fusionTimers = []
+   resolve()
+  })
+ })
+}
+
+function getRarityToken(rarity) {
+ return String(rarity || "C").toUpperCase().replace(/[^A-Z]/g, "") || "C"
+}
 
  function getPackBackImageForRarity(rarity) {
   const token = getRarityToken(rarity)
@@ -1379,16 +1602,12 @@ function showPackOpeningAnimation(payload) {
   const playerTitle = String(state.profile?.title || state.me?.title || "Nouveau")
   panel.innerHTML = `
    <section class="mode-shell mode-packs">
-    <header class="mode-hero">
-     <div>
-      <h2>Gestion des Packs</h2>
-      <p>Achète puis ouvre tes packs sur le set de ton choix.</p>
-     </div>
-     <div class="mode-kpi-grid mode-kpi-grid-2">
-      <div class="mode-kpi"><span>Stock actuel</span><strong>${fmt(stock)}</strong></div>
-      <div class="mode-kpi"><span>Kamas</span><strong>💰 ${fmt(kamas)}</strong></div>
-     </div>
-    </header>
+   <header class="mode-hero">
+    <div>
+     <h2>Gestion des Packs</h2>
+     <p>Achète puis ouvre tes packs sur le set de ton choix.</p>
+    </div>
+   </header>
     <div class="mode-layout">
      <article class="mode-card">
       <h3>Ouverture de packs</h3>
@@ -1501,12 +1720,12 @@ function renderFusion() {
          </div>
          <strong id="fusionForgeResultName">Carte finale</strong>
         </div>
-       </div>
-       <div class="fusion-simple-anvil-box">
-        <img src="/assets/ui/enclume.png" alt="Enclume" class="fusion-simple-anvil">
-       </div>
-       <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
       </div>
+      <div class="fusion-simple-anvil-box">
+        <img src="/assets/ui/fusion.png" alt="Chaudron de fusion" class="fusion-simple-anvil">
+      </div>
+      <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
+     </div>
      </div>
 
      <aside class="fusion-simple-right">
@@ -1564,49 +1783,95 @@ function renderFusion() {
  setupFusionPanel()
 }
 
- function renderCraft() {
-  const panel = document.getElementById("playCraft")
-  const crafts = getCraftCandidates()
-  const hasCraft = crafts.length > 0
+function renderCraft() {
+ const panel = document.getElementById("playCraft")
+ const crafts = getCraftCandidates()
+ const hasCraft = crafts.length > 0
+ const readyCount = crafts.filter((x) => x.uniqueCount >= 5).length
+ const totalFragments = (state.groupedFragments || []).reduce((sum, item) => sum + Number(item.qty || 0), 0)
+ const activeCardId = String(state.craftUi.cardId || crafts[0]?.cardId || "")
+ if (activeCardId) state.craftUi.cardId = activeCardId
+ const activeProgress = activeCardId ? getFragmentProgressForCard(activeCardId) : { unique: 0 }
   panel.innerHTML = `
-   <section class="mode-shell mode-craft">
+   <section class="mode-shell mode-craft mode-fusion mode-fusion-simple mode-craft-simple">
     <header class="mode-hero">
      <div>
       <h2>Forge de Craft</h2>
-      <p>Assemble 5 fragments uniques (1 a 5) pour créer une SSR.</p>
+      <p>Assemble les 5 fragments uniques d'une carte pour forger sa version SSR.</p>
      </div>
      <div class="mode-kpi-grid">
-      <div class="mode-kpi"><span>Cartes prêtes</span><strong>${fmt(crafts.filter((x) => x.uniqueCount >= 5).length)}</strong></div>
+      <div class="mode-kpi"><span>Cartes prêtes</span><strong>${fmt(readyCount)}</strong></div>
       <div class="mode-kpi"><span>Candidates</span><strong>${fmt(crafts.length)}</strong></div>
-      <div class="mode-kpi"><span>Seuil craft</span><strong id="craftReadyTag">${hasCraft ? `${crafts[0].uniqueCount}/5` : "0/5"}</strong></div>
+      <div class="mode-kpi"><span>Fragments</span><strong>${fmt(totalFragments)}</strong></div>
      </div>
     </header>
-    <div class="mode-layout">
-     <article class="mode-card">
-      <h3>Carte a crafter</h3>
-      <label class="mode-label" for="craftCardInput">Sélection</label>
-      <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
-       ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} (${item.uniqueCount}/5)</option>`).join("")}
-      </select>
-      <div id="craftPreview" class="mode-preview"></div>
-      <div class="action-row">
-       <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter SSR</button>
+    <article class="mode-card fusion-simple-card">
+     <div class="fusion-simple-workspace">
+      <div class="fusion-simple-left">
+       <div id="craftForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
+        <div class="fusion-simple-ring">
+         <div id="craftForgeOrbit" class="fusion-forge-orbit"></div>
+         <div id="craftForgeResult" class="fusion-forge-result">
+          <div class="fusion-forge-result-card">
+           <img id="craftForgeResultImage" alt="Résultat du craft">
+          </div>
+          <strong id="craftForgeResultName">Carte SSR finale</strong>
+         </div>
+        </div>
+        <div class="fusion-simple-anvil-box">
+         <img src="/assets/ui/enclume.png" alt="Enclume" class="fusion-simple-anvil">
+        </div>
+        <p id="craftForgeStatus" class="fusion-forge-status">Prêt: sélectionne une carte à crafter.</p>
+       </div>
       </div>
-      <div id="craftResultBox" class="action-result mode-result"></div>
-     </article>
 
-     <article class="mode-card">
-      <h3>Conditions</h3>
-      <ul class="mode-list">
-       <li>Fragments requis: 1, 2, 3, 4 et 5.</li>
-       <li>Chaque numéro doit être unique pour la carte ciblée.</li>
-       <li>Le craft consomme les fragments et crée une SSR.</li>
-      </ul>
-      <div class="mode-info-box">
-       <p>Si une carte est à 4/5, va chercher le fragment manquant au marché pour finir plus vite.</p>
-      </div>
-     </article>
-    </div>
+      <aside class="fusion-simple-right">
+       <div class="fusion-simple-controls">
+        <div class="fusion-simple-main-row">
+         <div class="fusion-simple-set-cell">
+          <label class="mode-label" for="craftCardInput">Carte cible</label>
+          <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
+           ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} - ${escapeHtml(item.setName || "Set")} (${item.uniqueCount}/5)</option>`).join("")}
+          </select>
+         </div>
+         <div class="fusion-simple-qty-actions">
+          <div>
+           <label class="mode-label">Progression</label>
+           <p class="mode-muted" id="craftReadyTag">${hasCraft ? `${fmt(activeProgress.unique)}/5` : "0/5"}</p>
+          </div>
+          <div class="fusion-simple-validate-cell">
+           <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter SSR</button>
+          </div>
+         </div>
+        </div>
+
+        <div class="fusion-simple-step-grid">
+         ${hasCraft
+          ? crafts.map((item) => {
+           const active = String(item.cardId) === activeCardId
+           const ready = Number(item.uniqueCount || 0) >= 5
+           return `
+            <button type="button" class="fusion-simple-step ${active ? "active" : ""} ${ready ? "ready" : ""}" data-card-id="${escapeHtml(item.cardId)}">
+             <span>🌟 ${escapeHtml(item.cardName)}</span>
+             <small data-craft-stock>${fmt(item.uniqueCount)}/5 fragments uniques</small>
+            </button>
+           `
+          }).join("")
+          : '<p class="mode-muted">Aucun fragment disponible pour lancer un craft.</p>'}
+        </div>
+
+        <div id="craftPreview" class="mode-preview"></div>
+        <p id="craftInfoLine" class="mode-muted"></p>
+        <div id="craftResultBox" class="action-result mode-result"></div>
+       </div>
+      </aside>
+     </div>
+
+     <div class="fusion-simple-history">
+      <h3>Historique</h3>
+      <div id="craftHistoryList" class="fusion-history-list"></div>
+     </div>
+    </article>
    </section>
   `
   setupCraftPanel(crafts)
@@ -1747,16 +2012,76 @@ async function handleFusionAction() {
  }
 }
 
- async function handleCraftAction() {
-  const cardId = String(document.getElementById("craftCardInput")?.value || "").trim()
+async function handleCraftAction() {
+ const stage = document.getElementById("craftForgeStage")
+ if (String(stage?.getAttribute("data-busy") || "0") === "1") return
+
+ const cardId = String(state.craftUi.cardId || document.getElementById("craftCardInput")?.value || "").trim()
+ if (!cardId) {
+  showActionResult("craftResultBox", "<p>Sélectionne une carte avant de lancer le craft.</p>", true)
+  return
+ }
+
+ const selected = getCraftCandidates().find((item) => String(item.cardId) === cardId) || null
+ const progress = getFragmentProgressForCard(cardId)
+ if (!selected || progress.unique < 5) {
+  showActionResult("craftResultBox", "<p>Fragments insuffisants: il faut 5 fragments uniques (1 à 5).</p>", true)
+  return
+ }
+
+ const runBtn = document.getElementById("craftBtn")
+ const baseLabel = String(runBtn?.textContent || "Crafter SSR")
+ let refreshed = false
+
+ try {
+  if (runBtn) {
+   runBtn.disabled = true
+   runBtn.textContent = "Forge en cours..."
+  }
+  showActionResult("craftResultBox", "<p>Assemblage des fragments...</p>")
+
   const res = await postJson("/api/game/craft", { cardId })
   if (!res.ok) {
    showActionResult("craftResultBox", `<p>${escapeHtml(res.data?.error || "Craft impossible.")}</p>`, true)
    return
   }
-  showActionResult("craftResultBox", `<p><strong>Craft SSR validé:</strong> ${escapeHtml(res.data?.card?.cardName || "Carte")}</p>`)
+
+  const crafted = res.data?.card || {}
+  await playCraftForgeAnimation({
+   reward: {
+    cardName: String(crafted.cardName || selected.cardName || "Carte"),
+    rarity: String(crafted.rarity || "SSR"),
+    imageUrl: crafted.imageUrl || selected.imageUrl || null
+   },
+   fragments: getCraftAnimationFragments(cardId, 5)
+  })
+
+  state.craftHistory = [{
+   cardName: String(crafted.cardName || selected.cardName || "Carte"),
+   setName: getSetName(crafted.set || selected.set),
+   rarity: String(crafted.rarity || "SSR"),
+   timestamp: Date.now()
+  }].concat(state.craftHistory || []).slice(0, 24)
+
+  const titleLine = res.data?.titleUnlocked
+   ? `<p class="mode-muted">Titre débloqué: ${escapeHtml(res.data.titleUnlocked)}</p>`
+   : ""
+  const summary = `
+   <p><strong>Craft SSR validé:</strong> ${escapeHtml(crafted.cardName || selected.cardName || "Carte")}</p>
+   <p>Set: ${escapeHtml(getSetName(crafted.set || selected.set))}</p>
+   ${titleLine}
+  `
+
   await reloadGameplayDataAndRender()
+  refreshed = true
+  showActionResult("craftResultBox", summary)
+ } finally {
+  if (!refreshed && runBtn) {
+   runBtn.disabled = false
+   runBtn.textContent = baseLabel
+  }
  }
+}
 
  function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
@@ -1840,10 +2165,11 @@ async function handleFusionAction() {
   if (btn) return handleFusionAction().catch(() => {})
  })
 
-  document.getElementById("playCraft").addEventListener("click", (event) => {
-   if (event.target && event.target.id === "craftBtn") return handleCraftAction().catch(() => {})
+ document.getElementById("playCraft").addEventListener("click", (event) => {
+   const btn = event.target.closest("#craftBtn")
+   if (btn) return handleCraftAction().catch(() => {})
   })
- }
+}
 
  async function bootstrap() {
   bindEvents()
