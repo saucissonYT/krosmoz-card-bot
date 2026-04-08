@@ -2075,6 +2075,15 @@ body.battlepass-page .battlepass-hero .section-subtitle {
  display: flex;
  justify-content: center;
  align-items: center;
+ --bp-shift: 0px;
+}
+
+.bp-side-left .bp-step-node {
+ --bp-shift: -240px;
+}
+
+.bp-side-right .bp-step-node {
+ --bp-shift: 240px;
 }
 
 .bp-node-core {
@@ -2092,6 +2101,7 @@ body.battlepass-page .battlepass-hero .section-subtitle {
  justify-items: center;
  gap: 6px;
  text-align: center;
+ transform: translateX(var(--bp-shift));
  transition: transform 0.2s var(--ease), border-color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
 }
 
@@ -2101,6 +2111,7 @@ body.battlepass-page .battlepass-hero .section-subtitle {
  color: #ffe7a8;
  letter-spacing: 0.01em;
  text-transform: uppercase;
+ transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
 }
 
 .bp-node-free,
@@ -2121,6 +2132,11 @@ body.battlepass-page .battlepass-hero .section-subtitle {
  color: #c9d6ff;
 }
 
+.bp-node-free,
+.bp-node-premium {
+ transition: opacity 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
 .bp-node-core.is-unlocked {
  border-color: rgba(201, 168, 76, 0.78);
  box-shadow: 0 10px 22px rgba(4, 9, 25, 0.38), 0 0 0 1px rgba(201, 168, 76, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -2132,32 +2148,41 @@ body.battlepass-page .battlepass-hero .section-subtitle {
 
 .bp-node-check {
  position: absolute;
- top: 10px;
- right: 10px;
- width: 24px;
- height: 24px;
- border-radius: 999px;
- border: 1px solid rgba(255, 255, 255, 0.5);
- background: rgba(6, 10, 26, 0.8);
- color: #dcffe8;
+ inset: 0;
+ border-radius: 50%;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ background: radial-gradient(circle at 30% 24%, rgba(58, 187, 106, 0.98), rgba(19, 108, 57, 0.98));
+ color: #f3fff6;
  font-weight: 900;
- font-size: 0.95rem;
- line-height: 22px;
+ font-size: 4.8rem;
+ line-height: 1;
+ text-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+ box-shadow: inset 0 0 0 2px rgba(200, 255, 220, 0.28);
  opacity: 0;
- transform: scale(0.86);
+ transform: scale(0.72);
  transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+ pointer-events: none;
 }
 
 .bp-node-core.is-claimed:hover {
- transform: translateY(-1px) scale(1.03);
- border-color: rgba(121, 240, 158, 0.78);
- background: radial-gradient(circle at 30% 24%, rgba(30, 106, 61, 0.98), rgba(13, 64, 39, 0.98));
- box-shadow: 0 12px 26px rgba(8, 46, 27, 0.42), 0 0 0 1px rgba(121, 240, 158, 0.3), inset 0 1px 0 rgba(225, 255, 235, 0.14);
+ transform: translateX(var(--bp-shift)) translateY(-1px) scale(1.03);
+ border-color: rgba(121, 240, 158, 0.86);
+ background: radial-gradient(circle at 30% 24%, rgba(61, 193, 111, 0.98), rgba(18, 110, 58, 0.98));
+ box-shadow: 0 12px 26px rgba(8, 56, 31, 0.45), 0 0 0 2px rgba(121, 240, 158, 0.35), inset 0 1px 0 rgba(225, 255, 235, 0.22);
+}
+
+.bp-node-core.is-claimed:hover .bp-node-level,
+.bp-node-core.is-claimed:hover .bp-node-free,
+.bp-node-core.is-claimed:hover .bp-node-premium {
+ opacity: 0;
+ transform: scale(0.88);
 }
 
 .bp-node-core.is-claimed:hover .bp-node-check {
  opacity: 1;
- transform: scale(1);
+ transform: scale(1.02);
 }
 
 .market-hero-notes {
@@ -3016,6 +3041,8 @@ body.market-page #refreshBtn:hover {
  .bp-step { grid-template-columns: 1fr; gap: 8px; min-height: 164px; justify-items: center; }
  .bp-step-copy { max-width: 420px; width: 100%; text-align: center !important; justify-self: center !important; }
  .bp-step-copy.empty { display: none; }
+ .bp-side-left .bp-step-node,
+ .bp-side-right .bp-step-node { --bp-shift: 0px; }
  .bp-node-core { width: 132px; height: 132px; }
  .bp-node-free, .bp-node-premium { max-width: 108px; font-size: 0.69rem; }
  .tab-btn { min-height: 30px; font-size: 0.84rem; padding: 4px 8px; }
