@@ -6,64 +6,6 @@
  padding-top: 118px;
 }
 
-.play-fixed-ornement-frame {
- position: fixed;
- left: 0;
- right: 0;
- top: 114px;
- bottom: 0;
- pointer-events: none;
- z-index: 2;
-}
-
-.play-page.auth-connected .play-fixed-ornement-frame {
- top: 148px;
-}
-
-.play-fixed-ornement {
- position: absolute;
- display: block;
- background-repeat: no-repeat;
- background-size: 100% 100%;
- opacity: 0.95;
-}
-
-.play-fixed-ornement-top {
- left: 58px;
- right: 58px;
- top: 0;
- height: 54px;
- background-image: url("/assets/ui/ornement-haut.png");
- background-position: center top;
-}
-
-.play-fixed-ornement-bottom {
- left: 0;
- right: 0;
- bottom: 0;
- height: 120px;
- background-image: url("/assets/ui/ornement-bas.png");
- background-position: center bottom;
-}
-
-.play-fixed-ornement-left {
- left: 0;
- top: 0;
- bottom: 0;
- width: 68px;
- background-image: url("/assets/ui/ornement-gauche.png");
- background-position: left center;
-}
-
-.play-fixed-ornement-right {
- right: 0;
- top: 0;
- bottom: 0;
- width: 68px;
- background-image: url("/assets/ui/ornement-droit.png");
- background-position: right center;
-}
-
 .play-shell {
  display: grid;
  grid-template-columns: 1fr;
@@ -2292,24 +2234,6 @@ body.pack-opening-lock {
   width: min(280px, 64%);
   bottom: 14px;
  }
- .play-fixed-ornement-frame {
-  top: 132px;
- }
- .play-page.auth-connected .play-fixed-ornement-frame {
-  top: 148px;
- }
- .play-fixed-ornement-top {
-  left: 46px;
-  right: 46px;
-  height: 46px;
- }
- .play-fixed-ornement-left,
- .play-fixed-ornement-right {
-  width: 54px;
- }
- .play-fixed-ornement-bottom {
-  height: 92px;
- }
  .pack-open-grid {
   justify-content: center;
  }
@@ -2420,24 +2344,6 @@ body.pack-opening-lock {
  .mode-fusion-simple .fusion-simple-anvil-box {
   width: min(220px, 58%);
   bottom: 10px;
- }
- .play-fixed-ornement-frame {
-  top: 112px;
- }
- .play-page.auth-connected .play-fixed-ornement-frame {
-  top: 126px;
- }
- .play-fixed-ornement-top {
-  left: 38px;
-  right: 38px;
-  height: 38px;
- }
- .play-fixed-ornement-left,
- .play-fixed-ornement-right {
-  width: 42px;
- }
- .play-fixed-ornement-bottom {
-  height: 80px;
  }
  .pack-open-overlay {
   padding: 10px;
