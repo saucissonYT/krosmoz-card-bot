@@ -17,6 +17,10 @@ if (__initialPlayTab === "fusion") {
  document.body.classList.add("route-craft-bg", "craft-bg-active", "fusion-mode-active")
 } else if (__initialPlayTab === "packs") {
  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
+} else if (__initialPlayTab === "inventory") {
+ document.body.classList.add("route-inventory-bg", "inventory-bg-active")
+} else {
+ document.body.classList.add("route-inventory-bg", "inventory-bg-active")
 }
 </script>
 <nav class="navbar scrolled">
@@ -172,6 +176,8 @@ function setMode(mode, updateUrl = true) {
   state.mode = mode
   state.selected = null
   const isForgeMode = mode === "fusion" || mode === "craft"
+  document.body.classList.toggle("route-inventory-bg", mode === "inventory")
+  document.body.classList.toggle("inventory-bg-active", mode === "inventory")
   document.body.classList.toggle("route-fusion-bg", mode === "fusion")
   document.body.classList.toggle("fusion-bg-active", mode === "fusion")
   document.body.classList.toggle("route-craft-bg", mode === "craft")
@@ -543,6 +549,7 @@ function setupFusionPanel() {
  const setInput = document.getElementById("fusionSetInput")
  const qtyInput = document.getElementById("fusionQtyInput")
  const runBtn = document.getElementById("fusionRunBtn")
+ const skipBtn = document.getElementById("fusionSkipAnimationBtn")
  const infoLine = document.getElementById("fusionInfoLine")
  const historyBox = document.getElementById("fusionHistoryList")
  const stepButtons = [...document.querySelectorAll(".fusion-simple-step[data-rarity]")]
@@ -633,6 +640,15 @@ function setupFusionPanel() {
    refresh()
   })
  })
+
+ if (skipBtn) {
+  skipBtn.addEventListener("click", () => {
+   requestFusionAnimationSkip()
+  })
+ }
+ const stage = document.getElementById("fusionForgeStage")
+ if (stage) stage.setAttribute("data-skip", "0")
+ setFusionSkipButton(false)
 
  refresh()
 }
@@ -814,6 +830,27 @@ function renderFusionForgeIdle(setId, rarity) {
  status.textContent = `Prêt: ${sourceRarity} → ${getNextRarityFromMeta(sourceRarity) || "?"}`
 }
 
+function setFusionSkipButton(visible, label = "Passer l'animation") {
+ const skipBtn = document.getElementById("fusionSkipAnimationBtn")
+ if (!skipBtn) return
+ skipBtn.style.display = visible ? "" : "none"
+ skipBtn.textContent = label
+ skipBtn.disabled = false
+}
+
+function requestFusionAnimationSkip() {
+ const stage = document.getElementById("fusionForgeStage")
+ if (!stage) return
+ stage.setAttribute("data-skip", "1")
+ const skipFn = stage._fusionAbort
+ if (typeof skipFn === "function") skipFn()
+ const skipBtn = document.getElementById("fusionSkipAnimationBtn")
+ if (skipBtn) {
+  skipBtn.disabled = true
+  skipBtn.textContent = "Animation passée"
+ }
+}
+
 function playFusionForgeAnimation(payload = {}) {
  const stage = document.getElementById("fusionForgeStage")
  const orbit = document.getElementById("fusionForgeOrbit")
@@ -827,6 +864,7 @@ function playFusionForgeAnimation(payload = {}) {
   for (const timer of stage._fusionTimers) window.clearTimeout(timer)
  }
  stage._fusionTimers = []
+ stage._fusionAbort = null
 
  const fromRarity = String(payload?.fromRarity || "C")
  const toRarity = String(payload?.toRarity || "")
@@ -857,12 +895,30 @@ function playFusionForgeAnimation(payload = {}) {
  stage.classList.add("animating", "phase-spin")
 
  return new Promise((resolve) => {
+  let done = false
+  const finish = (skipped = false) => {
+   if (done) return
+   done = true
+   if (Array.isArray(stage._fusionTimers)) {
+    for (const timer of stage._fusionTimers) window.clearTimeout(timer)
+   }
+   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
+   stage.setAttribute("data-busy", "0")
+   result.classList.remove("visible")
+   status.textContent = skipped ? "Animation passée" : `Dernier résultat: ${rewardName}`
+   stage._fusionTimers = []
+   stage._fusionAbort = null
+   resolve({ skipped })
+  }
+
   const queue = (delay, callback) => {
    const timer = window.setTimeout(() => {
+    if (done) return
     callback()
    }, delay)
    stage._fusionTimers.push(timer)
   }
+  stage._fusionAbort = () => finish(true)
 
   queue(860, () => {
    stage.classList.add("phase-converge")
@@ -877,12 +933,7 @@ function playFusionForgeAnimation(payload = {}) {
    stage.classList.add("phase-out")
   })
   queue(4460, () => {
-   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
-   stage.setAttribute("data-busy", "0")
-   result.classList.remove("visible")
-   status.textContent = `Dernier résultat: ${rewardName}`
-   stage._fusionTimers = []
-   resolve()
+   finish(false)
   })
  })
 }
@@ -1725,6 +1776,7 @@ function renderFusion() {
         <img src="/assets/ui/fusion.png" alt="Chaudron de fusion" class="fusion-simple-anvil">
       </div>
       <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
+      <button id="fusionSkipAnimationBtn" type="button" class="btn btn-outline fusion-skip-btn" style="display:none">Passer l'animation</button>
      </div>
      </div>
 
@@ -1799,9 +1851,8 @@ function renderCraft() {
       <h2>La Forge de Volkaragnar</h2>
       <p>Assemble les 5 fragments uniques d'une carte pour forger sa version SSR.</p>
      </div>
-     <div class="mode-kpi-grid">
+    <div class="mode-kpi-grid mode-kpi-grid-2">
       <div class="mode-kpi"><span>Cartes prêtes</span><strong>${fmt(readyCount)}</strong></div>
-      <div class="mode-kpi"><span>Candidates</span><strong>${fmt(crafts.length)}</strong></div>
       <div class="mode-kpi"><span>Fragments</span><strong>${fmt(totalFragments)}</strong></div>
      </div>
     </header>
@@ -1976,17 +2027,41 @@ async function handleFusionAction() {
    return
   }
 
-  const last = logs[logs.length - 1]
-  await playFusionForgeAnimation({
-   fromRarity: last.from,
-   toRarity: last.to,
-   reward: {
-    cardName: last.rewardName,
-    rarity: last.rewardRarity,
-    imageUrl: last.rewardImage
-   },
-   fragments: getFusionAnimationFragments(setId, last.from, 5)
-  })
+  if (stage) stage.setAttribute("data-skip", "0")
+  const multiRun = logs.length > 1
+  setFusionSkipButton(multiRun)
+  let playedAnimations = 0
+  let skippedAnimations = false
+  for (let index = 0; index < logs.length; index++) {
+   if (String(stage?.getAttribute("data-skip") || "0") === "1") {
+    skippedAnimations = true
+    break
+   }
+   const entry = logs[index]
+   if (multiRun) {
+    showActionResult("fusionResultBox", `<p>Animation de fusion ${fmt(index + 1)}/${fmt(logs.length)}...</p>`)
+   }
+   const animResult = await playFusionForgeAnimation({
+    fromRarity: entry.from,
+    toRarity: entry.to,
+    reward: {
+     cardName: entry.rewardName,
+     rarity: entry.rewardRarity,
+     imageUrl: entry.rewardImage
+    },
+    fragments: getFusionAnimationFragments(setId, entry.from, 5)
+   })
+   playedAnimations = index + 1
+   if (animResult?.skipped || String(stage?.getAttribute("data-skip") || "0") === "1") {
+    skippedAnimations = true
+    break
+   }
+  }
+  setFusionSkipButton(false)
+  if (stage) {
+   stage.setAttribute("data-skip", "0")
+   stage._fusionAbort = null
+  }
 
   state.fusionHistory = logs.slice().reverse().map((entry) => ({
    from: entry.from,
@@ -1996,9 +2071,14 @@ async function handleFusionAction() {
    timestamp: entry.timestamp
   })).concat(state.fusionHistory || []).slice(0, 24)
 
+  const last = logs[logs.length - 1]
+  const animationNote = skippedAnimations
+   ? `<p class="mode-muted">Animation passée après ${fmt(playedAnimations)}/${fmt(logs.length)} fusion(s).</p>`
+   : ""
   const summary = `
    <p><strong>Forge terminée:</strong> ${fmt(logs.length)} fusion(s) validée(s) sur ${fmt(requestedCycles)} demandée(s)</p>
    <p>Dernier résultat: ${escapeHtml((last.rewardRarity ? `${last.rewardRarity} ` : "") + (last.rewardName || "Carte"))}</p>
+   ${animationNote}
    ${interruption ? `<p class="mode-muted">Arrêt partiel: ${escapeHtml(interruption)}</p>` : ""}
   `
   await reloadGameplayDataAndRender()
@@ -2008,6 +2088,11 @@ async function handleFusionAction() {
   if (!refreshed && runBtn) {
    runBtn.disabled = false
    runBtn.textContent = baseLabel
+  }
+  setFusionSkipButton(false)
+  if (stage) {
+   stage.setAttribute("data-skip", "0")
+   stage._fusionAbort = null
   }
  }
 }

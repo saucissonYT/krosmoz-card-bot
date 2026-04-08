@@ -77,6 +77,27 @@ body {
  min-height: 100vh;
 }
 
+body.achievements-page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20achievements.png") center / cover no-repeat fixed;
+}
+
+body.market-page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20march%C3%A9.png") center / cover no-repeat fixed;
+}
+
+body.achievements-page::before,
+body.achievements-page::after,
+body.market-page::before,
+body.market-page::after {
+ display: none;
+}
+
 a {
  color: var(--gold);
  text-decoration: none;
