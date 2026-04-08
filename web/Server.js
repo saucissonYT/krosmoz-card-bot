@@ -560,6 +560,23 @@ function normalizeText(value) {
  return String(value || "").trim().toLowerCase()
 }
 
+function stripDiscordMarkdownForWeb(value) {
+ const input = String(value || "")
+ if (!input) return ""
+
+ return input
+  .replace(/\r/g, "")
+  .replace(/^>\s?/gm, "")
+  .replace(/^#{1,6}\s*/gm, "")
+  .replace(/`{1,3}/g, "")
+  .replace(/\*\*(.*?)\*\*/g, "$1")
+  .replace(/\*(.*?)\*/g, "$1")
+  .replace(/__(.*?)__/g, "$1")
+  .replace(/~~(.*?)~~/g, "$1")
+  .replace(/\|\|(.*?)\|\|/g, "$1")
+  .trim()
+}
+
 function getCardSetNameMap(sets) {
  const map = new Map()
  for (const set of sets || []) {
@@ -1981,16 +1998,16 @@ app.get("/api/events/state", async (req, res) => {
 
   const eventView = eventActive
    ? {
-    active: true,
-    key: String(event.key),
-    name: String(event.name || "Event"),
-    effect: String(event.effect || ""),
-    startText: String(event.start || ""),
-    midText: String(event.mid || ""),
-    endText: String(event.end || ""),
-    needsTarget: Boolean(event.needsTarget),
-    targetName: String(event?.data?.targetName || ""),
-    ticketsPerPlayer: Number(event.tickets || 0),
+     active: true,
+     key: String(event.key),
+     name: String(event.name || "Event"),
+     effect: stripDiscordMarkdownForWeb(event.effect),
+     startText: stripDiscordMarkdownForWeb(event.start),
+     midText: stripDiscordMarkdownForWeb(event.mid),
+     endText: stripDiscordMarkdownForWeb(event.end),
+     needsTarget: Boolean(event.needsTarget),
+     targetName: String(event?.data?.targetName || ""),
+     ticketsPerPlayer: Number(event.tickets || 0),
     stats: {
      packs: Number(event.stats?.packs || 0),
      ssr: Number(event.stats?.ssr || 0),

@@ -39,7 +39,7 @@
      <p class="section-subtitle">Achète et vends des cartes ou fragments au meilleur prix.</p>
     </header>
 
-    <div id="tradePanel" class="trade-panel market-trade-panel fade-in stagger-2" style="display:none">
+    <div id="tradePanel" class="trade-panel market-trade-panel market-zone-block fade-in stagger-2" style="display:none">
      <div class="trade-col">
       <h3>Mettre une carte en vente</h3>
       <div class="inline-form">
@@ -58,9 +58,9 @@
      </div>
     </div>
 
-    <div id="myListingsBox" class="profile-card fade-in stagger-2" style="display:none"></div>
+    <div id="myListingsBox" class="profile-card market-my-listings fade-in stagger-2" style="display:none"></div>
 
-    <div class="market-controls-card fade-in stagger-2">
+    <div class="market-controls-card market-zone-block fade-in stagger-2">
      <div class="market-controls-head">
       <h2>Filtrer les annonces</h2>
      </div>
@@ -88,9 +88,11 @@
       </select>
       <button id="refreshBtn" class="btn btn-outline">Actualiser</button>
      </div>
-     <div id="resultMeta" class="result-meta market-meta"></div>
     </div>
-    <div id="marketGrid" class="catalog-grid market-dense"></div>
+    <div class="market-listings-head fade-in stagger-2">
+     <h2 id="resultMeta" class="market-section-heading">Annonces actives</h2>
+    </div>
+    <div id="marketGrid" class="catalog-grid market-dense market-zone-block market-listings-grid-block"></div>
     <div id="pagination" class="pagination"></div>
    </section>
 
@@ -268,7 +270,7 @@
 
   const data = res.data || {}
   state.page = data.page || 1
-  meta.textContent = `${Number(data.total || 0).toLocaleString("fr-FR")} annonces actives`
+  meta.textContent = "Annonces actives"
 
   const items = data.items || []
   if (!items.length) {
@@ -346,7 +348,9 @@ function option(value, label) {
    state.myListingId = null
    box.innerHTML = `
     <h2>Mes annonces (0)</h2>
-    <p class="result-meta">Tu n'as aucune annonce active.</p>
+    <div class="market-zone-block market-my-listings-block">
+     <p class="result-meta">Tu n'as aucune annonce active.</p>
+    </div>
    `
    return
   }
@@ -357,8 +361,9 @@ function option(value, label) {
 
   box.innerHTML = `
    <h2>Mes annonces (${entries.length})</h2>
-   <div class="my-listings-grid" role="listbox" aria-label="Mes annonces">
-    ${entries.map((l) => {
+   <div class="market-zone-block market-my-listings-block">
+    <div class="my-listings-grid" role="listbox" aria-label="Mes annonces">
+     ${entries.map((l) => {
      const selected = String(l.id) === String(state.myListingId)
      const rarity = String(l.rarity || "C")
      const rarityEmoji = RARITY_EMOJI[rarity] || rarity
@@ -377,9 +382,12 @@ function option(value, label) {
        <span class="my-listing-chip">${escapeHtml(kind)}</span>
       </button>
      `
-    }).join("")}
+     }).join("")}
+    </div>
    </div>
-   <div id="myListingDetail" class="my-listing-detail-wrap"></div>
+   <div class="market-zone-block market-my-detail-block">
+    <div id="myListingDetail" class="my-listing-detail-wrap"></div>
+   </div>
   `
 
   const detailRoot = box.querySelector("#myListingDetail")
