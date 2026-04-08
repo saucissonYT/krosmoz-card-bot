@@ -17,8 +17,10 @@ const { registerReactionRolesHandler } = require("./handlers/reactionRoles")
 
 const { startWebServer, setWebHooks } = require("../web/Server")
 const { startPinataScheduler } = require("../systems/pinataEvent")
+const { startEventScheduler } = require("../systems/eventSystem")
 
 const log = createLogger("BOOT")
+const DISCORD_AUTO_EVENT_CHANNEL_ID = "1487121269018329178"
 
 function initializeSystems() {
  const timer = createTimer("initSystems")
@@ -52,8 +54,11 @@ async function bootstrap() {
   } catch (error) {
    log.error("Erreur deploy commands", { err: error })
   }
-  /* â”€â”€ PiÃ±ata scheduler â”€â”€ */
-  startPinataScheduler(client)
+  /* Piñata scheduler */
+  startPinataScheduler(client, [DISCORD_AUTO_EVENT_CHANNEL_ID])
+
+  /* Events des dieux scheduler */
+  startEventScheduler(client, [DISCORD_AUTO_EVENT_CHANNEL_ID])
  })
 
  registerMessageCreateHandler(client)

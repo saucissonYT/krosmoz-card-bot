@@ -1,9 +1,27 @@
 let currentEvent = null
 let timeout = null
 let midTimeout = null
+let schedulerTimeout = null
+let schedulerTickFn = null
 
 const EVENTS = require("./eventRegistry")
 const { getCards } = require("./cardRegistry")
+const { createLogger } = require("./logger")
+const {
+ getSchedulerNextRun,
+ setSchedulerNextRun
+} = require("./schedulerStateStore")
+
+const log = createLogger("EVENT")
+
+const EVENT_DURATION_MS = 15 * 60 * 1000
+const EVENT_MIN_INTERVAL_MS = 3 * 60 * 60 * 1000
+const EVENT_MAX_INTERVAL_MS = 6 * 60 * 60 * 1000
+const NO_ACTIVITY_PENALTY_MS = 3 * 60 * 60 * 1000
+const EVENT_SCHEDULER_KEY = "discord_event"
+const DEFAULT_EVENT_CHANNELS = [
+ "1487121269018329178"
+]
 
 function randomTickets(){
  return Math.floor(Math.random()*2)+2
@@ -14,11 +32,54 @@ function pickRandomEvent(){
  return keys[Math.floor(Math.random()*keys.length)]
 }
 
+function randInt(min, max){
+ return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function getNextEventDelay(){
+ return randInt(EVENT_MIN_INTERVAL_MS, EVENT_MAX_INTERVAL_MS)
+}
+
+async function resolveEventChannel(client, channelIds){
+ if(!client) return null
+ const id = Array.isArray(channelIds) && channelIds.length > 0 ? channelIds[0] : null
+ if(!id) return null
+ try{
+  const channel = await client.channels.fetch(id)
+  if(channel && channel.isTextBased()) return channel
+ } catch(_){}
+ return null
+}
+
+function scheduleNextEventTick(tick, nextAt){
+ const safeNextAt = Math.max(Date.now(), Number(nextAt || 0))
+ const delay = Math.max(0, safeNextAt - Date.now())
+ if(schedulerTimeout) clearTimeout(schedulerTimeout)
+ setSchedulerNextRun(EVENT_SCHEDULER_KEY, safeNextAt)
+ schedulerTimeout = setTimeout(tick, delay)
+ return delay
+}
+
+function applyNoActivityPenaltyToEventScheduler(){
+ if(typeof schedulerTickFn !== "function") return
+
+ const scheduledAt = getSchedulerNextRun(EVENT_SCHEDULER_KEY)
+ if(!Number.isFinite(scheduledAt) || scheduledAt <= 0) return
+
+ const extendedAt = scheduledAt + NO_ACTIVITY_PENALTY_MS
+ const delay = scheduleNextEventTick(schedulerTickFn, extendedAt)
+ log.info("Bonus anti-spam appliqué (event sans participants)", {
+  addedMinutes: Math.round(NO_ACTIVITY_PENALTY_MS / 60000),
+  nextInMinutes: Math.round(delay / 60000)
+ })
+}
+
 /* ---------------- END EVENT ---------------- */
 
 function endEvent(channel){
 
  if(!currentEvent) return
+ const hadNoParticipants = Number(currentEvent?.stats?.packs || 0) <= 0
 
  if(channel){
   channel.send(
@@ -37,6 +98,9 @@ ${currentEvent.end}
  console.log("🏁 EVENT END:", currentEvent.key, currentEvent.stats)
 
  try { require("../web/Server").pushActivity({ kind: "event_end", eventName: currentEvent.name }) } catch(_) {}
+ if(hadNoParticipants){
+  applyNoActivityPenaltyToEventScheduler()
+ }
 
  currentEvent = null
 }
@@ -93,7 +157,7 @@ function startEvent(channel, forced=null){
    ssr:0,
    totalCards:0
   },
-  endTime: Date.now() + (15 * 60000)
+  endTime: Date.now() + EVENT_DURATION_MS
  }
 
  console.log("🎰 EVENT START:", key, "| Tickets:", tickets)
@@ -127,13 +191,13 @@ ${currentEvent.mid}
 > 🎟️ **Il vous reste des tickets !**`
    )
   }
- }, (15 * 60000)/2)
+ }, EVENT_DURATION_MS / 2)
 
  /* ---------- END ---------- */
 
  timeout = setTimeout(()=>{
   endEvent(channel)
- }, 15 * 60000)
+ }, EVENT_DURATION_MS)
 
  return true
 }
@@ -148,6 +212,58 @@ function stopEvent(channel){
  endEvent(channel)
 
  console.log("🛑 EVENT STOP:", currentEvent?.key)
+}
+
+/* ---------------- AUTO SCHEDULER ---------------- */
+
+function startEventScheduler(client, channelIds){
+
+ const channels = Array.isArray(channelIds) && channelIds.length > 0
+  ? channelIds
+  : DEFAULT_EVENT_CHANNELS
+
+ if(schedulerTimeout){
+  clearTimeout(schedulerTimeout)
+  schedulerTimeout = null
+ }
+
+ async function tick(){
+  try{
+   const channel = await resolveEventChannel(client, channels)
+   if(!channel){
+    log.warn("Aucun salon texte valide pour l'event auto, lancement sans annonce Discord")
+   }
+
+   const started = startEvent(channel || null)
+   if(!started){
+    log.info("Event auto ignoré (event déjà actif)")
+   }
+  } catch(err){
+   log.error("Erreur scheduler event", { err: err?.message || String(err) })
+  }
+
+  const nextAt = Date.now() + getNextEventDelay()
+  const delay = scheduleNextEventTick(tick, nextAt)
+  log.info("Prochain event auto dans", { minutes: Math.round(delay / 60000) })
+ }
+
+ schedulerTickFn = tick
+ const restoredNextAt = getSchedulerNextRun(EVENT_SCHEDULER_KEY)
+ const firstNextAt = restoredNextAt || (Date.now() + getNextEventDelay())
+ const firstDelay = scheduleNextEventTick(tick, firstNextAt)
+ log.info("Scheduler event initialisé", {
+  restored: Boolean(restoredNextAt),
+  minutes: Math.round(firstDelay / 60000),
+  channels: channels.length
+ })
+}
+
+function stopEventScheduler(){
+ if(schedulerTimeout){
+  clearTimeout(schedulerTimeout)
+  schedulerTimeout = null
+ }
+ schedulerTickFn = null
 }
 
 /* ---------------- GETTERS ---------------- */
@@ -220,7 +336,9 @@ function claimFirstPack(){
 
 module.exports = {
  startEvent,
+ startEventScheduler,
  stopEvent,
+ stopEventScheduler,
  getEvent,
  isEventActive,
  initUserEvent,

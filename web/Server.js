@@ -41,6 +41,10 @@ const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
 const {
+ getSchedulerNextRun,
+ setSchedulerNextRun
+} = require("../systems/schedulerStateStore")
+const {
  dbLoadUser,
  dbCountUsers,
  dbLeaderboard,
@@ -73,7 +77,10 @@ const ACHIEVEMENT_CATEGORIES = [
 ]
 const WEB_EVENTS_RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const WEB_PINATA_DURATION_MS = 60 * 1000
-const WEB_PINATA_COOLDOWN_MS = 12 * 60 * 1000
+const WEB_PINATA_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000
+const WEB_PINATA_MAX_INTERVAL_MS = 5 * 60 * 60 * 1000
+const WEB_NO_ACTIVITY_PENALTY_MS = 3 * 60 * 60 * 1000
+const WEB_PINATA_TIMER_KEY = "web_pinata"
 const WEB_PINATA_ALLOWED_EMOJIS = ["🪅", "🎉", "⭐", "🔥", "💰", "🌈", "🧩", "🎴"]
 const WEB_PINATA_TIERS = [
  { minScore: 1, label: "🥉 Bronze", kamas: [100, 300], xp: 10, bpXp: 30, cardChance: 0, cardPool: [], fragmentChance: 0 },
@@ -90,12 +97,33 @@ const WEB_PINATA_MULTIPLIERS = [
  { min: 21, mult: 2.0 }
 ]
 const WEB_PINATA_SSR_CHANCE_KROSMIQUE = 0.02
+
+function getNextWebPinataDelayMs() {
+ return Math.floor(Math.random() * (WEB_PINATA_MAX_INTERVAL_MS - WEB_PINATA_MIN_INTERVAL_MS + 1)) + WEB_PINATA_MIN_INTERVAL_MS
+}
+
+function getInitialWebPinataNextStart(now = Date.now()) {
+ const restored = getSchedulerNextRun(WEB_PINATA_TIMER_KEY)
+ if (Number.isFinite(restored) && restored > 0) return restored
+
+ const nextAt = now + getNextWebPinataDelayMs()
+ setSchedulerNextRun(WEB_PINATA_TIMER_KEY, nextAt)
+ return nextAt
+}
+
+function scheduleNextWebPinata(now = Date.now(), extraDelayMs = 0) {
+ const nextAt = now + getNextWebPinataDelayMs() + Math.max(0, Number(extraDelayMs || 0))
+ webPinataState.nextStartAt = nextAt
+ setSchedulerNextRun(WEB_PINATA_TIMER_KEY, nextAt)
+ return nextAt
+}
+
 const webPinataState = {
  roundId: 0,
  active: false,
  startedAt: 0,
  endsAt: 0,
- nextStartAt: Date.now() + 2 * 60 * 1000,
+ nextStartAt: getInitialWebPinataNextStart(),
  participants: new Map(),
  rewardsByUser: new Map(),
  lastResults: [],
@@ -283,6 +311,7 @@ function startWebPinataRound(now = Date.now()) {
  webPinataState.active = true
  webPinataState.startedAt = now
  webPinataState.endsAt = now + WEB_PINATA_DURATION_MS
+ webPinataState.nextStartAt = 0
  webPinataState.participants = new Map()
  webPinataState.rewardsByUser = new Map()
  webPinataState.lastResults = []
@@ -406,7 +435,8 @@ async function finalizeWebPinataRound() {
  webPinataState.active = false
  webPinataState.startedAt = 0
  webPinataState.endsAt = 0
- webPinataState.nextStartAt = now + WEB_PINATA_COOLDOWN_MS
+ const extraDelay = participantCount <= 0 ? WEB_NO_ACTIVITY_PENALTY_MS : 0
+ scheduleNextWebPinata(now, extraDelay)
  pushActivity({ kind: "pinata_end", participants: participantCount })
  apiCache.invalidatePrefix("leaderboard:")
 }
@@ -419,6 +449,25 @@ async function ensureWebPinataLifecycle() {
  if (webPinataState.active && now >= Number(webPinataState.endsAt || 0)) {
   await finalizeWebPinataRound()
  }
+}
+
+let webPinataLifecycleInterval = null
+let webPinataLifecycleRunning = false
+
+function startWebPinataLifecycleLoop() {
+ if (webPinataLifecycleInterval) return
+
+ webPinataLifecycleInterval = setInterval(async () => {
+  if (webPinataLifecycleRunning) return
+  webPinataLifecycleRunning = true
+  try {
+   await ensureWebPinataLifecycle()
+  } catch (error) {
+   console.error("[WEB] lifecycle pinata:", error)
+  } finally {
+   webPinataLifecycleRunning = false
+  }
+ }, 5000)
 }
 
 function getWebPinataView(userId) {
@@ -444,7 +493,7 @@ function getWebPinataView(userId) {
   endsAt: webPinataState.endsAt || null,
   nextStartAt: webPinataState.nextStartAt || null,
   durationMs: WEB_PINATA_DURATION_MS,
-  cooldownMs: WEB_PINATA_COOLDOWN_MS,
+  cooldownMs: Math.max(0, Number(webPinataState.nextStartAt || 0) - Date.now()),
   allowedEmojis: WEB_PINATA_ALLOWED_EMOJIS,
   participants: participantCount,
   my: {
@@ -2534,6 +2583,10 @@ function setWebHooks(hooks = {}) {
 function startWebServer(port) {
  const app = createWebApp()
  const p = Number(port || process.env.PORT || 3000)
+ startWebPinataLifecycleLoop()
+ ensureWebPinataLifecycle().catch((error) => {
+  console.error("[WEB] lifecycle init pinata:", error)
+ })
 
  app.listen(p, "0.0.0.0", () => {
   console.log("\n==============================")

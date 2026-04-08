@@ -22,6 +22,10 @@ const { achievementCheck }                  = require("./achievementCheck")
 const { getCards }                          = require("./cardRegistry")
 const { rollFragmentForEvent, grantRolledFragment } = require("./fragmentService")
 const { createLogger }                      = require("./logger")
+const {
+ getSchedulerNextRun,
+ setSchedulerNextRun
+} = require("./schedulerStateStore")
 
 const log = createLogger("PINATA")
 
@@ -346,20 +350,29 @@ async function launchPinata(channel) {
    Appeler startPinataScheduler(client, channelIds) dans bootstrap
 ═══════════════════════════════════════════════════════════════ */
 
-const MIN_INTERVAL_MS = 2 * 60 * 60 * 1000  /* 2 heures */
-const MAX_INTERVAL_MS = 6 * 60 * 60 * 1000  /* 6 heures */
+const MIN_INTERVAL_MS = 4 * 60 * 60 * 1000  /* 4 heures */
+const MAX_INTERVAL_MS = 5 * 60 * 60 * 1000  /* 5 heures */
+const NO_ACTIVITY_PENALTY_MS = 3 * 60 * 60 * 1000 /* +3h si 0 participant */
+const PINATA_SCHEDULER_KEY = "discord_pinata"
 
-/* Salons où la piñata peut apparaître (choix aléatoire à chaque lancement) */
+/* Salon Discord unique pour les piñatas automatiques */
 const DEFAULT_PINATA_CHANNELS = [
- "1487121269018329178",
- "1487121289393995776",
- "1487545856738590911"
+ "1487121269018329178"
 ]
 
 let schedulerTimeout = null
 
 function getNextDelay() {
  return randInt(MIN_INTERVAL_MS, MAX_INTERVAL_MS)
+}
+
+function scheduleNextTick(tick, nextAt) {
+ const safeNextAt = Math.max(Date.now(), Number(nextAt || 0))
+ const delay = Math.max(0, safeNextAt - Date.now())
+ if (schedulerTimeout) clearTimeout(schedulerTimeout)
+ setSchedulerNextRun(PINATA_SCHEDULER_KEY, safeNextAt)
+ schedulerTimeout = setTimeout(tick, delay)
+ return delay
 }
 
 function startPinataScheduler(client, channelIds) {
@@ -374,25 +387,40 @@ function startPinataScheduler(client, channelIds) {
 
  async function tick() {
   try {
-   /* Choisir un salon aléatoirement à chaque piñata */
-   const chosenId = channels[Math.floor(Math.random() * channels.length)]
+   const chosenId = channels[0]
    const channel = await client.channels.fetch(chosenId)
    if (channel && channel.isTextBased()) {
-    await launchPinata(channel)
+    const result = await launchPinata(channel)
+    let delay = getNextDelay()
+    if (Number(result?.participants || 0) === 0) {
+     delay += NO_ACTIVITY_PENALTY_MS
+     log.info("Bonus anti-spam appliqué (piñata sans participants)", {
+      addedMinutes: Math.round(NO_ACTIVITY_PENALTY_MS / 60000)
+     })
+    }
+    const nextAt = Date.now() + delay
+    log.info("Prochaine piñata dans", { minutes: Math.round(delay / 60000) })
+    scheduleNextTick(tick, nextAt)
+    return
    }
   } catch (err) {
    log.error("Erreur piñata scheduler", { err: err.message })
   }
 
   const delay = getNextDelay()
+  const nextAt = Date.now() + delay
   log.info("Prochaine piñata dans", { minutes: Math.round(delay / 60000) })
-  schedulerTimeout = setTimeout(tick, delay)
+  scheduleNextTick(tick, nextAt)
  }
 
- /* Premier lancement entre 5 et 30 min après le boot */
- const firstDelay = randInt(5 * 60000, 30 * 60000)
- log.info("Première piñata dans", { minutes: Math.round(firstDelay / 60000), channels: channels.length })
- schedulerTimeout = setTimeout(tick, firstDelay)
+ const restoredNextAt = getSchedulerNextRun(PINATA_SCHEDULER_KEY)
+ const firstNextAt = restoredNextAt || (Date.now() + getNextDelay())
+ const firstDelay = scheduleNextTick(tick, firstNextAt)
+ log.info("Piñata scheduler initialisé", {
+  restored: Boolean(restoredNextAt),
+  minutes: Math.round(firstDelay / 60000),
+  channels: channels.length
+ })
 }
 
 function stopPinataScheduler() {
