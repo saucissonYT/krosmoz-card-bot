@@ -9,7 +9,7 @@
  <link rel="stylesheet" href="/Play.css">
 </head>
 <body class="play-page">
- <nav class="navbar scrolled">
+<nav class="navbar scrolled">
   <div class="navbar-inner">
    <a href="/" class="navbar-brand">KROSMOZ CARD</a>
    <ul class="navbar-links" id="navLinks">
@@ -24,9 +24,16 @@
     <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
    </div>
   </div>
- </nav>
+</nav>
 
- <div class="page">
+<div class="play-fixed-ornement-frame" aria-hidden="true">
+ <span class="play-fixed-ornement play-fixed-ornement-top"></span>
+ <span class="play-fixed-ornement play-fixed-ornement-right"></span>
+ <span class="play-fixed-ornement play-fixed-ornement-bottom"></span>
+ <span class="play-fixed-ornement play-fixed-ornement-left"></span>
+</div>
+
+<div class="page">
   <div class="container">
    <section class="play-shell">
     <main class="play-main">
@@ -1478,13 +1485,7 @@ function renderFusion() {
    <article class="mode-card fusion-simple-card">
     <div class="fusion-simple-workspace">
      <div class="fusion-simple-left">
-      <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
-       <div class="fusion-ornement-frame" aria-hidden="true">
-        <span class="fusion-ornement fusion-ornement-top"></span>
-        <span class="fusion-ornement fusion-ornement-right"></span>
-        <span class="fusion-ornement fusion-ornement-bottom"></span>
-        <span class="fusion-ornement fusion-ornement-left"></span>
-       </div>
+     <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
        <div class="fusion-simple-ring">
         <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
         <div id="fusionForgeResult" class="fusion-forge-result">

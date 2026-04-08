@@ -6,6 +6,64 @@
  padding-top: 118px;
 }
 
+.play-fixed-ornement-frame {
+ position: fixed;
+ left: 0;
+ right: 0;
+ top: 114px;
+ bottom: 0;
+ pointer-events: none;
+ z-index: 2;
+}
+
+.play-page.auth-connected .play-fixed-ornement-frame {
+ top: 148px;
+}
+
+.play-fixed-ornement {
+ position: absolute;
+ display: block;
+ background-repeat: no-repeat;
+ background-size: 100% 100%;
+ opacity: 0.95;
+}
+
+.play-fixed-ornement-top {
+ left: 58px;
+ right: 58px;
+ top: 0;
+ height: 54px;
+ background-image: url("/assets/ui/ornement-haut.png");
+ background-position: center top;
+}
+
+.play-fixed-ornement-bottom {
+ left: 0;
+ right: 0;
+ bottom: 0;
+ height: 120px;
+ background-image: url("/assets/ui/ornement-bas.png");
+ background-position: center bottom;
+}
+
+.play-fixed-ornement-left {
+ left: 0;
+ top: 0;
+ bottom: 0;
+ width: 68px;
+ background-image: url("/assets/ui/ornement-gauche.png");
+ background-position: left center;
+}
+
+.play-fixed-ornement-right {
+ right: 0;
+ top: 0;
+ bottom: 0;
+ width: 68px;
+ background-image: url("/assets/ui/ornement-droit.png");
+ background-position: right center;
+}
+
 .play-shell {
  display: grid;
  grid-template-columns: 1fr;
@@ -798,59 +856,6 @@
   radial-gradient(circle at 50% 16%, rgba(108, 162, 255, 0.22), rgba(108, 162, 255, 0) 56%),
   radial-gradient(circle at 50% 100%, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0) 40%),
   linear-gradient(180deg, rgba(14, 21, 50, 0.95), rgba(10, 14, 35, 0.98));
-}
-
-.mode-fusion-simple .fusion-ornement-frame {
- position: absolute;
- inset: 0;
- pointer-events: none;
- z-index: 6;
-}
-
-.mode-fusion-simple .fusion-ornement {
- position: absolute;
- display: block;
- background-repeat: no-repeat;
-}
-
-.mode-fusion-simple .fusion-ornement-top {
- left: 58px;
- right: 58px;
- top: 0;
- height: 54px;
- background-image: url("/assets/ui/ornement-haut.png");
- background-position: center top;
- background-size: 100% 100%;
-}
-
-.mode-fusion-simple .fusion-ornement-bottom {
- left: 0;
- right: 0;
- bottom: 0;
- height: 112px;
- background-image: url("/assets/ui/ornement-bas.png");
- background-position: center bottom;
- background-size: 100% 100%;
-}
-
-.mode-fusion-simple .fusion-ornement-left {
- left: 0;
- top: 0;
- bottom: 0;
- width: 68px;
- background-image: url("/assets/ui/ornement-gauche.png");
- background-position: left center;
- background-size: 100% 100%;
-}
-
-.mode-fusion-simple .fusion-ornement-right {
- right: 0;
- top: 0;
- bottom: 0;
- width: 68px;
- background-image: url("/assets/ui/ornement-droit.png");
- background-position: right center;
- background-size: 100% 100%;
 }
 
 .mode-fusion-simple .fusion-simple-ring {
@@ -2287,16 +2292,22 @@ body.pack-opening-lock {
   width: min(280px, 64%);
   bottom: 14px;
  }
- .mode-fusion-simple .fusion-ornement-top {
+ .play-fixed-ornement-frame {
+  top: 132px;
+ }
+ .play-page.auth-connected .play-fixed-ornement-frame {
+  top: 148px;
+ }
+ .play-fixed-ornement-top {
   left: 46px;
   right: 46px;
   height: 46px;
  }
- .mode-fusion-simple .fusion-ornement-left,
- .mode-fusion-simple .fusion-ornement-right {
+ .play-fixed-ornement-left,
+ .play-fixed-ornement-right {
   width: 54px;
  }
- .mode-fusion-simple .fusion-ornement-bottom {
+ .play-fixed-ornement-bottom {
   height: 92px;
  }
  .pack-open-grid {
@@ -2410,16 +2421,22 @@ body.pack-opening-lock {
   width: min(220px, 58%);
   bottom: 10px;
  }
- .mode-fusion-simple .fusion-ornement-top {
+ .play-fixed-ornement-frame {
+  top: 112px;
+ }
+ .play-page.auth-connected .play-fixed-ornement-frame {
+  top: 126px;
+ }
+ .play-fixed-ornement-top {
   left: 38px;
   right: 38px;
   height: 38px;
  }
- .mode-fusion-simple .fusion-ornement-left,
- .mode-fusion-simple .fusion-ornement-right {
+ .play-fixed-ornement-left,
+ .play-fixed-ornement-right {
   width: 42px;
  }
- .mode-fusion-simple .fusion-ornement-bottom {
+ .play-fixed-ornement-bottom {
   height: 80px;
  }
  .pack-open-overlay {
