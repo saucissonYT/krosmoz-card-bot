@@ -1506,6 +1506,7 @@ app.post("/api/battlepass/premium", async (req, res) => {
    const category = req.params.category
    const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
    if (!valid.includes(category)) return res.status(400).json({ error: "Categorie invalide" })
+   const blockedLeaderboardNames = new Set(["krosmoz-card", "nouveau"])
 
    const entries = apiCache.getOrCompute(
     `leaderboard:${category}`,
@@ -1513,13 +1514,27 @@ app.post("/api/battlepass/premium", async (req, res) => {
     60000
    )
    const resolved = await Promise.all(
-    entries.slice(0, 50).map(async (entry, index) => {
+    entries.map(async (entry) => {
      const discord = await resolveDiscordUser(entry.userId)
-     return { ...entry, rank: index + 1, discord }
+     return { ...entry, discord }
     })
    )
 
-   res.json(resolved)
+   const filtered = resolved
+    .filter((entry) => {
+     const displayName = normalizeText(entry.discord?.displayName)
+     const username = normalizeText(entry.discord?.username)
+     const title = normalizeText(entry.title)
+     return (
+      !blockedLeaderboardNames.has(displayName) &&
+      !blockedLeaderboardNames.has(username) &&
+      !blockedLeaderboardNames.has(title)
+     )
+    })
+    .slice(0, 50)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }))
+
+   res.json(filtered)
   } catch (e) {
    console.error("[WEB] /api/leaderboard:", e)
    res.status(500).json({ error: "Erreur serveur" })
