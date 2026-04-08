@@ -625,7 +625,7 @@ function setupFusionPanel() {
    historyBox.innerHTML = '<p class="mode-muted">Aucune fusion dans cette session.</p>'
    return
   }
-  historyBox.innerHTML = state.fusionHistory.slice(0, 10).map((entry) => `
+  historyBox.innerHTML = state.fusionHistory.slice(0, 5).map((entry) => `
    <article class="fusion-history-item">
     <div>
      <strong>${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}</strong>
@@ -726,7 +726,7 @@ function setupCraftPanel(crafts) {
    historyBox.innerHTML = '<p class="mode-muted">Aucun craft dans cette session.</p>'
    return
   }
-  historyBox.innerHTML = state.craftHistory.slice(0, 10).map((entry) => `
+  historyBox.innerHTML = state.craftHistory.slice(0, 5).map((entry) => `
    <article class="fusion-history-item">
     <div>
      <strong>🌟 ${escapeHtml(entry.cardName || "Carte")}</strong>

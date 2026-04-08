@@ -895,14 +895,14 @@ body.leaderboard-page .footer {
  align-items: center;
  justify-content: center;
  gap: 8px;
- min-height: 54px;
- padding: 10px 12px;
+ min-height: 46px;
+ padding: 8px 10px;
  background: var(--bg-card);
  border: 1px solid rgba(255, 255, 255, 0.1);
  border-radius: var(--radius);
  color: var(--text-secondary);
  font-family: 'Jost', sans-serif;
- font-size: 0.98rem;
+ font-size: 0.94rem;
  font-weight: 600;
  cursor: pointer;
  transition: all 0.25s var(--ease);
@@ -917,17 +917,18 @@ body.leaderboard-page .footer {
 }
 
 .tab-btn.active {
- background: linear-gradient(145deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.08));
+ background: linear-gradient(145deg, rgba(201, 168, 76, 0.24), rgba(201, 168, 76, 0.12));
  border-color: var(--gold);
  color: var(--gold);
+ box-shadow: inset 0 0 0 1px rgba(255, 228, 158, 0.18);
 }
 
 .tab-btn .tab-icon {
  display: inline-grid;
  place-items: center;
- width: 18px;
- height: 18px;
- font-size: 0.95rem;
+ width: 16px;
+ height: 16px;
+ font-size: 0.88rem;
  line-height: 1;
 }
 
@@ -1328,12 +1329,13 @@ body.leaderboard-page .footer {
 }
 
 .events-status-card {
- border: 1px solid rgba(255, 255, 255, 0.1);
- border-radius: var(--radius);
- background: rgba(10, 14, 35, 0.78);
- padding: 14px;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ padding: 0;
  display: grid;
  gap: 12px;
+ box-shadow: none;
 }
 
 .events-status-main {
@@ -1428,6 +1430,12 @@ body.leaderboard-page .footer {
  object-position: center;
 }
 
+.events-pinata .events-card-media {
+ aspect-ratio: 3 / 2;
+ min-height: 0;
+ max-height: none;
+}
+
 .events-pinata .events-card-media img {
  object-fit: contain;
 }
@@ -1444,6 +1452,12 @@ body.leaderboard-page .footer {
  color: #9eaad4;
  font-size: 0.9rem;
  margin: 0;
+}
+
+.events-eventpack-description {
+ min-height: 1.25em;
+ color: #c4d0f2;
+ font-size: 0.86rem;
 }
 
 .pinata-reactions {
@@ -1533,12 +1547,35 @@ body.leaderboard-page .footer {
  height: 58px;
  border-radius: 999px;
  border: 2px solid rgba(201, 168, 76, 0.58);
+ appearance: none;
+ background:
+  radial-gradient(circle at 32% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 58%),
+  linear-gradient(145deg, rgba(19, 32, 80, 0.95), rgba(12, 20, 52, 0.96));
  display: grid;
  place-items: center;
  color: #f7e6b2;
  font-size: 1.5rem;
  box-shadow: 0 0 18px rgba(201, 168, 76, 0.28);
  animation: roulettePulse 2.1s ease-in-out infinite;
+ cursor: pointer;
+ padding: 0;
+ transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.roulette-wheel:hover:not(:disabled) {
+ transform: scale(1.06);
+ box-shadow: 0 0 24px rgba(201, 168, 76, 0.42);
+}
+
+.roulette-wheel:focus-visible {
+ outline: 2px solid rgba(201, 168, 76, 0.88);
+ outline-offset: 2px;
+}
+
+.roulette-wheel:disabled {
+ opacity: 0.55;
+ cursor: not-allowed;
+ box-shadow: 0 0 10px rgba(201, 168, 76, 0.18);
 }
 
 .roulette-wheel span {
@@ -1561,11 +1598,11 @@ body.leaderboard-page .footer {
 }
 
 .event-pack-open-overlay .pack-open-dialog {
- width: min(1280px, calc(100vw - 40px));
+ width: min(var(--event-pack-dialog-width, 1020px), calc(100vw - 40px));
 }
 
 .event-pack-open-overlay.complete .pack-open-dialog {
- width: min(1280px, calc(100vw - 40px));
+ width: min(var(--event-pack-dialog-width, 1020px), calc(100vw - 40px));
  max-height: min(92vh, 980px);
 }
 
@@ -1582,12 +1619,12 @@ body.leaderboard-page .footer {
 }
 
 .event-pack-open-overlay .pack-reveal-card {
- flex: 0 0 clamp(104px, 9.1vw, 144px);
- width: clamp(104px, 9.1vw, 144px);
+ flex: 0 0 var(--event-pack-card-width, clamp(104px, 9.1vw, 144px));
+ width: var(--event-pack-card-width, clamp(104px, 9.1vw, 144px));
 }
 
 .event-pack-open-overlay .pack-open-grid.pack-open-grid-six .pack-reveal-card {
- width: clamp(104px, 9.1vw, 144px);
+ width: var(--event-pack-card-width, clamp(104px, 9.1vw, 144px));
 }
 
 .event-pack-open-overlay .pack-open-summary {
@@ -2135,6 +2172,42 @@ body.tutorial-page .tutorial-footer-domain {
  font-size: .9rem;
 }
 
+/* Market: remove section background blocks highlighted by user */
+body.market-page .trade-col,
+body.market-page #myListingsBox.profile-card,
+body.market-page .market-controls-card {
+ background: transparent;
+ border: 0;
+ border-radius: 0;
+ box-shadow: none;
+ backdrop-filter: none;
+ padding: 0;
+}
+
+/* Market: make filter helper texts darker/more readable on bright background */
+body.market-page .market-controls-head p {
+ color: #2b3663;
+ font-weight: 700;
+}
+
+body.market-page .market-meta {
+ color: #2b3663;
+ font-weight: 700;
+}
+
+/* Market: darker refresh button in filter area */
+body.market-page #refreshBtn {
+ background: rgba(8, 13, 34, 0.92);
+ border-color: rgba(78, 99, 161, 0.82);
+ color: #e8eeff;
+}
+
+body.market-page #refreshBtn:hover {
+ background: rgba(12, 19, 46, 0.96);
+ border-color: rgba(100, 126, 198, 0.88);
+ color: #f3f7ff;
+}
+
 .toast {
  position: fixed;
  right: 16px;
@@ -2238,7 +2311,7 @@ body.tutorial-page .tutorial-footer-domain {
  .market-hero { padding: 14px; }
  .market-controls-head { flex-direction: column; align-items: flex-start; gap: 4px; }
  .events-shell { gap: 12px; }
- .events-status-card { grid-template-columns: 1fr; padding: 12px; }
+ .events-status-card { grid-template-columns: 1fr; padding: 0; }
  .events-status-main { grid-template-columns: 1fr; }
  .events-grid { grid-template-columns: 1fr; }
  .events-card-media { max-height: 200px; }
@@ -2246,7 +2319,7 @@ body.tutorial-page .tutorial-footer-domain {
  .leaderboard-hero { padding: 0; }
  .leaderboard-tabs-wrap { padding: 0; }
  .leaderboard-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
- .tab-btn { min-height: 46px; font-size: 0.9rem; }
+ .tab-btn { min-height: 42px; font-size: 0.88rem; }
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .auth-inner { flex-direction: column; align-items: flex-start; }

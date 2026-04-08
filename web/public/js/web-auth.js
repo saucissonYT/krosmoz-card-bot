@@ -61,7 +61,7 @@
    messages.push(`⚡ ${String(payload?.event?.name || "Event des Dieux")} actif`)
   }
   if (pinataActive) {
-   messages.push(`🪅 Piñata d'Ecaflip active`)
+   messages.push(`🎉 Piñata d'Ecaflip active`)
   }
   if (rouletteReady) {
    messages.push(`🎡 Roulette d'Ecaflip disponible`)

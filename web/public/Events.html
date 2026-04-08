@@ -66,11 +66,10 @@
       </div>
       <h3>Roulette d'Ecaflip</h3>
       <p id="rouletteStatus" class="events-muted">Chargement...</p>
-      <div id="rouletteSpinBox" class="roulette-spin-box" aria-hidden="true">
-       <div class="roulette-wheel"><span>&#x1F3B0;</span></div>
-      </div>
-      <div class="action-row">
-       <button id="spinRouletteBtn" class="btn btn-gold">Lancer la roulette</button>
+      <div id="rouletteSpinBox" class="roulette-spin-box">
+       <button id="spinRouletteBtn" class="roulette-wheel" type="button" aria-label="Lancer la roulette">
+        <span>&#x1F3B0;</span>
+       </button>
       </div>
       <div id="rouletteResult" class="action-result"></div>
      </article>
@@ -79,8 +78,9 @@
       <div class="events-card-media">
        <img src="/assets/ui/event%20des%20dieux.png" alt="Event des Dieux">
       </div>
-      <h3>Eventpack des Dieux</h3>
-      <p id="eventpackStatus" class="events-muted">Chargement...</p>
+     <h3>Eventpack des Dieux</h3>
+     <p id="eventpackStatus" class="events-muted">Chargement...</p>
+      <p id="eventpackDescription" class="events-muted events-eventpack-description"></p>
       <div class="action-row">
        <button id="openEventpackBtn" class="btn btn-outline">Ouvrir un eventpack</button>
       </div>
@@ -99,10 +99,12 @@
  <script src="/js/web-auth.js"></script>
  <script>
  const EVENT_PACK_BACK_IMAGE = "/assets/ui/event%20carte.png"
- let eventPackRevealResolve = null
- let eventPackEscBound = false
- let eventPackTimers = []
- let eventPackMaskResults = false
+let eventPackRevealResolve = null
+let eventPackEscBound = false
+let eventPackTimers = []
+let eventPackMaskResults = false
+let rouletteCooldownUntil = 0
+let rouletteCooldownTimer = null
 
  function esc(str) {
   const div = document.createElement("div")
@@ -129,13 +131,45 @@
   return allowed.includes(token) ? token : "C"
  }
 
- function getDisplayEmoji(emoji) {
+function getDisplayEmoji(emoji) {
   const value = String(emoji || "")
   const pinataEmoji = "\u{1FA85}"
   const partyPopper = "\u{1F389}"
   if (value === pinataEmoji) return partyPopper
-  return value
+ return value
+}
+
+function stopRouletteCooldownTicker() {
+ if (rouletteCooldownTimer) {
+  window.clearInterval(rouletteCooldownTimer)
+  rouletteCooldownTimer = null
  }
+}
+
+function renderRouletteCooldownTick() {
+ const status = document.getElementById("rouletteStatus")
+ const btn = document.getElementById("spinRouletteBtn")
+ const rouletteInfo = document.getElementById("rouletteInfo")
+ if (!status || !btn || !rouletteInfo) return
+
+ const remaining = Math.max(0, rouletteCooldownUntil - Date.now())
+ if (remaining > 0) {
+  status.textContent = `Recharge en cours: ${formatMs(remaining)}`
+  btn.disabled = true
+  rouletteInfo.textContent = "Recharge"
+  return
+ }
+
+ status.textContent = "Prete a tourner."
+ btn.disabled = false
+ rouletteInfo.textContent = "Prete"
+ stopRouletteCooldownTicker()
+}
+
+function ensureRouletteCooldownTicker() {
+ if (rouletteCooldownTimer) return
+ rouletteCooldownTimer = window.setInterval(renderRouletteCooldownTick, 250)
+}
 
  async function api(path, options = {}) {
   const res = await fetch(path, { credentials: "same-origin", ...options })
@@ -203,44 +237,63 @@
   }
  }
 
- function renderRoulette(roulette, connected) {
-  const status = document.getElementById("rouletteStatus")
-  const btn = document.getElementById("spinRouletteBtn")
-  const rouletteInfo = document.getElementById("rouletteInfo")
+function renderRoulette(roulette, connected) {
+ const status = document.getElementById("rouletteStatus")
+ const btn = document.getElementById("spinRouletteBtn")
+ const rouletteInfo = document.getElementById("rouletteInfo")
 
-  if (!connected) {
-   status.textContent = "Connecte-toi pour jouer a la roulette."
-   btn.disabled = true
-   rouletteInfo.textContent = "Connexion"
-   return
-  }
-
-  const cd = Number(roulette?.cooldownMs || 0)
-  if (cd > 0) {
-   status.textContent = `Recharge en cours: ${formatMs(cd)}`
-   btn.disabled = true
-   rouletteInfo.textContent = "Recharge"
-  } else {
-   status.textContent = "Prete a tourner."
-   btn.disabled = false
-   rouletteInfo.textContent = "Prete"
-  }
+ if (!connected) {
+  rouletteCooldownUntil = 0
+  stopRouletteCooldownTicker()
+  status.textContent = "Connecte-toi pour jouer a la roulette."
+  btn.disabled = true
+  rouletteInfo.textContent = "Connexion"
+  return
  }
 
- function renderEventpack(eventState, tickets, connected) {
+ const cd = Number(roulette?.cooldownMs || 0)
+ if (cd > 0) {
+  rouletteCooldownUntil = Date.now() + cd
+  renderRouletteCooldownTick()
+  ensureRouletteCooldownTicker()
+ } else {
+  rouletteCooldownUntil = 0
+  stopRouletteCooldownTicker()
+  status.textContent = "Prete a tourner."
+  btn.disabled = false
+  rouletteInfo.textContent = "Prete"
+ }
+}
+
+function renderEventpack(eventState, tickets, connected) {
   const status = document.getElementById("eventpackStatus")
+  const desc = document.getElementById("eventpackDescription")
   const btn = document.getElementById("openEventpackBtn")
+
+  const pickDescription = (eventObj) => {
+   const candidates = [
+    String(eventObj?.effect || "").trim(),
+    String(eventObj?.midText || "").trim(),
+    String(eventObj?.startText || "").trim(),
+    String(eventObj?.endText || "").trim()
+   ].filter(Boolean)
+   return candidates[0] || ""
+  }
+
   if (!connected) {
    status.textContent = "Connecte-toi pour ouvrir des eventpacks."
+   if (desc) desc.textContent = ""
    btn.disabled = true
    return
   }
   if (!eventState?.active) {
    status.textContent = "Aucun event actif pour le moment."
+   if (desc) desc.textContent = ""
    btn.disabled = true
    return
   }
   status.textContent = `Event actif: ${eventState.name} - tickets ${tickets.remaining}/${tickets.total}`
+  if (desc) desc.textContent = pickDescription(eventState)
   btn.disabled = Number(tickets.remaining || 0) <= 0
  }
 
@@ -354,7 +407,7 @@
   }
  }
 
- function showEventPackOpeningAnimation(payload) {
+function showEventPackOpeningAnimation(payload) {
   const overlay = ensureEventPackOverlay()
   if (typeof eventPackRevealResolve === "function") {
    const previous = eventPackRevealResolve
@@ -378,6 +431,13 @@
   const summary = document.getElementById("eventPackOpenSummary")
   const skipBtn = document.getElementById("eventPackSkipBtn")
   const cards = normalizeEventCards(payload)
+  const cardsCount = Math.max(1, cards.length)
+  const cardWidth = cardsCount >= 8 ? 108 : cardsCount >= 7 ? 114 : cardsCount >= 6 ? 122 : 132
+  const gap = 10
+  const sidePad = 86
+  const targetDialogWidth = Math.round((cardsCount * cardWidth) + ((cardsCount - 1) * gap) + sidePad)
+  overlay.style.setProperty("--event-pack-card-width", `${cardWidth}px`)
+  overlay.style.setProperty("--event-pack-dialog-width", `${Math.max(760, targetDialogWidth)}px`)
   const kamasGain = Number(payload?.gains?.kamas || 0)
   const xpGain = Number(payload?.gains?.xp || 0)
 

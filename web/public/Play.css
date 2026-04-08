@@ -1162,6 +1162,60 @@
  max-height: 220px;
 }
 
+.mode-fusion:not(.mode-craft-simple) .fusion-simple-history {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
+}
+
+.mode-fusion:not(.mode-craft-simple) .fusion-simple-history h3 {
+ font-family: "Cinzel", serif;
+ letter-spacing: 0.03em;
+ font-size: 1.45rem;
+ color: #f7f2df;
+ margin: 0 0 8px;
+}
+
+.mode-fusion:not(.mode-craft-simple) .fusion-simple-history .fusion-history-list {
+ max-height: none;
+ overflow: visible;
+ padding-right: 0;
+}
+
+.mode-fusion:not(.mode-craft-simple) .fusion-history-item {
+ background: rgba(14, 20, 51, 0.52);
+ border-color: rgba(255, 255, 255, 0.08);
+}
+
+.mode-craft-simple .fusion-simple-history {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
+}
+
+.mode-craft-simple .fusion-simple-history h3 {
+ font-family: "Cinzel", serif;
+ letter-spacing: 0.03em;
+ font-size: 1.45rem;
+ color: #f7f2df;
+ margin: 0 0 8px;
+}
+
+.mode-craft-simple .fusion-simple-history .fusion-history-list {
+ max-height: none;
+ overflow: visible;
+ padding-right: 0;
+}
+
+.mode-craft-simple .fusion-history-item {
+ background: rgba(14, 20, 51, 0.52);
+ border-color: rgba(255, 255, 255, 0.08);
+}
+
 .mode-fusion .mode-layout.fusion-layout {
  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
 }
