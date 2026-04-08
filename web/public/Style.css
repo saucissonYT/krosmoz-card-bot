@@ -84,6 +84,13 @@ body.achievements-page {
   url("/assets/ui/background%20achievements.png") center / cover no-repeat fixed;
 }
 
+body.cards-page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20cartes.png") center / cover no-repeat fixed;
+}
+
 body.market-page {
  background:
   linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
@@ -128,6 +135,8 @@ body.guild-page {
 
 body.achievements-page::before,
 body.achievements-page::after,
+body.cards-page::before,
+body.cards-page::after,
 body.market-page::before,
 body.market-page::after,
 body.tutorial-page::before,
@@ -1765,6 +1774,25 @@ body.achievements-page .achievements-hero .section-subtitle {
  font-size: 0.98rem;
 }
 
+body.guild-page .section-title,
+body.guild-page .section-subtitle {
+ text-align: left;
+}
+
+body.guild-page .section-title {
+ font-size: 1.45rem;
+ letter-spacing: 0.03em;
+ margin-bottom: 6px;
+ color: #f7f2df;
+}
+
+body.guild-page .section-subtitle {
+ margin-bottom: 0;
+ color: #1e2d57;
+ font-weight: 700;
+ font-size: 0.98rem;
+}
+
 body.achievements-page #completionToggle,
 body.achievements-page #refreshBtn {
  background: rgba(8, 13, 34, 0.9);
@@ -2327,6 +2355,100 @@ body.tutorial-page .tutorial-footer-domain {
  min-width: 108px;
  min-height: 34px;
  padding: 8px 14px;
+}
+
+body.listing-modal-open {
+ overflow: hidden;
+}
+
+.my-listing-modal-overlay {
+ position: fixed;
+ inset: 0;
+ display: none;
+ align-items: center;
+ justify-content: center;
+ z-index: 1200;
+}
+
+.my-listing-modal-overlay.open {
+ display: flex;
+}
+
+.my-listing-modal-backdrop {
+ position: absolute;
+ inset: 0;
+ background: rgba(3, 7, 20, 0.62);
+ backdrop-filter: blur(2px);
+}
+
+.my-listing-modal {
+ position: relative;
+ z-index: 1;
+ width: min(420px, calc(100vw - 24px));
+ border-radius: 12px;
+ border: 1px solid rgba(143, 164, 227, 0.42);
+ background: linear-gradient(160deg, rgba(12, 16, 38, 0.96), rgba(8, 10, 26, 0.96));
+ box-shadow: 0 18px 36px rgba(6, 10, 24, 0.5);
+ padding: 12px;
+}
+
+.my-listing-modal-close {
+ position: absolute;
+ top: 8px;
+ right: 8px;
+ width: 28px;
+ height: 28px;
+ border-radius: 999px;
+ border: 1px solid rgba(255, 255, 255, 0.26);
+ background: rgba(8, 12, 30, 0.68);
+ color: #edf2ff;
+ font-size: 1.2rem;
+ line-height: 1;
+ cursor: pointer;
+}
+
+.my-listing-modal-card {
+ display: grid;
+ gap: 8px;
+}
+
+.my-listing-modal-head {
+ display: flex;
+ justify-content: space-between;
+ align-items: flex-start;
+ gap: 10px;
+ padding-right: 30px;
+}
+
+.my-listing-modal-head h3 {
+ margin: 2px 0 0;
+ font-size: 1rem;
+ color: #f4f6ff;
+}
+
+.my-listing-modal-set {
+ margin: 0;
+ font-size: 0.74rem;
+ color: #9caedd;
+}
+
+.my-listing-modal-line {
+ margin: 0;
+ display: flex;
+ justify-content: space-between;
+ gap: 10px;
+ font-size: 0.82rem;
+ color: #9caedd;
+}
+
+.my-listing-modal-line strong {
+ color: #eef2ff;
+}
+
+.my-listing-modal-actions {
+ display: flex;
+ justify-content: flex-start;
+ margin-top: 2px;
 }
 
 /* Market: section blocks */

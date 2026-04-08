@@ -340,109 +340,169 @@ function option(value, label) {
  return o
 }
 
- function renderMyListings(box, myListings) {
-  const entries = Array.isArray(myListings) ? myListings : []
-  box.style.display = "block"
+let myListingModalEscBound = false
 
-  if (!entries.length) {
-   state.myListingId = null
-   box.innerHTML = `
-    <h2>Mes annonces (0)</h2>
-    <div class="market-zone-block market-my-listings-block">
-     <p class="result-meta">Tu n'as aucune annonce active.</p>
-    </div>
-   `
-   return
+function closeMyListingModal() {
+ const overlay = document.getElementById("myListingModalOverlay")
+ if (!overlay) return
+
+ overlay.classList.remove("open")
+ document.body.classList.remove("listing-modal-open")
+
+ const content = document.getElementById("myListingModalContent")
+ if (content) content.innerHTML = ""
+
+ document.querySelectorAll("#myListingsBox .my-listing-icon.is-active").forEach((btn) => {
+  btn.classList.remove("is-active")
+ })
+
+ state.myListingId = null
+}
+
+function ensureMyListingModal() {
+ let overlay = document.getElementById("myListingModalOverlay")
+ if (overlay) return overlay
+
+ overlay = document.createElement("div")
+ overlay.id = "myListingModalOverlay"
+ overlay.className = "my-listing-modal-overlay"
+ overlay.innerHTML = `
+  <div class="my-listing-modal-backdrop" data-close-modal="1"></div>
+  <div class="my-listing-modal" role="dialog" aria-modal="true" aria-labelledby="myListingModalTitle">
+   <button type="button" class="my-listing-modal-close" aria-label="Fermer" data-close-modal="1">×</button>
+   <div id="myListingModalContent" class="my-listing-modal-card"></div>
+  </div>
+ `
+
+ overlay.addEventListener("click", (event) => {
+  const target = event.target
+  if (target instanceof HTMLElement && target.dataset.closeModal === "1") {
+   closeMyListingModal()
   }
+ })
 
-  if (!entries.some((l) => String(l.id) === String(state.myListingId))) {
-   state.myListingId = String(entries[0].id)
-  }
+ if (!myListingModalEscBound) {
+  document.addEventListener("keydown", (event) => {
+   if (event.key === "Escape") closeMyListingModal()
+  })
+  myListingModalEscBound = true
+ }
 
-  box.innerHTML = `
-   <h2>Mes annonces (${entries.length})</h2>
-   <div class="market-zone-block market-my-listings-block">
-    <div class="my-listings-grid" role="listbox" aria-label="Mes annonces">
-     ${entries.map((l) => {
-     const selected = String(l.id) === String(state.myListingId)
-     const rarity = String(l.rarity || "C")
-     const rarityEmoji = RARITY_EMOJI[rarity] || rarity
-     const priceShort = `${Number(l.price || 0).toLocaleString("fr-FR")}k`
-     const kind = l.type === "fragment"
-      ? `🧩 ${Number(l.fragmentNumber || 0)}/5`
-      : "Carte"
-     const thumb = l.imageUrl
-      ? `<img loading="lazy" src="${l.imageUrl}" alt="${escapeHtml(l.cardName)}" onerror="this.parentElement.innerHTML='${escapeHtml(rarityEmoji)}'">`
-      : escapeHtml(rarityEmoji)
+ document.body.appendChild(overlay)
+ return overlay
+}
 
-     return `
-      <button type="button" class="my-listing-icon${selected ? " is-active" : ""}" data-id="${l.id}" aria-label="${escapeHtml(l.cardName)}">
-       <span class="my-listing-thumb">${thumb}</span>
-       <span class="my-listing-price">${priceShort}</span>
-       <span class="my-listing-chip">${escapeHtml(kind)}</span>
-      </button>
-     `
-     }).join("")}
+function openMyListingModal(listing) {
+ if (!listing) return
+
+ const overlay = ensureMyListingModal()
+ const content = document.getElementById("myListingModalContent")
+ if (!content) return
+
+ const typeLabel = listing.type === "fragment"
+  ? `🧩 Fragment ${Number(listing.fragmentNumber || 0)}/5`
+  : "Carte compl\u00e8te"
+
+ content.innerHTML = `
+  <article class="my-listing-modal-card">
+   <div class="my-listing-modal-head">
+    <div>
+     <p class="my-listing-modal-set">${escapeHtml(String(listing.setName || "Set inconnu"))}</p>
+     <h3 id="myListingModalTitle">${escapeHtml(listing.cardName)}</h3>
     </div>
+    <span class="chip chip-rarity">${escapeHtml(String(listing.rarity || "C"))}</span>
    </div>
-   <div class="market-zone-block market-my-detail-block">
-    <div id="myListingDetail" class="my-listing-detail-wrap"></div>
+   <p class="my-listing-modal-line"><span>Type</span><strong>${escapeHtml(typeLabel)}</strong></p>
+   <p class="my-listing-modal-line"><span>Prix</span><strong>${Number(listing.price || 0).toLocaleString("fr-FR")} kamas</strong></p>
+   <div class="my-listing-modal-actions">
+    <button class="btn btn-outline mini-remove" data-id="${listing.id}">Retirer</button>
+   </div>
+  </article>
+ `
+
+ const removeBtn = content.querySelector(".mini-remove")
+ if (removeBtn) {
+  removeBtn.addEventListener("click", async () => {
+   const listingIdToRemove = Number(removeBtn.dataset.id)
+   const r = await api("/api/market/remove", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ listingId: listingIdToRemove })
+   })
+   if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
+
+   showToast("Annonce retir\u00e9e.")
+   closeMyListingModal()
+   await refreshConnectedData()
+   await loadMarket()
+  })
+ }
+
+ overlay.classList.add("open")
+ document.body.classList.add("listing-modal-open")
+}
+
+function renderMyListings(box, myListings) {
+ const entries = Array.isArray(myListings) ? myListings : []
+ box.style.display = "block"
+ closeMyListingModal()
+
+ if (!entries.length) {
+  state.myListingId = null
+  box.innerHTML = `
+   <h2>Mes annonces (0)</h2>
+   <div class="market-zone-block market-my-listings-block">
+    <p class="result-meta">Tu n'as aucune annonce active.</p>
    </div>
   `
+  return
+ }
 
-  const detailRoot = box.querySelector("#myListingDetail")
-  const iconButtons = [...box.querySelectorAll(".my-listing-icon")]
+ state.myListingId = null
 
-  const renderDetail = (listingId) => {
-   const selected = entries.find((l) => String(l.id) === String(listingId))
+ box.innerHTML = `
+  <h2>Mes annonces (${entries.length})</h2>
+  <div class="market-zone-block market-my-listings-block">
+   <div class="my-listings-grid" role="listbox" aria-label="Mes annonces">
+    ${entries.map((l) => {
+    const rarity = String(l.rarity || "C")
+    const rarityEmoji = RARITY_EMOJI[rarity] || rarity
+    const priceShort = `${Number(l.price || 0).toLocaleString("fr-FR")}k`
+    const kind = l.type === "fragment"
+     ? `🧩 ${Number(l.fragmentNumber || 0)}/5`
+     : "Carte"
+    const thumb = l.imageUrl
+     ? `<img loading="lazy" src="${l.imageUrl}" alt="${escapeHtml(l.cardName)}" onerror="this.parentElement.innerHTML='${escapeHtml(rarityEmoji)}'">`
+     : escapeHtml(rarityEmoji)
+
+    return `
+     <button type="button" class="my-listing-icon" data-id="${l.id}" aria-label="${escapeHtml(l.cardName)}">
+      <span class="my-listing-thumb">${thumb}</span>
+      <span class="my-listing-price">${priceShort}</span>
+      <span class="my-listing-chip">${escapeHtml(kind)}</span>
+     </button>
+    `
+    }).join("")}
+   </div>
+  </div>
+ `
+
+ const iconButtons = [...box.querySelectorAll(".my-listing-icon")]
+
+ iconButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+   const selected = entries.find((l) => String(l.id) === String(btn.dataset.id))
    if (!selected) return
 
    state.myListingId = String(selected.id)
-   iconButtons.forEach((btn) => {
-    btn.classList.toggle("is-active", String(btn.dataset.id) === state.myListingId)
+   iconButtons.forEach((otherBtn) => {
+    otherBtn.classList.toggle("is-active", otherBtn === btn)
    })
 
-   const typeLabel = selected.type === "fragment"
-    ? `🧩 Fragment ${Number(selected.fragmentNumber || 0)}/5`
-    : "Carte complète"
-
-   detailRoot.innerHTML = `
-    <article class="my-listing-detail-card">
-     <div class="my-listing-detail-head">
-      <div class="my-listing-detail-info">
-       <p class="my-listing-detail-set">${escapeHtml(String(selected.setName || "Set inconnu"))}</p>
-       <h3>${escapeHtml(selected.cardName)}</h3>
-      </div>
-      <span class="chip chip-rarity">${escapeHtml(String(selected.rarity || "C"))}</span>
-     </div>
-     <p class="my-listing-detail-line"><span>Type</span><strong>${escapeHtml(typeLabel)}</strong></p>
-     <p class="my-listing-detail-line"><span>Prix</span><strong>${Number(selected.price || 0).toLocaleString("fr-FR")} kamas</strong></p>
-     <button class="btn btn-outline mini-remove" data-id="${selected.id}">Retirer</button>
-    </article>
-   `
-
-   const removeBtn = detailRoot.querySelector(".mini-remove")
-   if (!removeBtn) return
-   removeBtn.addEventListener("click", async () => {
-    const listingIdToRemove = Number(removeBtn.dataset.id)
-    const r = await api("/api/market/remove", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ listingId: listingIdToRemove })
-    })
-    if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
-    showToast("Annonce retirée.")
-    await refreshConnectedData()
-    await loadMarket()
-   })
-  }
-
-  iconButtons.forEach((btn) => {
-   btn.addEventListener("click", () => renderDetail(btn.dataset.id))
+   openMyListingModal(selected)
   })
-
-  renderDetail(state.myListingId)
- }
+ })
+}
 
 async function loadSellerData() {
   const invRes = await api("/api/me/inventory")
@@ -499,6 +559,7 @@ async function refreshConnectedData() {
    state.me = null
    document.getElementById("tradePanel").style.display = "none"
    document.getElementById("myListingsBox").style.display = "none"
+   closeMyListingModal()
    renderWalletInfo()
    return
   }
@@ -515,6 +576,7 @@ async function refreshConnectedData() {
   if (!state.connected) {
    document.getElementById("tradePanel").style.display = "none"
    document.getElementById("myListingsBox").style.display = "none"
+   closeMyListingModal()
    renderWalletInfo()
    return
   }
