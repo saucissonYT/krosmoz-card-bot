@@ -9,21 +9,52 @@
 .play-page.route-fusion-bg,
 .play-page.fusion-bg-active {
  background:
-  linear-gradient(180deg, rgba(5, 8, 22, 0.86), rgba(5, 8, 22, 0.9)),
-  radial-gradient(circle at 22% 18%, rgba(109, 165, 255, 0.18), rgba(109, 165, 255, 0) 40%),
+  linear-gradient(180deg, rgba(5, 8, 22, 0.56), rgba(5, 8, 22, 0.64)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.24), rgba(128, 188, 255, 0) 44%),
   url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
 }
 
 .play-page.fusion-bg-active .page {
  background:
-  linear-gradient(180deg, rgba(5, 8, 22, 0.88), rgba(5, 8, 22, 0.92)),
-  radial-gradient(circle at 22% 18%, rgba(109, 165, 255, 0.16), rgba(109, 165, 255, 0) 40%),
+  linear-gradient(180deg, rgba(5, 8, 22, 0.52), rgba(5, 8, 22, 0.62)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.2), rgba(128, 188, 255, 0) 44%),
   url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
 }
 
 .play-page.route-fusion-bg .page,
 .play-page.fusion-bg-active .page {
  background: transparent;
+}
+
+.play-page.fusion-mode-active .play-main {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ padding: 0;
+ box-shadow: none;
+}
+
+.play-page.fusion-mode-active .play-head {
+ display: none;
+}
+
+.play-page.fusion-mode-active .play-content {
+ min-height: 0;
+}
+
+.play-page.fusion-mode-active .mode-fusion-simple .mode-hero {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ padding: 0 0 6px;
+}
+
+.play-page.fusion-mode-active .mode-fusion-simple .fusion-simple-card {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
 }
 
 .play-shell {
