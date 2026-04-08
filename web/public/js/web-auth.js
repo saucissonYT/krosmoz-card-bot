@@ -191,7 +191,7 @@
    playLi = document.createElement("li")
    playLi.id = "globalPlayNavItem"
    const a = document.createElement("a")
-   a.href = "/play"
+   a.href = "/play/packs"
    a.textContent = "Mon Jeu"
    playLi.appendChild(a)
    navLinks.appendChild(playLi)

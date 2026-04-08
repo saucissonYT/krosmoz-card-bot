@@ -1528,6 +1528,8 @@ function showPackOpeningAnimation(payload) {
    overlay.classList.remove("complete")
    if (hasMultiGroups) {
     renderMultiStack()
+    grid.scrollTop = 0
+    grid.scrollLeft = 0
    } else {
     renderSingleGroup(firstGroupCards)
    }

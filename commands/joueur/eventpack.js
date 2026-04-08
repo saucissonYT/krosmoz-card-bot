@@ -101,11 +101,33 @@ module.exports = {
     return interaction.editReply("❌ Erreur génération pack.")
    }
 
-   if(!Array.isArray(pack) || pack.length === 0){
-    return interaction.editReply("❌ Pack invalide.")
-   }
+  if(!Array.isArray(pack) || pack.length === 0){
+   return interaction.editReply("❌ Pack invalide.")
+  }
 
-   /* ================= REWARDS ================= */
+   /* ================= ACTIVITY LOG (S / SSR) ================= */
+   try{
+    const { pushActivity } = require("../../web/Server")
+    for(const card of pack){
+     if(!card) continue
+     if(card.rarity === "SSR"){
+      pushActivity({
+       kind: "drop_ssr",
+       userId: interaction.user.id,
+       cardName: card.name,
+       shiny: !!card.shiny
+      })
+     } else if(card.rarity === "S"){
+      pushActivity({
+       kind: "drop_s",
+       userId: interaction.user.id,
+       cardName: card.name
+      })
+     }
+    }
+   }catch(_){}
+
+  /* ================= REWARDS ================= */
 
    let kamas = 0, xp = 0, jackpotMessage = null
 

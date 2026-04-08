@@ -299,7 +299,7 @@
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">⚡ Événement lancé</div>
+       <div class="activity-title">⚡ Event des Dieux démarré</div>
        <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
       </div>
       <div class="activity-side">
@@ -314,7 +314,7 @@
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🏁 Événement terminé</div>
+       <div class="activity-title">🏁 Event des Dieux terminé</div>
        <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
       </div>
       <div class="activity-side">
@@ -384,12 +384,27 @@
     `
    }
 
-   /* ── Piñata ── */
-   if (kind === "pinata") {
+   /* ── Piñata start ── */
+   if (kind === "pinata_start" || kind === "pinata_start_web") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🪅 Piñata d'Ecaflip</div>
+       <div class="activity-title">🪅 Piñata d'Ecaflip démarrée</div>
+       <div class="activity-meta">Une piñata a démarré.</div>
+      </div>
+      <div class="activity-side">
+       <div class="activity-time">${dateLabel}</div>
+      </div>
+     </article>
+    `
+   }
+
+   /* ── Piñata end ── */
+   if (kind === "pinata" || kind === "pinata_end" || kind === "pinata_web") {
+    return `
+     <article class="activity-item">
+      <div class="activity-main">
+       <div class="activity-title">🪅 Piñata d'Ecaflip terminée</div>
        <div class="activity-meta">${Number(item?.participants || 0)} participant${(item?.participants || 0) > 1 ? "s" : ""}</div>
       </div>
       <div class="activity-side">
@@ -506,4 +521,3 @@
 
 </body>
 </html>
-

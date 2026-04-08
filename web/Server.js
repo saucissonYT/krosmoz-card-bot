@@ -287,7 +287,7 @@ function startWebPinataRound(now = Date.now()) {
  webPinataState.rewardsByUser = new Map()
  webPinataState.lastResults = []
  webPinataState.lastSummary = null
- pushActivity({ kind: "pinata_start_web", roundId: webPinataState.roundId })
+ pushActivity({ kind: "pinata_start", roundId: webPinataState.roundId })
 }
 
 async function finalizeWebPinataRound() {
@@ -407,7 +407,7 @@ async function finalizeWebPinataRound() {
  webPinataState.startedAt = 0
  webPinataState.endsAt = 0
  webPinataState.nextStartAt = now + WEB_PINATA_COOLDOWN_MS
- pushActivity({ kind: "pinata_web", participants: participantCount })
+ pushActivity({ kind: "pinata_end", participants: participantCount })
  apiCache.invalidatePrefix("leaderboard:")
 }
 
@@ -2093,6 +2093,25 @@ app.post("/api/events/eventpack/open", async (req, res) => {
   save(session.userId)
   apiCache.invalidate(`profile:${session.userId}`)
   apiCache.invalidatePrefix("leaderboard:")
+
+  /* Journal d'activité : drops S/SSR (eventpack web) */
+  for (const card of pack) {
+   const rarity = String(card?.rarity || "").toUpperCase()
+   if (rarity === "SSR") {
+    pushActivity({
+     kind: "drop_ssr",
+     userId: String(session.userId),
+     cardName: String(card?.name || "Carte inconnue"),
+     shiny: Boolean(card?.shiny)
+    })
+   } else if (rarity === "S") {
+    pushActivity({
+     kind: "drop_s",
+     userId: String(session.userId),
+     cardName: String(card?.name || "Carte inconnue")
+    })
+   }
+  }
 
   const cardsPayload = pack.map((card, index) => ({
    key: `${card.id}-${index}`,

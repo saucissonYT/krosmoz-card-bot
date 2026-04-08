@@ -37,12 +37,12 @@
    <section class="events-shell">
     <header class="events-hero fade-in">
      <h1 class="section-title">Ecaflip City</h1>
-     <p class="section-subtitle">Pi&ntilde;ata web, Roulette d'Ecaflip et Eventpacks des Dieux, au m&ecirc;me endroit.</p>
+     <p class="section-subtitle">Pi&ntilde;ata, Roulette d'Ecaflip et Events des Dieux, au m&ecirc;me endroit.</p>
     </header>
 
     <article class="events-status-card fade-in stagger-1">
      <div class="events-status-kpis">
-      <div><span>Pi&ntilde;ata</span><strong id="pinataInfo">Ferm&eacute;e</strong></div>
+      <div><span>Pi&ntilde;ata</span><strong id="pinataInfo">Inactive</strong></div>
       <div><span>Roulette</span><strong id="rouletteInfo">---</strong></div>
       <div><span>Tickets</span><strong id="ticketInfo">0/0</strong></div>
      </div>
@@ -78,7 +78,7 @@
       <div class="events-card-media">
        <img src="/assets/ui/event%20des%20dieux.png" alt="Event des Dieux">
       </div>
-     <h3>Eventpack des Dieux</h3>
+     <h3>Event des Dieux</h3>
      <p id="eventpackStatus" class="events-muted">Chargement...</p>
       <p id="eventpackDescription" class="events-muted events-eventpack-description"></p>
       <div class="action-row">
@@ -197,10 +197,10 @@ function ensureRouletteCooldownTicker() {
   if (pinata.active) {
    const endsIn = Math.max(0, Number(pinata.endsAt || 0) - Date.now())
    status.textContent = `En cours: ${pinata.participants} participant(s) - fin dans ${formatMs(endsIn)}`
-   pinataInfo.textContent = `${Number(pinata.participants || 0)} actif(s)`
+   pinataInfo.textContent = "Active"
   } else {
    status.textContent = "Pi\u00F1ata ferm\u00E9e pour le moment."
-   pinataInfo.textContent = "Ferm\u00E9e"
+   pinataInfo.textContent = "Inactive"
   }
 
   if (!connected) {

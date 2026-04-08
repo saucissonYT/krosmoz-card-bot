@@ -205,6 +205,7 @@ async function launchPinata(channel) {
  }
 
  log.info("Piñata lancée", { channel: channel.id })
+ try { require("../web/Server").pushActivity({ kind: "pinata_start" }) } catch(_) {}
 
  /* ── Message d'annonce ── */
  const announceEmbed = new EmbedBuilder()
@@ -335,7 +336,7 @@ async function launchPinata(channel) {
   totalSSR
  })
 
- try { require("../web/Server").pushActivity({ kind: "pinata", participants: participants.size }) } catch(_) {}
+ try { require("../web/Server").pushActivity({ kind: "pinata_end", participants: participants.size }) } catch(_) {}
 
  return { participants: participants.size, results }
 }

@@ -45,7 +45,7 @@
       <div class="inline-form">
        <select id="sellCardSelect" class="input input-select"></select>
        <input id="sellCardPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
-       <button id="sellCardBtn" class="btn btn-outline">Vendre</button>
+       <button id="sellCardBtn" class="btn btn-outline market-sell-btn">Vendre</button>
       </div>
      </div>
      <div class="trade-col">
@@ -53,7 +53,7 @@
       <div class="inline-form">
        <select id="sellFragmentSelect" class="input input-select"></select>
        <input id="sellFragmentPrice" class="input" type="number" min="1" placeholder="Prix (kamas)">
-       <button id="sellFragmentBtn" class="btn btn-outline">Vendre</button>
+       <button id="sellFragmentBtn" class="btn btn-outline market-sell-btn">Vendre</button>
       </div>
      </div>
     </div>
@@ -63,7 +63,6 @@
     <div class="market-controls-card fade-in stagger-2">
      <div class="market-controls-head">
       <h2>Filtrer les annonces</h2>
-      <p>Affinage instantané par type, rareté, set et prix.</p>
      </div>
      <div class="toolbar market-toolbar">
       <input id="searchInput" class="input" placeholder="Nom de carte..." />
@@ -108,7 +107,7 @@
   document.getElementById("navLinks").classList.toggle("open")
  })
 
- const state = { page: 1, limit: 20, me: null, connected: false }
+ const state = { page: 1, limit: 20, me: null, connected: false, myListingId: null }
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
  const RARITY_EMOJI = {
   C: "⚪",
@@ -332,14 +331,112 @@
   })
  }
 
- function option(value, label) {
-  const o = document.createElement("option")
-  o.value = value
-  o.textContent = label
-  return o
+function option(value, label) {
+ const o = document.createElement("option")
+ o.value = value
+ o.textContent = label
+ return o
+}
+
+ function renderMyListings(box, myListings) {
+  const entries = Array.isArray(myListings) ? myListings : []
+  box.style.display = "block"
+
+  if (!entries.length) {
+   state.myListingId = null
+   box.innerHTML = `
+    <h2>Mes annonces (0)</h2>
+    <p class="result-meta">Tu n'as aucune annonce active.</p>
+   `
+   return
+  }
+
+  if (!entries.some((l) => String(l.id) === String(state.myListingId))) {
+   state.myListingId = String(entries[0].id)
+  }
+
+  box.innerHTML = `
+   <h2>Mes annonces (${entries.length})</h2>
+   <div class="my-listings-grid" role="listbox" aria-label="Mes annonces">
+    ${entries.map((l) => {
+     const selected = String(l.id) === String(state.myListingId)
+     const rarity = String(l.rarity || "C")
+     const rarityEmoji = RARITY_EMOJI[rarity] || rarity
+     const priceShort = `${Number(l.price || 0).toLocaleString("fr-FR")}k`
+     const kind = l.type === "fragment"
+      ? `${Number(l.fragmentNumber || 0)}/5`
+      : "Carte"
+     const thumb = l.imageUrl
+      ? `<img loading="lazy" src="${l.imageUrl}" alt="${escapeHtml(l.cardName)}" onerror="this.parentElement.innerHTML='${escapeHtml(rarityEmoji)}'">`
+      : escapeHtml(rarityEmoji)
+
+     return `
+      <button type="button" class="my-listing-icon${selected ? " is-active" : ""}" data-id="${l.id}" aria-label="${escapeHtml(l.cardName)}">
+       <span class="my-listing-thumb">${thumb}</span>
+       <span class="my-listing-price">${priceShort}</span>
+       <span class="my-listing-chip">${escapeHtml(kind)}</span>
+      </button>
+     `
+    }).join("")}
+   </div>
+   <div id="myListingDetail"></div>
+  `
+
+  const detailRoot = box.querySelector("#myListingDetail")
+  const iconButtons = [...box.querySelectorAll(".my-listing-icon")]
+
+  const renderDetail = (listingId) => {
+   const selected = entries.find((l) => String(l.id) === String(listingId))
+   if (!selected) return
+
+   state.myListingId = String(selected.id)
+   iconButtons.forEach((btn) => {
+    btn.classList.toggle("is-active", String(btn.dataset.id) === state.myListingId)
+   })
+
+   const typeLabel = selected.type === "fragment"
+    ? `Fragment ${Number(selected.fragmentNumber || 0)}/5`
+    : "Carte complète"
+
+   detailRoot.innerHTML = `
+    <article class="my-listing-detail-card">
+     <div class="my-listing-detail-head">
+      <div class="my-listing-detail-info">
+       <p class="my-listing-detail-set">${escapeHtml(String(selected.setName || "Set inconnu"))}</p>
+       <h3>${escapeHtml(selected.cardName)}</h3>
+      </div>
+      <span class="chip chip-rarity">${escapeHtml(String(selected.rarity || "C"))}</span>
+     </div>
+     <p class="my-listing-detail-line"><span>Type</span><strong>${escapeHtml(typeLabel)}</strong></p>
+     <p class="my-listing-detail-line"><span>Prix</span><strong>${Number(selected.price || 0).toLocaleString("fr-FR")} kamas</strong></p>
+     <button class="btn btn-outline mini-remove" data-id="${selected.id}">Retirer</button>
+    </article>
+   `
+
+   const removeBtn = detailRoot.querySelector(".mini-remove")
+   if (!removeBtn) return
+   removeBtn.addEventListener("click", async () => {
+    const listingIdToRemove = Number(removeBtn.dataset.id)
+    const r = await api("/api/market/remove", {
+     method: "POST",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ listingId: listingIdToRemove })
+    })
+    if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
+    showToast("Annonce retirée.")
+    await refreshConnectedData()
+    await loadMarket()
+   })
+  }
+
+  iconButtons.forEach((btn) => {
+   btn.addEventListener("click", () => renderDetail(btn.dataset.id))
+  })
+
+  renderDetail(state.myListingId)
  }
 
- async function loadSellerData() {
+async function loadSellerData() {
   const invRes = await api("/api/me/inventory")
   const listingRes = await api("/api/me/listings")
   if (!invRes.ok || !listingRes.ok) return
@@ -383,36 +480,8 @@
   if (!sortedFrags.length) fragSelect.appendChild(option("", "Aucun fragment vendable"))
 
   const box = document.getElementById("myListingsBox")
-  box.style.display = "block"
-  box.innerHTML = `
-   <h2>Mes annonces (${myListings.length})</h2>
-   ${myListings.length ? `
-    <div class="listing-mini market-listing-scroll">
-     ${myListings.map((l) => `
-      <div class="listing-mini-row">
-       <span>${escapeHtml(l.cardName)} ${l.type === "fragment" ? `(frag ${l.fragmentNumber}/5)` : ""} — ${Number(l.price || 0).toLocaleString("fr-FR")} kamas</span>
-       <button class="btn btn-outline mini-remove" data-id="${l.id}">Retirer</button>
-      </div>
-     `).join("")}
-    </div>
-   ` : `<p class="result-meta">Tu n'as aucune annonce active.</p>`}
-  `
-
-  box.querySelectorAll(".mini-remove").forEach((btn) => {
-   btn.addEventListener("click", async () => {
-    const listingId = Number(btn.dataset.id)
-    const r = await api("/api/market/remove", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ listingId })
-    })
-    if (!r.ok) return showToast(r.data?.error || "Retrait impossible.", true)
-    showToast("Annonce retirée.")
-    await refreshConnectedData()
-    await loadMarket()
-   })
-  })
- }
+  renderMyListings(box, myListings)
+}
 
 async function refreshConnectedData() {
   if (!state.connected) return

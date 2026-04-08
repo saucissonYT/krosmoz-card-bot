@@ -119,6 +119,13 @@ body.events-page {
   url("/assets/ui/background%20events.png") center / cover no-repeat fixed;
 }
 
+body.guild-page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20guildes.png") center / cover no-repeat fixed;
+}
+
 body.achievements-page::before,
 body.achievements-page::after,
 body.market-page::before,
@@ -130,7 +137,9 @@ body.leaderboard-page::after,
 body.profile-page::before,
 body.profile-page::after,
 body.events-page::before,
-body.events-page::after {
+body.events-page::after,
+body.guild-page::before,
+body.guild-page::after {
  display: none;
 }
 
@@ -2138,38 +2147,153 @@ body.tutorial-page .tutorial-footer-domain {
  gap: 8px;
 }
 
+.market-sell-btn {
+ min-width: 122px;
+ justify-content: center;
+ font-size: 1.06rem;
+ font-weight: 800;
+ letter-spacing: 0.01em;
+ color: #fff5cf;
+ background: linear-gradient(135deg, rgba(176, 118, 26, 0.96), rgba(110, 66, 11, 0.96));
+ border: 1px solid rgba(255, 212, 115, 0.95);
+ box-shadow:
+  0 8px 18px rgba(72, 38, 2, 0.35),
+  inset 0 1px 0 rgba(255, 246, 211, 0.24);
+}
+
+.market-sell-btn:hover {
+ transform: translateY(-1px);
+ color: #fffaf0;
+ background: linear-gradient(135deg, rgba(197, 133, 28, 0.98), rgba(128, 77, 12, 0.98));
+ border-color: rgba(255, 229, 159, 0.95);
+ box-shadow:
+  0 10px 22px rgba(74, 38, 2, 0.42),
+  inset 0 1px 0 rgba(255, 249, 224, 0.32);
+}
+
 .action-row {
  margin-top: 10px;
  display: flex;
  gap: 8px;
 }
 
-.listing-mini {
+.my-listings-grid {
  display: grid;
- gap: 8px;
- margin-top: 8px;
-}
-
-.market-listing-scroll {
- max-height: 224px;
+ grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+ gap: 10px;
+ margin: 10px 0 12px;
+ max-height: 238px;
  overflow: auto;
  padding-right: 4px;
 }
 
-.listing-mini-row {
- display: flex;
- justify-content: space-between;
- gap: 10px;
- align-items: center;
- padding: 8px 10px;
- border-radius: 10px;
- background: var(--bg-elevated);
- border: 1px solid rgba(255, 255, 255, 0.06);
+.my-listing-icon {
+ position: relative;
+ display: grid;
+ justify-items: center;
+ gap: 6px;
+ width: 100%;
+ min-height: 126px;
+ padding: 8px 6px;
+ border-radius: 12px;
+ border: 1px solid rgba(156, 179, 255, 0.36);
+ background: linear-gradient(165deg, rgba(14, 20, 49, 0.9), rgba(8, 11, 30, 0.92));
+ color: #f4f7ff;
+ cursor: pointer;
+ transition: all 0.2s ease;
 }
 
-.listing-mini-row span {
- color: var(--text-secondary);
- font-size: .9rem;
+.my-listing-icon:hover {
+ transform: translateY(-2px);
+ border-color: rgba(201, 168, 76, 0.7);
+ box-shadow: 0 8px 16px rgba(9, 14, 33, 0.45);
+}
+
+.my-listing-icon.is-active {
+ border-color: rgba(249, 212, 116, 0.95);
+ box-shadow:
+  0 0 0 2px rgba(249, 212, 116, 0.24),
+  0 10px 20px rgba(8, 12, 28, 0.48);
+}
+
+.my-listing-thumb {
+ width: 62px;
+ height: 82px;
+ border-radius: 10px;
+ border: 1px solid rgba(255, 255, 255, 0.12);
+ background: rgba(6, 9, 26, 0.65);
+ display: grid;
+ place-items: center;
+ overflow: hidden;
+ font-size: 1.45rem;
+}
+
+.my-listing-thumb img {
+ width: 100%;
+ height: 100%;
+ object-fit: cover;
+ display: block;
+}
+
+.my-listing-price {
+ font-family: 'JetBrains Mono', monospace;
+ font-size: 0.72rem;
+ font-weight: 700;
+ color: #f7d27a;
+ line-height: 1;
+}
+
+.my-listing-chip {
+ font-size: 0.66rem;
+ font-weight: 700;
+ color: #b9c8f3;
+ line-height: 1;
+}
+
+.my-listing-detail-card {
+ border-radius: 12px;
+ border: 1px solid rgba(143, 164, 227, 0.42);
+ background: linear-gradient(160deg, rgba(12, 16, 38, 0.92), rgba(8, 10, 26, 0.94));
+ padding: 10px 12px;
+ display: grid;
+ gap: 8px;
+}
+
+.my-listing-detail-head {
+ display: flex;
+ justify-content: space-between;
+ align-items: flex-start;
+ gap: 10px;
+}
+
+.my-listing-detail-info h3 {
+ margin: 2px 0 0;
+ font-size: 0.96rem;
+ color: #f4f6ff;
+}
+
+.my-listing-detail-set {
+ margin: 0;
+ font-size: 0.76rem;
+ color: #9caedd;
+}
+
+.my-listing-detail-line {
+ margin: 0;
+ display: flex;
+ justify-content: space-between;
+ gap: 8px;
+ font-size: 0.82rem;
+ color: #9caedd;
+}
+
+.my-listing-detail-line strong {
+ color: #eef2ff;
+}
+
+.my-listing-detail-card .mini-remove {
+ justify-self: end;
+ min-width: 120px;
 }
 
 /* Market: remove section background blocks highlighted by user */
@@ -2322,6 +2446,10 @@ body.market-page #refreshBtn:hover {
  .tab-btn { min-height: 42px; font-size: 0.88rem; }
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
+ .market-sell-btn { width: 100%; }
+ .my-listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 280px; }
+ .my-listing-icon { min-height: 120px; }
+ .my-listing-detail-card .mini-remove { width: 100%; justify-self: stretch; }
  .auth-inner { flex-direction: column; align-items: flex-start; }
  .cards-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .market-dense { grid-template-columns: repeat(2, minmax(0, 1fr)); }
