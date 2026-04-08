@@ -956,7 +956,7 @@
 }
 
 .mode-fusion-simple .fusion-forge-result-card {
- width: min(230px, 34vw);
+ width: min(198px, 30vw);
 }
 
 .mode-fusion-simple .fusion-simple-anvil-box {
@@ -1417,6 +1417,28 @@
  text-shadow: 0 0 12px rgba(66, 122, 255, 0.55);
 }
 
+/* Fusion only: replace round bubbles with transparent crystal shards. */
+.mode-fusion:not(.mode-craft-simple) .fusion-forge-orb-core {
+ border-radius: 0;
+ clip-path: polygon(50% 0, 94% 24%, 82% 82%, 50% 100%, 18% 82%, 6% 24%);
+ border: 1px solid rgba(186, 232, 255, 0.74);
+ background:
+  linear-gradient(162deg, rgba(255, 255, 255, 0.5), rgba(185, 240, 255, 0.18) 42%, rgba(118, 180, 255, 0.14) 70%, rgba(70, 122, 218, 0.22) 100%),
+  radial-gradient(circle at 32% 18%, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.08) 48%, rgba(130, 198, 255, 0.08) 72%);
+ box-shadow:
+  inset 0 8px 12px rgba(255, 255, 255, 0.28),
+  inset 0 -10px 14px rgba(48, 92, 182, 0.28),
+  0 0 22px rgba(104, 184, 255, 0.35);
+ backdrop-filter: blur(2px);
+}
+
+.mode-fusion:not(.mode-craft-simple) .fusion-forge-orb-core img {
+ width: 64%;
+ height: 64%;
+ object-fit: contain;
+ filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.52));
+}
+
 .fusion-forge-core {
  position: absolute;
  left: 50%;
@@ -1470,7 +1492,7 @@
 }
 
 .fusion-forge-result-card {
- width: min(230px, 48vw);
+ width: min(206px, 42vw);
  aspect-ratio: 0.69;
  border-radius: 14px;
  overflow: hidden;
@@ -2439,9 +2461,9 @@ body.pack-opening-lock {
   width: 68px;
   height: 68px;
  }
- .fusion-forge-result-card {
-  width: min(182px, 62vw);
- }
+.fusion-forge-result-card {
+ width: min(168px, 58vw);
+}
  .fusion-forge-result strong {
   font-size: 0.9rem;
  }
