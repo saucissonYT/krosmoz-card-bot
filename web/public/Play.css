@@ -790,7 +790,7 @@
 }
 
 .mode-fusion-simple .fusion-simple-stage {
- height: clamp(360px, 52vh, 440px);
+ height: clamp(380px, 54vh, 460px);
  min-height: 0;
  border-color: rgba(255, 255, 255, 0.15);
  padding: 0;
@@ -808,17 +808,17 @@
 }
 
 .mode-fusion-simple .fusion-forge-orbit {
- inset: 68px 70px 136px;
+ inset: 58px 58px 126px;
 }
 
 .mode-fusion-simple .fusion-forge-orb {
- width: 68px;
- transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-74px) rotate(calc(var(--angle) * -1));
+ width: 76px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-82px) rotate(calc(var(--angle) * -1));
 }
 
 .mode-fusion-simple .fusion-forge-orb-core {
- width: 68px;
- height: 68px;
+ width: 76px;
+ height: 76px;
 }
 
 .mode-fusion-simple .fusion-forge-core {
@@ -836,8 +836,8 @@
 .mode-fusion-simple .fusion-simple-anvil-box {
  position: absolute;
  left: 50%;
- bottom: 24px;
- width: min(330px, 68%);
+ bottom: 34px;
+ width: min(350px, 70%);
  transform: translateX(-50%);
  display: grid;
  place-items: center;
@@ -847,7 +847,7 @@
 
 .mode-fusion-simple .fusion-simple-anvil {
  width: 100%;
- max-width: 330px;
+ max-width: 350px;
  height: auto;
  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.48));
 }
@@ -2216,23 +2216,23 @@ body.pack-opening-lock {
  .mode-fusion-simple .fusion-simple-step-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
  }
- .mode-fusion-simple .fusion-simple-stage {
-  height: 390px;
+.mode-fusion-simple .fusion-simple-stage {
+  height: 398px;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 56px 56px 116px;
+  inset: 48px 46px 108px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 62px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-66px) rotate(calc(var(--angle) * -1));
+  width: 68px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-72px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 62px;
-  height: 62px;
+  width: 68px;
+  height: 68px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(280px, 64%);
-  bottom: 14px;
+  width: min(300px, 66%);
+  bottom: 24px;
  }
  .pack-open-grid {
   justify-content: center;
@@ -2326,24 +2326,24 @@ body.pack-opening-lock {
  .mode-fusion-simple .fusion-simple-step-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
- .mode-fusion-simple .fusion-simple-stage {
-  height: 350px;
+.mode-fusion-simple .fusion-simple-stage {
+  height: 360px;
   padding-bottom: 0;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 48px 44px 100px;
+  inset: 40px 34px 90px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 52px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-54px) rotate(calc(var(--angle) * -1));
+  width: 58px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-58px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
-  width: min(220px, 58%);
-  bottom: 10px;
+  width: min(235px, 62%);
+  bottom: 14px;
  }
  .pack-open-overlay {
   padding: 10px;
