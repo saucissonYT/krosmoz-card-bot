@@ -9,6 +9,11 @@
  <link rel="stylesheet" href="/Play.css">
 </head>
 <body class="play-page">
+<script>
+ if ((String(window.location.pathname || "").split("/")[2] || "") === "fusion") {
+  document.body.classList.add("route-fusion-bg", "fusion-bg-active")
+ }
+</script>
 <nav class="navbar scrolled">
   <div class="navbar-inner">
    <a href="/" class="navbar-brand">KROSMOZ CARD</a>
@@ -154,9 +159,11 @@ const FUSION_MAX_CYCLES = 25
   state.me = meRes.data
  }
 
- function setMode(mode, updateUrl = true) {
+function setMode(mode, updateUrl = true) {
   state.mode = mode
   state.selected = null
+  document.body.classList.toggle("route-fusion-bg", mode === "fusion")
+  document.body.classList.toggle("fusion-bg-active", mode === "fusion")
   document.querySelectorAll("[data-play-mode]").forEach((tab) => {
    tab.classList.toggle("active", tab.dataset.playMode === mode)
   })

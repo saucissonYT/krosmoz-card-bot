@@ -6,11 +6,24 @@
  padding-top: 118px;
 }
 
+.play-page.route-fusion-bg,
+.play-page.fusion-bg-active {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.86), rgba(5, 8, 22, 0.9)),
+  radial-gradient(circle at 22% 18%, rgba(109, 165, 255, 0.18), rgba(109, 165, 255, 0) 40%),
+  url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
+}
+
 .play-page.fusion-bg-active .page {
  background:
   linear-gradient(180deg, rgba(5, 8, 22, 0.88), rgba(5, 8, 22, 0.92)),
   radial-gradient(circle at 22% 18%, rgba(109, 165, 255, 0.16), rgba(109, 165, 255, 0) 40%),
   url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
+}
+
+.play-page.route-fusion-bg .page,
+.play-page.fusion-bg-active .page {
+ background: transparent;
 }
 
 .play-shell {
