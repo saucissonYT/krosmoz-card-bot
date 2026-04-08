@@ -828,14 +828,11 @@ body.auth-connected .hero {
 }
 
 .leaderboard-hero {
- border: 1px solid rgba(255, 255, 255, 0.12);
- border-radius: var(--radius-lg);
- padding: 18px 20px;
- background:
-  radial-gradient(circle at 16% 20%, rgba(201, 168, 76, 0.18), rgba(201, 168, 76, 0) 46%),
-  radial-gradient(circle at 84% 18%, rgba(125, 188, 255, 0.16), rgba(125, 188, 255, 0) 48%),
-  linear-gradient(148deg, rgba(14, 21, 50, 0.88), rgba(9, 13, 34, 0.9));
- box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 24px rgba(0, 0, 0, 0.3);
+ border: 0;
+ border-radius: 0;
+ padding: 0 0 6px;
+ background: transparent;
+ box-shadow: none;
 }
 
 .leaderboard-hero .section-title,
@@ -866,10 +863,10 @@ body.leaderboard-page .footer {
 .leaderboard-tabs-wrap {
  display: grid;
  gap: 8px;
- border: 1px solid rgba(255, 255, 255, 0.1);
- border-radius: var(--radius);
- padding: 12px;
- background: rgba(10, 14, 35, 0.78);
+ border: 0;
+ border-radius: 0;
+ padding: 0;
+ background: transparent;
 }
 
 .leaderboard-active-label {
@@ -879,43 +876,59 @@ body.leaderboard-page .footer {
 }
 
 .leaderboard-content-shell {
- border: 1px solid rgba(255, 255, 255, 0.1);
- border-radius: var(--radius);
- background: rgba(10, 14, 35, 0.78);
- padding: 8px 10px;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ padding: 0;
 }
 
 .leaderboard-tabs {
- display: flex;
- gap: 8px;
- flex-wrap: wrap;
- justify-content: flex-start;
+ display: grid;
+ grid-template-columns: repeat(7, minmax(0, 1fr));
+ gap: 10px;
+ align-items: stretch;
  margin-bottom: 0;
 }
 
 .tab-btn {
- padding: 10px 20px;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ gap: 8px;
+ min-height: 54px;
+ padding: 10px 12px;
  background: var(--bg-card);
- border: 1px solid rgba(255, 255, 255, 0.06);
+ border: 1px solid rgba(255, 255, 255, 0.1);
  border-radius: var(--radius);
  color: var(--text-secondary);
  font-family: 'Jost', sans-serif;
- font-size: 0.9rem;
- font-weight: 500;
+ font-size: 0.98rem;
+ font-weight: 600;
  cursor: pointer;
  transition: all 0.25s var(--ease);
+ text-align: center;
+ white-space: nowrap;
 }
 
 .tab-btn:hover {
- background: var(--bg-elevated);
- border-color: rgba(201, 168, 76, 0.2);
+ background: #141b3f;
+ border-color: rgba(201, 168, 76, 0.45);
  color: var(--text-primary);
 }
 
 .tab-btn.active {
- background: var(--gold-subtle);
+ background: linear-gradient(145deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.08));
  border-color: var(--gold);
  color: var(--gold);
+}
+
+.tab-btn .tab-icon {
+ display: inline-grid;
+ place-items: center;
+ width: 18px;
+ height: 18px;
+ font-size: 0.95rem;
+ line-height: 1;
 }
 
 /* -------- LEADERBOARD TABLE -------- */
@@ -1308,9 +1321,10 @@ body.leaderboard-page .footer {
 
 .events-hero .section-subtitle {
  margin-bottom: 0;
- color: #1f2f5f;
+ color: #f0d264;
  font-weight: 700;
  font-size: 0.98rem;
+ text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22);
 }
 
 .events-status-card {
@@ -1415,7 +1429,7 @@ body.leaderboard-page .footer {
 }
 
 .events-pinata .events-card-media img {
- object-fit: cover;
+ object-fit: contain;
 }
 
 .events-roulette .events-card-media img {
@@ -2229,8 +2243,10 @@ body.tutorial-page .tutorial-footer-domain {
  .events-grid { grid-template-columns: 1fr; }
  .events-card-media { max-height: 200px; }
  .leaderboard-shell { gap: 12px; }
- .leaderboard-hero { padding: 14px; }
- .leaderboard-tabs-wrap { padding: 10px; }
+ .leaderboard-hero { padding: 0; }
+ .leaderboard-tabs-wrap { padding: 0; }
+ .leaderboard-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+ .tab-btn { min-height: 46px; font-size: 0.9rem; }
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .auth-inner { flex-direction: column; align-items: flex-start; }

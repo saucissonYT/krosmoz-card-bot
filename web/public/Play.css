@@ -1001,6 +1001,20 @@
   linear-gradient(180deg, rgba(14, 21, 50, 0.95), rgba(10, 14, 35, 0.98));
 }
 
+.mode-craft-simple .fusion-simple-stage {
+ background:
+  linear-gradient(180deg, rgba(9, 13, 34, 0.5), rgba(9, 13, 34, 0.66)),
+  radial-gradient(circle at 50% 14%, rgba(141, 184, 255, 0.22), rgba(141, 184, 255, 0) 56%),
+  url("/assets/ui/enclume.png") center / 100% 100% no-repeat;
+}
+
+.mode-fusion:not(.mode-craft-simple) .fusion-simple-stage {
+ background:
+  linear-gradient(180deg, rgba(9, 13, 34, 0.5), rgba(9, 13, 34, 0.66)),
+  radial-gradient(circle at 50% 14%, rgba(141, 184, 255, 0.2), rgba(141, 184, 255, 0) 56%),
+  url("/assets/ui/fusion.png") center / 100% 100% no-repeat;
+}
+
 .mode-fusion-simple .fusion-simple-ring {
  position: relative;
  height: 100%;
