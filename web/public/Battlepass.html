@@ -40,11 +40,25 @@
     </header>
 
     <div class="battlepass-grid fade-in stagger-1">
-     <article class="battlepass-card">
+     <article class="battlepass-card battlepass-season-card">
       <h3>🗓️ Saison en cours</h3>
-      <p id="bpSeasonName" class="battlepass-strong">Chargement...</p>
-      <p id="bpSeasonSubtitle" class="battlepass-muted">...</p>
-      <p id="bpSeasonDates" class="battlepass-muted">-</p>
+      <div class="battlepass-season-body">
+       <div class="battlepass-season-copy">
+        <p id="bpSeasonName" class="battlepass-strong">Chargement...</p>
+        <p id="bpSeasonSubtitle" class="battlepass-muted">...</p>
+        <p id="bpSeasonDates" class="battlepass-muted">-</p>
+       </div>
+       <div class="battlepass-season-visual-wrap" aria-hidden="true">
+        <img
+         id="bpSeasonVisual"
+         class="battlepass-season-visual"
+         src="/assets/ui/bp%20emeraude.png"
+         alt="Visuel de saison"
+         loading="lazy"
+         onerror="this.src='/assets/ui/bp%20emeraude.png'"
+        >
+       </div>
+      </div>
      </article>
 
      <article class="battlepass-card">
@@ -57,12 +71,6 @@
       <p id="bpClaimable" class="battlepass-highlight">🎁 0 reward a recuperer</p>
      </article>
 
-     <article class="battlepass-card battlepass-actions-card">
-      <h3>⚙️ Actions</h3>
-      <button id="bpClaimBtn" class="btn btn-outline battlepass-action-btn" type="button" disabled>Reclamer mes rewards</button>
-      <button id="bpPremiumBtn" class="btn battlepass-premium-btn" type="button" disabled>Acheter Premium</button>
-      <p id="bpActionHint" class="battlepass-muted">Connexion Discord requise.</p>
-     </article>
     </div>
 
     <div class="battlepass-head fade-in stagger-2">
@@ -70,7 +78,7 @@
      <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes rewards.</p>
     </div>
 
-    <div id="bpRewards" class="battlepass-rewards-grid market-zone-block fade-in stagger-2">
+    <div id="bpRewards" class="battlepass-timeline-wrap market-zone-block fade-in stagger-2">
      <p class="result-meta">Chargement...</p>
     </div>
    </section>
@@ -141,6 +149,56 @@
   return list.map((reward) => rewardLabel(reward)).join(" + ")
  }
 
+ function rewardShortLabel(reward) {
+  if (!reward || typeof reward !== "object") return "—"
+  const type = String(reward.type || "")
+  const value = Number(reward.value || 0)
+  if (type === "kamas") return `💰 ${fmt(value)}`
+  if (type === "player_xp") return `⭐ ${fmt(value)} XP`
+  if (type === "pack" || type === "pack_premium") return `📦 x${fmt(value || 1)}`
+  if (type === "title") return "📜 Titre"
+  if (type === "badge") return "🏅 Badge"
+  if (type === "card") return "🃏 Carte"
+  if (type === "card_random_rare") return "🃏 Rare"
+  if (type === "card_random_ssr") return "🌈 SSR"
+  if (type === "fragment_random") return `🧩 x${fmt(value || reward.quantity || 1)}`
+  return escapeHtml(type || "Reward")
+ }
+
+ function formatRewardsShort(list) {
+  if (!Array.isArray(list) || !list.length) return "—"
+  if (list.length === 1) return rewardShortLabel(list[0])
+  return `${rewardShortLabel(list[0])} +${list.length - 1}`
+ }
+
+ const BP_SEASON_ASSETS = {
+  emeraude: "/assets/ui/bp%20emeraude.png",
+  pourpre: "/assets/ui/bp%20pourpre.png",
+  turquoise: "/assets/ui/bp%20turquoise.png",
+  ocre: "/assets/ui/bp%20ocre.png",
+  ivoire: "/assets/ui/bp%20ivoire.png",
+  ebene: "/assets/ui/bp%20ebene.png"
+ }
+
+ function getSeasonVisualUrl(season) {
+  const seasonId = String(season?.id || "").trim().toLowerCase()
+  const seasonName = String(season?.name || "").trim().toLowerCase()
+  if (BP_SEASON_ASSETS[seasonId]) return BP_SEASON_ASSETS[seasonId]
+
+  for (const [key, url] of Object.entries(BP_SEASON_ASSETS)) {
+   if (seasonName.includes(key)) return url
+  }
+
+  return BP_SEASON_ASSETS.emeraude
+ }
+
+ function updateSeasonVisual(season) {
+  const visual = document.getElementById("bpSeasonVisual")
+  if (!visual) return
+  visual.src = getSeasonVisualUrl(season)
+  visual.alt = `Visuel ${String(season?.name || "de saison")}`
+ }
+
  function renderSeasonInfo(season) {
   const name = document.getElementById("bpSeasonName")
   const subtitle = document.getElementById("bpSeasonSubtitle")
@@ -152,6 +210,7 @@
   const start = season?.startDate ? String(season.startDate) : "?"
   const end = season?.endDate ? String(season.endDate) : "?"
   dates.textContent = `${start} -> ${end}`
+  updateSeasonVisual(season)
  }
 
  function renderDisconnected() {
@@ -169,45 +228,69 @@
   progressBar.style.width = "0%"
   progressNums.textContent = "0/0 XP"
   claimable.textContent = "🎁 0 reward a recuperer"
-  hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a>`
-  claimBtn.disabled = true
-  premiumBtn.disabled = true
-  premiumBtn.textContent = "Acheter Premium"
+  if (hint) hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a>`
+  if (claimBtn) claimBtn.disabled = true
+  if (premiumBtn) {
+   premiumBtn.disabled = true
+   premiumBtn.textContent = "Acheter Premium"
+  }
   meta.textContent = "Apercu indisponible hors connexion."
   rewards.innerHTML = `<p class="result-meta">Connecte-toi pour voir ton Battlepass.</p>`
  }
 
- function renderRewardsGrid(rows, progress) {
+ function renderRewardsTimeline(rows, progress) {
   const rewards = document.getElementById("bpRewards")
   if (!Array.isArray(rows) || !rows.length) {
    rewards.innerHTML = `<p class="result-meta">Aucune reward disponible.</p>`
    return
   }
 
-  const level = Number(progress?.currentLevel || 1)
+  const totalLevels = Math.max(1, rows.length)
+  const currentLevel = Math.max(1, Number(progress?.currentLevel || 1))
   const hasPremium = Boolean(progress?.hasPremium)
+  const intraLevel = Math.min(1, Math.max(0, Number(progress?.xpPercent || 0) / 100))
+  const progressIndex = Math.min(totalLevels - 1, Math.max(0, (currentLevel - 1) + intraLevel))
+  const progressRatio = totalLevels <= 1 ? 1 : (progressIndex / (totalLevels - 1))
 
-  rewards.innerHTML = rows.map((row) => {
-   const isUnlocked = Number(row.level || 0) <= level
-   const freeStatus = row.claimedFree
-    ? "✅ Recuperee"
-    : (isUnlocked ? "🎁 A recuperer" : "🔒 Verrouillee")
-   const premiumStatus = row.claimedPremium
-    ? "✅ Recuperee"
-    : (!hasPremium ? "💎 Premium requis" : (isUnlocked ? "🎁 A recuperer" : "🔒 Verrouillee"))
+  const steps = rows.map((row) => {
+   const level = Number(row.level || 0)
+   const isUnlocked = level <= currentLevel
+   const isClaimed = Boolean(row.claimedFree) && (!hasPremium || !Array.isArray(row.premiumRewards) || row.premiumRewards.length === 0 || Boolean(row.claimedPremium))
+   const side = level % 2 === 1 ? "left" : "right"
+   const freeText = formatRewardsShort(row.freeRewards)
+   const premiumText = formatRewardsShort(row.premiumRewards)
+   const stateLabel = isClaimed ? "Recupere" : (isUnlocked ? "En cours" : "Verrouille")
+   const nodeClass = [
+    "bp-node-core",
+    isUnlocked ? "is-unlocked" : "is-locked",
+    isClaimed ? "is-claimed" : ""
+   ].join(" ").trim()
+
    return `
-    <article class="battlepass-reward-card${isUnlocked ? " unlocked" : ""}">
-     <div class="battlepass-reward-top">
-      <span class="chip chip-rarity">Palier ${Number(row.level || 0)}</span>
-      <span class="battlepass-card-state">${isUnlocked ? "Actif" : "A venir"}</span>
+    <article class="bp-step bp-side-${side}">
+     <div class="bp-step-copy ${side === "left" ? "" : "empty"}">
+      ${side === "left" ? `<h3>Etape ${String(level).padStart(2, "0")}</h3><p>${stateLabel}</p>` : ""}
      </div>
-     <p class="battlepass-line"><span>Gratuit</span><strong>${formatRewards(row.freeRewards)}</strong></p>
-     <p class="battlepass-line"><span>Premium</span><strong>${formatRewards(row.premiumRewards)}</strong></p>
-     <p class="battlepass-line"><span>Etat free</span><strong>${freeStatus}</strong></p>
-     <p class="battlepass-line"><span>Etat premium</span><strong>${premiumStatus}</strong></p>
+     <div class="bp-step-node">
+      <div class="${nodeClass}">
+       <span class="bp-node-level">Palier ${level}</span>
+       <span class="bp-node-free">🎁 ${escapeHtml(freeText)}</span>
+       <span class="bp-node-premium">💎 ${escapeHtml(premiumText)}</span>
+       <span class="bp-node-check">✓</span>
+      </div>
+     </div>
+     <div class="bp-step-copy ${side === "right" ? "" : "empty"}">
+      ${side === "right" ? `<h3>Etape ${String(level).padStart(2, "0")}</h3><p>${stateLabel}</p>` : ""}
+     </div>
     </article>
    `
   }).join("")
+
+  rewards.innerHTML = `
+   <div class="bp-timeline" style="--bp-progress-ratio:${progressRatio.toFixed(4)};">
+    ${steps}
+   </div>
+  `
  }
 
  function renderConnected(data) {
@@ -232,16 +315,18 @@
   progressNums.textContent = `${fmt(progress.xpInLevel || 0)}/${fmt(progress.xpLevelMax || 0)} XP (${Number(progress.xpPercent || 0)}%)`
   claimable.textContent = `🎁 ${fmt(progress.claimableCount || 0)} reward(s) a recuperer`
 
-  claimBtn.disabled = Number(progress.claimableCount || 0) <= 0
-  premiumBtn.disabled = Boolean(progress.hasPremium)
-  premiumBtn.textContent = progress.hasPremium
-   ? "Premium actif"
-   : `Acheter Premium (${fmt(season.premiumPrice || 18000)} kamas)`
+  if (claimBtn) claimBtn.disabled = Number(progress.claimableCount || 0) <= 0
+  if (premiumBtn) {
+   premiumBtn.disabled = Boolean(progress.hasPremium)
+   premiumBtn.textContent = progress.hasPremium
+    ? "Premium actif"
+    : `Acheter Premium (${fmt(season.premiumPrice || 18000)} kamas)`
+  }
 
-  hint.textContent = `Kamas: ${fmt(me.kamas || 0)} · Premium: ${progress.hasPremium ? "Oui" : "Non"}`
+  if (hint) hint.textContent = `Kamas: ${fmt(me.kamas || 0)} · Premium: ${progress.hasPremium ? "Oui" : "Non"}`
   meta.textContent = `${rows.length} paliers affiches · Saison: ${season.name || "active"}`
 
-  renderRewardsGrid(rows, progress)
+  renderRewardsTimeline(rows, progress)
  }
 
  async function loadBattlepass() {
@@ -258,21 +343,27 @@
   renderConnected(meRes.data || {})
  }
 
- document.getElementById("bpClaimBtn").addEventListener("click", async () => {
-  const r = await api("/api/battlepass/claim", { method: "POST" })
-  if (!r.ok) return showToast(r.data?.error || "Impossible de reclamer.", true)
-  showToast(`Rewards recuperees: ${Number(r.data?.result?.total || 0)}`)
-  await loadBattlepass()
- })
+ const claimBtn = document.getElementById("bpClaimBtn")
+ if (claimBtn) {
+  claimBtn.addEventListener("click", async () => {
+   const r = await api("/api/battlepass/claim", { method: "POST" })
+   if (!r.ok) return showToast(r.data?.error || "Impossible de reclamer.", true)
+   showToast(`Rewards recuperees: ${Number(r.data?.result?.total || 0)}`)
+   await loadBattlepass()
+  })
+ }
 
- document.getElementById("bpPremiumBtn").addEventListener("click", async () => {
-  const ok = window.confirm("Confirmer l'achat du Battlepass Premium ?")
-  if (!ok) return
-  const r = await api("/api/battlepass/premium", { method: "POST" })
-  if (!r.ok) return showToast(r.data?.error || "Achat premium impossible.", true)
-  showToast("Battlepass Premium active.")
-  await loadBattlepass()
- })
+ const premiumBtn = document.getElementById("bpPremiumBtn")
+ if (premiumBtn) {
+  premiumBtn.addEventListener("click", async () => {
+   const ok = window.confirm("Confirmer l'achat du Battlepass Premium ?")
+   if (!ok) return
+   const r = await api("/api/battlepass/premium", { method: "POST" })
+   if (!r.ok) return showToast(r.data?.error || "Achat premium impossible.", true)
+   showToast("Battlepass Premium active.")
+   await loadBattlepass()
+  })
+ }
 
  loadBattlepass()
  </script>
