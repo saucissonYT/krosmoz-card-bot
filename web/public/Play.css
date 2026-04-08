@@ -6,6 +6,13 @@
  padding-top: 118px;
 }
 
+.play-page.fusion-bg-active .page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.88), rgba(5, 8, 22, 0.92)),
+  radial-gradient(circle at 22% 18%, rgba(109, 165, 255, 0.16), rgba(109, 165, 255, 0) 40%),
+  url("/assets/ui/background%20fusion.png") center / cover no-repeat fixed;
+}
+
 .play-shell {
  display: grid;
  grid-template-columns: 1fr;
@@ -790,7 +797,7 @@
 }
 
 .mode-fusion-simple .fusion-simple-stage {
- height: clamp(400px, 56vh, 500px);
+ height: clamp(420px, 58vh, 520px);
  min-height: 0;
  border-color: rgba(255, 255, 255, 0.15);
  padding: 0;
@@ -804,22 +811,22 @@
  position: relative;
  height: 100%;
  min-height: 0;
- z-index: 2;
+ z-index: 7;
 }
 
 .mode-fusion-simple .fusion-forge-orbit {
- inset: 34px 44px 188px;
+ inset: 22px 40px 188px;
 }
 
 .mode-fusion-simple .fusion-forge-orb {
- width: 84px;
- transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-106px) rotate(calc(var(--angle) * -1));
- z-index: 5;
+ width: 94px;
+ transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-124px) rotate(calc(var(--angle) * -1));
+ z-index: 8;
 }
 
 .mode-fusion-simple .fusion-forge-orb-core {
- width: 84px;
- height: 84px;
+ width: 94px;
+ height: 94px;
 }
 
 .mode-fusion-simple .fusion-forge-core {
@@ -827,23 +834,24 @@
 }
 
 .mode-fusion-simple .fusion-forge-result {
- top: 39%;
+ top: 34%;
+ z-index: 14;
 }
 
 .mode-fusion-simple .fusion-forge-result-card {
- width: min(210px, 32vw);
+ width: min(230px, 34vw);
 }
 
 .mode-fusion-simple .fusion-simple-anvil-box {
  position: absolute;
  left: 50%;
- bottom: -6px;
+ bottom: -34px;
  width: min(360px, 72%);
  transform: translateX(-50%);
  display: grid;
  place-items: center;
  pointer-events: none;
- z-index: 4;
+ z-index: 3;
 }
 
 .mode-fusion-simple .fusion-simple-anvil {
@@ -1236,10 +1244,19 @@
  inset: 0;
  animation: fusionOrbitSpin 7.8s linear infinite;
  animation-play-state: paused;
+ will-change: transform;
 }
 
 .fusion-forge-stage.animating .fusion-forge-orbit {
  animation-play-state: running;
+}
+
+.fusion-forge-stage.phase-spin .fusion-forge-orbit {
+ animation-duration: 1.75s;
+}
+
+.fusion-forge-stage.phase-converge .fusion-forge-orbit {
+ animation-duration: 0.75s;
 }
 
 .fusion-forge-orb {
@@ -1300,8 +1317,9 @@
 }
 
 .fusion-forge-stage.phase-converge .fusion-forge-orb {
- transform: translate(-50%, -50%) scale(0.44);
- opacity: 0.2;
+ transform: translate(-50%, -50%) scale(0.16);
+ opacity: 0;
+ filter: brightness(1.35) blur(0.6px);
 }
 
 .fusion-forge-stage.phase-converge .fusion-forge-core {
@@ -1331,7 +1349,7 @@
  justify-items: center;
  gap: 8px;
  pointer-events: none;
- z-index: 4;
+ z-index: 12;
 }
 
 .fusion-forge-result-card {
@@ -1350,7 +1368,7 @@
 
 .fusion-forge-result strong {
  color: #ffffff;
- text-shadow: 0 0 12px rgba(18, 29, 72, 0.95);
+ text-shadow: 0 0 14px rgba(18, 29, 72, 1), 0 2px 10px rgba(0, 0, 0, 0.72);
  font-size: 1.02rem;
 }
 
@@ -2218,22 +2236,22 @@ body.pack-opening-lock {
   grid-template-columns: repeat(3, minmax(0, 1fr));
  }
 .mode-fusion-simple .fusion-simple-stage {
-  height: 410px;
+  height: 430px;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 28px 34px 160px;
+  inset: 18px 30px 156px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 76px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-94px) rotate(calc(var(--angle) * -1));
+  width: 86px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-108px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 76px;
-  height: 76px;
+  width: 86px;
+  height: 86px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
   width: min(320px, 68%);
-  bottom: -6px;
+  bottom: -26px;
  }
  .pack-open-grid {
   justify-content: center;
@@ -2328,23 +2346,23 @@ body.pack-opening-lock {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
 .mode-fusion-simple .fusion-simple-stage {
-  height: 370px;
+  height: 398px;
   padding-bottom: 0;
  }
  .mode-fusion-simple .fusion-forge-orbit {
-  inset: 24px 28px 142px;
+  inset: 16px 24px 136px;
  }
  .mode-fusion-simple .fusion-forge-orb {
-  width: 66px;
-  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-78px) rotate(calc(var(--angle) * -1));
+  width: 76px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-92px) rotate(calc(var(--angle) * -1));
  }
  .mode-fusion-simple .fusion-forge-orb-core {
-  width: 66px;
-  height: 66px;
+  width: 76px;
+  height: 76px;
  }
  .mode-fusion-simple .fusion-simple-anvil-box {
   width: min(250px, 64%);
-  bottom: -6px;
+  bottom: -18px;
  }
  .pack-open-overlay {
   padding: 10px;
