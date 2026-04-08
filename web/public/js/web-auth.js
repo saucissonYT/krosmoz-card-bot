@@ -37,8 +37,10 @@
   const title = toast.querySelector("#globalEventToastTitle")
   const text = toast.querySelector("#globalEventToastText")
   const connected = Boolean(payload?.connected)
-  const eventActive = Boolean(payload?.event?.active)
-  const pinataActive = Boolean(payload?.pinata?.active)
+  const participatedGodsEvent = Number(payload?.tickets?.used || 0) > 0
+  const participatedPinata = Number(payload?.pinata?.my?.totalReactions || 0) > 0
+  const eventActive = Boolean(payload?.event?.active) && !participatedGodsEvent
+  const pinataActive = Boolean(payload?.pinata?.active) && !participatedPinata
   const rouletteReady = Boolean(payload?.roulette?.canSpin)
 
   if (!connected) {
@@ -107,8 +109,9 @@
      <ul class="navbar-subnav-links">
       <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
       <li><a href="/play/packs" data-play-mode="packs">Packs</a></li>
-      <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
-      <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+     <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
+     <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/events">Events</a></li>
       <li><a href="/market">Marché</a></li>
       <li><a href="/achievements">Achievements</a></li>
       <li><a href="/profile/">Profil</a></li>
@@ -214,6 +217,14 @@
   marketLink.classList.toggle("active", p === "/market" || p.startsWith("/market/"))
  }
 
+ function setTopEventsLinkVisibility() {
+  if (!navLinks) return
+  const eventsLink = navLinks.querySelector('a[href="/events"]')
+  if (!eventsLink || !eventsLink.parentElement) return
+  eventsLink.parentElement.style.display = "none"
+  eventsLink.classList.remove("active")
+ }
+
  let status = null
  try {
   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
@@ -227,6 +238,7 @@
   setProfileLink(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "#"
@@ -248,6 +260,7 @@
   setProfileLink(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
@@ -273,6 +286,7 @@
  setProfileLink(me?.id || status.userId)
  setConnectedNavLink(true)
  setTopMarketLinkVisibility(true)
+ setTopEventsLinkVisibility()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
   heroPlayBtn.href = "/play"

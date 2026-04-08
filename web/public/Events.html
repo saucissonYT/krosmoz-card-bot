@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Ecaflip City — Krosmoz Card</title>
+ <title>Ecaflip City - Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
  <link rel="stylesheet" href="/Play.css">
@@ -17,7 +17,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/events" class="active">Events</a></li>
     <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
@@ -38,32 +37,23 @@
    <section class="events-shell">
     <header class="events-hero fade-in">
      <h1 class="section-title">Ecaflip City</h1>
-     <p class="section-subtitle">Piñata web, Roulette d'Ecaflip et Eventpacks des Dieux, au même endroit.</p>
+     <p class="section-subtitle">Pinata web, Roulette d'Ecaflip et Eventpacks des Dieux, au meme endroit.</p>
     </header>
 
     <article class="events-status-card fade-in stagger-1">
-     <div class="events-status-main">
-      <div>
-       <h2 id="eventTitle">Event des Dieux: aucun event actif</h2>
-       <p id="eventSubtitle" class="events-muted">Les dieux se préparent. Reviens bientôt.</p>
-      </div>
-      <div class="events-event-visual">
-       <img src="/assets/ui/event%20des%20dieux.png" alt="Event des Dieux">
-      </div>
-     </div>
      <div class="events-status-kpis">
-      <div><span>Tickets</span><strong id="ticketInfo">0/0</strong></div>
-      <div><span>Piñata</span><strong id="pinataInfo">Fermée</strong></div>
+      <div><span>Pinata</span><strong id="pinataInfo">Fermee</strong></div>
       <div><span>Roulette</span><strong id="rouletteInfo">---</strong></div>
+      <div><span>Tickets</span><strong id="ticketInfo">0/0</strong></div>
      </div>
     </article>
 
     <div class="events-grid">
      <article class="events-card events-pinata fade-in stagger-2">
       <div class="events-card-media">
-       <img src="/assets/ui/pinata.png" alt="Piñata">
+       <img src="/assets/ui/pinata.png" alt="Pinata">
       </div>
-      <h3>🪅 Piñata d'Ecaflip</h3>
+      <h3>Pinata d'Ecaflip</h3>
       <p id="pinataStatus" class="events-muted">Chargement...</p>
       <div id="pinataReactionBar" class="pinata-reactions"></div>
       <p id="pinataMine" class="events-muted"></p>
@@ -74,10 +64,10 @@
       <div class="events-card-media">
        <img src="/assets/ui/roulette.png" alt="Roulette d'Ecaflip">
       </div>
-      <h3>🎡 Roulette d'Ecaflip</h3>
+      <h3>Roulette d'Ecaflip</h3>
       <p id="rouletteStatus" class="events-muted">Chargement...</p>
       <div id="rouletteSpinBox" class="roulette-spin-box" aria-hidden="true">
-       <div class="roulette-wheel"><span>🎡</span></div>
+       <div class="roulette-wheel"><span>R</span></div>
       </div>
       <div class="action-row">
        <button id="spinRouletteBtn" class="btn btn-gold">Lancer la roulette</button>
@@ -87,13 +77,10 @@
 
      <article class="events-card events-eventpack fade-in stagger-4">
       <div class="events-card-media">
-       <img src="/assets/ui/event%20carte.png" alt="Event pack">
+       <img src="/assets/ui/event%20des%20dieux.png" alt="Event des Dieux">
       </div>
-      <h3>🎟️ Eventpack des Dieux</h3>
+      <h3>Eventpack des Dieux</h3>
       <p id="eventpackStatus" class="events-muted">Chargement...</p>
-      <div class="events-pack-card-view">
-       <img src="/assets/ui/event%20carte.png" alt="Dos de carte event">
-      </div>
       <div class="action-row">
        <button id="openEventpackBtn" class="btn btn-outline">Ouvrir un eventpack</button>
       </div>
@@ -103,8 +90,8 @@
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>Krosmoz Card - krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">A propos - Contact - Mentions legales</a></p>
    </footer>
   </div>
  </div>
@@ -115,6 +102,7 @@
  let eventPackRevealResolve = null
  let eventPackEscBound = false
  let eventPackTimers = []
+ let eventPackMaskResults = false
 
  function esc(str) {
   const div = document.createElement("div")
@@ -141,6 +129,14 @@
   return allowed.includes(token) ? token : "C"
  }
 
+ function getDisplayEmoji(emoji) {
+  const value = String(emoji || "")
+  const pinataEmoji = "\u{1FA85}"
+  const partyPopper = "\u{1F389}"
+  if (value === pinataEmoji) return partyPopper
+  return value
+ }
+
  async function api(path, options = {}) {
   const res = await fetch(path, { credentials: "same-origin", ...options })
   let data = null
@@ -156,7 +152,7 @@
   const pinataInfo = document.getElementById("pinataInfo")
 
   if (!pinata) {
-   status.textContent = "Piñata indisponible."
+   status.textContent = "Pinata indisponible."
    reactions.innerHTML = ""
    mine.textContent = ""
    board.innerHTML = ""
@@ -166,35 +162,40 @@
 
   if (pinata.active) {
    const endsIn = Math.max(0, Number(pinata.endsAt || 0) - Date.now())
-   status.textContent = `En cours: ${pinata.participants} participant(s) · fin dans ${formatMs(endsIn)}`
+   status.textContent = `En cours: ${pinata.participants} participant(s) - fin dans ${formatMs(endsIn)}`
    pinataInfo.textContent = `${Number(pinata.participants || 0)} actif(s)`
   } else {
-   status.textContent = "Piñata fermée pour le moment."
-   pinataInfo.textContent = "Fermée"
+   status.textContent = "Pinata fermee pour le moment."
+   pinataInfo.textContent = "Fermee"
   }
 
   if (!connected) {
    reactions.innerHTML = `<a class="btn btn-outline" href="${esc(getLoginUrl())}">Connexion Discord requise</a>`
    mine.textContent = ""
   } else {
+   const usedEmojis = new Set(Array.isArray(pinata?.my?.emojis) ? pinata.my.emojis.map((x) => String(x)) : [])
    reactions.innerHTML = (pinata.allowedEmojis || []).map((emoji) => {
-    const disabled = pinata.active ? "" : "disabled"
-    return `<button class="btn btn-outline pinata-react-btn" ${disabled} data-emoji="${esc(emoji)}">${esc(emoji)}</button>`
+    const key = String(emoji || "")
+    const alreadyUsed = usedEmojis.has(key)
+    const disabled = (pinata.active && !alreadyUsed) ? "" : "disabled"
+    const usedClass = alreadyUsed ? " used" : ""
+    const displayEmoji = getDisplayEmoji(key)
+    return `<button class="btn btn-outline pinata-react-btn${usedClass}" ${disabled} data-emoji="${esc(key)}">${esc(displayEmoji)}</button>`
    }).join("")
   }
 
   const mineReward = pinata.my?.reward
   if (mineReward) {
-   mine.innerHTML = `Dernière récompense: <strong>${esc(mineReward.tier)}</strong> · 💰 ${Number(mineReward.kamas || 0).toLocaleString("fr-FR")}`
+   mine.innerHTML = `Derniere recompense: <strong>${esc(mineReward.tier)}</strong> - ${Number(mineReward.kamas || 0).toLocaleString("fr-FR")} kamas`
   } else if (connected) {
-   mine.textContent = `Tes réactions: ${Number(pinata.my?.totalReactions || 0)} · emojis uniques: ${Number(pinata.my?.uniqueCount || 0)}`
+   mine.textContent = `Tes reactions: ${Number(pinata.my?.totalReactions || 0)} - emojis uniques: ${Number(pinata.my?.uniqueCount || 0)}`
   } else {
    mine.textContent = ""
   }
 
   const ranking = pinata.leaderboard || []
   if (!ranking.length) {
-    board.innerHTML = `<p class="events-muted">Aucun résultat à afficher pour l'instant.</p>`
+   board.innerHTML = `<p class="events-muted">Aucun resultat a afficher pour l'instant.</p>`
   } else {
    board.innerHTML = ranking.map((row, index) =>
     `<div class="events-mini-row"><span>${index + 1}. ${esc(row.userId)}</span><strong>${Number(row.score || 0)} pts</strong></div>`
@@ -208,7 +209,7 @@
   const rouletteInfo = document.getElementById("rouletteInfo")
 
   if (!connected) {
-   status.textContent = "Connecte-toi pour jouer à la roulette."
+   status.textContent = "Connecte-toi pour jouer a la roulette."
    btn.disabled = true
    rouletteInfo.textContent = "Connexion"
    return
@@ -220,9 +221,9 @@
    btn.disabled = true
    rouletteInfo.textContent = "Recharge"
   } else {
-   status.textContent = "Prête à tourner."
+   status.textContent = "Prete a tourner."
    btn.disabled = false
-   rouletteInfo.textContent = "Prête"
+   rouletteInfo.textContent = "Prete"
   }
  }
 
@@ -239,9 +240,9 @@
    btn.disabled = true
    return
   }
-  status.textContent = `Event actif: ${eventState.name} · tickets ${tickets.remaining}/${tickets.total}`
+  status.textContent = `Event actif: ${eventState.name} - tickets ${tickets.remaining}/${tickets.total}`
   btn.disabled = Number(tickets.remaining || 0) <= 0
-}
+ }
 
  function renderGlobal(data) {
   const connected = Boolean(data?.connected)
@@ -249,17 +250,6 @@
   const tickets = data?.tickets || { total: 0, used: 0, remaining: 0 }
 
   document.getElementById("ticketInfo").textContent = `${Number(tickets.remaining || 0)}/${Number(tickets.total || 0)}`
-
-  const eventTitle = document.getElementById("eventTitle")
-  const eventSubtitle = document.getElementById("eventSubtitle")
-  if (eventState.active) {
-   eventTitle.textContent = `${eventState.name}`
-   const target = eventState.targetName ? ` · cible: ${eventState.targetName}` : ""
-   eventSubtitle.textContent = `${eventState.effect || "Event en cours"}${target}`
-  } else {
-   eventTitle.textContent = "Event des Dieux: aucun event actif"
-   eventSubtitle.textContent = "Les dieux se préparent. Reviens bientôt."
-  }
 
   renderPinata(data?.pinata, connected)
   renderRoulette(data?.roulette, connected)
@@ -278,7 +268,8 @@
    rarity: getRarityToken(card?.rarity),
    cardName: String(card?.cardName || "Carte"),
    imageUrl: String(card?.imageUrl || ""),
-   isNew: Boolean(card?.isNew)
+   isNew: Boolean(card?.isNew),
+   setName: String(card?.set || card?.setName || "inconnu").toLowerCase()
   }))
  }
 
@@ -287,6 +278,7 @@
   if (!overlay || !overlay.classList.contains("open")) return
   for (const timer of eventPackTimers) window.clearTimeout(timer)
   eventPackTimers = []
+  eventPackMaskResults = false
   overlay.classList.remove("open", "complete")
   overlay.setAttribute("aria-hidden", "true")
   document.body.classList.remove("pack-opening-lock")
@@ -306,7 +298,7 @@
   if (!overlay) {
    overlay = document.createElement("div")
    overlay.id = "eventPackOpenOverlay"
-   overlay.className = "pack-open-overlay"
+   overlay.className = "pack-open-overlay event-pack-open-overlay"
    overlay.setAttribute("aria-hidden", "true")
    overlay.innerHTML = `
     <div class="pack-starfield pack-starfield-base" aria-hidden="true"></div>
@@ -351,7 +343,9 @@
   if (!overlay || !overlay.classList.contains("open")) return
   for (const timer of eventPackTimers) window.clearTimeout(timer)
   eventPackTimers = []
-  overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+  if (!eventPackMaskResults) {
+   overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+  }
   overlay.classList.add("complete")
   const skipBtn = document.getElementById("eventPackSkipBtn")
   if (skipBtn) {
@@ -370,6 +364,12 @@
 
   for (const timer of eventPackTimers) window.clearTimeout(timer)
   eventPackTimers = []
+  overlay.classList.remove("complete")
+
+  const eventKey = String(payload?.event?.key || "").toLowerCase()
+  const eventName = String(payload?.event?.name || "Event des Dieux")
+  const isSramEvent = eventKey === "sram" || eventName.toLowerCase().includes("sram")
+  eventPackMaskResults = isSramEvent
 
   const title = document.getElementById("eventPackOpenTitle")
   const meta = document.getElementById("eventPackOpenMeta")
@@ -378,20 +378,29 @@
   const summary = document.getElementById("eventPackOpenSummary")
   const skipBtn = document.getElementById("eventPackSkipBtn")
   const cards = normalizeEventCards(payload)
-  const eventName = String(payload?.event?.name || "Event des Dieux")
   const kamasGain = Number(payload?.gains?.kamas || 0)
   const xpGain = Number(payload?.gains?.xp || 0)
 
   title.textContent = `Ouverture ${eventName}`
-  meta.textContent = `+💰 ${kamasGain.toLocaleString("fr-FR")} · +⭐ ${xpGain.toLocaleString("fr-FR")} XP`
-  foot.textContent = "Révélation progressive des cartes de l'event."
-  grid.classList.remove("pack-open-grid-stack")
-  grid.classList.toggle("pack-open-grid-six", cards.length === 6)
+  meta.textContent = `+ ${kamasGain.toLocaleString("fr-FR")} kamas - + ${xpGain.toLocaleString("fr-FR")} XP`
+  foot.textContent = isSramEvent
+   ? "Masquage de Sram actif: le recto reste cache."
+   : "Revelation progressive des cartes de l'event."
+
+  grid.classList.remove("pack-open-grid-six", "pack-open-grid-stack")
   grid.innerHTML = cards.map((card) => {
    const rarity = getRarityToken(card.rarity)
-   const newBadge = card.isNew ? '<span class="pack-new-badge">✨ NEW</span>' : ""
+   const newBadge = card.isNew ? '<span class="pack-new-badge">NEW</span>' : ""
+   const setLabel = esc(card.setName || "inconnu")
+   const sramMaskClass = isSramEvent ? " sram-mask" : ""
+   const frontImageSrc = isSramEvent ? EVENT_PACK_BACK_IMAGE : card.imageUrl
+   const frontTitle = isSramEvent
+    ? "Carte masquee"
+    : `${esc(rarity)} ${esc(card.cardName)} - ${setLabel}`
+   const frontSmall = isSramEvent ? "secret" : `x1 ${newBadge}`
+
    return `
-    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
+    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}${sramMaskClass}" data-rarity="${esc(rarity)}">
      <div class="pack-reveal-inner">
       <div class="pack-reveal-core">
        <div class="pack-reveal-face pack-reveal-back">
@@ -399,11 +408,11 @@
        </div>
        <div class="pack-reveal-face pack-reveal-front">
         <div class="pack-reveal-front-image">
-         ${card.imageUrl ? `<img src="${esc(card.imageUrl)}" alt="${esc(card.cardName)}">` : "<span>?</span>"}
+         ${frontImageSrc ? `<img src="${esc(frontImageSrc)}" alt="${esc(card.cardName)}">` : "<span>?</span>"}
         </div>
         <div class="pack-reveal-front-meta">
-         <strong>${esc(rarity)} ${esc(card.cardName)}</strong>
-         <small>x1 ${newBadge}</small>
+         <strong>${frontTitle}</strong>
+         <small>${frontSmall}</small>
         </div>
        </div>
       </div>
@@ -414,25 +423,33 @@
 
   const summaryItems = cards.map((card) => {
    const rarity = getRarityToken(card.rarity)
-   const newTag = card.isNew ? '<span class="pack-summary-new">✨ NEW</span>' : ""
+   if (isSramEvent) {
+    return `
+     <li class="pack-summary-row rarity-${rarity.toLowerCase()}">
+      <span><strong>Carte masquee - secret de sram</strong></span>
+      <small>x1</small>
+     </li>
+    `
+   }
+   const newTag = card.isNew ? '<span class="pack-summary-new">NEW</span>' : ""
    return `
     <li class="pack-summary-row rarity-${rarity.toLowerCase()}">
-     <span><strong>${esc(rarity)} ${esc(card.cardName)}</strong> ${newTag}</span>
+     <span><strong>${esc(rarity)} ${esc(card.cardName)} - ${esc(card.setName)}</strong> ${newTag}</span>
      <small>x1</small>
     </li>
    `
   }).join("")
+
   summary.innerHTML = `
    <div class="pack-summary-block">
-    <h4>Récap de l'ouverture</h4>
-    <p class="pack-summary-meta">${cards.length.toLocaleString("fr-FR")} carte(s) tirée(s)</p>
+    <h4>Recap de l'ouverture</h4>
+    <p class="pack-summary-meta">${cards.length.toLocaleString("fr-FR")} carte(s) tiree(s)</p>
     <ul class="pack-summary-list">
      ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
     </ul>
    </div>
   `
 
-  overlay.classList.remove("complete")
   overlay.setAttribute("aria-hidden", "false")
   document.body.classList.add("pack-opening-lock")
   window.requestAnimationFrame(() => overlay.classList.add("open"))
@@ -444,23 +461,30 @@
   }
 
   const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
-  let revealCursor = 900
+  let revealCursor = 820
   cardEls.forEach((el) => {
-   const rarity = getRarityToken(el.className.match(/rarity-([a-z]+)/i)?.[1] || "")
-   const tierDelay = rarity === "SSR" ? 1900 : rarity === "S" ? 1450 : 760
+   const rarity = getRarityToken(el.getAttribute("data-rarity"))
+   const tierDelay = rarity === "SSR" ? 1700 : rarity === "S" ? 1300 : 700
    const timer = window.setTimeout(() => {
-    el.classList.add("revealed")
+    if (isSramEvent) {
+     el.classList.add("sram-spin")
+     const stop = window.setTimeout(() => el.classList.remove("sram-spin"), 980)
+     eventPackTimers.push(stop)
+    } else {
+     el.classList.add("revealed")
+    }
    }, revealCursor)
    eventPackTimers.push(timer)
    revealCursor += tierDelay
   })
+
   const doneTimer = window.setTimeout(() => {
    overlay.classList.add("complete")
    if (skipBtn) {
     skipBtn.disabled = true
     skipBtn.style.display = "none"
    }
-  }, revealCursor + 420)
+  }, revealCursor + 450)
   eventPackTimers.push(doneTimer)
 
   return new Promise((resolve) => {
@@ -475,7 +499,7 @@
    body: JSON.stringify({ emoji })
   })
   if (!res.ok) {
-   alert(res.data?.error || "Réaction impossible.")
+   alert(res.data?.error || "Reaction impossible.")
    return
   }
   await refreshState()
@@ -527,7 +551,7 @@
    const data = res.data || {}
    box.innerHTML = `
     <p><strong>${esc(data.event?.name || "Event des Dieux")}</strong></p>
-    <p>💰 +${Number(data.gains?.kamas || 0).toLocaleString("fr-FR")} · ⭐ +${Number(data.gains?.xp || 0)} XP</p>
+    <p>+${Number(data.gains?.kamas || 0).toLocaleString("fr-FR")} kamas - +${Number(data.gains?.xp || 0)} XP</p>
     <p>${esc(data.event?.voiceLine || "")}</p>
    `
   } finally {
