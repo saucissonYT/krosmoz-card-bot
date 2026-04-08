@@ -1246,17 +1246,55 @@ body.auth-connected .hero {
 }
 
 body.market-page .market-hero {
- text-align: center;
+ border: 0;
+ border-radius: 0;
+ padding: 0 0 4px;
+ background: transparent;
+ box-shadow: none;
+ text-align: left;
+}
+
+body.market-page .market-hero .section-title,
+body.market-page .market-hero .section-subtitle {
+ text-align: left;
+}
+
+body.market-page .market-hero .section-title,
+body.achievements-page .achievements-hero .section-title {
+ font-size: 1.45rem;
+ letter-spacing: 0.03em;
+ margin-bottom: 6px;
+ color: #f7f2df;
+}
+
+body.achievements-page .achievements-shell {
+ padding-top: 40px;
+ display: grid;
+ gap: 14px;
+}
+
+body.achievements-page .achievements-hero {
+ padding: 0;
+ margin: 0;
+}
+
+body.achievements-page .achievements-hero .section-title,
+body.achievements-page .achievements-hero .section-subtitle {
+ text-align: left;
 }
 
 body.market-page .market-hero .section-subtitle {
- color: #23305d;
+ margin-bottom: 0;
+ color: #1e2d57;
  font-weight: 700;
+ font-size: 0.98rem;
 }
 
-body.achievements-page .section-subtitle {
- color: #23305d;
+body.achievements-page .achievements-hero .section-subtitle {
+ margin-bottom: 0;
+ color: #1e2d57;
  font-weight: 700;
+ font-size: 0.98rem;
 }
 
 body.achievements-page #completionToggle,
@@ -1501,6 +1539,11 @@ body.market-page .market-card .chip {
 body.market-page .market-footer-domain {
  color: #7483b4;
  font-weight: 600;
+}
+
+body.tutorial-page .tutorial-footer-domain {
+ color: #3a518b;
+ font-weight: 700;
 }
 
 .catalog-card.card-incomplete {

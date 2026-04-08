@@ -43,12 +43,11 @@ if (__initialPlayTab === "fusion") {
 <div class="page">
   <div class="container">
    <section class="play-shell">
-    <main class="play-main">
-     <header class="play-head">
-      <h1 id="playTitle">INVENTAIRE</h1>
+    <header class="play-head mode-hero">
+      <h1 id="playTitle">Inventaire</h1>
       <p id="playSubtitle" class="play-subtitle">Consulte ton inventaire et fait le tri dans ton inventaire.</p>
-      </header>
-
+    </header>
+    <main class="play-main">
      <div class="play-controls" id="playControls">
       <input id="searchInput" class="input" placeholder="Rechercher...">
       <select id="setFilter" class="input input-select">
@@ -2257,7 +2256,7 @@ async function handleCraftAction() {
    grid.style.display = "none"
    craftPanel.style.display = "block"
   } else {
-   title.textContent = state.inventoryView === "fragments" ? "FRAGMENTS" : "INVENTAIRE"
+   title.textContent = state.inventoryView === "fragments" ? "Fragments" : "Inventaire"
    if (subtitle) {
     subtitle.textContent = state.inventoryView === "fragments"
      ? "Consulte tes fragments et prépare tes crafts SSR."

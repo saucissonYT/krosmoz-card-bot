@@ -186,6 +186,34 @@
  font-size: 0.96rem;
 }
 
+.play-head.mode-hero {
+ margin-bottom: 0;
+}
+
+.play-head.mode-hero h1 {
+ font-family: "Cinzel", serif;
+ letter-spacing: 0.03em;
+ font-size: 1.45rem;
+ color: #f7f2df;
+ margin: 0;
+}
+
+.play-head.mode-hero .play-subtitle {
+ color: #bdc2df;
+ margin-top: 0;
+ margin-bottom: 0;
+ font-size: 0.96rem;
+}
+
+.play-page.route-inventory-bg .play-head.mode-hero,
+.play-page.inventory-bg-active .play-head.mode-hero {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0 0 6px;
+}
+
 .play-tabs,
 .play-subtabs {
  display: flex;
