@@ -203,7 +203,7 @@
   const isMine = state.connected && state.me && String(item.seller) === String(state.me.id)
   const fragmentInfo = item.type === "fragment"
    ? `
-      <p class="market-card-line"><span>Fragment</span><strong>${item.fragmentNumber}/5</strong></p>
+      <p class="market-card-line"><span>🧩 Fragment</span><strong>${item.fragmentNumber}/5</strong></p>
       <p class="market-card-line"><span>Prix mini</span><strong>${Number(item.minimumPrice || 0).toLocaleString("fr-FR")} kamas</strong></p>
      `
    : `<p class="market-card-line"><span>Type</span><strong>Carte complete</strong></p>`
@@ -223,7 +223,7 @@
     <div class="market-card-top">
      <div class="catalog-card-head">
       <span class="chip chip-rarity">${item.rarity}</span>
-      <span class="chip">${item.type === "fragment" ? "Fragment" : "Carte"}</span>
+      <span class="chip">${item.type === "fragment" ? "🧩 Fragment" : "Carte"}</span>
      </div>
      <p class="market-card-set">${escapeHtml(item.setName)}</p>
     </div>
@@ -297,7 +297,7 @@
     const listing = r.data?.result?.listing
     if (listing) {
      const kind = listing.type === "fragment"
-      ? `fragment ${listing.fragmentNumber}/5`
+      ? `🧩 fragment ${listing.fragmentNumber}/5`
       : "carte"
      showToast(`Achat confirmé: ${kind} ajouté à ton inventaire.`)
     } else {
@@ -364,7 +364,7 @@ function option(value, label) {
      const rarityEmoji = RARITY_EMOJI[rarity] || rarity
      const priceShort = `${Number(l.price || 0).toLocaleString("fr-FR")}k`
      const kind = l.type === "fragment"
-      ? `${Number(l.fragmentNumber || 0)}/5`
+      ? `🧩 ${Number(l.fragmentNumber || 0)}/5`
       : "Carte"
      const thumb = l.imageUrl
       ? `<img loading="lazy" src="${l.imageUrl}" alt="${escapeHtml(l.cardName)}" onerror="this.parentElement.innerHTML='${escapeHtml(rarityEmoji)}'">`
@@ -379,7 +379,7 @@ function option(value, label) {
      `
     }).join("")}
    </div>
-   <div id="myListingDetail"></div>
+   <div id="myListingDetail" class="my-listing-detail-wrap"></div>
   `
 
   const detailRoot = box.querySelector("#myListingDetail")
@@ -395,7 +395,7 @@ function option(value, label) {
    })
 
    const typeLabel = selected.type === "fragment"
-    ? `Fragment ${Number(selected.fragmentNumber || 0)}/5`
+    ? `🧩 Fragment ${Number(selected.fragmentNumber || 0)}/5`
     : "Carte complète"
 
    detailRoot.innerHTML = `

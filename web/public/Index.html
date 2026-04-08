@@ -389,7 +389,7 @@
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🪅 Piñata d'Ecaflip démarrée</div>
+       <div class="activity-title">Piñata d'Ecaflip démarrée</div>
        <div class="activity-meta">Une piñata a démarré.</div>
       </div>
       <div class="activity-side">
@@ -401,11 +401,15 @@
 
    /* ── Piñata end ── */
    if (kind === "pinata" || kind === "pinata_end" || kind === "pinata_web") {
+    const participants = Number(item?.participants || 0)
+    const participantsLabel = participants <= 0
+     ? "Aucun participant"
+     : `${participants} participant${participants > 1 ? "s" : ""}`
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🪅 Piñata d'Ecaflip terminée</div>
-       <div class="activity-meta">${Number(item?.participants || 0)} participant${(item?.participants || 0) > 1 ? "s" : ""}</div>
+       <div class="activity-title">Piñata d'Ecaflip terminée</div>
+       <div class="activity-meta">${participantsLabel}</div>
       </div>
       <div class="activity-side">
        <div class="activity-time">${dateLabel}</div>
