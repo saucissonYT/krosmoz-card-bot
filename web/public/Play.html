@@ -10,8 +10,11 @@
 </head>
 <body class="play-page">
 <script>
- if ((String(window.location.pathname || "").split("/")[2] || "") === "fusion") {
+ const __initialPlayTab = String(window.location.pathname || "").split("/")[2] || ""
+ if (__initialPlayTab === "fusion") {
   document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active")
+ } else if (__initialPlayTab === "packs") {
+  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
  }
 </script>
 <nav class="navbar scrolled">
@@ -165,6 +168,9 @@ function setMode(mode, updateUrl = true) {
   document.body.classList.toggle("route-fusion-bg", mode === "fusion")
   document.body.classList.toggle("fusion-bg-active", mode === "fusion")
   document.body.classList.toggle("fusion-mode-active", mode === "fusion")
+  document.body.classList.toggle("route-pack-bg", mode === "packs")
+  document.body.classList.toggle("pack-bg-active", mode === "packs")
+  document.body.classList.toggle("packs-mode-active", mode === "packs")
   document.querySelectorAll("[data-play-mode]").forEach((tab) => {
    tab.classList.toggle("active", tab.dataset.playMode === mode)
   })
