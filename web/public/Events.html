@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
@@ -27,7 +27,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
    </div>
   </div>
  </nav>
@@ -37,12 +37,12 @@
    <section class="events-shell">
     <header class="events-hero fade-in">
      <h1 class="section-title">Ecaflip City</h1>
-     <p class="section-subtitle">Pinata web, Roulette d'Ecaflip et Eventpacks des Dieux, au meme endroit.</p>
+     <p class="section-subtitle">Pi&ntilde;ata web, Roulette d'Ecaflip et Eventpacks des Dieux, au m&ecirc;me endroit.</p>
     </header>
 
     <article class="events-status-card fade-in stagger-1">
      <div class="events-status-kpis">
-      <div><span>Pinata</span><strong id="pinataInfo">Fermee</strong></div>
+      <div><span>Pi&ntilde;ata</span><strong id="pinataInfo">Ferm&eacute;e</strong></div>
       <div><span>Roulette</span><strong id="rouletteInfo">---</strong></div>
       <div><span>Tickets</span><strong id="ticketInfo">0/0</strong></div>
      </div>
@@ -51,9 +51,9 @@
     <div class="events-grid">
      <article class="events-card events-pinata fade-in stagger-2">
       <div class="events-card-media">
-       <img src="/assets/ui/pinata.png" alt="Pinata">
+       <img src="/assets/ui/pinata.png" alt="Piñata">
       </div>
-      <h3>Pinata d'Ecaflip</h3>
+      <h3>Piñata d'Ecaflip</h3>
       <p id="pinataStatus" class="events-muted">Chargement...</p>
       <div id="pinataReactionBar" class="pinata-reactions"></div>
       <p id="pinataMine" class="events-muted"></p>
@@ -91,7 +91,7 @@
 
    <footer class="footer">
     <p>Krosmoz Card - krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">A propos - Contact - Mentions legales</a></p>
+    <p style="margin-top:8px"><a href="/about">&Agrave; propos &middot; Contact &middot; Mentions l&eacute;gales</a></p>
    </footer>
   </div>
  </div>
@@ -160,9 +160,9 @@ function renderRouletteCooldownTick() {
   return
  }
 
- status.textContent = "Prete a tourner."
+ status.textContent = "Pr\u00EAte \u00E0 tourner."
  btn.disabled = false
- rouletteInfo.textContent = "Prete"
+ rouletteInfo.textContent = "Pr\u00EAte"
  stopRouletteCooldownTicker()
 }
 
@@ -186,7 +186,7 @@ function ensureRouletteCooldownTicker() {
   const pinataInfo = document.getElementById("pinataInfo")
 
   if (!pinata) {
-   status.textContent = "Pinata indisponible."
+   status.textContent = "Pi\u00F1ata indisponible."
    reactions.innerHTML = ""
    mine.textContent = ""
    board.innerHTML = ""
@@ -199,8 +199,8 @@ function ensureRouletteCooldownTicker() {
    status.textContent = `En cours: ${pinata.participants} participant(s) - fin dans ${formatMs(endsIn)}`
    pinataInfo.textContent = `${Number(pinata.participants || 0)} actif(s)`
   } else {
-   status.textContent = "Pinata fermee pour le moment."
-   pinataInfo.textContent = "Fermee"
+   status.textContent = "Pi\u00F1ata ferm\u00E9e pour le moment."
+   pinataInfo.textContent = "Ferm\u00E9e"
   }
 
   if (!connected) {
@@ -229,7 +229,7 @@ function ensureRouletteCooldownTicker() {
 
   const ranking = pinata.leaderboard || []
   if (!ranking.length) {
-   board.innerHTML = `<p class="events-muted">Aucun resultat a afficher pour l'instant.</p>`
+   board.innerHTML = `<p class="events-muted">Aucun r\u00E9sultat \u00E0 afficher pour l'instant.</p>`
   } else {
    board.innerHTML = ranking.map((row, index) =>
     `<div class="events-mini-row"><span>${index + 1}. ${esc(row.userId)}</span><strong>${Number(row.score || 0)} pts</strong></div>`
@@ -245,7 +245,7 @@ function renderRoulette(roulette, connected) {
  if (!connected) {
   rouletteCooldownUntil = 0
   stopRouletteCooldownTicker()
-  status.textContent = "Connecte-toi pour jouer a la roulette."
+  status.textContent = "Connecte-toi pour jouer \u00E0 la roulette."
   btn.disabled = true
   rouletteInfo.textContent = "Connexion"
   return
@@ -259,9 +259,9 @@ function renderRoulette(roulette, connected) {
  } else {
   rouletteCooldownUntil = 0
   stopRouletteCooldownTicker()
-  status.textContent = "Prete a tourner."
+  status.textContent = "Pr\u00EAte \u00E0 tourner."
   btn.disabled = false
-  rouletteInfo.textContent = "Prete"
+  rouletteInfo.textContent = "Pr\u00EAte"
  }
 }
 
@@ -361,7 +361,7 @@ function renderEventpack(eventState, tickets, connected) {
      ${Array.from({ length: 16 }, (_, idx) => `<span class="pack-stardust-dot dot-${idx + 1}"></span>`).join("")}
     </div>
     <div class="pack-open-dialog" role="dialog" aria-modal="true" aria-label="Ouverture d'eventpack">
-     <button class="pack-open-close" type="button" data-pack-close aria-label="Fermer">×</button>
+     <button class="pack-open-close" type="button" data-pack-close aria-label="Fermer">&times;</button>
      <h3 id="eventPackOpenTitle">Ouverture d'eventpack</h3>
      <p id="eventPackOpenMeta" class="pack-open-meta"></p>
      <div id="eventPackOpenGrid" class="pack-open-grid"></div>
@@ -444,8 +444,8 @@ function showEventPackOpeningAnimation(payload) {
   title.textContent = `Ouverture ${eventName}`
   meta.textContent = `+ ${kamasGain.toLocaleString("fr-FR")} kamas - + ${xpGain.toLocaleString("fr-FR")} XP`
   foot.textContent = isSramEvent
-   ? "Masquage de Sram actif: le recto reste cache."
-   : "Revelation progressive des cartes de l'event."
+   ? "Masquage de Sram actif: le recto reste cach\u00E9."
+   : "R\u00E9v\u00E9lation progressive des cartes de l'event."
 
   grid.classList.remove("pack-open-grid-six", "pack-open-grid-stack")
   grid.innerHTML = cards.map((card) => {
@@ -502,8 +502,8 @@ function showEventPackOpeningAnimation(payload) {
 
   summary.innerHTML = `
    <div class="pack-summary-block">
-    <h4>Recap de l'ouverture</h4>
-    <p class="pack-summary-meta">${cards.length.toLocaleString("fr-FR")} carte(s) tiree(s)</p>
+    <h4>R\u00E9cap de l'ouverture</h4>
+    <p class="pack-summary-meta">${cards.length.toLocaleString("fr-FR")} carte(s) tir\u00E9e(s)</p>
     <ul class="pack-summary-list">
      ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
     </ul>
@@ -638,3 +638,4 @@ function showEventPackOpeningAnimation(payload) {
  </script>
 </body>
 </html>
+
