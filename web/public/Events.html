@@ -3,9 +3,10 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Events — Krosmoz Card</title>
+ <title>Ecaflip City — Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
+ <link rel="stylesheet" href="/Play.css">
 </head>
 <body class="events-page">
  <nav class="navbar scrolled">
@@ -36,19 +37,24 @@
   <div class="container">
    <section class="events-shell">
     <header class="events-hero fade-in">
-     <h1 class="section-title">🎪 Arena des Events</h1>
+     <h1 class="section-title">Ecaflip City</h1>
      <p class="section-subtitle">Piñata web, Roulette d'Ecaflip et Eventpacks des Dieux, au même endroit.</p>
     </header>
 
     <article class="events-status-card fade-in stagger-1">
-     <div>
-      <h2 id="eventTitle">Event des Dieux: aucun event actif</h2>
-      <p id="eventSubtitle" class="events-muted">Les dieux se préparent. Reviens bientôt.</p>
+     <div class="events-status-main">
+      <div>
+       <h2 id="eventTitle">Event des Dieux: aucun event actif</h2>
+       <p id="eventSubtitle" class="events-muted">Les dieux se préparent. Reviens bientôt.</p>
+      </div>
+      <div class="events-event-visual">
+       <img src="/assets/ui/event%20des%20dieux.png" alt="Event des Dieux">
+      </div>
      </div>
      <div class="events-status-kpis">
       <div><span>Tickets</span><strong id="ticketInfo">0/0</strong></div>
-      <div><span>Kamas</span><strong id="kamasInfo">0</strong></div>
-      <div><span>Packs</span><strong id="packsInfo">0</strong></div>
+      <div><span>Piñata</span><strong id="pinataInfo">Fermée</strong></div>
+      <div><span>Roulette</span><strong id="rouletteInfo">---</strong></div>
      </div>
     </article>
 
@@ -70,6 +76,9 @@
       </div>
       <h3>🎡 Roulette d'Ecaflip</h3>
       <p id="rouletteStatus" class="events-muted">Chargement...</p>
+      <div id="rouletteSpinBox" class="roulette-spin-box" aria-hidden="true">
+       <div class="roulette-wheel"><span>🎡</span></div>
+      </div>
       <div class="action-row">
        <button id="spinRouletteBtn" class="btn btn-gold">Lancer la roulette</button>
       </div>
@@ -82,6 +91,9 @@
       </div>
       <h3>🎟️ Eventpack des Dieux</h3>
       <p id="eventpackStatus" class="events-muted">Chargement...</p>
+      <div class="events-pack-card-view">
+       <img src="/assets/ui/event%20carte.png" alt="Dos de carte event">
+      </div>
       <div class="action-row">
        <button id="openEventpackBtn" class="btn btn-outline">Ouvrir un eventpack</button>
       </div>
@@ -99,9 +111,10 @@
 
  <script src="/js/web-auth.js"></script>
  <script>
- const ui = {
-  state: null
- }
+ const EVENT_PACK_BACK_IMAGE = "/assets/ui/event%20carte.png"
+ let eventPackRevealResolve = null
+ let eventPackEscBound = false
+ let eventPackTimers = []
 
  function esc(str) {
   const div = document.createElement("div")
@@ -122,6 +135,12 @@
   return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
  }
 
+ function getRarityToken(rarity) {
+  const token = String(rarity || "").toUpperCase().trim()
+  const allowed = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+  return allowed.includes(token) ? token : "C"
+ }
+
  async function api(path, options = {}) {
   const res = await fetch(path, { credentials: "same-origin", ...options })
   let data = null
@@ -134,30 +153,34 @@
   const mine = document.getElementById("pinataMine")
   const reactions = document.getElementById("pinataReactionBar")
   const board = document.getElementById("pinataBoard")
+  const pinataInfo = document.getElementById("pinataInfo")
 
   if (!pinata) {
    status.textContent = "Piñata indisponible."
    reactions.innerHTML = ""
    mine.textContent = ""
    board.innerHTML = ""
+   pinataInfo.textContent = "N/A"
    return
   }
 
   if (pinata.active) {
    const endsIn = Math.max(0, Number(pinata.endsAt || 0) - Date.now())
    status.textContent = `En cours: ${pinata.participants} participant(s) · fin dans ${formatMs(endsIn)}`
+   pinataInfo.textContent = `${Number(pinata.participants || 0)} actif(s)`
   } else {
-   const nextIn = Math.max(0, Number(pinata.nextStartAt || 0) - Date.now())
-   status.textContent = `Prochaine piñata dans ${formatMs(nextIn)}`
+   status.textContent = "Piñata fermée pour le moment."
+   pinataInfo.textContent = "Fermée"
   }
 
   if (!connected) {
    reactions.innerHTML = `<a class="btn btn-outline" href="${esc(getLoginUrl())}">Connexion Discord requise</a>`
    mine.textContent = ""
   } else {
-   reactions.innerHTML = (pinata.allowedEmojis || []).map((emoji) =>
-    `<button class="btn btn-outline pinata-react-btn" data-emoji="${esc(emoji)}">${esc(emoji)}</button>`
-   ).join("")
+   reactions.innerHTML = (pinata.allowedEmojis || []).map((emoji) => {
+    const disabled = pinata.active ? "" : "disabled"
+    return `<button class="btn btn-outline pinata-react-btn" ${disabled} data-emoji="${esc(emoji)}">${esc(emoji)}</button>`
+   }).join("")
   }
 
   const mineReward = pinata.my?.reward
@@ -171,7 +194,7 @@
 
   const ranking = pinata.leaderboard || []
   if (!ranking.length) {
-   board.innerHTML = `<p class="events-muted">Aucun résultat à afficher pour l'instant.</p>`
+    board.innerHTML = `<p class="events-muted">Aucun résultat à afficher pour l'instant.</p>`
   } else {
    board.innerHTML = ranking.map((row, index) =>
     `<div class="events-mini-row"><span>${index + 1}. ${esc(row.userId)}</span><strong>${Number(row.score || 0)} pts</strong></div>`
@@ -182,18 +205,24 @@
  function renderRoulette(roulette, connected) {
   const status = document.getElementById("rouletteStatus")
   const btn = document.getElementById("spinRouletteBtn")
+  const rouletteInfo = document.getElementById("rouletteInfo")
+
   if (!connected) {
    status.textContent = "Connecte-toi pour jouer à la roulette."
    btn.disabled = true
+   rouletteInfo.textContent = "Connexion"
    return
   }
+
   const cd = Number(roulette?.cooldownMs || 0)
   if (cd > 0) {
    status.textContent = `Recharge en cours: ${formatMs(cd)}`
    btn.disabled = true
+   rouletteInfo.textContent = "Recharge"
   } else {
    status.textContent = "Prête à tourner."
    btn.disabled = false
+   rouletteInfo.textContent = "Prête"
   }
  }
 
@@ -210,20 +239,16 @@
    btn.disabled = true
    return
   }
-  status.textContent = `Event actif: ${eventState.name} · tickets ${tickets.used}/${tickets.total}`
+  status.textContent = `Event actif: ${eventState.name} · tickets ${tickets.remaining}/${tickets.total}`
   btn.disabled = Number(tickets.remaining || 0) <= 0
- }
+}
 
  function renderGlobal(data) {
-  ui.state = data || {}
   const connected = Boolean(data?.connected)
   const eventState = data?.event || {}
   const tickets = data?.tickets || { total: 0, used: 0, remaining: 0 }
-  const me = data?.me || {}
 
-  document.getElementById("ticketInfo").textContent = `${Number(tickets.used || 0)}/${Number(tickets.total || 0)}`
-  document.getElementById("kamasInfo").textContent = Number(me.kamas || 0).toLocaleString("fr-FR")
-  document.getElementById("packsInfo").textContent = Number(me.packs || 0).toLocaleString("fr-FR")
+  document.getElementById("ticketInfo").textContent = `${Number(tickets.remaining || 0)}/${Number(tickets.total || 0)}`
 
   const eventTitle = document.getElementById("eventTitle")
   const eventSubtitle = document.getElementById("eventSubtitle")
@@ -247,6 +272,202 @@
   renderGlobal(res.data)
  }
 
+ function normalizeEventCards(payload) {
+  const cards = Array.isArray(payload?.cards) ? payload.cards : []
+  return cards.map((card) => ({
+   rarity: getRarityToken(card?.rarity),
+   cardName: String(card?.cardName || "Carte"),
+   imageUrl: String(card?.imageUrl || ""),
+   isNew: Boolean(card?.isNew)
+  }))
+ }
+
+ function closeEventPackOverlay() {
+  const overlay = document.getElementById("eventPackOpenOverlay")
+  if (!overlay || !overlay.classList.contains("open")) return
+  for (const timer of eventPackTimers) window.clearTimeout(timer)
+  eventPackTimers = []
+  overlay.classList.remove("open", "complete")
+  overlay.setAttribute("aria-hidden", "true")
+  document.body.classList.remove("pack-opening-lock")
+  const resolver = eventPackRevealResolve
+  eventPackRevealResolve = null
+  window.setTimeout(() => {
+   const grid = document.getElementById("eventPackOpenGrid")
+   if (grid) grid.innerHTML = ""
+   const summary = document.getElementById("eventPackOpenSummary")
+   if (summary) summary.innerHTML = ""
+  }, 220)
+  if (typeof resolver === "function") resolver()
+ }
+
+ function ensureEventPackOverlay() {
+  let overlay = document.getElementById("eventPackOpenOverlay")
+  if (!overlay) {
+   overlay = document.createElement("div")
+   overlay.id = "eventPackOpenOverlay"
+   overlay.className = "pack-open-overlay"
+   overlay.setAttribute("aria-hidden", "true")
+   overlay.innerHTML = `
+    <div class="pack-starfield pack-starfield-base" aria-hidden="true"></div>
+    <div class="pack-starfield pack-starfield-mid" aria-hidden="true"></div>
+    <div class="pack-starfield pack-starfield-top" aria-hidden="true"></div>
+    <div class="pack-stardust" aria-hidden="true">
+     ${Array.from({ length: 16 }, (_, idx) => `<span class="pack-stardust-dot dot-${idx + 1}"></span>`).join("")}
+    </div>
+    <div class="pack-open-dialog" role="dialog" aria-modal="true" aria-label="Ouverture d'eventpack">
+     <button class="pack-open-close" type="button" data-pack-close aria-label="Fermer">×</button>
+     <h3 id="eventPackOpenTitle">Ouverture d'eventpack</h3>
+     <p id="eventPackOpenMeta" class="pack-open-meta"></p>
+     <div id="eventPackOpenGrid" class="pack-open-grid"></div>
+     <p id="eventPackOpenFoot" class="pack-open-foot"></p>
+     <div id="eventPackOpenSummary" class="pack-open-summary"></div>
+     <div class="pack-open-actions">
+      <button class="btn btn-outline" type="button" id="eventPackSkipBtn">Skip animation</button>
+      <button class="btn btn-gold" type="button" data-pack-close>Continuer</button>
+     </div>
+    </div>
+   `
+   document.body.appendChild(overlay)
+   overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeEventPackOverlay()
+   })
+   overlay.querySelectorAll("[data-pack-close]").forEach((btn) => {
+    btn.addEventListener("click", () => closeEventPackOverlay())
+   })
+  }
+
+  if (!eventPackEscBound) {
+   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeEventPackOverlay()
+   })
+   eventPackEscBound = true
+  }
+  return overlay
+ }
+
+ function completeEventPackReveal() {
+  const overlay = document.getElementById("eventPackOpenOverlay")
+  if (!overlay || !overlay.classList.contains("open")) return
+  for (const timer of eventPackTimers) window.clearTimeout(timer)
+  eventPackTimers = []
+  overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+  overlay.classList.add("complete")
+  const skipBtn = document.getElementById("eventPackSkipBtn")
+  if (skipBtn) {
+   skipBtn.disabled = true
+   skipBtn.style.display = "none"
+  }
+ }
+
+ function showEventPackOpeningAnimation(payload) {
+  const overlay = ensureEventPackOverlay()
+  if (typeof eventPackRevealResolve === "function") {
+   const previous = eventPackRevealResolve
+   eventPackRevealResolve = null
+   previous()
+  }
+
+  for (const timer of eventPackTimers) window.clearTimeout(timer)
+  eventPackTimers = []
+
+  const title = document.getElementById("eventPackOpenTitle")
+  const meta = document.getElementById("eventPackOpenMeta")
+  const grid = document.getElementById("eventPackOpenGrid")
+  const foot = document.getElementById("eventPackOpenFoot")
+  const summary = document.getElementById("eventPackOpenSummary")
+  const skipBtn = document.getElementById("eventPackSkipBtn")
+  const cards = normalizeEventCards(payload)
+  const eventName = String(payload?.event?.name || "Event des Dieux")
+  const kamasGain = Number(payload?.gains?.kamas || 0)
+  const xpGain = Number(payload?.gains?.xp || 0)
+
+  title.textContent = `Ouverture ${eventName}`
+  meta.textContent = `+💰 ${kamasGain.toLocaleString("fr-FR")} · +⭐ ${xpGain.toLocaleString("fr-FR")} XP`
+  foot.textContent = "Révélation progressive des cartes de l'event."
+  grid.classList.remove("pack-open-grid-stack")
+  grid.classList.toggle("pack-open-grid-six", cards.length === 6)
+  grid.innerHTML = cards.map((card) => {
+   const rarity = getRarityToken(card.rarity)
+   const newBadge = card.isNew ? '<span class="pack-new-badge">✨ NEW</span>' : ""
+   return `
+    <article class="pack-reveal-card rarity-${rarity.toLowerCase()}">
+     <div class="pack-reveal-inner">
+      <div class="pack-reveal-core">
+       <div class="pack-reveal-face pack-reveal-back">
+        <img src="${EVENT_PACK_BACK_IMAGE}" alt="Dos de carte event ${esc(rarity)}">
+       </div>
+       <div class="pack-reveal-face pack-reveal-front">
+        <div class="pack-reveal-front-image">
+         ${card.imageUrl ? `<img src="${esc(card.imageUrl)}" alt="${esc(card.cardName)}">` : "<span>?</span>"}
+        </div>
+        <div class="pack-reveal-front-meta">
+         <strong>${esc(rarity)} ${esc(card.cardName)}</strong>
+         <small>x1 ${newBadge}</small>
+        </div>
+       </div>
+      </div>
+     </div>
+    </article>
+   `
+  }).join("")
+
+  const summaryItems = cards.map((card) => {
+   const rarity = getRarityToken(card.rarity)
+   const newTag = card.isNew ? '<span class="pack-summary-new">✨ NEW</span>' : ""
+   return `
+    <li class="pack-summary-row rarity-${rarity.toLowerCase()}">
+     <span><strong>${esc(rarity)} ${esc(card.cardName)}</strong> ${newTag}</span>
+     <small>x1</small>
+    </li>
+   `
+  }).join("")
+  summary.innerHTML = `
+   <div class="pack-summary-block">
+    <h4>Récap de l'ouverture</h4>
+    <p class="pack-summary-meta">${cards.length.toLocaleString("fr-FR")} carte(s) tirée(s)</p>
+    <ul class="pack-summary-list">
+     ${summaryItems || '<li class="pack-summary-row"><span>Aucune carte</span><small>x0</small></li>'}
+    </ul>
+   </div>
+  `
+
+  overlay.classList.remove("complete")
+  overlay.setAttribute("aria-hidden", "false")
+  document.body.classList.add("pack-opening-lock")
+  window.requestAnimationFrame(() => overlay.classList.add("open"))
+
+  if (skipBtn) {
+   skipBtn.disabled = false
+   skipBtn.style.display = ""
+   skipBtn.onclick = () => completeEventPackReveal()
+  }
+
+  const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
+  let revealCursor = 900
+  cardEls.forEach((el) => {
+   const rarity = getRarityToken(el.className.match(/rarity-([a-z]+)/i)?.[1] || "")
+   const tierDelay = rarity === "SSR" ? 1900 : rarity === "S" ? 1450 : 760
+   const timer = window.setTimeout(() => {
+    el.classList.add("revealed")
+   }, revealCursor)
+   eventPackTimers.push(timer)
+   revealCursor += tierDelay
+  })
+  const doneTimer = window.setTimeout(() => {
+   overlay.classList.add("complete")
+   if (skipBtn) {
+    skipBtn.disabled = true
+    skipBtn.style.display = "none"
+   }
+  }, revealCursor + 420)
+  eventPackTimers.push(doneTimer)
+
+  return new Promise((resolve) => {
+   eventPackRevealResolve = resolve
+  })
+ }
+
  async function reactPinata(emoji) {
   const res = await api("/api/events/pinata/react", {
    method: "POST",
@@ -262,12 +483,20 @@
 
  async function spinRoulette() {
   const box = document.getElementById("rouletteResult")
+  const spinBox = document.getElementById("rouletteSpinBox")
   box.innerHTML = "<p>Rotation en cours...</p>"
+  spinBox.classList.add("rolling")
+  const minAnimMs = 1000
+  const startAt = Date.now()
   const res = await api("/api/events/roulette/spin", {
    method: "POST",
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify({})
   })
+  const remaining = Math.max(0, minAnimMs - (Date.now() - startAt))
+  if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining))
+  spinBox.classList.remove("rolling")
+
   if (!res.ok) {
    box.innerHTML = `<p>${esc(res.data?.error || "Spin impossible.")}</p>`
    await refreshState()
@@ -280,27 +509,31 @@
 
  async function openEventpack() {
   const box = document.getElementById("eventpackResult")
+  const btn = document.getElementById("openEventpackBtn")
+  if (btn.disabled) return
+  btn.disabled = true
   box.innerHTML = "<p>Ouverture en cours...</p>"
-  const res = await api("/api/events/eventpack/open", {
-   method: "POST",
-   headers: { "Content-Type": "application/json" },
-   body: JSON.stringify({})
-  })
-  if (!res.ok) {
-   box.innerHTML = `<p>${esc(res.data?.error || "Ouverture impossible.")}</p>`
+  try {
+   const res = await api("/api/events/eventpack/open", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({})
+   })
+   if (!res.ok) {
+    box.innerHTML = `<p>${esc(res.data?.error || "Ouverture impossible.")}</p>`
+    return
+   }
+   await showEventPackOpeningAnimation(res.data || {})
+   const data = res.data || {}
+   box.innerHTML = `
+    <p><strong>${esc(data.event?.name || "Event des Dieux")}</strong></p>
+    <p>💰 +${Number(data.gains?.kamas || 0).toLocaleString("fr-FR")} · ⭐ +${Number(data.gains?.xp || 0)} XP</p>
+    <p>${esc(data.event?.voiceLine || "")}</p>
+   `
+  } finally {
    await refreshState()
-   return
+   btn.disabled = false
   }
-  const data = res.data || {}
-  const cards = Array.isArray(data.cards) ? data.cards.slice(0, 6) : []
-  const cardsHtml = cards.map((card) => `<li>${esc(card.cardName)} [${esc(card.rarity)}]${card.isNew ? " 🆕" : ""}</li>`).join("")
-  box.innerHTML = `
-   <p><strong>${esc(data.event?.name || "Event")}</strong></p>
-   <p>💰 +${Number(data.gains?.kamas || 0).toLocaleString("fr-FR")} · ⭐ +${Number(data.gains?.xp || 0)} XP</p>
-   <p>${esc(data.event?.voiceLine || "")}</p>
-   ${cardsHtml ? `<ul class="events-pack-list">${cardsHtml}</ul>` : ""}
-  `
-  await refreshState()
  }
 
  document.getElementById("navToggle").addEventListener("click", () => {
@@ -309,7 +542,7 @@
 
  document.getElementById("pinataReactionBar").addEventListener("click", (event) => {
   const btn = event.target.closest(".pinata-react-btn")
-  if (!btn) return
+  if (!btn || btn.disabled) return
   reactPinata(String(btn.dataset.emoji || ""))
  })
 

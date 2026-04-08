@@ -1,10 +1,88 @@
 ﻿(async function initGlobalAuthButton() {
  const btn = document.getElementById("globalAuthBtn")
- if (!btn) return
- const right = btn.parentElement
+ const right = btn ? btn.parentElement : null
  const navLinks = document.getElementById("navLinks")
  const navbar = document.querySelector(".navbar")
  const heroPlayBtn = document.getElementById("heroPlayBtn")
+ let eventToastDismissedUntil = 0
+
+ function ensureEventToast() {
+  let toast = document.getElementById("globalEventToast")
+  if (toast) return toast
+  toast = document.createElement("aside")
+  toast.id = "globalEventToast"
+  toast.className = "event-live-toast"
+  toast.hidden = true
+  toast.innerHTML = `
+   <h4 id="globalEventToastTitle">Événement en direct</h4>
+   <p id="globalEventToastText"></p>
+   <div class="event-live-toast-row">
+    <a class="btn btn-gold" href="/events">Voir l'event</a>
+    <button id="globalEventToastClose" type="button" class="btn btn-outline">Masquer</button>
+   </div>
+  `
+  document.body.appendChild(toast)
+  const closeBtn = toast.querySelector("#globalEventToastClose")
+  if (closeBtn) {
+   closeBtn.addEventListener("click", () => {
+    eventToastDismissedUntil = Date.now() + (15 * 60 * 1000)
+    toast.hidden = true
+   })
+  }
+  return toast
+ }
+
+ function setEventToastContent(payload) {
+  const toast = ensureEventToast()
+  const title = toast.querySelector("#globalEventToastTitle")
+  const text = toast.querySelector("#globalEventToastText")
+  const connected = Boolean(payload?.connected)
+  const eventActive = Boolean(payload?.event?.active)
+  const pinataActive = Boolean(payload?.pinata?.active)
+  const rouletteReady = Boolean(payload?.roulette?.canSpin)
+
+  if (!connected) {
+   toast.hidden = true
+   return
+  }
+  if (!eventActive && !pinataActive && !rouletteReady) {
+   toast.hidden = true
+   return
+  }
+  if (Date.now() < eventToastDismissedUntil) {
+   toast.hidden = true
+   return
+  }
+
+  const messages = []
+  if (eventActive) {
+   messages.push(`⚡ ${String(payload?.event?.name || "Event des Dieux")} actif`)
+  }
+  if (pinataActive) {
+   messages.push(`🪅 Piñata d'Ecaflip active`)
+  }
+  if (rouletteReady) {
+   messages.push(`🎡 Roulette d'Ecaflip disponible`)
+  }
+
+  if (title) title.textContent = "Activités en direct"
+  if (text) text.textContent = messages.join(" · ")
+  toast.hidden = false
+ }
+
+ async function refreshEventToast() {
+  try {
+   const res = await fetch("/api/events/state", { credentials: "same-origin" })
+   if (!res.ok) return
+   const data = await res.json()
+   setEventToastContent(data)
+  } catch (_) {}
+ }
+
+ ensureEventToast()
+ refreshEventToast().catch(() => {})
+ window.setInterval(() => { refreshEventToast().catch(() => {}) }, 15000)
+ if (!btn) return
 
  function setAuthBodyClass(connected) {
   if (!document || !document.body) return
