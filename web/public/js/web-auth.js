@@ -21,21 +21,21 @@
  let progressToastVisibleCount = 0
  let progressRefreshTimer = null
 
- function ensureEventToast() {
-  let toast = document.getElementById("globalEventToast")
-  if (toast) return toast
-  toast = document.createElement("aside")
-  toast.id = "globalEventToast"
-  toast.className = "event-live-toast"
-  toast.hidden = true
-  toast.innerHTML = `
-   <h4 id="globalEventToastTitle">Événement en direct</h4>
-   <p id="globalEventToastText"></p>
-   <div class="event-live-toast-row">
-    <a class="btn btn-gold" href="/events">Voir l'event</a>
-    <button id="globalEventToastClose" type="button" class="btn btn-outline">Masquer</button>
-   </div>
-  `
+function ensureEventToast() {
+ let toast = document.getElementById("globalEventToast")
+ if (toast) return toast
+ toast = document.createElement("aside")
+ toast.id = "globalEventToast"
+ toast.className = "event-live-toast"
+ toast.hidden = true
+ toast.innerHTML = `
+  <button id="globalEventToastClose" type="button" class="event-live-toast-close" aria-label="Fermer">&times;</button>
+  <h4 id="globalEventToastTitle">Événement en direct</h4>
+  <p id="globalEventToastText"></p>
+  <div class="event-live-toast-row">
+   <a class="btn btn-gold" href="/events">Voir l'event</a>
+  </div>
+ `
   document.body.appendChild(toast)
   const closeBtn = toast.querySelector("#globalEventToastClose")
   if (closeBtn) {
@@ -115,33 +115,49 @@
   drainProgressToastQueue()
  }
 
- function drainProgressToastQueue() {
-  const host = ensureQuestToastHost()
-  while (progressToastVisibleCount < MAX_GLOBAL_PROGRESS_TOASTS && progressToastQueue.length > 0) {
-   const entry = progressToastQueue.shift()
-   const toast = entry?.toast
-   if (!(toast instanceof HTMLElement)) continue
+function drainProgressToastQueue() {
+ const host = ensureQuestToastHost()
+ while (progressToastVisibleCount < MAX_GLOBAL_PROGRESS_TOASTS && progressToastQueue.length > 0) {
+  const entry = progressToastQueue.shift()
+  const toast = entry?.toast
+  if (!(toast instanceof HTMLElement)) continue
 
-   progressToastVisibleCount += 1
-   host.appendChild(toast)
+  progressToastVisibleCount += 1
+  host.appendChild(toast)
 
-   if (typeof toast.__onToastMount === "function") {
-    toast.__onToastMount()
-   }
-
-   requestAnimationFrame(() => toast.classList.add("show"))
-
-   const ttl = Math.max(2500, Number(entry?.ttl || 7000))
-   window.setTimeout(() => {
-    toast.classList.remove("show")
-    window.setTimeout(() => {
-     toast.remove()
-     progressToastVisibleCount = Math.max(0, progressToastVisibleCount - 1)
-     drainProgressToastQueue()
-    }, 260)
-   }, ttl)
+  if (typeof toast.__onToastMount === "function") {
+   toast.__onToastMount()
   }
+
+  let hideTimer = null
+  const dismissToast = () => {
+   if (toast.dataset.dismissed === "1") return
+   toast.dataset.dismissed = "1"
+   if (hideTimer) {
+    window.clearTimeout(hideTimer)
+    hideTimer = null
+   }
+   toast.classList.remove("show")
+   window.setTimeout(() => {
+    if (toast.isConnected) toast.remove()
+    progressToastVisibleCount = Math.max(0, progressToastVisibleCount - 1)
+    drainProgressToastQueue()
+   }, 260)
+  }
+
+  const closeBtn = toast.querySelector(".quest-toast-close")
+  if (closeBtn) {
+   closeBtn.addEventListener("click", dismissToast)
+  }
+
+  requestAnimationFrame(() => toast.classList.add("show"))
+
+  const ttl = Math.max(2500, Number(entry?.ttl || 7000))
+  hideTimer = window.setTimeout(() => {
+   dismissToast()
+  }, ttl)
  }
+}
 
  function scheduleProgressRefresh(delayMs = 450) {
   const nextDelay = Math.max(120, Number(delayMs || 450))
@@ -197,6 +213,26 @@ function formatQuestRewardPreview(reward) {
  return parts.join(" • ")
 }
 
+function normalizeUiText(value) {
+ const raw = String(value || "")
+ if (!raw) return ""
+ if (!/[ÃÂâð]/.test(raw)) return raw
+ try {
+  return decodeURIComponent(escape(raw))
+ } catch (_) {
+  return raw
+ }
+}
+
+function normalizeUiEmoji(value, fallback = "") {
+ const normalized = normalizeUiText(value).trim()
+ const emojiMap = {
+  "\u{1FA99}": "\u{1F4B0}",
+  "\u{1FA85}": "\u{1F389}"
+ }
+ return emojiMap[normalized] || normalized || String(fallback || "")
+}
+
 function spawnQuestToast({
  title = "Quête",
  subtitle = "",
@@ -212,6 +248,7 @@ function spawnQuestToast({
  toast.className = `quest-progress-toast quest-progress-toast-${variant} toast-tone-quest`
  const hasAction = String(actionHref || "").trim() && String(actionLabel || "").trim()
   toast.innerHTML = `
+  <button type="button" class="quest-toast-close" aria-label="Fermer">&times;</button>
   <div class="quest-toast-head">
    <strong>${title}</strong>
    <span class="quest-toast-chip">${variant === "complete" ? "Complétée" : `${toPct}%`}</span>
@@ -247,15 +284,18 @@ function spawnAchievementToast({
  const toast = document.createElement("article")
  toast.className = "quest-progress-toast achievement-progress-toast toast-tone-achievement"
  toast.dataset.achievementId = String(id || "")
- const titleText = String(title || "").trim()
- const descriptionText = String(description || "").trim()
- const rewardTextSafe = String(rewardText || "").trim()
+ const badgeSafe = normalizeUiEmoji(badge, "🏆")
+ const nameSafe = normalizeUiText(name).trim()
+ const titleText = normalizeUiText(title).trim()
+ const descriptionText = normalizeUiText(description).trim()
+ const rewardTextSafe = normalizeUiText(rewardText).trim()
  toast.innerHTML = `
+  <button type="button" class="quest-toast-close" aria-label="Fermer">&times;</button>
   <div class="quest-toast-head">
-   <strong>${badge} Achievement débloqué</strong>
+   <strong>${badgeSafe} Achievement débloqué</strong>
    <span class="quest-toast-chip">Nouveau</span>
   </div>
-  <p>${name}</p>
+  <p>${nameSafe}</p>
   ${descriptionText ? `<small class="quest-toast-desc">${descriptionText}</small>` : ""}
   ${titleText ? `<small class="quest-toast-reward">Titre: ${titleText}</small>` : ""}
   ${rewardTextSafe ? `<small class="quest-toast-reward">${rewardTextSafe}</small>` : ""}
@@ -276,13 +316,15 @@ function spawnRewardToast({
  const safeTone = String(tone || "event").toLowerCase()
  const toneClass = safeTone === "shop" ? "toast-tone-shop" : "toast-tone-event"
  toast.className = `quest-progress-toast ${toneClass}`
- const subtitleSafe = String(subtitle || "").trim()
- const descriptionSafe = String(description || "").trim()
- const rewardSafe = String(rewardText || "").trim()
- const chipSafe = String(chipLabel || "").trim() || "Gagné"
+ const titleSafe = normalizeUiText(title).trim() || "Récompense obtenue"
+ const subtitleSafe = normalizeUiText(subtitle).trim()
+ const descriptionSafe = normalizeUiText(description).trim()
+ const rewardSafe = normalizeUiText(rewardText).trim()
+ const chipSafe = normalizeUiText(chipLabel).trim() || "Gagné"
  toast.innerHTML = `
+  <button type="button" class="quest-toast-close" aria-label="Fermer">&times;</button>
   <div class="quest-toast-head">
-   <strong>${title}</strong>
+   <strong>${titleSafe}</strong>
    <span class="quest-toast-chip">${chipSafe}</span>
   </div>
   ${subtitleSafe ? `<p>${subtitleSafe}</p>` : ""}

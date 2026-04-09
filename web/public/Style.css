@@ -543,20 +543,7 @@ body.index-page .hero {
 }
 
 body.index-page .hero::after {
- content: "";
- position: absolute;
- inset: 24px auto 20px;
- left: 50%;
- transform: translateX(-50%);
- width: min(980px, calc(100% - 28px));
- border-radius: 24px;
- background: linear-gradient(180deg, rgba(5, 10, 28, 0.48), rgba(5, 9, 24, 0.72));
- border: 1px solid rgba(159, 189, 255, 0.16);
- box-shadow:
-  0 20px 55px rgba(4, 8, 22, 0.45),
-  inset 0 1px 0 rgba(255, 255, 255, 0.05);
- pointer-events: none;
- z-index: 0;
+ display: none;
 }
 
 body.index-page .hero > * {
@@ -583,6 +570,12 @@ body.index-page .hero h1 {
 body.index-page .hero p {
  color: #d8e4ff;
  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+body.index-page .index-sets-subtitle {
+ color: #f2f7ff;
+ text-shadow: 0 2px 10px rgba(0, 0, 0, 0.52);
+ font-weight: 600;
 }
 
 body.index-page .hero-buttons .btn-outline {
@@ -1364,10 +1357,29 @@ body.leaderboard-page .footer {
   radial-gradient(circle at 12% 24%, rgba(201, 168, 76, 0.17), rgba(201, 168, 76, 0) 52%),
   rgba(8, 12, 32, 0.92);
  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
- padding: 10px 12px;
+ padding: 10px 12px 10px 44px;
  display: grid;
  gap: 8px;
  backdrop-filter: blur(8px);
+}
+
+.event-live-toast-close {
+ position: absolute;
+ top: 8px;
+ left: 8px;
+ width: 28px;
+ height: 28px;
+ border-radius: 999px;
+ border: 1px solid rgba(255, 255, 255, 0.24);
+ background: rgba(8, 12, 30, 0.72);
+ color: #edf2ff;
+ font-size: 1.2rem;
+ line-height: 1;
+ cursor: pointer;
+}
+
+.event-live-toast-close:hover {
+ filter: brightness(1.12);
 }
 
 .event-live-toast[hidden] {
@@ -1717,6 +1729,25 @@ body.leaderboard-page .footer {
 
 .event-pack-open-overlay .pack-open-dialog {
  width: min(var(--event-pack-dialog-width, 1020px), calc(100vw - 40px));
+}
+
+.event-pack-open-overlay .pack-open-close {
+ position: absolute;
+ top: 10px;
+ left: 12px;
+ width: 34px;
+ height: 34px;
+ border-radius: 999px;
+ border: 1px solid rgba(255, 255, 255, 0.28);
+ background: rgba(8, 12, 30, 0.75);
+ color: #eaf0ff;
+ font-size: 1.5rem;
+ line-height: 1;
+ cursor: pointer;
+}
+
+.event-pack-open-overlay .pack-open-dialog h3 {
+ padding-left: 46px;
 }
 
 .event-pack-open-overlay.complete .pack-open-dialog {
@@ -3061,7 +3092,7 @@ body.listing-modal-open {
 .my-listing-modal-close {
  position: absolute;
  top: 8px;
- right: 8px;
+ left: 8px;
  width: 28px;
  height: 28px;
  border-radius: 999px;
@@ -3083,7 +3114,7 @@ body.listing-modal-open {
  justify-content: space-between;
  align-items: flex-start;
  gap: 10px;
- padding-right: 30px;
+ padding-left: 30px;
 }
 
 .my-listing-modal-head h3 {
@@ -3158,13 +3189,21 @@ body.market-page .market-my-detail-block {
 }
 
 body.market-page .market-controls-card {
- padding: 10px 12px;
+ padding: 0;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ backdrop-filter: none;
 }
 
 body.market-page .market-listings-grid-block {
- padding: 10px 10px 12px;
- border-color: rgba(255, 255, 255, 0.14);
- background: linear-gradient(165deg, rgba(10, 15, 38, 0.78), rgba(7, 10, 28, 0.82));
+ padding: 0;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ backdrop-filter: none;
 }
 
 body.market-page .market-card .action-row .btn {
@@ -3400,14 +3439,34 @@ body.krosmoshop-page .kshop-card .chip {
 
 .quest-progress-toast {
  pointer-events: auto;
+ position: relative;
  border-radius: 12px;
  border: 1px solid rgba(124, 169, 255, 0.45);
  background: linear-gradient(165deg, rgba(11, 16, 40, 0.94), rgba(8, 12, 30, 0.96));
  box-shadow: 0 12px 26px rgba(2, 7, 20, 0.46);
- padding: 10px 12px;
+ padding: 10px 12px 10px 42px;
  opacity: 0;
  transform: translateY(10px) scale(0.98);
  transition: opacity 0.24s ease, transform 0.24s ease;
+}
+
+.quest-toast-close {
+ position: absolute;
+ top: 8px;
+ left: 8px;
+ width: 26px;
+ height: 26px;
+ border-radius: 999px;
+ border: 1px solid rgba(255, 255, 255, 0.24);
+ background: rgba(8, 12, 30, 0.7);
+ color: #edf2ff;
+ font-size: 1.15rem;
+ line-height: 1;
+ cursor: pointer;
+}
+
+.quest-toast-close:hover {
+ filter: brightness(1.12);
 }
 
 .quest-progress-toast.show {

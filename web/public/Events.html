@@ -112,6 +112,17 @@ let rouletteCooldownTimer = null
   return div.innerHTML
  }
 
+ function normalizeUiText(value) {
+  const raw = String(value || "")
+  if (!raw) return ""
+  if (!/[ÃÂâð]/.test(raw)) return raw
+  try {
+   return decodeURIComponent(escape(raw))
+  } catch (_) {
+   return raw
+  }
+ }
+
  function formatMs(ms) {
   const value = Math.max(0, Number(ms || 0))
   const totalSec = Math.floor(value / 1000)
@@ -132,11 +143,15 @@ let rouletteCooldownTimer = null
  }
 
 function getDisplayEmoji(emoji) {
-  const value = String(emoji || "")
+  const value = normalizeUiText(emoji).trim()
   const pinataEmoji = "\u{1FA85}"
   const partyPopper = "\u{1F389}"
+  const fallbackMap = {
+   "\u{1FA99}": "\u{1F4B0}",
+   "\u{1FA85}": "\u{1F389}"
+  }
   if (value === pinataEmoji) return partyPopper
- return value
+  return fallbackMap[value] || value
 }
 
 function stopRouletteCooldownTicker() {
@@ -702,12 +717,15 @@ function showEventPackOpeningAnimation(payload) {
   spinBox.classList.remove("rolling")
 
   if (!res.ok) {
-   box.innerHTML = `<p>${esc(res.data?.error || "Spin impossible.")}</p>`
+   box.innerHTML = `<p>${esc(normalizeUiText(res.data?.error || "Spin impossible."))}</p>`
    await refreshState()
    return
   }
   const lot = res.data?.lot || {}
-  box.innerHTML = `<p><strong>${esc(lot.emoji)} ${esc(lot.name)}</strong></p><p>${esc(res.data?.rewardText || "")}</p>`
+  const lotEmoji = getDisplayEmoji(lot.emoji || "\u{1F3A1}")
+  const lotName = normalizeUiText(lot.name || "")
+  const rewardText = normalizeUiText(res.data?.rewardText || "")
+  box.innerHTML = `<p><strong>${esc(lotEmoji)} ${esc(lotName)}</strong></p><p>${esc(rewardText).replace(/\n/g, "<br>")}</p>`
   if (typeof window.__kcPullEventRewardToasts === "function") {
    window.__kcPullEventRewardToasts().catch(() => {})
   }

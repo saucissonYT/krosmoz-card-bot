@@ -2146,7 +2146,7 @@ body.pack-opening-lock {
 .pack-open-close {
  position: absolute;
  top: 10px;
- right: 12px;
+ left: 12px;
  width: 34px;
  height: 34px;
  border-radius: 999px;
@@ -2163,6 +2163,7 @@ body.pack-opening-lock {
  letter-spacing: 0.04em;
  font-size: 1.5rem;
  color: #f8f3de;
+ padding-left: 46px;
  margin-bottom: 4px;
 }
 
