@@ -1998,8 +1998,79 @@ function formatQuestRewards(reward, scope = "player") {
   if (Number(reward?.kamas || 0) > 0) parts.push(`💰 ${fmt(reward.kamas)}`)
   if (Number(reward?.xp || 0) > 0) parts.push(`⭐ ${fmt(reward.xp)} XP`)
   if (Number(reward?.packs || 0) > 0) parts.push(`📦 ${fmt(reward.packs)}`)
+}
+return parts.join(" • ") || "Récompense"
+}
+
+function getQuestGroupFromState(questsState, scope = "player", type = "daily") {
+ const safeType = String(type || "").toLowerCase() === "weekly" ? "weekly" : "daily"
+ if (!questsState) return null
+ if (String(scope || "").toLowerCase() === "guild") return questsState?.guild?.[safeType] || null
+ return questsState?.player?.[safeType] || null
+}
+
+function resolveClaimQuestName(questsState, { scope = "player", type = "daily", questId = "" } = {}) {
+ const group = getQuestGroupFromState(questsState, scope, type)
+ const quests = Array.isArray(group?.quests) ? group.quests : []
+ const id = String(questId || "").trim()
+ if (id) {
+  const exact = quests.find((q) => String(q?.id || "") === id)
+  if (exact?.name) return String(exact.name)
  }
- return parts.join(" • ") || "Récompense"
+ const firstClaimable = quests.find((q) => Boolean(q?.claimable) && !Boolean(q?.claimed))
+ if (firstClaimable?.name) return String(firstClaimable.name)
+ return ""
+}
+
+function formatQuestClaimToastReward(scope = "player", claimResult = null) {
+ const parts = []
+ if (String(scope || "").toLowerCase() === "guild") {
+  const totalXP = Number(claimResult?.totalXP || 0)
+  const bonusXP = Number(claimResult?.bonusXP || 0)
+  if (totalXP > 0) parts.push(`⭐ +${fmt(totalXP)} XP guilde`)
+  if (bonusXP > 0) parts.push(`✨ Bonus +${fmt(bonusXP)} XP guilde`)
+  return parts.join(" • ")
+ }
+
+ const kamas = Number(claimResult?.totalKamas || 0)
+ const xp = Number(claimResult?.totalXp || 0)
+ const packs = Number(claimResult?.totalPacks || 0)
+ const bpXp = Number(claimResult?.totalBpXp || 0)
+ if (kamas > 0) parts.push(`💰 +${fmt(kamas)}`)
+ if (xp > 0) parts.push(`⭐ +${fmt(xp)} XP`)
+ if (packs > 0) parts.push(`📦 +${fmt(packs)}`)
+ if (bpXp > 0) parts.push(`🎟️ +${fmt(bpXp)} XP BP`)
+ return parts.join(" • ")
+}
+
+function showQuestClaimToast({ scope = "player", type = "daily", questId = "", beforeState = null, claimResult = null } = {}) {
+ const notify = window.__kcQuestToastNotify
+ if (typeof notify !== "function") return
+
+ const guildScope = String(scope || "").toLowerCase() === "guild"
+ const claimedCount = guildScope
+  ? Number(claimResult?.claimed || 0)
+  : Number(claimResult?.claimedCount || 0)
+ const useSingleQuestName = Boolean(String(questId || "").trim()) || claimedCount === 1
+ const questName = useSingleQuestName
+  ? resolveClaimQuestName(beforeState, { scope, type, questId })
+  : ""
+
+ let title = guildScope ? "Quête de guilde terminée" : "Quête terminée"
+ if (questName) {
+  title = `${title} "${questName}"`
+ } else if (claimedCount > 1) {
+  title = `${title} (${fmt(claimedCount)})`
+ }
+
+ notify({
+  title,
+  subtitle: "",
+  rewardText: formatQuestClaimToastReward(scope, claimResult),
+  variant: "complete",
+  fromPct: 0,
+  toPct: 100
+ })
 }
 
 function renderQuestRows(quests = [], scope = "player", type = "daily", canClaim = true) {
@@ -2191,6 +2262,7 @@ async function renderQuests(force = false) {
 }
 
 async function handleQuestClaim({ scope = "player", type = "daily", questId = "" } = {}) {
+ const previousQuestState = state.questsState || null
  const result = await postJson("/api/quests/claim", { scope, type, questId })
  if (!result.ok) {
   showActionResult("questResultBox", `<p>${escapeHtml(result.data?.error || "Récupération impossible.")}</p>`, true)
@@ -2199,6 +2271,13 @@ async function handleQuestClaim({ scope = "player", type = "daily", questId = ""
 
  state.questsState = result.data?.state || null
  await renderQuests(false)
+ showQuestClaimToast({
+  scope,
+  type,
+  questId,
+  beforeState: previousQuestState,
+  claimResult: result.data?.result || null
+ })
 
  if (scope === "guild") {
   const xp = Number(result.data?.result?.totalXP || 0)

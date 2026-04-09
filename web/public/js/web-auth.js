@@ -289,6 +289,19 @@
   }, QUEST_TOAST_POLL_MS)
  }
 
+ window.__kcQuestToastNotify = function questToastNotify(payload = {}) {
+  const fromRaw = Number(payload?.fromPct)
+  const toRaw = Number(payload?.toPct)
+  spawnQuestToast({
+   title: String(payload?.title || "Quête"),
+   subtitle: String(payload?.subtitle || ""),
+   fromPct: Number.isFinite(fromRaw) ? fromRaw : 0,
+   toPct: Number.isFinite(toRaw) ? toRaw : 100,
+   variant: payload?.variant === "progress" ? "progress" : "complete",
+   rewardText: String(payload?.rewardText || "")
+  })
+ }
+
  window.__kcQuestToastPreview = function questToastPreview() {
   spawnQuestToast({
    title: "Quotidienne: Ouverture Rapide",
