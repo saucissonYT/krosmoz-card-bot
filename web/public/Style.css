@@ -3200,7 +3200,15 @@ body.market-page #refreshBtn:hover {
 .quest-progress-toast p {
  color: #bbc6ed;
  font-size: 0.82rem;
+ margin: 0 0 4px;
+}
+
+.quest-toast-desc {
+ display: block;
+ color: #9eaad2;
+ font-size: 0.72rem;
  margin: 0 0 8px;
+ line-height: 1.3;
 }
 
 .quest-toast-bar {

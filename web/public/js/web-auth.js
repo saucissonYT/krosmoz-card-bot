@@ -117,6 +117,7 @@ function formatQuestRewardPreview(reward) {
 function spawnQuestToast({
  title = "Quête",
  subtitle = "",
+ description = "",
  fromPct = 0,
  toPct = 0,
  variant = "progress",
@@ -134,6 +135,7 @@ function spawnQuestToast({
    <span class="quest-toast-chip">${variant === "complete" ? "Complétée" : `${toPct}%`}</span>
   </div>
   <p>${subtitle}</p>
+  ${description ? `<small class="quest-toast-desc">${description}</small>` : ""}
   <div class="quest-toast-bar"><span></span></div>
   ${rewardText ? `<small class="quest-toast-reward">${rewardText}</small>` : ""}
   ${hasAction ? `<div class="quest-toast-actions"><a class="quest-toast-action-btn" href="${actionHref}">${actionLabel}</a></div>` : ""}
@@ -150,7 +152,7 @@ function spawnQuestToast({
 
   requestAnimationFrame(() => toast.classList.add("show"))
 
- const ttl = hasAction ? 9000 : (variant === "complete" ? 6200 : 4200)
+ const ttl = hasAction ? 12000 : (variant === "complete" ? 9500 : 7000)
  window.setTimeout(() => {
   toast.classList.remove("show")
   window.setTimeout(() => toast.remove(), 260)
@@ -169,6 +171,7 @@ function spawnQuestToast({
      id,
      type,
      name: String(quest?.name || "Quête"),
+     desc: String(quest?.desc || ""),
      current: Number(quest?.current || 0),
      goal: Number(quest?.goal || 1),
      done: Boolean(quest?.done),
@@ -228,6 +231,7 @@ async function refreshQuestProgressToasts() {
     spawnQuestToast({
      title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
      subtitle: `${Math.min(event.next.current, event.next.goal)}/${event.next.goal}`,
+     description: String(event.next.desc || ""),
      fromPct,
      toPct,
      variant: "progress"
@@ -240,6 +244,7 @@ async function refreshQuestProgressToasts() {
     spawnQuestToast({
      title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
      subtitle: "Quête complétée",
+     description: String(event.next.desc || ""),
      fromPct: 0,
      toPct: 100,
      variant: "complete",
@@ -278,6 +283,7 @@ async function refreshQuestProgressToasts() {
  spawnQuestToast({
   title: String(payload?.title || "Quête"),
   subtitle: String(payload?.subtitle || ""),
+  description: String(payload?.description || ""),
   fromPct: Number.isFinite(fromRaw) ? fromRaw : 0,
   toPct: Number.isFinite(toRaw) ? toRaw : 100,
   variant: payload?.variant === "progress" ? "progress" : "complete",
@@ -288,17 +294,19 @@ async function refreshQuestProgressToasts() {
  }
 
  window.__kcQuestToastPreview = function questToastPreview() {
-  spawnQuestToast({
-   title: "Quotidienne: Ouverture Rapide",
-   subtitle: "2/3",
-   fromPct: 33,
-   toPct: 66,
-   variant: "progress"
+ spawnQuestToast({
+  title: "Quotidienne: Ouverture Rapide",
+  subtitle: "2/3",
+  description: "Faire 3 fusions",
+  fromPct: 33,
+  toPct: 66,
+  variant: "progress"
   })
   window.setTimeout(() => {
   spawnQuestToast({
    title: "Quotidienne: Ouverture Rapide",
    subtitle: "Quête complétée",
+   description: "Faire 3 fusions",
    fromPct: 0,
    toPct: 100,
    variant: "complete",
