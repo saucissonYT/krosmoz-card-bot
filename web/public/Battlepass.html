@@ -134,7 +134,21 @@
  }
 
  async function api(path, options = {}) {
-  const config = { credentials: "same-origin", ...options }
+  const method = String(options?.method || "GET").toUpperCase()
+  const headers = new Headers(options?.headers || {})
+  let body = options?.body
+
+  if (method !== "GET" && method !== "HEAD") {
+   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+   const contentType = String(headers.get("Content-Type") || "")
+   if (contentType.includes("application/json")) {
+    if (body === undefined) body = "{}"
+    else if (typeof body !== "string") body = JSON.stringify(body)
+   }
+  }
+
+  const config = { credentials: "same-origin", ...options, method, headers }
+  if (method !== "GET" && method !== "HEAD") config.body = body
   const res = await fetch(path, config)
   let payload = null
   try { payload = await res.json() } catch (_) {}
