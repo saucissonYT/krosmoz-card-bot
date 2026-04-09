@@ -276,7 +276,7 @@ function getGuildQuestProgress(guildId, type = "weekly"){
 
 /* ================= CLAIM ================= */
 
-function claimGuildQuests(guildId, claimerId, type = "weekly"){
+function claimGuildQuests(guildId, claimerId, type = "weekly", questId = ""){
 
  const guild = getGuild(guildId)
  if(!guild) return { error:"Guilde introuvable." }
@@ -289,11 +289,19 @@ function claimGuildQuests(guildId, claimerId, type = "weekly"){
  const progress = getGuildQuestProgress(guildId, type)
  const claimedArr = type === "daily" ? guild.questsDayClaimed : guild.questsClaimed
  const bonusXpAmount = type === "daily" ? 200 : 500
+ const targetQuestId = String(questId || "").trim()
+
+ let questsToClaim = progress
+ if(targetQuestId){
+  const targetQuest = progress.find(q => String(q.id) === targetQuestId)
+  if(!targetQuest) return { error:"Quête introuvable.", claimed:0 }
+  questsToClaim = [targetQuest]
+ }
 
  let totalXP = 0
  let claimed = 0
 
- for(const q of progress){
+ for(const q of questsToClaim){
   if(q.done && !q.claimed){
    claimedArr.push(q.id)
    totalXP += q.xp
@@ -310,8 +318,15 @@ function claimGuildQuests(guildId, claimerId, type = "weekly"){
   totalXP += bonusXP
  }
 
- if(totalXP <= 0)
+ 
+ if(totalXP <= 0){
+  if(targetQuestId){
+   const targetQuest = progress.find(q => String(q.id) === targetQuestId)
+   if(targetQuest?.claimed) return { error:"Quête déjà récupérée.", claimed:0 }
+   if(targetQuest && !targetQuest.done) return { error:"Cette quête n'est pas encore terminée.", claimed:0 }
+  }
   return { error:"Aucune quête à récupérer.", claimed:0 }
+ }
 
  const levelResult = addGuildXP(guildId, totalXP)
  saveGuilds()

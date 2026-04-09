@@ -1779,7 +1779,7 @@ app.post("/api/quests/claim", async (req, res) => {
    const guild = getUserGuild(session.userId)
    if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
 
-   const result = claimGuildQuests(guild.id, session.userId, type)
+   const result = claimGuildQuests(guild.id, session.userId, type, questId)
    if (result?.error) return res.status(400).json({ error: String(result.error) })
 
    apiCache.invalidatePrefix("leaderboard:")
