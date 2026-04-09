@@ -267,36 +267,25 @@
   }
   return `<button class="btn btn-outline action-buy" type="button" data-card-id="${esc(item.cardId)}">Acheter</button>`
  }
-
  function itemCard(item) {
   const hasDiscount = Number(item.finalPrice || 0) < Number(item.basePrice || 0)
-  const miniThumbSrc = String(item.imageUrl || "/assets/ui/pack-back-normal.png")
   return `
    <article class="catalog-card kshop-card ${item.purchased ? "kshop-card-bought" : ""}">
     <div class="kshop-card-head">
      <span class="chip chip-rarity">${esc(item.rarity)}</span>
      <span class="chip">${esc(item.setName || "Set")}</span>
     </div>
-    ${item.imageUrl ? `<div class="kshop-thumb-wrap"><img class="card-thumb" loading="lazy" src="${esc(item.imageUrl)}" alt="${esc(item.name)}" onerror="this.parentElement.style.display='none'"></div>` : ""}
     <h3>${esc(item.name)}</h3>
     <p class="kshop-muted">ID #${esc(item.cardId)}</p>
-    <div class="kshop-meta-row">
-     <div class="kshop-meta-main">
-      <p class="kshop-price-line">
-       ${hasDiscount ? `<span class="kshop-price-base">${Number(item.basePrice || 0).toLocaleString("fr-FR")}</span>` : ""}
-       <strong>${Number(item.finalPrice || 0).toLocaleString("fr-FR")} kamas</strong>
-      </p>
-      <p class="kshop-muted">Possedees: ${Number(item.owned || 0)}${item.purchased ? " - Déjà achetée aujourd'hui" : ""}</p>
-     </div>
-     <div class="kshop-mini-thumb-wrap" aria-hidden="true">
-      <img class="kshop-mini-thumb" loading="lazy" src="${esc(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
-     </div>
-    </div>
+    <p class="kshop-price-line">
+     ${hasDiscount ? `<span class="kshop-price-base">${Number(item.basePrice || 0).toLocaleString("fr-FR")}</span>` : ""}
+     <strong>${Number(item.finalPrice || 0).toLocaleString("fr-FR")} kamas</strong>
+    </p>
+    <p class="kshop-muted">Possedees: ${Number(item.owned || 0)}${item.purchased ? " - Déjà achetée aujourd'hui" : ""}</p>
     <div class="action-row">${itemActionButton(item)}</div>
    </article>
   `
  }
-
  function bindBuyActions() {
   document.querySelectorAll(".action-buy").forEach((btn) => {
    btn.addEventListener("click", async () => {
@@ -532,3 +521,5 @@
  </script>
 </body>
 </html>
+
+
