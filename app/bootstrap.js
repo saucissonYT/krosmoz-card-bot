@@ -91,9 +91,24 @@ async function bootstrap() {
   }
  })
 
- await client.login(process.env.TOKEN)
-
+ /*
+  * IMPORTANT RAILWAY:
+  * Le healthcheck doit répondre rapidement même si Discord tarde (ou échoue) au login.
+  * On démarre donc le serveur web immédiatement, puis on tente la connexion Discord.
+  */
  startWebServer()
+
+ const token = String(process.env.TOKEN || "").trim()
+ if (!token) {
+  log.warn("TOKEN Discord absent: bot en mode web-only (healthcheck OK)")
+  return client
+ }
+
+ client.login(token).catch((error) => {
+  log.error("Connexion Discord échouée (service web conservé actif)", {
+   err: error
+  })
+ })
 
  return client
 }
