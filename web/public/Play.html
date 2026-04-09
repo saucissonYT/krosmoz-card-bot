@@ -2022,6 +2022,19 @@ function resolveClaimQuestName(questsState, { scope = "player", type = "daily", 
  return ""
 }
 
+function resolveClaimQuestDescription(questsState, { scope = "player", type = "daily", questId = "" } = {}) {
+ const group = getQuestGroupFromState(questsState, scope, type)
+ const quests = Array.isArray(group?.quests) ? group.quests : []
+ const id = String(questId || "").trim()
+ if (id) {
+  const exact = quests.find((q) => String(q?.id || "") === id)
+  if (exact?.desc) return String(exact.desc)
+ }
+ const firstClaimable = quests.find((q) => Boolean(q?.claimable) && !Boolean(q?.claimed))
+ if (firstClaimable?.desc) return String(firstClaimable.desc)
+ return ""
+}
+
 function formatQuestClaimToastReward(scope = "player", claimResult = null) {
  const parts = []
  if (String(scope || "").toLowerCase() === "guild") {
@@ -2055,6 +2068,12 @@ function showQuestClaimToast({ scope = "player", type = "daily", questId = "", b
  const questName = useSingleQuestName
   ? resolveClaimQuestName(beforeState, { scope, type, questId })
   : ""
+ let questDescription = useSingleQuestName
+  ? resolveClaimQuestDescription(beforeState, { scope, type, questId })
+  : ""
+ if (!questDescription) {
+  questDescription = String(claimResult?.raw?.quest?.desc || "")
+ }
 
  let title = guildScope ? "Quête de guilde terminée" : "Quête terminée"
  if (questName) {
@@ -2066,6 +2085,7 @@ function showQuestClaimToast({ scope = "player", type = "daily", questId = "", b
  notify({
   title,
   subtitle: "",
+  description: questDescription,
   rewardText: formatQuestClaimToastReward(scope, claimResult),
   variant: "complete",
   fromPct: 0,
