@@ -41,7 +41,7 @@ function getFusionBonuses(userId, user){
  }catch(e){}
 
  try{
-  const { getPlayerBonuses } = require("../../systems/playerBonuses")
+  const { getPlayerBonuses } = require("../../systems/playerbonuses")
   const pb = getPlayerBonuses(user.progression?.level || 1)
   pCrit = pb.fusionCritBonus || 0
  }catch(e){}

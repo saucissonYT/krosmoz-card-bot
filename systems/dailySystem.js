@@ -20,7 +20,7 @@ function getDailyBonuses(userId, user){
  }catch(e){}
 
  try{
-  const { getPlayerBonuses } = require("./playerBonuses")
+  const { getPlayerBonuses } = require("./playerbonuses")
   const pb = getPlayerBonuses(user.progression?.level || 1)
   bonusKamas        += pb.kamasBonus       || 0
   doubleDailyBonus  += pb.doubleDailyBonus || 0

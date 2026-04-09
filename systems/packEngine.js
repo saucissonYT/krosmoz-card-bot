@@ -43,7 +43,7 @@ function getBonuses(userId, user){
  }catch(e){}
 
  try{
-  const { getPlayerBonuses } = require("./playerBonuses")
+  const { getPlayerBonuses } = require("./playerbonuses")
   playerBonus = getPlayerBonuses(user.progression?.level || 1)
  }catch(e){}
 

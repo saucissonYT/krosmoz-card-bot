@@ -55,7 +55,7 @@ function getCooldownMs(user) {
  const BASE_COOLDOWN = 3600000
  let reduction = 0
  try {
-  const { getPlayerBonuses } = require("../../systems/playerBonuses")
+  const { getPlayerBonuses } = require("../../systems/playerbonuses")
   const pb = getPlayerBonuses(user.progression?.level || 1)
   reduction = (pb.cooldownReduction || 0) * 60000
  } catch (_) {}

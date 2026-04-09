@@ -142,7 +142,7 @@ function addXP(user, amount){
 
  /* Bonus XP de niveau joueur */
  try{
-  const { getPlayerBonuses } = require("./playerBonuses")
+  const { getPlayerBonuses } = require("./playerbonuses")
   const pBonuses = getPlayerBonuses(user.progression.level)
   bonusPercent += pBonuses.xpBonus || 0
  }catch(e){}

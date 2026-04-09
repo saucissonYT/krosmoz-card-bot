@@ -191,7 +191,7 @@ function buyFromShop(userId,cardId){
 
  /* ---- Réduction via bonus de niveau joueur ---- */
  try{
-  const { getPlayerBonuses } = require("./playerBonuses")
+  const { getPlayerBonuses } = require("./playerbonuses")
   const pBonuses = getPlayerBonuses(user.progression?.level || 1)
   if(pBonuses.shopDiscount > 0){
    finalPrice = Math.floor(finalPrice * (1 - pBonuses.shopDiscount / 100))

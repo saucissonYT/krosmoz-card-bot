@@ -9,7 +9,7 @@ const { getUser, save } = require("../systems/userSystem")
 const { addXP } = require("../systems/progressionSystem")
 const { getShop, buyFromShop } = require("../systems/krosmoshop")
 const { getUserGuildBonuses } = require("../systems/guildBonuses")
-const { getPlayerBonuses } = require("../systems/playerBonuses")
+const { getPlayerBonuses } = require("../systems/playerbonuses")
 const {
  addBattlePassXP,
  buyPremium,

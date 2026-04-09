@@ -87,7 +87,7 @@ function resolveAllBonuses(userId, user) {
 
  /* ── Player level bonuses ── */
  try {
-  const { getPlayerBonuses } = require("./playerBonuses")
+  const { getPlayerBonuses } = require("./playerbonuses")
   const pb = getPlayerBonuses(user.progression?.level || 1)
   if (pb) {
    result.kamasBonus        += pb.kamasBonus        || 0
