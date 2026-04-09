@@ -9,6 +9,51 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-08 -> 2026-04-09)
+
+### Added
+
+- **Page Quêtes web complète** (`web/public/Play.html`, `web/public/Play.css`, `web/Server.js`)
+  - Ajout de l'onglet **Quêtes** dans la navigation Play (entre Craft et Events)
+  - Support quêtes perso quotidiennes/hebdomadaires + quêtes de guilde quotidiennes/hebdomadaires
+  - Etats d'action harmonisés : **Récupérable**, **Récupérée**, **Complétée**
+  - Affichage de date/heure de récupération et labels FR corrigés (accents)
+
+- **Popups globaux de progression de quêtes** (`web/public/js/web-auth.js`, `web/public/Style.css`)
+  - Toasts bas-droite sur progression en temps réel et sur complétion
+  - Animation de jauge dans le popup
+  - Affichage des récompenses gagnées dans le popup
+  - Bouton CTA **Récupérer la récompense** vers `/play/quests`
+
+- **Page Events web** (`web/public/Events.html`, `web/Server.js`)
+  - Ajout du hub Events (Piñata, Roulette, Event packs) côté web
+  - Pop-up live d'activités et ajustements UX (tickets, timers, lisibilité)
+
+- **Page Battlepass web étendue** (`web/public/Battlepass.html`, `web/public/Battlepass.css`, `web/Server.js`)
+  - Frise 40 paliers, parcours zig-zag, pipeline visuel de progression
+  - Bouton "aller à mon palier actuel"
+  - Etats de claim lisibles (récupérable/récupéré) et CTA de récupération
+
+### Changed
+
+- **Refonte visuelle Play** (inventaire, packs, fusion, craft, quêtes, marché, achievements)
+  - Fonds dédiés par mode
+  - Fusion/craft retravaillés (forge enclume/orbes/orbit, lisibilité, responsive)
+  - Ajustements de layout pour éviter les sur-cadres et zones transparentes inutiles
+
+- **UX Quêtes**
+  - Priorisation des quêtes non terminées en haut (ordre d'apparition conservé)
+  - Cartes de quêtes et blocs de stats nettoyés pour une lecture plus claire
+  - Boutons **Récupérer / Récupérée** agrandis
+
+### Fixed
+
+- **Battlepass web claim**: correction des POST pour toujours envoyer `Content-Type: application/json` (`web/public/Battlepass.html`)
+- **Railway startup**: stabilisation démarrage via `railway.toml` (`startCommand`, `healthcheckPath`) + bypass redirect HTTPS sur `/health` (`web/Server.js`)
+- **Quêtes de guilde**: le bouton **Récupérer** sur une ligne ne claim plus tout le groupe; respect de `questId` côté API (`systems/guildQuestSystem.js`, `web/Server.js`)
+- **Commande dev `/resetjoueur`**: suppression réelle du profil en SQLite (pas seulement cache/disque legacy) (`commands/dev/resetjoueur.js`)
+- **Quêtes visuelles**: suppression de transparence excessive sur quêtes non récupérées et ajustements de contraste
+
 ### Added
 
 - **Migration SQLite** (`systems/database.js` + `systems/migrate.js`)

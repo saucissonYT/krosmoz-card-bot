@@ -7,6 +7,7 @@
  let eventToastDismissedUntil = 0
  const QUEST_TOAST_POLL_MS = 9000
  const ACHIEVEMENT_TOAST_POLL_MS = 9000
+ const EVENT_REWARD_TOAST_POLL_MS = 6000
  const MAX_GLOBAL_PROGRESS_TOASTS = 5
  let questToastPollHandle = null
  let questToastBusy = false
@@ -14,6 +15,8 @@
  let achievementToastPollHandle = null
  let achievementToastBusy = false
  let achievementUnlockedSnapshot = null
+ let eventRewardToastPollHandle = null
+ let eventRewardToastBusy = false
  let progressToastQueue = []
  let progressToastVisibleCount = 0
  let progressRefreshTimer = null
@@ -206,7 +209,7 @@ function spawnQuestToast({
  actionLabel = ""
 } = {}) {
  const toast = document.createElement("article")
- toast.className = `quest-progress-toast quest-progress-toast-${variant}`
+ toast.className = `quest-progress-toast quest-progress-toast-${variant} toast-tone-quest`
  const hasAction = String(actionHref || "").trim() && String(actionLabel || "").trim()
   toast.innerHTML = `
   <div class="quest-toast-head">
@@ -242,7 +245,7 @@ function spawnAchievementToast({
  rewardText = ""
 } = {}) {
  const toast = document.createElement("article")
- toast.className = "quest-progress-toast achievement-progress-toast"
+ toast.className = "quest-progress-toast achievement-progress-toast toast-tone-achievement"
  toast.dataset.achievementId = String(id || "")
  const titleText = String(title || "").trim()
  const descriptionText = String(description || "").trim()
@@ -259,6 +262,35 @@ function spawnAchievementToast({
  `
 
  enqueueProgressToast(toast, 12000)
+}
+
+function spawnRewardToast({
+ title = "Récompense obtenue",
+ subtitle = "",
+ description = "",
+ rewardText = "",
+ chipLabel = "Gagné",
+ tone = "event"
+} = {}) {
+ const toast = document.createElement("article")
+ const safeTone = String(tone || "event").toLowerCase()
+ const toneClass = safeTone === "shop" ? "toast-tone-shop" : "toast-tone-event"
+ toast.className = `quest-progress-toast ${toneClass}`
+ const subtitleSafe = String(subtitle || "").trim()
+ const descriptionSafe = String(description || "").trim()
+ const rewardSafe = String(rewardText || "").trim()
+ const chipSafe = String(chipLabel || "").trim() || "Gagné"
+ toast.innerHTML = `
+  <div class="quest-toast-head">
+   <strong>${title}</strong>
+   <span class="quest-toast-chip">${chipSafe}</span>
+  </div>
+  ${subtitleSafe ? `<p>${subtitleSafe}</p>` : ""}
+  ${descriptionSafe ? `<small class="quest-toast-desc">${descriptionSafe}</small>` : ""}
+  ${rewardSafe ? `<small class="quest-toast-reward">${rewardSafe}</small>` : ""}
+ `
+
+ enqueueProgressToast(toast, 10500)
 }
 
  function getPlayerQuestEntries(payload) {
@@ -449,6 +481,46 @@ function stopQuestToastPolling() {
   }, ACHIEVEMENT_TOAST_POLL_MS)
  }
 
+ async function refreshEventRewardToasts() {
+  if (eventRewardToastBusy) return
+  eventRewardToastBusy = true
+  try {
+   const res = await fetch("/api/events/reward-toasts", { credentials: "same-origin" })
+   if (!res.ok) return
+   let data = null
+   try { data = await res.json() } catch (_) {}
+   const items = Array.isArray(data?.items) ? data.items : []
+   for (const item of items) {
+    spawnRewardToast({
+     title: String(item?.title || "Récompense obtenue"),
+     subtitle: String(item?.subtitle || ""),
+     description: String(item?.description || ""),
+     rewardText: String(item?.rewardText || ""),
+     chipLabel: String(item?.chipLabel || "Gagné"),
+     tone: String(item?.tone || "event")
+    })
+   }
+  } catch (_) {
+  } finally {
+   eventRewardToastBusy = false
+  }
+ }
+
+ function stopEventRewardToastPolling() {
+  if (eventRewardToastPollHandle) {
+   clearInterval(eventRewardToastPollHandle)
+   eventRewardToastPollHandle = null
+  }
+ }
+
+ function startEventRewardToastPolling() {
+  stopEventRewardToastPolling()
+  refreshEventRewardToasts().catch(() => {})
+  eventRewardToastPollHandle = window.setInterval(() => {
+   refreshEventRewardToasts().catch(() => {})
+  }, EVENT_REWARD_TOAST_POLL_MS)
+ }
+
  window.__kcQuestToastNotify = function questToastNotify(payload = {}) {
   const fromRaw = Number(payload?.fromPct)
   const toRaw = Number(payload?.toPct)
@@ -496,8 +568,34 @@ window.__kcAchievementToastPreview = function achievementToastPreview() {
   badge: "⚡",
   description: "Gagner 1000 kamas",
   title: "Éclair du Krosmoz",
-  rewardText: "💰 750 kamas · ⭐ 120 XP"
+ rewardText: "💰 750 kamas · ⭐ 120 XP"
  })
+}
+
+window.__kcRewardToastNotify = function rewardToastNotify(payload = {}) {
+ spawnRewardToast({
+  title: String(payload?.title || "Récompense obtenue"),
+  subtitle: String(payload?.subtitle || ""),
+  description: String(payload?.description || ""),
+  rewardText: String(payload?.rewardText || ""),
+  chipLabel: String(payload?.chipLabel || "Gagné"),
+  tone: String(payload?.tone || "event")
+ })
+}
+
+window.__kcShopToastNotify = function shopToastNotify(payload = {}) {
+ spawnRewardToast({
+  title: String(payload?.title || "🛍️ KrosmoShop"),
+  subtitle: String(payload?.subtitle || ""),
+  description: String(payload?.description || ""),
+  rewardText: String(payload?.rewardText || ""),
+  chipLabel: String(payload?.chipLabel || "Shop"),
+  tone: "shop"
+ })
+}
+
+window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
+ return refreshEventRewardToasts()
 }
 
  installGlobalFetchToastHook()
@@ -665,6 +763,7 @@ window.__kcAchievementToastPreview = function achievementToastPreview() {
   setTopEventsLinkVisibility()
   stopQuestToastPolling()
   stopAchievementToastPolling()
+  stopEventRewardToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "#"
@@ -689,6 +788,7 @@ window.__kcAchievementToastPreview = function achievementToastPreview() {
   setTopEventsLinkVisibility()
   stopQuestToastPolling()
   stopAchievementToastPolling()
+  stopEventRewardToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
@@ -717,6 +817,7 @@ window.__kcAchievementToastPreview = function achievementToastPreview() {
  setTopEventsLinkVisibility()
  startQuestToastPolling()
  startAchievementToastPolling()
+ startEventRewardToastPolling()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
   heroPlayBtn.href = "/play"
@@ -731,6 +832,7 @@ window.__kcAchievementToastPreview = function achievementToastPreview() {
   event.preventDefault()
   stopQuestToastPolling()
   stopAchievementToastPolling()
+  stopEventRewardToastPolling()
   try {
    await fetch("/auth/logout", {
     method: "POST",

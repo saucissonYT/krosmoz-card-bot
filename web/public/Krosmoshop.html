@@ -252,7 +252,16 @@
   const result = res.data?.result || {}
   const cardName = String(result?.cardInfo?.name || result?.cardId || "Carte")
   const finalPrice = Number(result?.price || 0).toLocaleString("fr-FR")
-  showToast(`${cardName} achetee pour ${finalPrice} kamas.`)
+  if (typeof window.__kcShopToastNotify === "function") {
+   window.__kcShopToastNotify({
+    title: "🛍️ KrosmoShop",
+    subtitle: `${cardName} acheté`,
+    rewardText: `💰 -${finalPrice} kamas`,
+    chipLabel: "Shop"
+   })
+  } else {
+   showToast(`${cardName} achetee pour ${finalPrice} kamas.`)
+  }
   if (Number(res.data?.unlockedAchievements || 0) > 0) {
    showToast(`${Number(res.data.unlockedAchievements)} achievement(s) debloque(s).`)
   }
@@ -287,7 +296,16 @@
    success += 1
   }
 
-  showToast(`${success}/${total} achat(s) effectue(s).`)
+  if (typeof window.__kcShopToastNotify === "function") {
+   window.__kcShopToastNotify({
+    title: "🛍️ KrosmoShop",
+    subtitle: "Achat groupé",
+    rewardText: `${success}/${total} achat(s) effectué(s).`,
+    chipLabel: "Shop"
+   })
+  } else {
+   showToast(`${success}/${total} achat(s) effectue(s).`)
+  }
   await refreshShop()
  }
 

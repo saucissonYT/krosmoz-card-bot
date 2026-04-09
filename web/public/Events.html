@@ -391,13 +391,19 @@ function renderEventpack(eventState, tickets, connected) {
   return overlay
  }
 
- function completeEventPackReveal() {
+function completeEventPackReveal() {
   const overlay = document.getElementById("eventPackOpenOverlay")
   if (!overlay || !overlay.classList.contains("open")) return
   for (const timer of eventPackTimers) window.clearTimeout(timer)
   eventPackTimers = []
   if (!eventPackMaskResults) {
-   overlay.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+   overlay.querySelectorAll(".pack-reveal-card").forEach((card) => {
+    card.classList.remove("rare-focus", "rare-return", "rare-focus-ssr", "no-rare-flash", "sram-spin")
+    card.style.removeProperty("--rare-shift-x")
+    card.style.removeProperty("--rare-shift-y")
+    card.style.removeProperty("--rare-scale")
+    card.classList.add("revealed")
+   })
   }
   overlay.classList.add("complete")
   const skipBtn = document.getElementById("eventPackSkipBtn")
@@ -520,22 +526,136 @@ function showEventPackOpeningAnimation(payload) {
    skipBtn.onclick = () => completeEventPackReveal()
   }
 
+  function getRevealRarity(cardEl) {
+   if (cardEl?.classList?.contains("rarity-ssr")) return "SSR"
+   if (cardEl?.classList?.contains("rarity-s")) return "S"
+   return "NORMAL"
+  }
+
+  function getRevealProfile(cardEl) {
+   const rarity = getRevealRarity(cardEl)
+   const baseGap = 780
+   const flipDuration = 1250
+
+   if (rarity === "SSR") {
+    const focusIn = 1250
+    const rectoHold = 2000
+    const focusOut = 320
+    return {
+     rarity,
+     isRare: true,
+     focusIn,
+     rectoHold,
+     focusOut,
+     flipDuration,
+     scale: window.innerWidth < 720 ? 1.85 : 2,
+     nextGap: focusIn + flipDuration + rectoHold + focusOut + 220
+    }
+   }
+
+   if (rarity === "S") {
+    const focusIn = 190
+    const rectoHold = 900
+    const focusOut = 260
+    return {
+     rarity,
+     isRare: true,
+     focusIn,
+     rectoHold,
+     focusOut,
+     flipDuration,
+     scale: window.innerWidth < 720 ? 1.62 : 1.82,
+     nextGap: focusIn + flipDuration + rectoHold + focusOut + 220
+    }
+   }
+
+   return {
+    rarity,
+    isRare: false,
+    focusIn: 0,
+    rectoHold: 0,
+    focusOut: 0,
+    flipDuration: 0,
+    scale: 1,
+    nextGap: baseGap
+   }
+  }
+
+  function setRareFocusPosition(cardEl, profile) {
+   if (!cardEl) return
+   const dialog = overlay.querySelector(".pack-open-dialog")
+   if (!dialog) return
+   const cardRect = cardEl.getBoundingClientRect()
+   const dialogRect = dialog.getBoundingClientRect()
+   if (!cardRect.width || !cardRect.height || !dialogRect.width || !dialogRect.height) return
+
+   const cardCenterX = cardRect.left + (cardRect.width / 2)
+   const cardCenterY = cardRect.top + (cardRect.height / 2)
+   const targetCenterX = dialogRect.left + (dialogRect.width / 2)
+   const targetCenterY = dialogRect.top + (dialogRect.height * 0.5)
+   const shiftX = targetCenterX - cardCenterX
+   const shiftY = targetCenterY - cardCenterY
+   cardEl.style.setProperty("--rare-shift-x", `${Math.round(shiftX)}px`)
+   cardEl.style.setProperty("--rare-shift-y", `${Math.round(shiftY)}px`)
+   cardEl.style.setProperty("--rare-scale", String(profile?.scale || 1.5))
+  }
+
+  function playRevealCardAnimation(cardEl) {
+   if (!cardEl) return
+   const profile = getRevealProfile(cardEl)
+
+   if (!profile.isRare) {
+    cardEl.classList.add("revealed")
+    return
+   }
+
+   setRareFocusPosition(cardEl, profile)
+   cardEl.classList.remove("rare-return", "rare-focus-ssr")
+   cardEl.classList.add("no-rare-flash")
+   if (profile.rarity === "SSR") cardEl.classList.add("rare-focus-ssr")
+   cardEl.classList.add("rare-focus")
+
+   const focusIn = profile.focusIn
+   const rectoHold = profile.rectoHold
+   const flipDuration = profile.flipDuration
+   const focusOut = profile.focusOut
+
+   const flipTimer = window.setTimeout(() => {
+    cardEl.classList.add("revealed")
+   }, focusIn)
+   eventPackTimers.push(flipTimer)
+
+   const settleAt = focusIn + flipDuration + rectoHold
+   const settleTimer = window.setTimeout(() => {
+    cardEl.classList.remove("rare-focus")
+    cardEl.classList.add("rare-return")
+   }, settleAt)
+   eventPackTimers.push(settleTimer)
+
+   const cleanupTimer = window.setTimeout(() => {
+    cardEl.classList.remove("rare-return", "rare-focus-ssr")
+    cardEl.style.removeProperty("--rare-shift-x")
+    cardEl.style.removeProperty("--rare-shift-y")
+    cardEl.style.removeProperty("--rare-scale")
+   }, settleAt + focusOut)
+   eventPackTimers.push(cleanupTimer)
+  }
+
   const cardEls = [...grid.querySelectorAll(".pack-reveal-card")]
-  let revealCursor = 820
+  let revealCursor = 1400
   cardEls.forEach((el) => {
-   const rarity = getRarityToken(el.getAttribute("data-rarity"))
-   const tierDelay = rarity === "SSR" ? 1700 : rarity === "S" ? 1300 : 700
    const timer = window.setTimeout(() => {
     if (isSramEvent) {
      el.classList.add("sram-spin")
      const stop = window.setTimeout(() => el.classList.remove("sram-spin"), 980)
      eventPackTimers.push(stop)
     } else {
-     el.classList.add("revealed")
+     playRevealCardAnimation(el)
     }
    }, revealCursor)
    eventPackTimers.push(timer)
-   revealCursor += tierDelay
+   const profile = getRevealProfile(el)
+   revealCursor += profile.nextGap
   })
 
   const doneTimer = window.setTimeout(() => {
@@ -544,7 +664,7 @@ function showEventPackOpeningAnimation(payload) {
     skipBtn.disabled = true
     skipBtn.style.display = "none"
    }
-  }, revealCursor + 450)
+  }, revealCursor + 460)
   eventPackTimers.push(doneTimer)
 
   return new Promise((resolve) => {
@@ -588,6 +708,9 @@ function showEventPackOpeningAnimation(payload) {
   }
   const lot = res.data?.lot || {}
   box.innerHTML = `<p><strong>${esc(lot.emoji)} ${esc(lot.name)}</strong></p><p>${esc(res.data?.rewardText || "")}</p>`
+  if (typeof window.__kcPullEventRewardToasts === "function") {
+   window.__kcPullEventRewardToasts().catch(() => {})
+  }
   await refreshState()
  }
 

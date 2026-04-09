@@ -175,6 +175,9 @@ const {
 /* ── Journal d'activité en mémoire (ring buffer) ── */
 const ACTIVITY_LOG_MAX = 200
 const activityLog = []
+const WEB_REWARD_TOASTS_MAX_PER_USER = 30
+const WEB_REWARD_TOASTS_MAX_POP = 5
+const webRewardToastsByUser = new Map()
 
 function pushActivity(entry) {
  if (!entry || !entry.kind) return
@@ -183,6 +186,67 @@ function pushActivity(entry) {
   timestamp: entry.timestamp || Date.now()
  })
  if (activityLog.length > ACTIVITY_LOG_MAX) activityLog.length = ACTIVITY_LOG_MAX
+}
+
+function buildWebRewardToastId(prefix = "evt") {
+ return `${String(prefix || "evt")}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+function enqueueWebRewardToast(userId, toastPayload = {}) {
+ const safeUserId = String(userId || "").trim()
+ if (!safeUserId) return null
+
+ const queue = webRewardToastsByUser.get(safeUserId) || []
+ const entry = {
+  id: String(toastPayload.id || buildWebRewardToastId(String(toastPayload.type || "evt"))),
+  type: String(toastPayload.type || "event"),
+  tone: String(toastPayload.tone || "event"),
+  title: String(toastPayload.title || "Récompense obtenue"),
+  subtitle: String(toastPayload.subtitle || ""),
+  description: String(toastPayload.description || ""),
+  rewardText: String(toastPayload.rewardText || ""),
+  chipLabel: String(toastPayload.chipLabel || "Gagné"),
+  createdAt: Date.now()
+ }
+
+ queue.push(entry)
+ if (queue.length > WEB_REWARD_TOASTS_MAX_PER_USER) {
+  queue.splice(0, queue.length - WEB_REWARD_TOASTS_MAX_PER_USER)
+ }
+ webRewardToastsByUser.set(safeUserId, queue)
+ return entry
+}
+
+function popWebRewardToasts(userId, limit = WEB_REWARD_TOASTS_MAX_POP) {
+ const safeUserId = String(userId || "").trim()
+ if (!safeUserId) return []
+ const queue = webRewardToastsByUser.get(safeUserId)
+ if (!Array.isArray(queue) || queue.length <= 0) return []
+
+ const safeLimit = Math.max(1, Math.min(20, Number(limit || WEB_REWARD_TOASTS_MAX_POP)))
+ const items = queue.splice(0, safeLimit)
+ if (queue.length <= 0) {
+  webRewardToastsByUser.delete(safeUserId)
+ } else {
+  webRewardToastsByUser.set(safeUserId, queue)
+ }
+ return items
+}
+
+function formatWebPinataRewardText(row = {}) {
+ const parts = []
+ const kamas = Number(row.kamas || 0)
+ const xp = Number(row.xp || 0)
+ if (kamas > 0) parts.push(`💰 +${kamas.toLocaleString("fr-FR")} kamas`)
+ if (xp > 0) parts.push(`⭐ +${xp.toLocaleString("fr-FR")} XP`)
+ if (row?.card?.cardName) {
+  const rarity = String(row?.card?.rarity || "")
+  parts.push(`🃏 ${String(row.card.cardName)}${rarity ? ` (${rarity})` : ""}`)
+ }
+ if (row?.fragment?.cardId && Number(row?.fragment?.fragmentNumber || 0) > 0) {
+  parts.push(`🧩 Fragment ${Number(row.fragment.fragmentNumber)}/5`)
+ }
+ return parts.join(" • ")
 }
 
 let BASE = "/data"
@@ -796,6 +860,15 @@ async function finalizeWebPinataRound() {
    unlockedAchievements: countUnlockedAchievements(unlocked)
   }
   webPinataState.rewardsByUser.set(String(userId), row)
+  enqueueWebRewardToast(String(userId), {
+   type: "event",
+   tone: "event",
+   title: "🪅 Piñata d'Écaflip",
+   subtitle: `${String(tier.label || "Participant")} • Score ${score}`,
+   description: "Récompense de fin de piñata",
+   rewardText: formatWebPinataRewardText(row),
+   chipLabel: "Gains"
+  })
   resultRows.push(row)
  }
 
@@ -2828,6 +2901,16 @@ app.post("/api/events/roulette/spin", async (req, res) => {
   apiCache.invalidate(`profile:${session.userId}`)
   apiCache.invalidatePrefix("leaderboard:")
 
+  enqueueWebRewardToast(session.userId, {
+   type: "event",
+   tone: "event",
+   title: "🎡 Roulette d'Écaflip",
+   subtitle: `${String(lot.emoji || "🎯")} ${String(lot.name || "Lot")}`,
+   description: `Rareté: ${String(lot.rarity || "commun")}`,
+   rewardText: formatRouletteReward(lot.reward || {}),
+   chipLabel: "Gains"
+  })
+
   res.json({
    ok: true,
    lot: {
@@ -2847,6 +2930,18 @@ app.post("/api/events/roulette/spin", async (req, res) => {
   })
  } catch (e) {
   console.error("[WEB] /api/events/roulette/spin:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/events/reward-toasts", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+  const items = popWebRewardToasts(session.userId, WEB_REWARD_TOASTS_MAX_POP)
+  res.json({ ok: true, items })
+ } catch (e) {
+  console.error("[WEB] /api/events/reward-toasts:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })

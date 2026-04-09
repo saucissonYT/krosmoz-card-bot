@@ -77,6 +77,13 @@ body {
  min-height: 100vh;
 }
 
+body.index-page {
+ background:
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20index.png") center / cover no-repeat fixed;
+}
+
 body.achievements-page {
  background:
   linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
@@ -102,7 +109,7 @@ body.krosmoshop-page {
  background:
   linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.44)),
   radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.14), rgba(128, 188, 255, 0) 44%),
-  url("/assets/ui/background%20march%C3%A9.png") center / cover no-repeat fixed;
+  url("/assets/ui/background%20krosmoshop.png") center / cover no-repeat fixed;
 }
 
 body.tutorial-page {
@@ -147,6 +154,8 @@ body.guild-page {
   url("/assets/ui/background%20guildes.png") center / cover no-repeat fixed;
 }
 
+body.index-page::before,
+body.index-page::after,
 body.achievements-page::before,
 body.achievements-page::after,
 body.cards-page::before,
@@ -860,13 +869,13 @@ body.auth-connected .hero {
 .leaderboard-shell {
  padding-top: 40px;
  display: grid;
- gap: 14px;
+ gap: 4px;
 }
 
 .leaderboard-hero {
  border: 0;
  border-radius: 0;
- padding: 0 0 6px;
+ padding: 0;
  background: transparent;
  box-shadow: none;
 }
@@ -898,7 +907,7 @@ body.leaderboard-page .footer {
 
 .leaderboard-tabs-wrap {
  display: grid;
- gap: 8px;
+ gap: 6px;
  border: 0;
  border-radius: 0;
  padding: 0;
@@ -931,8 +940,8 @@ body.leaderboard-page .footer {
  align-items: center;
  justify-content: center;
  gap: 6px;
- min-height: 30px;
- padding: 4px 10px;
+ min-height: 84px;
+ padding: 12px 10px;
  background: var(--bg-card);
  border: 1px solid rgba(255, 255, 255, 0.1);
  border-radius: 10px;
@@ -3176,12 +3185,15 @@ body.market-page #refreshBtn:hover {
 }
 
 .kshop-grid {
- grid-template-columns: repeat(4, minmax(0, 1fr));
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+ gap: 10px;
 }
 
 .kshop-card {
  border: 1px solid rgba(88, 122, 200, 0.42);
  background: linear-gradient(165deg, rgba(10, 15, 38, 0.86), rgba(7, 10, 28, 0.9));
+ padding: 10px;
+ border-radius: 12px;
 }
 
 .kshop-card-bought {
@@ -3193,16 +3205,16 @@ body.market-page #refreshBtn:hover {
  display: flex;
  justify-content: space-between;
  align-items: center;
- gap: 8px;
- margin-bottom: 6px;
+ gap: 6px;
+ margin-bottom: 4px;
 }
 
 .kshop-thumb-wrap {
- margin: 2px 0 8px;
+ margin: 0 0 6px;
  border-radius: 10px;
  overflow: hidden;
  border: 1px solid rgba(80, 111, 186, 0.35);
- max-height: 180px;
+ max-height: 132px;
 }
 
 .kshop-thumb-wrap .card-thumb {
@@ -3212,11 +3224,12 @@ body.market-page #refreshBtn:hover {
 }
 
 .kshop-price-line {
- margin: 7px 0 3px;
+ margin: 5px 0 2px;
  display: flex;
  align-items: baseline;
- gap: 8px;
+ gap: 6px;
  color: #f4d78b;
+ font-size: 0.9rem;
 }
 
 .kshop-price-base {
@@ -3227,8 +3240,26 @@ body.market-page #refreshBtn:hover {
 
 body.krosmoshop-page .kshop-card .action-row .btn {
  width: 100%;
- min-height: 32px;
- font-size: 0.78rem;
+ min-height: 30px;
+ font-size: 0.75rem;
+ padding: 5px 8px;
+}
+
+body.krosmoshop-page .kshop-card h3 {
+ font-size: 0.74rem;
+ margin: 5px 0;
+ line-height: 1.25;
+ min-height: 2.4em;
+}
+
+body.krosmoshop-page .kshop-card p {
+ font-size: 0.75rem;
+ margin: 1px 0;
+}
+
+body.krosmoshop-page .kshop-card .chip {
+ font-size: 0.7rem;
+ padding: 3px 7px;
 }
 
 .toast {
@@ -3308,6 +3339,88 @@ body.krosmoshop-page .kshop-card .action-row .btn {
 
 .achievement-progress-toast .quest-toast-desc {
  color: #e6d9ab;
+}
+
+.toast-tone-achievement {
+ border-color: rgba(233, 199, 109, 0.62);
+ background: linear-gradient(165deg, rgba(40, 30, 10, 0.95), rgba(25, 18, 8, 0.97));
+}
+
+.toast-tone-achievement .quest-toast-chip {
+ border-color: rgba(233, 199, 109, 0.6);
+ background: rgba(233, 199, 109, 0.16);
+ color: #ffefbe;
+}
+
+.toast-tone-quest {
+ border-color: rgba(101, 214, 143, 0.62);
+ background: linear-gradient(165deg, rgba(12, 33, 28, 0.95), rgba(8, 24, 20, 0.97));
+}
+
+.toast-tone-quest .quest-toast-chip {
+ border-color: rgba(101, 214, 143, 0.64);
+ background: rgba(101, 214, 143, 0.16);
+ color: #dcffe8;
+}
+
+.toast-tone-quest p {
+ color: #d7f5e0;
+}
+
+.toast-tone-quest .quest-toast-desc {
+ color: #bde8ca;
+}
+
+.toast-tone-quest .quest-toast-bar {
+ border-color: rgba(101, 214, 143, 0.45);
+ background: rgba(11, 32, 24, 0.7);
+}
+
+.toast-tone-quest .quest-toast-bar span {
+ background: linear-gradient(90deg, #5fdc9f, #a5ffd2);
+ box-shadow: 0 0 10px rgba(95, 220, 159, 0.42);
+}
+
+.toast-tone-event {
+ border-color: rgba(124, 169, 255, 0.5);
+ background: linear-gradient(165deg, rgba(11, 16, 42, 0.95), rgba(8, 12, 33, 0.97));
+}
+
+.toast-tone-event .quest-toast-chip {
+ border-color: rgba(124, 169, 255, 0.62);
+ background: rgba(100, 148, 255, 0.16);
+ color: #dce8ff;
+}
+
+.toast-tone-event p {
+ color: #d2dfff;
+}
+
+.toast-tone-event .quest-toast-desc {
+ color: #b5c8f2;
+}
+
+.toast-tone-shop {
+ border-color: rgba(255, 140, 214, 0.6);
+ background: linear-gradient(165deg, rgba(42, 10, 31, 0.95), rgba(29, 8, 24, 0.97));
+}
+
+.toast-tone-shop .quest-toast-chip {
+ border-color: rgba(255, 140, 214, 0.64);
+ background: rgba(255, 140, 214, 0.18);
+ color: #ffd9f2;
+}
+
+.toast-tone-shop p {
+ color: #ffd7ef;
+}
+
+.toast-tone-shop .quest-toast-desc {
+ color: #f2c5e1;
+}
+
+.toast-tone-shop .quest-toast-reward {
+ color: #ffd8ee;
 }
 
 .quest-toast-head {
@@ -3494,7 +3607,7 @@ body.krosmoshop-page .kshop-card .action-row .btn {
  .events-status-main { grid-template-columns: 1fr; }
  .events-grid { grid-template-columns: 1fr; }
  .events-card-media { max-height: 200px; }
- .leaderboard-shell { gap: 12px; }
+ .leaderboard-shell { gap: 6px; }
  .leaderboard-hero { padding: 0; }
  .leaderboard-tabs-wrap { padding: 0; }
  .leaderboard-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -3514,7 +3627,7 @@ body.krosmoshop-page .kshop-card .action-row .btn {
  .bp-step-copy { width: 168px; }
  .bp-node-core { width: 132px; height: 132px; }
  .bp-node-free, .bp-node-premium { max-width: 108px; font-size: 0.69rem; }
- .tab-btn { min-height: 30px; font-size: 0.84rem; padding: 4px 8px; }
+ .tab-btn { min-height: 70px; font-size: 0.84rem; padding: 8px 8px; }
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .market-sell-btn { width: 100%; }
