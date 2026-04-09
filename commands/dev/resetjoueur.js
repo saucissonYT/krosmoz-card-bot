@@ -12,6 +12,7 @@ const {
 const { isDev } = require("../../systems/devSystem")
 const { getUser, save } = require("../../systems/userSystem")
 const { data, USERS_DIR } = require("../../systems/dataManager")
+const { dbDeleteUser } = require("../../systems/database")
 
 const {
  getUserGuild,
@@ -58,6 +59,12 @@ function resetUserData(userId) {
 
  const userFile = path.join(USERS_DIR, `${userId}.json`)
  if (fs.existsSync(userFile)) fs.unlinkSync(userFile)
+
+ try {
+  dbDeleteUser(userId)
+ } catch (err) {
+  console.error("[resetjoueur] Erreur delete SQLite:", err)
+ }
 
  delete data.users[userId]
 
