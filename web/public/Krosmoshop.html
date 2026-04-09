@@ -54,7 +54,6 @@
      </div>
      <div class="kshop-top-actions">
       <button id="kshopBuyAllBtn" class="btn btn-outline" type="button">Acheter tout le reste</button>
-      <button id="kshopRefreshBtn" class="btn btn-outline" type="button">Actualiser</button>
      </div>
     </div>
 
@@ -78,10 +77,107 @@
   connected: false,
   items: [],
   payload: null,
-  loading: false
+  loading: false,
+  preview: false
  }
 
  const RARITY_ORDER = ["SSR", "S", "UR", "HR", "SR", "R", "U", "C"]
+ const PREVIEW_STORAGE_KEY = "kc_kshop_preview_v1"
+
+ function isPreviewMode() {
+  const params = new URLSearchParams(window.location.search || "")
+  const raw = String(params.get("preview") || params.get("demo") || params.get("local") || "").toLowerCase()
+  return raw === "1" || raw === "true" || raw === "yes"
+ }
+
+ function shouldResetPreview() {
+  const params = new URLSearchParams(window.location.search || "")
+  const raw = String(params.get("reset") || "").toLowerCase()
+  return raw === "1" || raw === "true" || raw === "yes"
+ }
+
+ function buildPreviewItems() {
+  return [
+   { cardId: "1199", name: "Familier Titcham", rarity: "SSR", setName: "Kelba", basePrice: 12000, finalPrice: 11880, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "752", name: "Casque de Rezak", rarity: "S", setName: "Sufokia", basePrice: 5000, finalPrice: 4950, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "766", name: "Champignon Luidegit", rarity: "S", setName: "Sufokia", basePrice: 5000, finalPrice: 4950, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "1194", name: "Familier Geist", rarity: "UR", setName: "Kelba", basePrice: 2000, finalPrice: 1980, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "1416", name: "Protection du Divin Orrok", rarity: "UR", setName: "Kelba", basePrice: 2000, finalPrice: 1980, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "2313", name: "Sceau du Maitre Bijoutier", rarity: "UR", setName: "Sberg", basePrice: 2000, finalPrice: 1980, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "2283", name: "Plastron du Corbeau Blanc", rarity: "HR", setName: "Sberg", basePrice: 1300, finalPrice: 1287, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "2258", name: "Panoplie du Corbeau Blanc", rarity: "HR", setName: "Sberg", basePrice: 1300, finalPrice: 1287, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "2184", name: "Marteau de Moon", rarity: "SR", setName: "Moon", basePrice: 900, finalPrice: 891, owned: 1, purchased: false, imageUrl: "" },
+   { cardId: "2050", name: "Boussole Katrepat", rarity: "SR", setName: "Moon", basePrice: 900, finalPrice: 891, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "1882", name: "Cape de Pandawa", rarity: "R", setName: "Pandala", basePrice: 450, finalPrice: 446, owned: 2, purchased: false, imageUrl: "" },
+   { cardId: "1744", name: "Gants de Sram", rarity: "R", setName: "Brakmar", basePrice: 450, finalPrice: 446, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "1608", name: "Amulette Cra", rarity: "U", setName: "Amakna", basePrice: 250, finalPrice: 248, owned: 3, purchased: false, imageUrl: "" },
+   { cardId: "1492", name: "Epaulettes Iop", rarity: "U", setName: "Amakna", basePrice: 250, finalPrice: 248, owned: 0, purchased: false, imageUrl: "" },
+   { cardId: "1321", name: "Bottes Sadida", rarity: "C", setName: "Cania", basePrice: 120, finalPrice: 119, owned: 5, purchased: false, imageUrl: "" }
+  ]
+ }
+
+ function applyPreviewAffordability(payload) {
+  const wallet = Math.max(0, Number(payload?.wallet?.kamas || 0))
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  payload.items = items.map((item) => {
+   const basePrice = Math.max(0, Number(item?.basePrice || 0))
+   const finalPrice = Math.max(0, Number(item?.finalPrice || basePrice))
+   const purchased = Boolean(item?.purchased)
+   const canBuy = !purchased && wallet >= finalPrice
+   return {
+    ...item,
+    basePrice,
+    finalPrice,
+    purchased,
+    canBuy,
+    missingKamas: purchased || canBuy ? 0 : Math.max(0, finalPrice - wallet),
+    owned: Math.max(0, Number(item?.owned || 0))
+   }
+  })
+
+  payload.progress = payload.progress || {}
+  payload.progress.totalCount = payload.items.length
+  payload.progress.boughtCount = payload.items.filter((item) => item.purchased).length
+  return payload
+ }
+
+ function buildPreviewPayload() {
+  const now = Date.now()
+  const tomorrow = new Date(now)
+  tomorrow.setHours(24, 0, 0, 0)
+  return applyPreviewAffordability({
+   connected: true,
+   preview: true,
+   shopDay: "Aperçu local",
+   cooldownMs: Math.max(0, tomorrow.getTime() - now),
+   wallet: { kamas: 24500 },
+   discounts: { totalPercent: 1 },
+   progress: { boughtCount: 0, totalCount: 15 },
+   stats: { cardsBought: 0, ssrBought: 0, sBought: 0, kamasSpent: 0, daysVisited: 1 },
+   items: buildPreviewItems()
+  })
+ }
+
+ function savePreviewPayload(payload) {
+  try {
+   window.localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(payload || {}))
+  } catch (_) {}
+ }
+
+ function loadPreviewPayload() {
+  try {
+   const raw = window.localStorage.getItem(PREVIEW_STORAGE_KEY)
+   if (raw) {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === "object") {
+     return applyPreviewAffordability(parsed)
+    }
+   }
+  } catch (_) {}
+  const fallback = buildPreviewPayload()
+  savePreviewPayload(fallback)
+  return fallback
+ }
 
  function esc(str) {
   const d = document.createElement("div")
@@ -135,7 +231,14 @@
   dayEl.textContent = `Jour: ${String(payload?.shopDay || "--")}`
   resetEl.textContent = `Reset dans ${formatCountdown(payload?.cooldownMs || 0)}`
 
-  if (payload?.connected) {
+  if (state.preview) {
+   walletEl.textContent = `Kamas (local): ${Number(payload?.wallet?.kamas || 0).toLocaleString("fr-FR")}`
+   discountEl.textContent = `Reduction shop: ${Number(payload?.discounts?.totalPercent || 0)}%`
+   const boughtCount = Number(payload?.progress?.boughtCount || 0)
+   const totalCount = Number(payload?.progress?.totalCount || 0)
+   progressEl.textContent = `Achat(s): ${boughtCount}/${totalCount}`
+   statsEl.textContent = "Mode apercu local actif (?preview=1)."
+  } else if (payload?.connected) {
    walletEl.textContent = `Kamas: ${Number(payload?.wallet?.kamas || 0).toLocaleString("fr-FR")}`
    discountEl.textContent = `Reduction shop: ${Number(payload?.discounts?.totalPercent || 0)}%`
    const boughtCount = Number(payload?.progress?.boughtCount || 0)
@@ -149,7 +252,7 @@
    statsEl.textContent = "Connecte-toi pour acheter."
   }
 
-  buyAllBtn.disabled = !payload?.connected || state.loading
+  buyAllBtn.disabled = (!payload?.connected && !state.preview) || state.loading
  }
 
  function itemActionButton(item) {
@@ -157,7 +260,7 @@
    return `<a class="btn btn-outline" href="${esc(getLoginUrl())}">Connexion requise</a>`
   }
   if (item.purchased) {
-   return `<button class="btn btn-outline" type="button" disabled>Achetee</button>`
+    return `<button class="btn btn-outline" type="button" disabled>Achetée</button>`
   }
   if (!item.canBuy) {
    return `<button class="btn btn-outline" type="button" disabled>Manque ${Number(item.missingKamas || 0).toLocaleString("fr-FR")}</button>`
@@ -167,6 +270,7 @@
 
  function itemCard(item) {
   const hasDiscount = Number(item.finalPrice || 0) < Number(item.basePrice || 0)
+  const miniThumbSrc = String(item.imageUrl || "/assets/ui/pack-back-normal.png")
   return `
    <article class="catalog-card kshop-card ${item.purchased ? "kshop-card-bought" : ""}">
     <div class="kshop-card-head">
@@ -176,11 +280,18 @@
     ${item.imageUrl ? `<div class="kshop-thumb-wrap"><img class="card-thumb" loading="lazy" src="${esc(item.imageUrl)}" alt="${esc(item.name)}" onerror="this.parentElement.style.display='none'"></div>` : ""}
     <h3>${esc(item.name)}</h3>
     <p class="kshop-muted">ID #${esc(item.cardId)}</p>
-    <p class="kshop-price-line">
-     ${hasDiscount ? `<span class="kshop-price-base">${Number(item.basePrice || 0).toLocaleString("fr-FR")}</span>` : ""}
-     <strong>${Number(item.finalPrice || 0).toLocaleString("fr-FR")} kamas</strong>
-    </p>
-    <p class="kshop-muted">Possedees: ${Number(item.owned || 0)}${item.purchased ? " · Deja achetee aujourd'hui" : ""}</p>
+    <div class="kshop-meta-row">
+     <div class="kshop-meta-main">
+      <p class="kshop-price-line">
+       ${hasDiscount ? `<span class="kshop-price-base">${Number(item.basePrice || 0).toLocaleString("fr-FR")}</span>` : ""}
+       <strong>${Number(item.finalPrice || 0).toLocaleString("fr-FR")} kamas</strong>
+      </p>
+      <p class="kshop-muted">Possedees: ${Number(item.owned || 0)}${item.purchased ? " - Déjà achetée aujourd'hui" : ""}</p>
+     </div>
+     <div class="kshop-mini-thumb-wrap" aria-hidden="true">
+      <img class="kshop-mini-thumb" loading="lazy" src="${esc(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
+     </div>
+    </div>
     <div class="action-row">${itemActionButton(item)}</div>
    </article>
   `
@@ -218,6 +329,19 @@
  }
 
  async function refreshShop() {
+  if (state.preview) {
+   const payload = state.payload && typeof state.payload === "object"
+    ? applyPreviewAffordability(state.payload)
+    : loadPreviewPayload()
+   state.loading = false
+   state.connected = true
+   state.payload = payload
+   savePreviewPayload(payload)
+   renderTopbar(payload)
+   renderGrid(payload)
+   return
+  }
+
   state.loading = true
   const buyAllBtn = document.getElementById("kshopBuyAllBtn")
   buyAllBtn.disabled = true
@@ -239,6 +363,46 @@
  }
 
  async function buyOne(cardId) {
+  if (state.preview) {
+   const payload = state.payload && typeof state.payload === "object"
+    ? applyPreviewAffordability(state.payload)
+    : loadPreviewPayload()
+   const index = payload.items.findIndex((item) => String(item.cardId) === String(cardId))
+   if (index < 0) {
+    showToast("Carte introuvable en mode local.", true)
+    return
+   }
+
+   const item = payload.items[index]
+   if (item.purchased) {
+    showToast("Carte déjà achetée aujourd'hui.", true)
+    return
+   }
+   if (!item.canBuy) {
+    showToast(`Manque ${Number(item.missingKamas || 0).toLocaleString("fr-FR")} kamas.`, true)
+    return
+   }
+
+   payload.wallet.kamas = Math.max(0, Number(payload.wallet?.kamas || 0) - Number(item.finalPrice || 0))
+   payload.items[index] = { ...item, purchased: true, owned: Number(item.owned || 0) + 1 }
+   payload.stats = payload.stats || {}
+   payload.stats.cardsBought = Number(payload.stats.cardsBought || 0) + 1
+   payload.stats.kamasSpent = Number(payload.stats.kamasSpent || 0) + Number(item.finalPrice || 0)
+   if (String(item.rarity || "").toUpperCase() === "SSR") payload.stats.ssrBought = Number(payload.stats.ssrBought || 0) + 1
+   if (String(item.rarity || "").toUpperCase() === "S") payload.stats.sBought = Number(payload.stats.sBought || 0) + 1
+
+   state.payload = applyPreviewAffordability(payload)
+   state.connected = true
+   savePreviewPayload(state.payload)
+   renderTopbar(state.payload)
+   renderGrid(state.payload)
+
+   const cardName = String(item?.name || item?.cardId || "Carte")
+   const finalPrice = Number(item?.finalPrice || 0).toLocaleString("fr-FR")
+   showToast(`${cardName} achetée pour ${finalPrice} kamas.`)
+   return
+  }
+
   const res = await api("/api/krosmoshop/buy", {
    method: "POST",
    headers: { "Content-Type": "application/json" },
@@ -260,7 +424,7 @@
     chipLabel: "Shop"
    })
   } else {
-   showToast(`${cardName} achetee pour ${finalPrice} kamas.`)
+    showToast(`${cardName} achetée pour ${finalPrice} kamas.`)
   }
   if (Number(res.data?.unlockedAchievements || 0) > 0) {
    showToast(`${Number(res.data.unlockedAchievements)} achievement(s) debloque(s).`)
@@ -278,6 +442,44 @@
  }
 
  async function buyAllRemaining() {
+  if (state.preview) {
+   let payload = state.payload && typeof state.payload === "object"
+    ? applyPreviewAffordability(state.payload)
+    : loadPreviewPayload()
+
+   const purchasable = payload.items.filter((item) => item.canBuy && !item.purchased)
+   if (!purchasable.length) {
+    showToast("Aucune carte achetable pour le moment.", true)
+    return
+   }
+
+   const total = purchasable.length
+   let success = 0
+   for (const item of payload.items) {
+    if (item.purchased) continue
+    const price = Number(item.finalPrice || 0)
+    const wallet = Number(payload.wallet?.kamas || 0)
+    if (wallet < price) continue
+    payload.wallet.kamas = wallet - price
+    item.purchased = true
+    item.owned = Number(item.owned || 0) + 1
+    payload.stats.cardsBought = Number(payload.stats.cardsBought || 0) + 1
+    payload.stats.kamasSpent = Number(payload.stats.kamasSpent || 0) + price
+    if (String(item.rarity || "").toUpperCase() === "SSR") payload.stats.ssrBought = Number(payload.stats.ssrBought || 0) + 1
+    if (String(item.rarity || "").toUpperCase() === "S") payload.stats.sBought = Number(payload.stats.sBought || 0) + 1
+    success += 1
+   }
+
+   payload = applyPreviewAffordability(payload)
+   state.payload = payload
+   state.connected = true
+   savePreviewPayload(payload)
+   renderTopbar(payload)
+   renderGrid(payload)
+   showToast(`${success}/${total} achat(s) effectue(s).`)
+   return
+  }
+
   const purchasable = (state.items || []).filter((item) => item.canBuy && !item.purchased)
   if (!purchasable.length) {
    showToast("Aucune carte achetable pour le moment.", true)
@@ -309,13 +511,19 @@
   await refreshShop()
  }
 
- document.getElementById("kshopRefreshBtn").addEventListener("click", () => {
-  refreshShop()
- })
-
  document.getElementById("kshopBuyAllBtn").addEventListener("click", () => {
   buyAllRemaining()
  })
+
+ state.preview = isPreviewMode()
+ if (state.preview) {
+  if (shouldResetPreview()) {
+   try { window.localStorage.removeItem(PREVIEW_STORAGE_KEY) } catch (_) {}
+  }
+  state.connected = true
+  state.payload = loadPreviewPayload()
+  showToast("Mode apercu local KrosmoShop active.")
+ }
 
  refreshShop()
  window.setInterval(() => {
