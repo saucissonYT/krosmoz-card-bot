@@ -5,6 +5,10 @@
  const navbar = document.querySelector(".navbar")
  const heroPlayBtn = document.getElementById("heroPlayBtn")
  let eventToastDismissedUntil = 0
+ const QUEST_TOAST_POLL_MS = 9000
+ let questToastPollHandle = null
+ let questToastBusy = false
+ let questProgressSnapshot = null
 
  function ensureEventToast() {
   let toast = document.getElementById("globalEventToast")
@@ -81,6 +85,230 @@
   } catch (_) {}
  }
 
+ function ensureQuestToastHost() {
+  let host = document.getElementById("globalQuestToastHost")
+  if (host) return host
+  host = document.createElement("div")
+  host.id = "globalQuestToastHost"
+  host.className = "quest-toast-host"
+  document.body.appendChild(host)
+  return host
+ }
+
+ function toQuestPercent(current, goal) {
+  const safeGoal = Math.max(1, Number(goal || 1))
+  const safeCurrent = Math.max(0, Number(current || 0))
+  return Math.max(0, Math.min(100, Math.round((safeCurrent / safeGoal) * 100)))
+ }
+
+ function toQuestKey(type, id) {
+  return `${String(type || "daily")}:${String(id || "")}`
+ }
+
+ function formatQuestRewardLine(result) {
+  if (!result) return ""
+  const parts = []
+  if (Number(result.totalKamas || 0) > 0) parts.push(`💰 +${Number(result.totalKamas || 0).toLocaleString("fr-FR")}`)
+  if (Number(result.totalXp || 0) > 0) parts.push(`⭐ +${Number(result.totalXp || 0).toLocaleString("fr-FR")} XP`)
+  if (Number(result.totalPacks || 0) > 0) parts.push(`📦 +${Number(result.totalPacks || 0).toLocaleString("fr-FR")}`)
+  if (Number(result.totalBpXp || 0) > 0) parts.push(`🎟️ +${Number(result.totalBpXp || 0).toLocaleString("fr-FR")} XP BP`)
+  return parts.join(" • ")
+ }
+
+ function spawnQuestToast({ title = "Quête", subtitle = "", fromPct = 0, toPct = 0, variant = "progress", rewardText = "" } = {}) {
+  const host = ensureQuestToastHost()
+  const toast = document.createElement("article")
+  toast.className = `quest-progress-toast quest-progress-toast-${variant}`
+  toast.innerHTML = `
+   <div class="quest-toast-head">
+    <strong>${title}</strong>
+    <span class="quest-toast-chip">${variant === "complete" ? "Complétée" : `${toPct}%`}</span>
+   </div>
+   <p>${subtitle}</p>
+   <div class="quest-toast-bar"><span></span></div>
+   ${rewardText ? `<small class="quest-toast-reward">${rewardText}</small>` : ""}
+  `
+
+  host.appendChild(toast)
+  const fill = toast.querySelector(".quest-toast-bar span")
+  if (fill) {
+   fill.style.width = `${Math.max(0, Math.min(100, fromPct))}%`
+   requestAnimationFrame(() => {
+    fill.style.width = `${Math.max(0, Math.min(100, toPct))}%`
+   })
+  }
+
+  requestAnimationFrame(() => toast.classList.add("show"))
+
+  const ttl = variant === "complete" ? 6200 : 4200
+  window.setTimeout(() => {
+   toast.classList.remove("show")
+   window.setTimeout(() => toast.remove(), 260)
+  }, ttl)
+ }
+
+ function getPlayerQuestEntries(payload) {
+  const map = new Map()
+  if (!payload || !payload.player) return map
+
+  const addType = (type, quests) => {
+   for (const quest of quests || []) {
+    const id = String(quest?.id || "")
+    if (!id) continue
+    map.set(toQuestKey(type, id), {
+     id,
+     type,
+     name: String(quest?.name || "Quête"),
+     current: Number(quest?.current || 0),
+     goal: Number(quest?.goal || 1),
+     done: Boolean(quest?.done),
+     claimed: Boolean(quest?.claimed),
+     reward: quest?.reward || {}
+    })
+   }
+  }
+
+  addType("daily", payload?.player?.daily?.quests || [])
+  addType("weekly", payload?.player?.weekly?.quests || [])
+  return map
+ }
+
+ async function claimQuestAutomatically(type, questId) {
+  try {
+   const res = await fetch("/api/quests/claim", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+     scope: "player",
+     type: String(type || "daily"),
+     questId: String(questId || "")
+    })
+   })
+   let data = null
+   try { data = await res.json() } catch (_) {}
+   return { ok: res.ok, data }
+  } catch (_) {
+   return { ok: false, data: null }
+  }
+ }
+
+ async function refreshQuestProgressToasts() {
+  if (questToastBusy) return
+  questToastBusy = true
+
+  try {
+   const stateRes = await fetch("/api/quests/state", { credentials: "same-origin" })
+   if (!stateRes.ok) return
+   let stateData = null
+   try { stateData = await stateRes.json() } catch (_) {}
+   if (!stateData || !stateData.connected) {
+    questProgressSnapshot = null
+    return
+   }
+
+   let currentEntries = getPlayerQuestEntries(stateData)
+   if (!questProgressSnapshot) {
+    questProgressSnapshot = currentEntries
+    return
+   }
+
+   const progressEvents = []
+   const completionEvents = []
+
+   for (const [key, nextQuest] of currentEntries.entries()) {
+    const prevQuest = questProgressSnapshot.get(key)
+    if (!prevQuest) continue
+
+    const prevCurrent = Number(prevQuest.current || 0)
+    const nextCurrent = Number(nextQuest.current || 0)
+    const progressed = nextCurrent > prevCurrent
+    const completedNow = !Boolean(prevQuest.done) && Boolean(nextQuest.done)
+
+    if (completedNow) {
+     completionEvents.push({ prev: prevQuest, next: nextQuest })
+    } else if (progressed) {
+      progressEvents.push({ prev: prevQuest, next: nextQuest })
+    }
+   }
+
+   for (const event of progressEvents) {
+    const fromPct = toQuestPercent(event.prev.current, event.next.goal)
+    const toPct = toQuestPercent(event.next.current, event.next.goal)
+    spawnQuestToast({
+     title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
+     subtitle: `${Math.min(event.next.current, event.next.goal)}/${event.next.goal}`,
+     fromPct,
+     toPct,
+     variant: "progress"
+    })
+   }
+
+   let finalState = stateData
+   for (const event of completionEvents) {
+    const claim = await claimQuestAutomatically(event.next.type, event.next.id)
+    const claimResult = claim?.data?.result || null
+    const rewardText = claim?.ok
+     ? formatQuestRewardLine(claimResult)
+     : "Récompense prête dans Quêtes"
+
+    spawnQuestToast({
+     title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
+     subtitle: "Quête complétée",
+     fromPct: 0,
+     toPct: 100,
+     variant: "complete",
+     rewardText
+    })
+
+    if (claim?.ok && claim?.data?.state) {
+     finalState = claim.data.state
+    }
+   }
+
+   questProgressSnapshot = getPlayerQuestEntries(finalState)
+  } catch (_) {
+  } finally {
+   questToastBusy = false
+  }
+ }
+
+ function stopQuestToastPolling() {
+  if (questToastPollHandle) {
+   clearInterval(questToastPollHandle)
+   questToastPollHandle = null
+  }
+  questProgressSnapshot = null
+ }
+
+ function startQuestToastPolling() {
+  stopQuestToastPolling()
+  refreshQuestProgressToasts().catch(() => {})
+  questToastPollHandle = window.setInterval(() => {
+   refreshQuestProgressToasts().catch(() => {})
+  }, QUEST_TOAST_POLL_MS)
+ }
+
+ window.__kcQuestToastPreview = function questToastPreview() {
+  spawnQuestToast({
+   title: "Quotidienne: Ouverture Rapide",
+   subtitle: "2/3",
+   fromPct: 33,
+   toPct: 66,
+   variant: "progress"
+  })
+  window.setTimeout(() => {
+   spawnQuestToast({
+    title: "Quotidienne: Ouverture Rapide",
+    subtitle: "Quête complétée",
+    fromPct: 0,
+    toPct: 100,
+    variant: "complete",
+    rewardText: "💰 +300 • ⭐ +50 XP • 🎟️ +80 XP BP"
+   })
+  }, 800)
+ }
+
  ensureEventToast()
  refreshEventToast().catch(() => {})
  window.setInterval(() => { refreshEventToast().catch(() => {}) }, 15000)
@@ -110,7 +338,8 @@
       <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
       <li><a href="/play/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
-     <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/play/quests" data-play-mode="quests">Quêtes</a></li>
       <li><a href="/events">Events</a></li>
       <li><a href="/battlepass">Battlepass</a></li>
       <li><a href="/market">Marché</a></li>
@@ -237,9 +466,10 @@
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
-  setConnectedNavLink(false)
-  setTopMarketLinkVisibility(false)
-  setTopEventsLinkVisibility()
+ setConnectedNavLink(false)
+ setTopMarketLinkVisibility(false)
+ setTopEventsLinkVisibility()
+  stopQuestToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "#"
@@ -259,9 +489,10 @@
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
-  setConnectedNavLink(false)
-  setTopMarketLinkVisibility(false)
-  setTopEventsLinkVisibility()
+ setConnectedNavLink(false)
+ setTopMarketLinkVisibility(false)
+ setTopEventsLinkVisibility()
+  stopQuestToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
@@ -288,6 +519,7 @@
  setConnectedNavLink(true)
  setTopMarketLinkVisibility(true)
  setTopEventsLinkVisibility()
+ startQuestToastPolling()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
   heroPlayBtn.href = "/play"
@@ -300,6 +532,7 @@
  btn.href = "#"
  btn.addEventListener("click", async (event) => {
   event.preventDefault()
+  stopQuestToastPolling()
   try {
    await fetch("/auth/logout", {
     method: "POST",

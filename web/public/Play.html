@@ -19,6 +19,8 @@ if (__initialPlayTab === "fusion") {
  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
 } else if (__initialPlayTab === "inventory") {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
+} else if (__initialPlayTab === "quests") {
+ document.body.classList.add("route-quests-bg", "quests-bg-active")
 } else {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
 }
@@ -79,6 +81,7 @@ if (__initialPlayTab === "fusion") {
       <div id="playPacks" class="play-panel-alt" style="display:none"></div>
       <div id="playFusion" class="play-panel-alt" style="display:none"></div>
       <div id="playCraft" class="play-panel-alt" style="display:none"></div>
+      <div id="playQuests" class="play-panel-alt" style="display:none"></div>
      </div>
     </main>
    </section>
@@ -95,7 +98,8 @@ if (__initialPlayTab === "fusion") {
   inventory: "/play/inventory",
   packs: "/play/packs",
   fusion: "/play/fusion",
-  craft: "/play/craft"
+  craft: "/play/craft",
+  quests: "/play/quests"
  }
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
@@ -118,7 +122,8 @@ const state = {
  craftUi: {
   cardId: ""
  },
- craftHistory: []
+ craftHistory: [],
+ questsState: null
 }
  const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
  const PACK_BACK_IMAGE_BY_RARITY = {
@@ -154,7 +159,7 @@ const FUSION_MAX_CYCLES = 25
 
  function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "packs", "fusion", "craft"].includes(tab) ? tab : "inventory"
+  return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
  }
 
  async function fetchJson(url, options = {}) {
@@ -184,6 +189,8 @@ function setMode(mode, updateUrl = true) {
   const isForgeMode = mode === "fusion" || mode === "craft"
   document.body.classList.toggle("route-inventory-bg", mode === "inventory")
   document.body.classList.toggle("inventory-bg-active", mode === "inventory")
+  document.body.classList.toggle("route-quests-bg", mode === "quests")
+  document.body.classList.toggle("quests-bg-active", mode === "quests")
   document.body.classList.toggle("route-fusion-bg", mode === "fusion")
   document.body.classList.toggle("fusion-bg-active", mode === "fusion")
   document.body.classList.toggle("route-craft-bg", mode === "craft")
@@ -1977,6 +1984,246 @@ function renderCraft() {
   setupCraftPanel(crafts)
  }
 
+function questProgressPercent(quest) {
+ const goal = Math.max(1, Number(quest?.goal || 1))
+ const current = Math.max(0, Number(quest?.current || 0))
+ return Math.max(0, Math.min(100, Math.round((current / goal) * 100)))
+}
+
+function formatQuestRewards(reward, scope = "player") {
+ const parts = []
+ if (scope === "guild") {
+  if (Number(reward?.guildXp || 0) > 0) parts.push(`⭐ ${fmt(reward.guildXp)} XP guilde`)
+ } else {
+  if (Number(reward?.kamas || 0) > 0) parts.push(`💰 ${fmt(reward.kamas)}`)
+  if (Number(reward?.xp || 0) > 0) parts.push(`⭐ ${fmt(reward.xp)} XP`)
+  if (Number(reward?.packs || 0) > 0) parts.push(`📦 ${fmt(reward.packs)}`)
+ }
+ return parts.join(" • ") || "Récompense"
+}
+
+function renderQuestRows(quests = [], scope = "player", type = "daily", canClaim = true) {
+ if (!Array.isArray(quests) || quests.length <= 0) {
+  return '<p class="mode-muted">Aucune quête disponible.</p>'
+ }
+
+ const orderedQuests = quests
+  .map((quest, index) => ({ quest, index }))
+  .sort((a, b) => {
+   const aDone = Boolean(a.quest?.done)
+   const bDone = Boolean(b.quest?.done)
+   if (aDone !== bDone) return aDone ? 1 : -1
+   return a.index - b.index
+  })
+  .map((entry) => entry.quest)
+
+ return orderedQuests.map((quest) => {
+  const pct = questProgressPercent(quest)
+  const goal = Math.max(1, Number(quest?.goal || 1))
+  const current = Math.max(0, Math.min(goal, Number(quest?.current || 0)))
+  const isClaimable = Boolean(quest?.claimable) && canClaim
+  const rowClass = quest?.claimed ? "quest-row claimed" : (quest?.done ? "quest-row done" : "quest-row")
+  let actionHtml = `<span class="mode-chip">${current}/${goal}</span>`
+  if (quest?.claimed) {
+    actionHtml = '<span class="mode-chip mode-chip-ok">Récupérée</span>'
+  } else if (isClaimable) {
+    actionHtml = `
+      <button class="btn btn-outline quest-claim-btn" data-quest-claim-one data-scope="${escapeHtml(scope)}" data-type="${escapeHtml(type)}" data-quest-id="${escapeHtml(quest.id)}">
+       Récupérer
+      </button>
+    `
+  } else if (quest?.done && !canClaim) {
+    const blockedLabel = scope === "guild" ? "Meneur / officier requis" : "Connexion requise"
+    actionHtml = `<span class="mode-chip">${blockedLabel}</span>`
+  }
+
+  return `
+   <article class="${rowClass}">
+    <div class="quest-row-head">
+     <strong>${escapeHtml(`${quest?.emoji || "🎯"} ${quest?.name || "Quête"}`)}</strong>
+     ${actionHtml}
+    </div>
+    <p>${escapeHtml(quest?.desc || "")}</p>
+    <div class="quest-progress-row">
+     <div class="quest-progress-track">
+      <span style="width:${pct}%"></span>
+     </div>
+     <small>${fmt(current)}/${fmt(goal)}</small>
+    </div>
+    <small class="quest-reward-text">${escapeHtml(formatQuestRewards(quest?.reward || {}, scope))}</small>
+   </article>
+  `
+ }).join("")
+}
+
+function renderQuestGroupCard(options = {}) {
+ const {
+  title = "Quêtes",
+  scope = "player",
+  type = "daily",
+  group = null,
+  canClaim = true,
+  roleLabel = ""
+ } = options
+
+ const summary = group?.summary || {}
+ const done = Number(summary.done || 0)
+ const total = Number(summary.total || 0)
+ const claimable = Number(summary.claimable || 0)
+ const claimed = Number(summary.claimed || 0)
+ const bonusLine = scope === "player"
+  ? `<small class="mode-muted">Bonus complet: ${escapeHtml(formatQuestRewards(group?.bonus || {}, "player"))}</small>`
+  : ""
+ const roleLine = roleLabel ? `<small class="mode-muted">${escapeHtml(roleLabel)}</small>` : ""
+ const scopeClass = scope === "guild" ? "quest-card-guild" : "quest-card-player"
+
+ return `
+  <section class="mode-card quest-card ${scopeClass}">
+   <div class="quest-card-head">
+    <div>
+     <h3>${escapeHtml(title)}</h3>
+     <p>Reset dans ${escapeHtml(group?.resetIn || "-")}</p>
+     ${bonusLine}
+     ${roleLine}
+    </div>
+   <button
+     class="btn btn-gold quest-claim-all-btn"
+     data-quest-claim-all
+     data-scope="${escapeHtml(scope)}"
+     data-type="${escapeHtml(type)}"
+     ${claimable > 0 && canClaim ? "" : "disabled"}>
+     Tout récupérer (${fmt(claimable)})
+    </button>
+   </div>
+   <div class="quest-list">
+    ${renderQuestRows(group?.quests || [], scope, type, canClaim)}
+   </div>
+  </section>
+ `
+}
+
+async function fetchQuestsState(force = false) {
+ if (!force && state.questsState) return { ok: true, data: state.questsState }
+ const res = await fetchJson("/api/quests/state")
+ if (res.ok && res.data) state.questsState = res.data
+ return res
+}
+
+async function renderQuests(force = false) {
+ const panel = document.getElementById("playQuests")
+ if (!panel) return
+
+ if (!state.questsState || force) {
+  panel.innerHTML = '<div class="play-empty"><h3>Chargement</h3><p>Synchronisation des quêtes...</p></div>'
+ }
+
+ const res = await fetchQuestsState(force)
+ if (!res.ok || !res.data) {
+  panel.innerHTML = '<div class="play-empty"><h3>Erreur</h3><p>Impossible de charger les quêtes.</p></div>'
+  return
+ }
+
+ const data = res.data
+ const isConnected = Boolean(data?.connected)
+ const playerDaily = data?.player?.daily || null
+ const playerWeekly = data?.player?.weekly || null
+ const guild = data?.guild || null
+ const playerCanClaim = isConnected
+ const guildDaily = guild?.daily || { summary: { total: 0, done: 0, claimable: 0 }, quests: [] }
+ const guildWeekly = guild?.weekly || { summary: { total: 0, done: 0, claimable: 0 }, quests: [] }
+  const guildRoleLabel = guild
+  ? (guild?.canClaim ? `Rôle: ${String(guild.rank || "").replace(/^./, (x) => x.toUpperCase())}` : "Rôle: membre (récupération réservée au meneur/officier)")
+  : "Aucune guilde rejointe."
+ panel.innerHTML = `
+  <section class="mode-shell mode-quests">
+   <header class="mode-hero quest-section-block quest-section-kpi">
+    <div class="mode-kpi-grid mode-kpi-grid-4">
+     <div class="mode-kpi"><span>Perso quotidiennes</span><strong>${fmt(playerDaily?.summary?.done || 0)}/${fmt(playerDaily?.summary?.total || 0)}</strong></div>
+     <div class="mode-kpi"><span>Perso hebdo</span><strong>${fmt(playerWeekly?.summary?.done || 0)}/${fmt(playerWeekly?.summary?.total || 0)}</strong></div>
+     <div class="mode-kpi"><span>Guilde quotidienne</span><strong>${fmt(guildDaily?.summary?.done || 0)}/${fmt(guildDaily?.summary?.total || 0)}</strong></div>
+     <div class="mode-kpi"><span>Guilde hebdo</span><strong>${fmt(guildWeekly?.summary?.done || 0)}/${fmt(guildWeekly?.summary?.total || 0)}</strong></div>
+    </div>
+   </header>
+
+   <div id="questResultBox" class="action-result mode-result" style="display:none"></div>
+
+   <div class="quest-section-block quest-section-player">
+    <div class="quest-grid">
+     ${renderQuestGroupCard({
+       title: "Quêtes quotidiennes",
+       scope: "player",
+       type: "daily",
+       group: playerDaily,
+       canClaim: playerCanClaim
+     })}
+     ${renderQuestGroupCard({
+       title: "Quêtes hebdomadaires",
+       scope: "player",
+       type: "weekly",
+       group: playerWeekly,
+       canClaim: playerCanClaim
+     })}
+    </div>
+   </div>
+
+   <div class="quest-section-block quest-section-guild">
+    <div class="quest-grid">
+     ${renderQuestGroupCard({
+       title: guild ? `${guild.emoji || "🏰"} ${guild.name || "Guilde"} • Quotidiennes` : "Quêtes de guilde quotidiennes",
+       scope: "guild",
+       type: "daily",
+       group: guildDaily,
+       canClaim: isConnected && Boolean(guild?.canClaim),
+       roleLabel: guildRoleLabel
+     })}
+     ${renderQuestGroupCard({
+       title: guild ? `${guild.emoji || "🏰"} ${guild.name || "Guilde"} • Hebdomadaires` : "Quêtes de guilde hebdomadaires",
+       scope: "guild",
+       type: "weekly",
+       group: guildWeekly,
+       canClaim: isConnected && Boolean(guild?.canClaim),
+       roleLabel: guildRoleLabel
+     })}
+    </div>
+   </div>
+  </section>
+ `
+}
+
+async function handleQuestClaim({ scope = "player", type = "daily", questId = "" } = {}) {
+ const result = await postJson("/api/quests/claim", { scope, type, questId })
+ if (!result.ok) {
+  showActionResult("questResultBox", `<p>${escapeHtml(result.data?.error || "Récupération impossible.")}</p>`, true)
+  return
+ }
+
+ state.questsState = result.data?.state || null
+ await renderQuests(false)
+
+ if (scope === "guild") {
+  const xp = Number(result.data?.result?.totalXP || 0)
+  const claimed = Number(result.data?.result?.claimed || 0)
+  const bonusXP = Number(result.data?.result?.bonusXP || 0)
+  const bonusLine = bonusXP > 0 ? `<p>Bonus de complétion: +${fmt(bonusXP)} XP guilde</p>` : ""
+  showActionResult(
+   "questResultBox",
+   `<p><strong>Quêtes de guilde récupérées:</strong> ${fmt(claimed)}</p><p>Gain: +${fmt(xp)} XP guilde</p>${bonusLine}`
+  )
+  return
+ }
+
+ const claimed = Number(result.data?.result?.claimedCount || 0)
+ const kamas = Number(result.data?.result?.totalKamas || 0)
+ const xp = Number(result.data?.result?.totalXp || 0)
+ const packs = Number(result.data?.result?.totalPacks || 0)
+ const bpXp = Number(result.data?.result?.totalBpXp || 0)
+ const bonus = Boolean(result.data?.result?.completionBonus)
+  showActionResult(
+   "questResultBox",
+   `<p><strong>Quête(s) récupérée(s):</strong> ${fmt(claimed)}</p><p>💰 +${fmt(kamas)} • ⭐ +${fmt(xp)} XP • 📦 +${fmt(packs)} • 🎟️ +${fmt(bpXp)} XP BP</p>${bonus ? "<p>Bonus de complétion récupéré.</p>" : ""}`
+  )
+}
+
  function showActionResult(boxId, html, error = false) {
   const box = document.getElementById(boxId)
   if (!box) return
@@ -1987,6 +2234,7 @@ function renderCraft() {
 
  async function reloadGameplayDataAndRender() {
   await loadData()
+  state.questsState = null
   renderCurrentMode()
  }
 
@@ -2226,6 +2474,7 @@ async function handleCraftAction() {
   const packsPanel = document.getElementById("playPacks")
   const fusionPanel = document.getElementById("playFusion")
   const craftPanel = document.getElementById("playCraft")
+  const questsPanel = document.getElementById("playQuests")
   const title = document.getElementById("playTitle")
   const subtitle = document.getElementById("playSubtitle")
   const inventoryActionBox = document.getElementById("inventoryActionBox")
@@ -2233,7 +2482,7 @@ async function handleCraftAction() {
   controls.style.display = "grid"
   subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
   rarityFilter.style.display = (state.mode === "inventory" && state.inventoryView === "fragments") ? "none" : ""
-  if (subtitle) subtitle.style.display = state.mode === "inventory" ? "block" : "none"
+  if (subtitle) subtitle.style.display = (state.mode === "inventory" || state.mode === "quests") ? "block" : "none"
   if (inventoryActionBox) {
    if (state.mode !== "inventory") {
     inventoryActionBox.style.display = "none"
@@ -2245,6 +2494,7 @@ async function handleCraftAction() {
   packsPanel.style.display = "none"
   fusionPanel.style.display = "none"
   craftPanel.style.display = "none"
+  questsPanel.style.display = "none"
 
   if (state.mode === "packs") {
    title.textContent = "PACKS"
@@ -2261,6 +2511,12 @@ async function handleCraftAction() {
    controls.style.display = "none"
    grid.style.display = "none"
    craftPanel.style.display = "block"
+  } else if (state.mode === "quests") {
+   title.textContent = "Quêtes"
+   if (subtitle) subtitle.textContent = "Progression quotidienne, hebdomadaire et objectifs de guilde."
+   controls.style.display = "none"
+   grid.style.display = "none"
+   questsPanel.style.display = "block"
   } else {
    title.textContent = state.inventoryView === "fragments" ? "Fragments" : "Inventaire"
    if (subtitle) {
@@ -2276,6 +2532,7 @@ async function handleCraftAction() {
   if (state.mode === "packs") return renderPacks()
   if (state.mode === "fusion") return renderFusion()
   if (state.mode === "craft") return renderCraft()
+  if (state.mode === "quests") return renderQuests().catch(() => {})
   renderInventoryGrid()
  }
 
@@ -2319,11 +2576,38 @@ async function handleCraftAction() {
    const btn = event.target.closest("#craftBtn")
    if (btn) return handleCraftAction().catch(() => {})
   })
+
+ document.getElementById("playQuests").addEventListener("click", (event) => {
+  const claimOne = event.target.closest("[data-quest-claim-one]")
+  if (claimOne) {
+   return handleQuestClaim({
+    scope: String(claimOne.dataset.scope || "player"),
+    type: String(claimOne.dataset.type || "daily"),
+    questId: String(claimOne.dataset.questId || "")
+   }).catch(() => {})
+  }
+
+  const claimAll = event.target.closest("[data-quest-claim-all]")
+  if (claimAll) {
+   return handleQuestClaim({
+    scope: String(claimAll.dataset.scope || "player"),
+    type: String(claimAll.dataset.type || "daily")
+   }).catch(() => {})
+  }
+ })
 }
 
  async function bootstrap() {
   bindEvents()
-  setMode(parseModeFromPath(), false)
+  const initialMode = parseModeFromPath()
+  setMode(initialMode, false)
+  if (initialMode === "quests") {
+   try {
+    await loadData()
+   } catch (_) {}
+   renderCurrentMode()
+   return
+  }
   try {
    await loadData()
    renderCurrentMode()

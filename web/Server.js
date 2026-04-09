@@ -41,7 +41,27 @@ const {
  getUserListings,
  removeListing
 } = require("../systems/market")
-const { getAllGuilds } = require("../systems/guildSystem")
+const { getAllGuilds, getUserGuild, getGuildRank } = require("../systems/guildSystem")
+const {
+ ensureUserQuests,
+ getDailyQuests,
+ getWeeklyQuests,
+ getAllProgress,
+ claimQuest,
+ claimAll,
+ getNextDailyReset,
+ getNextWeeklyReset,
+ DAILY_BONUS,
+ WEEKLY_BONUS
+} = require("../systems/questSystem")
+const {
+ getDailyGuildQuests,
+ getWeeklyGuildQuests,
+ getScaledGoal,
+ getGuildQuestProgress,
+ claimGuildQuests,
+ getNextGuildQuestReset
+} = require("../systems/guildQuestSystem")
 const achievementRegistry = require("../systems/achievementRegistry")
 const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
@@ -269,6 +289,227 @@ function parseIntSafe(value, fallback) {
 function countUnlockedAchievements(unlocked) {
  if (!Array.isArray(unlocked) || unlocked.length === 0) return 0
  return new Set(unlocked.map((id) => String(id))).size
+}
+
+function normalizeQuestType(value) {
+ const type = String(value || "").trim().toLowerCase()
+ return type === "weekly" ? "weekly" : "daily"
+}
+
+function normalizeQuestScope(value) {
+ const scope = String(value || "").trim().toLowerCase()
+ return scope === "guild" ? "guild" : "player"
+}
+
+function buildQuestSummary(progress = []) {
+ const total = progress.length
+ const done = progress.filter((quest) => Boolean(quest?.done)).length
+ const claimed = progress.filter((quest) => Boolean(quest?.claimed)).length
+ const claimable = progress.filter((quest) => Boolean(quest?.done) && !Boolean(quest?.claimed)).length
+ return {
+  total,
+  done,
+  claimed,
+  claimable,
+  allDone: total > 0 && done >= total,
+  allClaimed: total > 0 && claimed >= total
+ }
+}
+
+function buildPlayerQuestGroup(user, type) {
+ const safeType = normalizeQuestType(type)
+ const progress = getAllProgress(user, safeType)
+ const summary = buildQuestSummary(progress)
+ const bonus = safeType === "weekly" ? WEEKLY_BONUS : DAILY_BONUS
+
+ return {
+  type: safeType,
+  resetIn: safeType === "weekly" ? getNextWeeklyReset() : getNextDailyReset(),
+  summary,
+  bonus: {
+   kamas: Number(bonus?.kamas || 0),
+   xp: Number(bonus?.xp || 0),
+   packs: Number(bonus?.packs || 0)
+  },
+  quests: progress.map((quest) => ({
+   id: String(quest.id || ""),
+   emoji: String(quest.emoji || ""),
+   name: String(quest.name || "Quête"),
+   desc: String(quest.desc || ""),
+   current: Number(quest.current || 0),
+   goal: Number(quest.goal || 0),
+   done: Boolean(quest.done),
+   claimed: Boolean(quest.claimed),
+   claimable: Boolean(quest.done) && !Boolean(quest.claimed),
+   reward: {
+    kamas: Number(quest?.reward?.kamas || 0),
+    xp: Number(quest?.reward?.xp || 0),
+    packs: Number(quest?.reward?.packs || 0)
+   }
+  }))
+ }
+}
+
+function buildGuildQuestGroup(guild, type) {
+ const safeType = normalizeQuestType(type)
+ const progress = getGuildQuestProgress(guild.id, safeType)
+ const summary = buildQuestSummary(progress)
+
+ return {
+  type: safeType,
+  resetIn: getNextGuildQuestReset(safeType),
+  summary,
+  quests: progress.map((quest) => ({
+   id: String(quest.id || ""),
+   emoji: String(quest.emoji || ""),
+   name: String(quest.name || "Quête de guilde"),
+   desc: String(quest.desc || ""),
+   current: Number(quest.current || 0),
+   goal: Number(quest.goal || 0),
+   done: Boolean(quest.done),
+   claimed: Boolean(quest.claimed),
+   claimable: Boolean(quest.done) && !Boolean(quest.claimed),
+   reward: {
+    guildXp: Number(quest.xp || 0)
+   }
+  }))
+ }
+}
+
+function buildQuestStatePayload(userId) {
+ const user = getUser(userId)
+ ensureUserQuests(user)
+
+ const guild = getUserGuild(userId)
+ const player = {
+  daily: buildPlayerQuestGroup(user, "daily"),
+  weekly: buildPlayerQuestGroup(user, "weekly")
+ }
+
+ if (!guild) return { connected: true, player, guild: null }
+
+ const rank = getGuildRank(guild.id, userId)
+ const canClaim = rank === "meneur" || rank === "officier"
+
+ return {
+  connected: true,
+  player,
+  guild: {
+   id: String(guild.id || ""),
+   name: String(guild.name || "Guilde"),
+   emoji: String(guild.emoji || "🏰"),
+   rank,
+   canClaim,
+   level: Number(guild.level || 1),
+   xp: Number(guild.xp || 0),
+   daily: buildGuildQuestGroup(guild, "daily"),
+   weekly: buildGuildQuestGroup(guild, "weekly")
+  }
+ }
+}
+
+function buildPreviewQuestRows(quests = [], scope = "player", memberCount = 6) {
+ return quests.map((quest, index) => {
+  const baseGoal = scope === "guild"
+   ? Number(getScaledGoal(Number(quest?.baseGoal || 1), memberCount) || 1)
+   : Number(quest?.goal || 1)
+  const goal = Math.max(1, baseGoal)
+  const rawDesc = String(quest?.desc || "")
+  const desc = scope === "guild" ? rawDesc.replace("{goal}", String(goal)) : rawDesc
+
+  let current = Math.max(0, goal - 1)
+  let claimed = false
+  if (index === 0) {
+   current = goal
+   claimed = true
+  } else if (index === 1) {
+   current = goal
+  } else if (index === 2) {
+   current = Math.max(1, Math.floor(goal * 0.7))
+  }
+  const done = current >= goal
+
+  return {
+   id: String(quest?.id || ""),
+   emoji: String(quest?.emoji || ""),
+   name: String(quest?.name || (scope === "guild" ? "Quête de guilde" : "Quête")),
+   desc,
+   current: Math.min(current, goal),
+   goal,
+   done,
+   claimed,
+   claimable: false,
+   reward: scope === "guild"
+    ? { guildXp: Number(quest?.xp || 0) }
+    : {
+      kamas: Number(quest?.reward?.kamas || 0),
+      xp: Number(quest?.reward?.xp || 0),
+      packs: Number(quest?.reward?.packs || 0)
+     }
+  }
+ })
+}
+
+function buildQuestPreviewPayload() {
+ const playerDailyRows = buildPreviewQuestRows(getDailyQuests().quests, "player")
+ const playerWeeklyRows = buildPreviewQuestRows(getWeeklyQuests().quests, "player")
+ const guildMemberCount = 6
+ const guildDailyRows = buildPreviewQuestRows(getDailyGuildQuests(), "guild", guildMemberCount)
+ const guildWeeklyRows = buildPreviewQuestRows(getWeeklyGuildQuests(), "guild", guildMemberCount)
+
+ return {
+  connected: false,
+  preview: {
+   enabled: true,
+   note: "Mode aperçu local sans connexion Discord."
+  },
+  player: {
+   daily: {
+    type: "daily",
+    resetIn: getNextDailyReset(),
+    summary: buildQuestSummary(playerDailyRows),
+    bonus: {
+     kamas: Number(DAILY_BONUS?.kamas || 0),
+     xp: Number(DAILY_BONUS?.xp || 0),
+     packs: Number(DAILY_BONUS?.packs || 0)
+    },
+    quests: playerDailyRows
+   },
+   weekly: {
+    type: "weekly",
+    resetIn: getNextWeeklyReset(),
+    summary: buildQuestSummary(playerWeeklyRows),
+    bonus: {
+     kamas: Number(WEEKLY_BONUS?.kamas || 0),
+     xp: Number(WEEKLY_BONUS?.xp || 0),
+     packs: Number(WEEKLY_BONUS?.packs || 0)
+    },
+    quests: playerWeeklyRows
+   }
+  },
+  guild: {
+   id: "preview-guild",
+   name: "Guilde Aperçu",
+   emoji: "🏰",
+   rank: "visiteur",
+   canClaim: false,
+   level: 12,
+   xp: 1840,
+   memberCount: guildMemberCount,
+   daily: {
+    type: "daily",
+    resetIn: getNextGuildQuestReset("daily"),
+    summary: buildQuestSummary(guildDailyRows),
+    quests: guildDailyRows
+   },
+   weekly: {
+    type: "weekly",
+    resetIn: getNextGuildQuestReset("weekly"),
+    summary: buildQuestSummary(guildWeeklyRows),
+    quests: guildWeeklyRows
+   }
+  }
+ }
 }
 
 function normalizeRarity(value) {
@@ -1438,7 +1679,9 @@ app.get("/api/battlepass/me", async (req, res) => {
     freeRewards: Array.isArray(row.freeRewards) ? row.freeRewards : [],
     premiumRewards: Array.isArray(row.premiumRewards) ? row.premiumRewards : [],
     claimedFree: Boolean(row.claimedFree),
-    claimedPremium: Boolean(row.claimedPremium)
+    claimedPremium: Boolean(row.claimedPremium),
+    claimedFreeAt: row?.claimedFreeAt || null,
+    claimedPremiumAt: row?.claimedPremiumAt || null
    }))
   })
  } catch (e) {
@@ -1486,6 +1729,146 @@ app.post("/api/battlepass/premium", async (req, res) => {
   })
  } catch (e) {
   console.error("[WEB] /api/battlepass/premium:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/quests/state", (req, res) => {
+ try {
+  const session = resolveSession(req)
+  if (!session) {
+   return res.json(buildQuestPreviewPayload())
+  }
+
+  const user = getUser(session.userId)
+  const prevDailyId = String(user?.quests?.daily?.dayId || "")
+  const prevWeeklyId = String(user?.quests?.weekly?.weekId || "")
+
+  const payload = buildQuestStatePayload(session.userId)
+
+  const nextDailyId = String(user?.quests?.daily?.dayId || "")
+  const nextWeeklyId = String(user?.quests?.weekly?.weekId || "")
+  if (prevDailyId !== nextDailyId || prevWeeklyId !== nextWeeklyId) {
+   save(session.userId)
+  }
+
+  res.json(payload)
+ } catch (e) {
+  console.error("[WEB] /api/quests/state:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/quests/claim", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const scope = normalizeQuestScope(req.body?.scope)
+  const type = normalizeQuestType(req.body?.type)
+  const questId = String(req.body?.questId || "").trim()
+
+  if (scope === "guild") {
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+
+   const result = claimGuildQuests(guild.id, session.userId, type)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   apiCache.invalidatePrefix("leaderboard:")
+   return res.json({
+    ok: true,
+    scope,
+    type,
+    result: {
+     claimed: Number(result.claimed || 0),
+     totalXP: Number(result.totalXP || 0),
+     bonusXP: Number(result.bonusXP || 0),
+     allDone: Boolean(result.allDone),
+     isPerfect: Boolean(result.isPerfect),
+     levelResult: result.levelResult || null
+    },
+    state: buildQuestStatePayload(session.userId)
+   })
+  }
+
+  const user = getUser(session.userId)
+  ensureUserQuests(user)
+
+  let claimResult = null
+  let claimedCount = 0
+  let completionBonus = false
+  let totalKamas = 0
+  let totalXp = 0
+  let totalPacks = 0
+
+  if (questId) {
+   const single = claimQuest(user, questId, type)
+   if (!single?.success) {
+    return res.status(400).json({ error: String(single?.error || "Récompense indisponible.") })
+   }
+
+   const questReward = single?.quest?.reward || {}
+   const bonus = type === "weekly" ? WEEKLY_BONUS : DAILY_BONUS
+   claimedCount = 1
+   completionBonus = Boolean(single.completionBonus)
+   totalKamas = Number(questReward.kamas || 0)
+   totalXp = Number(questReward.xp || 0)
+   totalPacks = Number(questReward.packs || 0)
+
+   if (completionBonus) {
+    totalKamas += Number(bonus?.kamas || 0)
+    totalXp += Number(bonus?.xp || 0)
+    totalPacks += Number(bonus?.packs || 0)
+   }
+   claimResult = single
+  } else {
+   const multi = claimAll(user, type)
+   if (Number(multi?.claimedCount || 0) <= 0) {
+    return res.status(400).json({ error: "Aucune quête à récupérer." })
+   }
+   claimedCount = Number(multi.claimedCount || 0)
+   completionBonus = Boolean(multi.completionBonus)
+   totalKamas = Number(multi.totalKamas || 0)
+   totalXp = Number(multi.totalXp || 0)
+   totalPacks = Number(multi.totalPacks || 0)
+   claimResult = multi
+  }
+
+  let totalBpXp = 0
+  const bpSource = type === "weekly" ? "quest_weekly_claim" : "quest_daily_claim"
+  const bpBonusSource = type === "weekly" ? "quest_weekly_bonus" : "quest_daily_bonus"
+
+  for (let i = 0; i < claimedCount; i++) {
+   const bpResult = await addBattlePassXP(session.userId, bpSource)
+   totalBpXp += Number(bpResult?.addedXP || 0)
+  }
+  if (completionBonus) {
+   const bpBonus = await addBattlePassXP(session.userId, bpBonusSource)
+   totalBpXp += Number(bpBonus?.addedXP || 0)
+  }
+
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   scope,
+   type,
+   result: {
+    claimedCount,
+    totalKamas,
+    totalXp,
+    totalPacks,
+    completionBonus,
+    totalBpXp,
+    raw: claimResult
+   },
+   state: buildQuestStatePayload(session.userId)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/quests/claim:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })
@@ -2686,6 +3069,9 @@ app.get("/api/achievements", (req, res) => {
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
  app.get("/play/:tab", (req, res) => {
+  if (String(req.params.tab || "").toLowerCase() === "quests") {
+   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+  }
   const session = requireSessionPage(req, res)
   if (!session) return
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))

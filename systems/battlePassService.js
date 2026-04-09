@@ -110,6 +110,8 @@ function createDefaultProgress(userId, seasonId) {
   hasPremium:   false,
   claimedFree:     [],
   claimedPremium:  [],
+  claimedFreeAt:   {},
+  claimedPremiumAt:{},
   achievementsUnlocked: [],
   stats: {
    premiumBuys:  0,
@@ -151,6 +153,31 @@ function getUserProgress(userId, seasonId) {
   if (!Array.isArray(fromDb.achievementsUnlocked)) { fromDb.achievementsUnlocked = []; changed = true }
   if (!Array.isArray(fromDb.claimedFree))          { fromDb.claimedFree = [];          changed = true }
   if (!Array.isArray(fromDb.claimedPremium))       { fromDb.claimedPremium = [];        changed = true }
+  if (!fromDb.claimedFreeAt || typeof fromDb.claimedFreeAt !== "object" || Array.isArray(fromDb.claimedFreeAt)) {
+   fromDb.claimedFreeAt = {}
+   changed = true
+  }
+  if (!fromDb.claimedPremiumAt || typeof fromDb.claimedPremiumAt !== "object" || Array.isArray(fromDb.claimedPremiumAt)) {
+   fromDb.claimedPremiumAt = {}
+   changed = true
+  }
+  const migrationTs = fromDb.lastUpdated || new Date().toISOString()
+  for (const lvl of fromDb.claimedFree) {
+   const key = String(Number(lvl || 0))
+   if (!key || key === "0") continue
+   if (!fromDb.claimedFreeAt[key]) {
+    fromDb.claimedFreeAt[key] = migrationTs
+    changed = true
+   }
+  }
+  for (const lvl of fromDb.claimedPremium) {
+   const key = String(Number(lvl || 0))
+   if (!key || key === "0") continue
+   if (!fromDb.claimedPremiumAt[key]) {
+    fromDb.claimedPremiumAt[key] = migrationTs
+    changed = true
+   }
+  }
 
   if (fromDb.seasonId !== seasonId) {
    const migrated = createDefaultProgress(userId, seasonId)
@@ -169,6 +196,20 @@ function getUserProgress(userId, seasonId) {
   const progress = readJson(filePath, fallback)
   if (!progress.userId)   progress.userId   = String(userId)
   if (!progress.seasonId) progress.seasonId = seasonId
+  if (!Array.isArray(progress.claimedFree)) progress.claimedFree = []
+  if (!Array.isArray(progress.claimedPremium)) progress.claimedPremium = []
+  ensureClaimMaps(progress)
+  const migrationTs = progress.lastUpdated || new Date().toISOString()
+  for (const lvl of progress.claimedFree) {
+   const key = String(Number(lvl || 0))
+   if (!key || key === "0") continue
+   if (!progress.claimedFreeAt[key]) progress.claimedFreeAt[key] = migrationTs
+  }
+  for (const lvl of progress.claimedPremium) {
+   const key = String(Number(lvl || 0))
+   if (!key || key === "0") continue
+   if (!progress.claimedPremiumAt[key]) progress.claimedPremiumAt[key] = migrationTs
+  }
   /* Migrer vers SQLite automatiquement */
   dbSaveBattlePassProgress(progress)
   return progress
@@ -182,6 +223,26 @@ function getUserProgress(userId, seasonId) {
 function saveUserProgress(progress) {
  progress.lastUpdated = new Date().toISOString()
  dbSaveBattlePassProgress(progress)
+}
+
+function ensureClaimMaps(progress) {
+ if (!progress.claimedFreeAt || typeof progress.claimedFreeAt !== "object" || Array.isArray(progress.claimedFreeAt)) {
+  progress.claimedFreeAt = {}
+ }
+ if (!progress.claimedPremiumAt || typeof progress.claimedPremiumAt !== "object" || Array.isArray(progress.claimedPremiumAt)) {
+  progress.claimedPremiumAt = {}
+ }
+}
+
+function setClaimedAt(progress, track, level, iso = new Date().toISOString()) {
+ ensureClaimMaps(progress)
+ const key = String(Number(level || 0))
+ if (!key || key === "0") return
+ if (track === "premium") {
+  if (!progress.claimedPremiumAt[key]) progress.claimedPremiumAt[key] = iso
+  return
+ }
+ if (!progress.claimedFreeAt[key]) progress.claimedFreeAt[key] = iso
 }
 
 /* ─── File lock ─────────────────────────────────────────────────────────── */
@@ -443,11 +504,14 @@ function autoDistributeAllClaimable() {
   try {
    const progress = getUserProgress(userId, current.activeSeason)
    const claimable = getClaimableRewards(progress, season)
+   const claimIso = new Date().toISOString()
    for (const reward of [...claimable.free, ...claimable.premium]) {
     try { awardReward(userId, reward) } catch (_) {}
    }
    progress.claimedFree    = [...new Set([...progress.claimedFree,    ...claimable.free.map((r) => r.level)])]
    progress.claimedPremium = [...new Set([...progress.claimedPremium, ...claimable.premium.map((r) => r.level)])]
+   for (const reward of claimable.free) setClaimedAt(progress, "free", reward.level, claimIso)
+   for (const reward of claimable.premium) setClaimedAt(progress, "premium", reward.level, claimIso)
    saveUserProgress(progress)
   } catch (_) {}
  }
@@ -603,7 +667,9 @@ function getBattlePassRewardsView(userId, page = 1, perPage = 8) {
    free:    freeRewards[0]    || null,
    premium: premiumRewards[0] || null,
    claimedFree:    overview.progress.claimedFree.includes(level),
-   claimedPremium: overview.progress.claimedPremium.includes(level)
+   claimedPremium: overview.progress.claimedPremium.includes(level),
+   claimedFreeAt: (overview.progress.claimedFreeAt && overview.progress.claimedFreeAt[String(level)]) || null,
+   claimedPremiumAt: (overview.progress.claimedPremiumAt && overview.progress.claimedPremiumAt[String(level)]) || null
   })
  }
 
@@ -678,11 +744,13 @@ async function claimAllBattlePassRewards(userId) {
 
   const totals         = { kamas: 0, packs: 0, xp: 0 }
   const claimedRewards = []
+  const claimIso = new Date().toISOString()
 
   for (const reward of claimable.free) {
    const result = awardReward(userId, reward)
    totals.kamas += result.kamas; totals.packs += result.packs; totals.xp += result.xp
    progress.claimedFree.push(reward.level)
+   setClaimedAt(progress, "free", reward.level, claimIso)
    claimedRewards.push({ level: reward.level, text: result.text, track: "free" })
   }
 
@@ -690,6 +758,7 @@ async function claimAllBattlePassRewards(userId) {
    const result = awardReward(userId, reward)
    totals.kamas += result.kamas; totals.packs += result.packs; totals.xp += result.xp
    progress.claimedPremium.push(reward.level)
+   setClaimedAt(progress, "premium", reward.level, claimIso)
    claimedRewards.push({ level: reward.level, text: result.text, track: "premium" })
   }
 
@@ -750,10 +819,12 @@ async function buyPremium(userId) {
   )
 
   let retroCount = 0
+  const premiumClaimIso = new Date().toISOString()
   for (const reward of retroRewards) {
    try {
     awardReward(userId, reward)
     progress.claimedPremium.push(reward.level)
+    setClaimedAt(progress, "premium", reward.level, premiumClaimIso)
     retroCount++
    } catch (err) {
     console.error("[battlepass] retro reward failed:", reward.level, err.message)
@@ -821,11 +892,17 @@ function devGivePremium(userId) {
  if (progress.hasPremium) return { ok: true, retroCount: 0, already: true }
  progress.hasPremium = true
  let retroCount = 0
+ const premiumClaimIso = new Date().toISOString()
  const retroRewards = (season.premiumRewards || []).filter((r) =>
   r.level <= progress.currentLevel && !progress.claimedPremium.includes(r.level)
  )
  for (const reward of retroRewards) {
-  try { awardReward(userId, reward); progress.claimedPremium.push(reward.level); retroCount++ }
+  try {
+   awardReward(userId, reward)
+   progress.claimedPremium.push(reward.level)
+   setClaimedAt(progress, "premium", reward.level, premiumClaimIso)
+   retroCount++
+  }
   catch (err) { console.error("[battlepass] devGivePremium reward failed:", err.message) }
  }
  saveUserProgress(progress)

@@ -68,14 +68,17 @@
        <div id="bpProgressBar" class="battlepass-progress-fill" style="width:0%"></div>
       </div>
       <p id="bpProgressNumbers" class="battlepass-muted">0/0 XP</p>
-      <p id="bpClaimable" class="battlepass-highlight">🎁 0 reward a recuperer</p>
+      <p id="bpClaimable" class="battlepass-highlight">🎁 0 reward à récupérer</p>
      </article>
 
     </div>
 
     <div class="battlepass-head fade-in stagger-2">
      <h2>Rewards de saison</h2>
-     <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes rewards.</p>
+     <div class="battlepass-head-actions">
+      <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes rewards.</p>
+      <button id="bpGoCurrentBtn" type="button" class="battlepass-jump-btn" disabled>Aller a mon palier</button>
+     </div>
     </div>
 
     <div id="bpRewards" class="battlepass-timeline-wrap market-zone-block fade-in stagger-2">
@@ -104,6 +107,25 @@
 
  function fmt(value) {
   return Number(value || 0).toLocaleString("fr-FR")
+ }
+
+ function formatDateTimeFr(value) {
+  if (!value) return ""
+  const dt = new Date(value)
+  if (Number.isNaN(dt.getTime())) return ""
+  const day = dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+  const time = dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+  return `${day} à ${time}`
+ }
+
+ function formatDateOnlyFr(value) {
+  if (!value) return "?"
+  const raw = String(value).trim()
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`
+  const dt = new Date(raw)
+  if (Number.isNaN(dt.getTime())) return "?"
+  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
  }
 
  function getLoginUrl() {
@@ -207,13 +229,13 @@
 
   name.textContent = `${season?.emoji || "🎟️"} ${season?.name || "Saison"}`
   subtitle.textContent = season?.subtitle || "Saison en cours."
-  const start = season?.startDate ? String(season.startDate) : "?"
-  const end = season?.endDate ? String(season.endDate) : "?"
-  dates.textContent = `${start} -> ${end}`
+  const start = formatDateOnlyFr(season?.startDate)
+  const end = formatDateOnlyFr(season?.endDate)
+  dates.textContent = `Date de début : ${start} | Date de fin : ${end}`
   updateSeasonVisual(season)
  }
 
- function renderDisconnected() {
+function renderDisconnected() {
   const userState = document.getElementById("bpUserState")
   const progressBar = document.getElementById("bpProgressBar")
   const progressNums = document.getElementById("bpProgressNumbers")
@@ -227,21 +249,52 @@
   userState.textContent = "Connecte-toi avec Discord pour afficher ta progression."
   progressBar.style.width = "0%"
   progressNums.textContent = "0/0 XP"
-  claimable.textContent = "🎁 0 reward a recuperer"
-  if (hint) hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a>`
+  claimable.textContent = "🎁 0 reward à récupérer"
+  if (hint) hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a> · <a href="/battlepass?preview=1">Mode apercu local</a>`
   if (claimBtn) claimBtn.disabled = true
   if (premiumBtn) {
    premiumBtn.disabled = true
    premiumBtn.textContent = "Acheter Premium"
   }
-  meta.textContent = "Apercu indisponible hors connexion."
-  rewards.innerHTML = `<p class="result-meta">Connecte-toi pour voir ton Battlepass.</p>`
+  setCurrentTierTarget(0)
+  meta.textContent = "Apercu indisponible hors connexion. Utilise ?preview=1 pour un mode local."
+  rewards.innerHTML = `<p class="result-meta">Connecte-toi pour voir ton Battlepass, ou ouvre <a href="/battlepass?preview=1">le mode apercu local</a>.</p>`
+}
+
+ function setCurrentTierTarget(level) {
+  const jumpBtn = document.getElementById("bpGoCurrentBtn")
+  if (!jumpBtn) return
+  const parsed = Math.floor(Number(level || 0))
+  const valid = Number.isFinite(parsed) && parsed > 0
+  jumpBtn.dataset.level = valid ? String(parsed) : ""
+  jumpBtn.disabled = !valid
+ }
+
+ function jumpToCurrentTier() {
+  const jumpBtn = document.getElementById("bpGoCurrentBtn")
+  const rewards = document.getElementById("bpRewards")
+  const level = Math.floor(Number(jumpBtn?.dataset?.level || 0))
+  if (!rewards || !Number.isFinite(level) || level <= 0) return
+
+  const previous = rewards.querySelector(".bp-step.is-target")
+  if (previous) previous.classList.remove("is-target")
+
+  const target = rewards.querySelector(`.bp-step[data-level="${level}"]`)
+  if (!target) {
+   showToast("Palier actuel introuvable.", true)
+   return
+  }
+
+  target.classList.add("is-target")
+  target.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" })
+  window.setTimeout(() => target.classList.remove("is-target"), 1400)
  }
 
  function renderRewardsTimeline(rows, progress) {
   const rewards = document.getElementById("bpRewards")
   if (!Array.isArray(rows) || !rows.length) {
    rewards.innerHTML = `<p class="result-meta">Aucune reward disponible.</p>`
+   setCurrentTierTarget(0)
    return
   }
 
@@ -249,25 +302,55 @@
   const currentLevel = Math.max(1, Number(progress?.currentLevel || 1))
   const hasPremium = Boolean(progress?.hasPremium)
   const intraLevel = Math.min(1, Math.max(0, Number(progress?.xpPercent || 0) / 100))
-  const progressIndex = Math.min(totalLevels - 1, Math.max(0, (currentLevel - 1) + intraLevel))
+  const firstPending = rows.find((row) => {
+   const claimed = Boolean(row?.claimedFree) && (!hasPremium || !Array.isArray(row?.premiumRewards) || row.premiumRewards.length === 0 || Boolean(row?.claimedPremium))
+   return !claimed
+  })
+  const pendingLevel = Math.max(1, Number(firstPending?.level || currentLevel))
+  const visualLevel = Math.min(currentLevel, pendingLevel)
+  const visualIntra = visualLevel === currentLevel ? intraLevel : 0
+  const progressIndex = Math.min(totalLevels - 1, Math.max(0, (visualLevel - 1) + visualIntra))
   const progressRatio = totalLevels <= 1 ? 1 : (progressIndex / (totalLevels - 1))
+  setCurrentTierTarget(visualLevel)
 
   const steps = rows.map((row) => {
    const level = Number(row.level || 0)
-   const isUnlocked = level <= currentLevel
-   const isClaimed = Boolean(row.claimedFree) && (!hasPremium || !Array.isArray(row.premiumRewards) || row.premiumRewards.length === 0 || Boolean(row.claimedPremium))
+   const hasPremiumRewards = Array.isArray(row.premiumRewards) && row.premiumRewards.length > 0
+   const isUnlocked = level <= visualLevel
+   const isClaimed = Boolean(row.claimedFree) && (!hasPremium || !hasPremiumRewards || Boolean(row.claimedPremium))
+   const isRecoverable = !isClaimed && isUnlocked
+   const freeClaimTs = row?.claimedFreeAt || null
+   const premiumClaimTs = row?.claimedPremiumAt || null
+   const preferredClaimTs = (hasPremium && hasPremiumRewards)
+    ? (premiumClaimTs || freeClaimTs || null)
+    : (freeClaimTs || premiumClaimTs || null)
+   const claimedAtLabel = formatDateTimeFr(preferredClaimTs)
    const side = level % 2 === 1 ? "left" : "right"
    const freeText = formatRewardsShort(row.freeRewards)
    const premiumText = formatRewardsShort(row.premiumRewards)
-   const stateLabel = isClaimed ? "Recupere" : (isUnlocked ? "En cours" : "Verrouille")
+   let stateLabel = "Verrouillé"
+   if (isClaimed) stateLabel = claimedAtLabel ? `Récupéré le ${claimedAtLabel}` : "Récupéré"
+   else if (isRecoverable) stateLabel = "Récupérable"
    const nodeClass = [
-    "bp-node-core",
+   "bp-node-core",
+   isUnlocked ? "is-unlocked" : "is-locked",
+   isClaimed ? "is-claimed" : ""
+  ].join(" ").trim()
+   const stepClass = [
+    "bp-step",
+    `bp-side-${side}`,
     isUnlocked ? "is-unlocked" : "is-locked",
+    isRecoverable ? "is-recoverable" : "",
     isClaimed ? "is-claimed" : ""
    ].join(" ").trim()
+   const stepCopyClass = `bp-step-copy${isRecoverable ? " is-recoverable" : ""}`
+   const stepCopyTag = isRecoverable ? "button" : "div"
+   const stepCopyAttrs = isRecoverable
+    ? `class="${stepCopyClass}" type="button" data-claim-level="${level}" aria-label="Récupérer l'étape ${String(level).padStart(2, "0")}"`
+    : `class="${stepCopyClass}"`
 
    return `
-    <article class="bp-step bp-side-${side}">
+    <article class="${stepClass}" data-level="${level}">
       <div class="bp-node-cluster">
        <div class="bp-step-node">
         <div class="${nodeClass}">
@@ -277,10 +360,10 @@
          <span class="bp-node-check">✓</span>
         </div>
        </div>
-       <div class="bp-step-copy">
-        <h3>Etape ${String(level).padStart(2, "0")}</h3>
+       <${stepCopyTag} ${stepCopyAttrs}>
+        <h3>Étape ${String(level).padStart(2, "0")}</h3>
         <p>${stateLabel}</p>
-      </div>
+      </${stepCopyTag}>
      </div>
     </article>
    `
@@ -293,7 +376,7 @@
   `
  }
 
- function renderConnected(data) {
+function renderConnected(data) {
   const me = data?.me || {}
   const discord = data?.discord || {}
   const progress = data?.progress || {}
@@ -313,7 +396,7 @@
   userState.textContent = `${userName} · Niveau BP ${Number(progress.currentLevel || 1)}`
   progressBar.style.width = `${Math.min(100, Math.max(0, Number(progress.xpPercent || 0)))}%`
   progressNums.textContent = `${fmt(progress.xpInLevel || 0)}/${fmt(progress.xpLevelMax || 0)} XP (${Number(progress.xpPercent || 0)}%)`
-  claimable.textContent = `🎁 ${fmt(progress.claimableCount || 0)} reward(s) a recuperer`
+  claimable.textContent = `🎁 ${fmt(progress.claimableCount || 0)} reward(s) à récupérer`
 
   if (claimBtn) claimBtn.disabled = Number(progress.claimableCount || 0) <= 0
   if (premiumBtn) {
@@ -327,9 +410,92 @@
   meta.textContent = `${rows.length} paliers affiches · Saison: ${season.name || "active"}`
 
   renderRewardsTimeline(rows, progress)
+}
+
+ function isPreviewMode() {
+  const params = new URLSearchParams(window.location.search || "")
+  const raw = String(params.get("preview") || params.get("demo") || "").toLowerCase()
+  return raw === "1" || raw === "true" || raw === "yes"
  }
 
- async function loadBattlepass() {
+ function buildPreviewRows(totalLevels = 40) {
+  const freePool = [
+   { type: "kamas", value: 580 },
+   { type: "pack", value: 1 },
+   { type: "fragment_random", value: 2 },
+   { type: "player_xp", value: 260 },
+   { type: "kamas", value: 1260 }
+  ]
+  const premiumPool = [
+   { type: "player_xp", value: 1020 },
+   { type: "player_xp", value: 430 },
+   { type: "card_random_rare", value: 1 },
+   { type: "pack_premium", value: 1 },
+   { type: "fragment_random", value: 4 }
+  ]
+
+  return Array.from({ length: Math.max(1, Number(totalLevels || 1)) }, (_, index) => {
+   const level = index + 1
+   const claimedAt = level <= 4 ? `2026-04-${String(Math.min(28, level + 2)).padStart(2, "0")}T18:3${level % 10}:00+02:00` : null
+   return {
+    level: level,
+    freeRewards: [{ ...freePool[index % freePool.length] }],
+    premiumRewards: [{ ...premiumPool[index % premiumPool.length] }],
+    claimedFree: level <= 4,
+    claimedPremium: level <= 3,
+    claimedFreeAt: claimedAt,
+    claimedPremiumAt: level <= 3 ? claimedAt : null
+   }
+  })
+ }
+
+ function buildPreviewData() {
+  const currentLevel = 6
+  const xpPercent = 38
+  const rows = buildPreviewRows(40)
+  const claimableCount = rows.filter((row) => {
+   const level = Number(row.level || 0)
+   if (level <= 0 || level > currentLevel) return false
+   return !Boolean(row.claimedFree) || !Boolean(row.claimedPremium)
+  }).length
+
+  return {
+   me: { kamas: 24500 },
+   discord: { displayName: "Preview local" },
+   progress: {
+    totalXP: 9420,
+    currentLevel: currentLevel,
+    hasPremium: true,
+    xpInLevel: 390,
+    xpLevelMax: 1020,
+    xpPercent: xpPercent,
+    claimableCount: claimableCount
+   },
+   season: {
+    id: "emeraude",
+    emoji: "🎟️",
+    name: "Saison Emeraude",
+    subtitle: "Mode apercu local sans connexion Discord.",
+    startDate: "2026-04-01",
+    endDate: "2026-06-30",
+    premiumPrice: 18000
+   },
+   rewards: rows
+  }
+ }
+
+async function loadBattlepass() {
+  if (isPreviewMode()) {
+   const preview = buildPreviewData()
+   renderSeasonInfo(preview.season || {})
+   renderConnected(preview)
+   const meta = document.getElementById("bpRewardsMeta")
+   if (meta) {
+    meta.textContent = `${preview.rewards.length} paliers affiches · Mode apercu local`
+   }
+   return
+  }
+
   const seasonRes = await api("/api/battlepass/season")
   if (seasonRes.ok) renderSeasonInfo(seasonRes.data)
 
@@ -343,13 +509,21 @@
   renderConnected(meRes.data || {})
  }
 
+ async function claimAllRewards() {
+  const r = await api("/api/battlepass/claim", { method: "POST" })
+  if (!r.ok) {
+   showToast(r.data?.error || "Impossible de réclamer.", true)
+   return false
+  }
+  showToast(`Rewards récupérées: ${Number(r.data?.result?.total || 0)}`)
+  await loadBattlepass()
+  return true
+ }
+
  const claimBtn = document.getElementById("bpClaimBtn")
  if (claimBtn) {
   claimBtn.addEventListener("click", async () => {
-   const r = await api("/api/battlepass/claim", { method: "POST" })
-   if (!r.ok) return showToast(r.data?.error || "Impossible de reclamer.", true)
-   showToast(`Rewards recuperees: ${Number(r.data?.result?.total || 0)}`)
-   await loadBattlepass()
+   await claimAllRewards()
   })
  }
 
@@ -362,6 +536,28 @@
    if (!r.ok) return showToast(r.data?.error || "Achat premium impossible.", true)
    showToast("Battlepass Premium active.")
    await loadBattlepass()
+  })
+ }
+
+ const jumpBtn = document.getElementById("bpGoCurrentBtn")
+ if (jumpBtn) {
+  jumpBtn.addEventListener("click", jumpToCurrentTier)
+ }
+
+ const rewardsEl = document.getElementById("bpRewards")
+ if (rewardsEl) {
+  rewardsEl.addEventListener("click", async (event) => {
+   const target = event.target.closest(".bp-step-copy.is-recoverable")
+   if (!target) return
+   if (isPreviewMode()) {
+    showToast("Action indisponible en mode aperçu local.", true)
+    return
+   }
+   if (target.dataset.loading === "1") return
+   target.dataset.loading = "1"
+   target.disabled = true
+   await claimAllRewards()
+   target.dataset.loading = "0"
   })
  }
 
