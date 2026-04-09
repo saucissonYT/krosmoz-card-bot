@@ -6,9 +6,13 @@ const path = require("path")
 const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST, SELL_PRICE } = require("../systems/constants")
 const { getUser, save } = require("../systems/userSystem")
 const { addXP } = require("../systems/progressionSystem")
+const { getShop, buyFromShop } = require("../systems/krosmoshop")
+const { getUserGuildBonuses } = require("../systems/guildBonuses")
+const { getPlayerBonuses } = require("../systems/playerBonuses")
 const {
  addBattlePassXP,
  buyPremium,
+ claimBattlePassLevelReward,
  claimAllBattlePassRewards,
  getBattlePassOverview,
  getBattlePassRewardsView
@@ -63,6 +67,7 @@ const {
  getNextGuildQuestReset
 } = require("../systems/guildQuestSystem")
 const achievementRegistry = require("../systems/achievementRegistry")
+const { getAchievementReward, formatReward } = require("../systems/achievementRewards")
 const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
@@ -299,6 +304,132 @@ function normalizeQuestType(value) {
 function normalizeQuestScope(value) {
  const scope = String(value || "").trim().toLowerCase()
  return scope === "guild" ? "guild" : "player"
+}
+
+function getParisDateFR(now = new Date()) {
+ return now.toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })
+}
+
+function getNextParisMidnightTimestamp(nowMs = Date.now()) {
+ const parisNow = new Date(new Date(nowMs).toLocaleString("en-US", { timeZone: "Europe/Paris" }))
+ const nextParisMidnight = new Date(parisNow.getTime())
+ nextParisMidnight.setHours(24, 0, 0, 0)
+ const delta = Math.max(0, nextParisMidnight.getTime() - parisNow.getTime())
+ return nowMs + delta
+}
+
+function resolveShopFinalPrice(userId, user, basePrice) {
+ const safeBase = Math.max(0, Number(basePrice || 0))
+ let finalPrice = safeBase
+
+ const guildBonuses = getUserGuildBonuses(userId)
+ const guildDiscount = Math.max(0, Number(guildBonuses?.shopDiscount || 0))
+ if (guildDiscount > 0) {
+  finalPrice = Math.floor(finalPrice * (1 - (guildDiscount / 100)))
+ }
+
+ const playerLevel = Number(user?.progression?.level || 1)
+ const playerBonuses = getPlayerBonuses(playerLevel)
+ const playerDiscount = Math.max(0, Number(playerBonuses?.shopDiscount || 0))
+ if (playerDiscount > 0) {
+  finalPrice = Math.floor(finalPrice * (1 - (playerDiscount / 100)))
+ }
+
+ finalPrice = Math.max(0, Number(finalPrice || 0))
+ const totalDiscountPercent = safeBase > 0
+  ? Math.max(0, Math.round((1 - (finalPrice / safeBase)) * 100))
+  : 0
+
+ return {
+  basePrice: safeBase,
+  finalPrice,
+  guildDiscount,
+  playerDiscount,
+  totalDiscountPercent
+ }
+}
+
+function buildKrosmoshopStatePayload(userId = null) {
+ const connected = Boolean(userId)
+ const shop = getShop()
+ const cards = getCards()
+ const sets = getSets()
+ const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const setNames = getCardSetNameMap(sets)
+ const shopDay = String(shop?.lastReset || getParisDateFR())
+
+ const user = connected ? getUser(userId) : null
+ const userKamas = Number(user?.kamas || 0)
+ const userCards = user?.cards || {}
+ const boughtToday = user?.krosmoshop?.[shopDay] || {}
+
+ const discountInfo = connected
+  ? resolveShopFinalPrice(String(userId), user, 100)
+  : { guildDiscount: 0, playerDiscount: 0, totalDiscountPercent: 0 }
+
+ const items = (shop?.cards || []).map((entry) => {
+  const cardId = String(entry?.card || "")
+  const card = cardsById.get(cardId) || null
+  const basePrice = Math.max(0, Number(entry?.price || 0))
+  const pricing = connected
+   ? resolveShopFinalPrice(String(userId), user, basePrice)
+   : { basePrice, finalPrice: basePrice, guildDiscount: 0, playerDiscount: 0, totalDiscountPercent: 0 }
+  const purchased = connected ? Boolean(boughtToday?.[cardId]) : false
+  const owned = Number(userCards?.[cardId] || 0)
+  const missingKamas = Math.max(0, pricing.finalPrice - userKamas)
+
+  return {
+   cardId,
+   rarity: String(entry?.rarity || card?.rarity || "C"),
+   name: String(card?.name || `Carte ${cardId}`),
+   setId: String(card?.set || "unknown"),
+   setName: String(setNames.get(String(card?.set || "")) || card?.set || "Inconnu"),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null,
+   basePrice: pricing.basePrice,
+   finalPrice: pricing.finalPrice,
+   totalDiscountPercent: pricing.totalDiscountPercent,
+   purchased,
+   owned,
+   canBuy: connected && !purchased && userKamas >= pricing.finalPrice,
+   missingKamas
+  }
+ })
+
+ const purchasableCount = items.filter((item) => item.canBuy).length
+ const boughtCount = items.filter((item) => item.purchased).length
+ const totalCount = items.length
+ const nextResetAt = getNextParisMidnightTimestamp()
+
+ return {
+  connected,
+  previewMode: !connected,
+  shopDay,
+  nextResetAt,
+  cooldownMs: Math.max(0, nextResetAt - Date.now()),
+  wallet: {
+   kamas: userKamas
+  },
+  discounts: {
+   guildPercent: Number(discountInfo.guildDiscount || 0),
+   playerPercent: Number(discountInfo.playerDiscount || 0),
+   totalPercent: Number(discountInfo.totalDiscountPercent || 0)
+  },
+  progress: {
+   boughtCount,
+   totalCount,
+   purchasableCount
+  },
+  stats: {
+   cardsBought: Number(user?.krosmoshopStats?.cardsBought || 0),
+   ssrBought: Number(user?.krosmoshopStats?.ssrBought || 0),
+   sBought: Number(user?.krosmoshopStats?.sBought || 0),
+   kamasSpent: Number(user?.krosmoshopStats?.kamasSpent || 0),
+   daysVisited: Number(user?.krosmoshopStats?.daysVisited || 0)
+  },
+  items
+ }
 }
 
 function buildQuestSummary(progress = []) {
@@ -1633,6 +1764,7 @@ app.get("/api/battlepass/season", (req, res) => {
    id: String(current.activeSeason || ""),
    name: String(tpl?.name || current.activeSeason || "Saison"),
    subtitle: String(tpl?.subtitle || ""),
+   bonusDescription: String(tpl?.passiveBonus?.description || ""),
    emoji: String(tpl?.emoji || "🎟️"),
    startDate: current.startDate || null,
    endDate: current.endDate || null,
@@ -1664,6 +1796,7 @@ app.get("/api/battlepass/me", async (req, res) => {
     id: String(overview?.currentSeason?.activeSeason || ""),
     name: String(overview?.seasonTemplate?.name || overview?.currentSeason?.activeSeason || "Saison"),
     subtitle: String(overview?.seasonTemplate?.subtitle || ""),
+    bonusDescription: String(overview?.seasonTemplate?.passiveBonus?.description || ""),
     emoji: String(overview?.seasonTemplate?.emoji || "🎟️"),
     startDate: overview?.currentSeason?.startDate || null,
     endDate: overview?.currentSeason?.endDate || null,
@@ -1705,16 +1838,54 @@ app.post("/api/battlepass/claim", async (req, res) => {
   const result = await claimAllBattlePassRewards(session.userId)
   if (!result?.ok) return res.status(400).json({ error: result?.error || "Impossible de reclamer." })
 
+  const user = getUser(session.userId)
+  const unlocked = user ? achievementCheck(user, "progression") : []
+  if (user) save(session.userId)
+
   const overview = getBattlePassOverview(session.userId)
   res.json({
    ok: true,
    result,
    claimableCount: Number(overview?.claimableCount || 0),
    currentLevel: Number(overview?.progress?.currentLevel || 1),
-   totalXP: Number(overview?.progress?.totalXP || 0)
+   totalXP: Number(overview?.progress?.totalXP || 0),
+   unlockedAchievements: countUnlockedAchievements(unlocked)
   })
  } catch (e) {
   console.error("[WEB] /api/battlepass/claim:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/battlepass/claim-level", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const level = Math.max(1, Math.floor(Number(req.body?.level || 0)))
+  if (!Number.isFinite(level) || level <= 0) {
+   return res.status(400).json({ error: "Palier invalide." })
+  }
+
+  const result = await claimBattlePassLevelReward(session.userId, level)
+  if (!result?.ok) return res.status(400).json({ error: result?.error || "Impossible de reclamer ce palier." })
+
+  const user = getUser(session.userId)
+  const unlocked = user ? achievementCheck(user, "progression") : []
+  if (user) save(session.userId)
+
+  const overview = getBattlePassOverview(session.userId)
+  res.json({
+   ok: true,
+   level,
+   result,
+   claimableCount: Number(overview?.claimableCount || 0),
+   currentLevel: Number(overview?.progress?.currentLevel || 1),
+   totalXP: Number(overview?.progress?.totalXP || 0),
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/battlepass/claim-level:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })
@@ -1727,12 +1898,17 @@ app.post("/api/battlepass/premium", async (req, res) => {
   const result = await buyPremium(session.userId)
   if (!result?.ok) return res.status(400).json({ error: result?.error || "Achat premium impossible." })
 
+  const user = getUser(session.userId)
+  const unlocked = user ? achievementCheck(user, "economy") : []
+  if (user) save(session.userId)
+
   const overview = getBattlePassOverview(session.userId)
   res.json({
    ok: true,
    result,
    hasPremium: Boolean(overview?.progress?.hasPremium),
-   kamas: Number(getUser(session.userId)?.kamas || 0)
+   kamas: Number(getUser(session.userId)?.kamas || 0),
+   unlockedAchievements: countUnlockedAchievements(unlocked)
   })
  } catch (e) {
   console.error("[WEB] /api/battlepass/premium:", e)
@@ -1782,7 +1958,35 @@ app.post("/api/quests/claim", async (req, res) => {
    const result = claimGuildQuests(guild.id, session.userId, type, questId)
    if (result?.error) return res.status(400).json({ error: String(result.error) })
 
+   const user = getUser(session.userId)
+   if (user) {
+    if (!user.stats || typeof user.stats !== "object") user.stats = {}
+    user.stats.guildQuestsClaimed = Number(user.stats.guildQuestsClaimed || 0) + Number(result.claimed || 0)
+    user.stats.guildXpContributed = Number(user.stats.guildXpContributed || 0) + Number(result.totalXP || 0)
+    if (result.isPerfect) {
+     user.stats.guildPerfectWeeks = Number(user.stats.guildPerfectWeeks || 0) + 1
+    }
+    user.stats.guildMaxLevel = Math.max(Number(user.stats.guildMaxLevel || 0), Number(guild.level || 0))
+    if (Number(user.stats.guildQuestsClaimed || 0) <= Number(result.claimed || 0)) {
+     user.stats.guildFirstClaim = 1
+    }
+   }
+
+   if (result?.levelResult?.leveled) {
+    for (const memberId of guild.memberIds || []) {
+     const member = getUser(memberId)
+     if (!member) continue
+     if (!member.stats || typeof member.stats !== "object") member.stats = {}
+     member.stats.guildMaxLevel = Math.max(Number(member.stats.guildMaxLevel || 0), Number(guild.level || 0))
+     save(memberId)
+    }
+   }
+
+   const unlocked = user ? achievementCheck(user, "guild") : []
+   if (user) save(session.userId)
+
    apiCache.invalidatePrefix("leaderboard:")
+   apiCache.invalidate(`profile:${session.userId}`)
    return res.json({
     ok: true,
     scope,
@@ -1795,6 +1999,7 @@ app.post("/api/quests/claim", async (req, res) => {
      isPerfect: Boolean(result.isPerfect),
      levelResult: result.levelResult || null
     },
+    unlockedAchievements: countUnlockedAchievements(unlocked),
     state: buildQuestStatePayload(session.userId)
    })
   }
@@ -1855,6 +2060,7 @@ app.post("/api/quests/claim", async (req, res) => {
    totalBpXp += Number(bpBonus?.addedXP || 0)
   }
 
+  const unlocked = achievementCheck(user, "daily")
   save(session.userId)
   apiCache.invalidate(`profile:${session.userId}`)
   apiCache.invalidatePrefix("leaderboard:")
@@ -1872,6 +2078,7 @@ app.post("/api/quests/claim", async (req, res) => {
     totalBpXp,
     raw: claimResult
    },
+   unlockedAchievements: countUnlockedAchievements(unlocked),
    state: buildQuestStatePayload(session.userId)
   })
  } catch (e) {
@@ -2096,6 +2303,53 @@ app.get("/api/game/meta", (req, res) => {
   })
  } catch (e) {
   console.error("[WEB] /api/game/meta:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/krosmoshop/state", (req, res) => {
+ try {
+  const session = resolveSession(req)
+  const userId = session?.userId || null
+  const payload = buildKrosmoshopStatePayload(userId)
+  res.json(payload)
+ } catch (e) {
+  console.error("[WEB] /api/krosmoshop/state:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/krosmoshop/buy", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const cardId = String(req.body?.cardId || "").trim()
+  if (!cardId) return res.status(400).json({ error: "cardId manquant." })
+
+  const result = buyFromShop(session.userId, cardId)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+  const user = getUser(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   result: {
+    cardId: String(cardId),
+    rarity: String(result?.rarity || ""),
+    price: Number(result?.price || 0),
+    originalPrice: Number(result?.originalPrice || 0),
+    isNew: Boolean(result?.isNew),
+    cardInfo: result?.cardInfo || null
+   },
+   kamas: Number(user?.kamas || 0),
+   unlockedAchievements: countUnlockedAchievements(result?.unlocked || []),
+   state: buildKrosmoshopStatePayload(session.userId)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/krosmoshop/buy:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })
@@ -2791,6 +3045,7 @@ app.get("/api/achievements", (req, res) => {
     .map(([id, ach]) => {
      const unlocked = unlockedSet.has(String(id))
      const hidden = Boolean(ach?.secret && !unlocked)
+     const reward = getAchievementReward(String(id), ach || {})
 
      return {
       id: String(id),
@@ -2799,7 +3054,10 @@ app.get("/api/achievements", (req, res) => {
       unlocked,
       badge: hidden ? "❓" : String(ach?.badge || "🏆"),
       name: hidden ? "???" : String(ach?.name || "Succès"),
-      description: hidden ? "???" : String(ach?.description || "")
+      description: hidden ? "???" : String(ach?.description || ""),
+      title: hidden ? "" : String(ach?.title || ""),
+      rewardText: hidden ? "" : formatReward(reward),
+      reward: hidden ? null : reward
      }
     })
     .sort((a, b) =>
@@ -3081,8 +3339,9 @@ app.get("/api/achievements", (req, res) => {
   }
   const session = requireSessionPage(req, res)
   if (!session) return
-  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
+ app.get("/krosmoshop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))
  app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
  app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/battlepass", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Battlepass.html")))

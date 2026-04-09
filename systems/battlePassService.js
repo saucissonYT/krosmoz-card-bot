@@ -396,6 +396,16 @@ function getClaimableRewards(progress, season) {
  return claimable
 }
 
+function getClaimableRewardsForLevel(progress, season, level) {
+ const targetLevel = Math.max(1, Math.floor(Number(level || 0)))
+ const claimable = getClaimableRewards(progress, season)
+ return {
+  level: targetLevel,
+  free: claimable.free.filter((reward) => Number(reward?.level || 0) === targetLevel),
+  premium: claimable.premium.filter((reward) => Number(reward?.level || 0) === targetLevel)
+ }
+}
+
 /* ─── checkAndUnlockAchievements ────────────────────────────────────────── */
 
 function checkAndUnlockAchievements(progress, season) {
@@ -778,6 +788,80 @@ async function claimAllBattlePassRewards(userId) {
  }
 }
 
+async function claimBattlePassLevelReward(userId, level) {
+ if (claimLocks.has(userId))
+  return { ok: false, error: "Claim deja en cours." }
+
+ const targetLevel = Math.max(1, Math.floor(Number(level || 0)))
+ if (!Number.isFinite(targetLevel) || targetLevel <= 0)
+  return { ok: false, error: "Palier invalide." }
+
+ const lockPath = getUserLockPath(userId)
+ if (!acquireFileLock(lockPath))
+  return { ok: false, error: "Claim deja en cours." }
+
+ claimLocks.add(userId)
+
+ try {
+  checkSeasonTransitions({ force: true })
+
+  const current  = ensureCurrentSeason()
+  const season   = getSeasonTemplate(current.activeSeason)
+  const progress = getUserProgress(userId, current.activeSeason)
+  syncProgressLevel(progress, season)
+
+  if (targetLevel > Number(progress.currentLevel || 1))
+   return { ok: false, error: "Ce palier est verrouille." }
+
+  const claimable = getClaimableRewardsForLevel(progress, season, targetLevel)
+  const totalClaimable = claimable.free.length + claimable.premium.length
+  if (totalClaimable <= 0)
+   return { ok: false, error: "Aucune recompense disponible sur ce palier." }
+
+  const totals = { kamas: 0, packs: 0, xp: 0 }
+  const claimedRewards = []
+  const claimIso = new Date().toISOString()
+
+  for (const reward of claimable.free) {
+   const result = awardReward(userId, reward)
+   totals.kamas += result.kamas
+   totals.packs += result.packs
+   totals.xp += result.xp
+   progress.claimedFree.push(reward.level)
+   setClaimedAt(progress, "free", reward.level, claimIso)
+   claimedRewards.push({ level: reward.level, text: result.text, track: "free" })
+  }
+
+  for (const reward of claimable.premium) {
+   const result = awardReward(userId, reward)
+   totals.kamas += result.kamas
+   totals.packs += result.packs
+   totals.xp += result.xp
+   progress.claimedPremium.push(reward.level)
+   setClaimedAt(progress, "premium", reward.level, claimIso)
+   claimedRewards.push({ level: reward.level, text: result.text, track: "premium" })
+  }
+
+  progress.claimedFree = [...new Set(progress.claimedFree.map((value) => Number(value || 0)).filter((value) => value > 0))]
+  progress.claimedPremium = [...new Set(progress.claimedPremium.map((value) => Number(value || 0)).filter((value) => value > 0))]
+
+  const newlyUnlocked = checkAndUnlockAchievements(progress, season)
+  saveUserProgress(progress)
+
+  return {
+   ok: true,
+   level: targetLevel,
+   total: claimedRewards.length,
+   totals,
+   claimedRewards,
+   newlyUnlocked
+  }
+ } finally {
+  claimLocks.delete(userId)
+  releaseFileLock(lockPath)
+ }
+}
+
 /* ─── buyPremium ────────────────────────────────────────────────────────── */
 
 async function buyPremium(userId) {
@@ -965,6 +1049,7 @@ module.exports = {
  addBattlePassXP,
  buyPremium,
  checkSeasonTransitions,
+ claimBattlePassLevelReward,
  claimAllBattlePassRewards,
  computeLevel,
  getEndlessRewardForLevel,

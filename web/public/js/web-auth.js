@@ -6,9 +6,17 @@
  const heroPlayBtn = document.getElementById("heroPlayBtn")
  let eventToastDismissedUntil = 0
  const QUEST_TOAST_POLL_MS = 9000
+ const ACHIEVEMENT_TOAST_POLL_MS = 9000
+ const MAX_GLOBAL_PROGRESS_TOASTS = 5
  let questToastPollHandle = null
  let questToastBusy = false
  let questProgressSnapshot = null
+ let achievementToastPollHandle = null
+ let achievementToastBusy = false
+ let achievementUnlockedSnapshot = null
+ let progressToastQueue = []
+ let progressToastVisibleCount = 0
+ let progressRefreshTimer = null
 
  function ensureEventToast() {
   let toast = document.getElementById("globalEventToast")
@@ -95,6 +103,78 @@
   return host
  }
 
+ function enqueueProgressToast(toast, ttl = 7000) {
+  if (!(toast instanceof HTMLElement)) return
+  progressToastQueue.push({
+   toast,
+   ttl: Math.max(2500, Number(ttl || 7000))
+  })
+  drainProgressToastQueue()
+ }
+
+ function drainProgressToastQueue() {
+  const host = ensureQuestToastHost()
+  while (progressToastVisibleCount < MAX_GLOBAL_PROGRESS_TOASTS && progressToastQueue.length > 0) {
+   const entry = progressToastQueue.shift()
+   const toast = entry?.toast
+   if (!(toast instanceof HTMLElement)) continue
+
+   progressToastVisibleCount += 1
+   host.appendChild(toast)
+
+   if (typeof toast.__onToastMount === "function") {
+    toast.__onToastMount()
+   }
+
+   requestAnimationFrame(() => toast.classList.add("show"))
+
+   const ttl = Math.max(2500, Number(entry?.ttl || 7000))
+   window.setTimeout(() => {
+    toast.classList.remove("show")
+    window.setTimeout(() => {
+     toast.remove()
+     progressToastVisibleCount = Math.max(0, progressToastVisibleCount - 1)
+     drainProgressToastQueue()
+    }, 260)
+   }, ttl)
+  }
+ }
+
+ function scheduleProgressRefresh(delayMs = 450) {
+  const nextDelay = Math.max(120, Number(delayMs || 450))
+  if (progressRefreshTimer) {
+   window.clearTimeout(progressRefreshTimer)
+   progressRefreshTimer = null
+  }
+  progressRefreshTimer = window.setTimeout(() => {
+   progressRefreshTimer = null
+   refreshQuestProgressToasts().catch(() => {})
+   refreshAchievementToasts().catch(() => {})
+  }, nextDelay)
+ }
+
+ function installGlobalFetchToastHook() {
+  if (!window || typeof window.fetch !== "function" || window.__kcProgressToastHooked) return
+  const nativeFetch = window.fetch.bind(window)
+  window.fetch = async function kcProgressToastFetch(input, init) {
+   const response = await nativeFetch(input, init)
+   try {
+    const method = String(init?.method || (input && typeof input === "object" ? input.method : "") || "GET").toUpperCase()
+    const requestUrlRaw = typeof input === "string"
+     ? input
+     : String(input?.url || "")
+    const requestUrl = requestUrlRaw.startsWith(window.location.origin)
+     ? requestUrlRaw.slice(window.location.origin.length)
+     : requestUrlRaw
+    if (response?.ok && method !== "GET" && String(requestUrl || "").startsWith("/api/")) {
+     scheduleProgressRefresh(500)
+    }
+   } catch (_) {}
+   return response
+  }
+  window.__kcProgressToastHooked = true
+ }
+
  function toQuestPercent(current, goal) {
   const safeGoal = Math.max(1, Number(goal || 1))
   const safeCurrent = Math.max(0, Number(current || 0))
@@ -125,7 +205,6 @@ function spawnQuestToast({
  actionHref = "",
  actionLabel = ""
 } = {}) {
- const host = ensureQuestToastHost()
  const toast = document.createElement("article")
  toast.className = `quest-progress-toast quest-progress-toast-${variant}`
  const hasAction = String(actionHref || "").trim() && String(actionLabel || "").trim()
@@ -138,25 +217,48 @@ function spawnQuestToast({
   ${description ? `<small class="quest-toast-desc">${description}</small>` : ""}
   <div class="quest-toast-bar"><span></span></div>
   ${rewardText ? `<small class="quest-toast-reward">${rewardText}</small>` : ""}
-  ${hasAction ? `<div class="quest-toast-actions"><a class="quest-toast-action-btn" href="${actionHref}">${actionLabel}</a></div>` : ""}
+ ${hasAction ? `<div class="quest-toast-actions"><a class="quest-toast-action-btn" href="${actionHref}">${actionLabel}</a></div>` : ""}
  `
 
-  host.appendChild(toast)
-  const fill = toast.querySelector(".quest-toast-bar span")
-  if (fill) {
+  toast.__onToastMount = () => {
+   const fill = toast.querySelector(".quest-toast-bar span")
+   if (!fill) return
    fill.style.width = `${Math.max(0, Math.min(100, fromPct))}%`
    requestAnimationFrame(() => {
     fill.style.width = `${Math.max(0, Math.min(100, toPct))}%`
    })
   }
 
-  requestAnimationFrame(() => toast.classList.add("show"))
-
  const ttl = hasAction ? 12000 : (variant === "complete" ? 9500 : 7000)
- window.setTimeout(() => {
-  toast.classList.remove("show")
-  window.setTimeout(() => toast.remove(), 260)
- }, ttl)
+ enqueueProgressToast(toast, ttl)
+}
+
+function spawnAchievementToast({
+ id = "",
+ name = "Achievement",
+ badge = "🏆",
+ description = "",
+ title = "",
+ rewardText = ""
+} = {}) {
+ const toast = document.createElement("article")
+ toast.className = "quest-progress-toast achievement-progress-toast"
+ toast.dataset.achievementId = String(id || "")
+ const titleText = String(title || "").trim()
+ const descriptionText = String(description || "").trim()
+ const rewardTextSafe = String(rewardText || "").trim()
+ toast.innerHTML = `
+  <div class="quest-toast-head">
+   <strong>${badge} Achievement débloqué</strong>
+   <span class="quest-toast-chip">Nouveau</span>
+  </div>
+  <p>${name}</p>
+  ${descriptionText ? `<small class="quest-toast-desc">${descriptionText}</small>` : ""}
+  ${titleText ? `<small class="quest-toast-reward">Titre: ${titleText}</small>` : ""}
+  ${rewardTextSafe ? `<small class="quest-toast-reward">${rewardTextSafe}</small>` : ""}
+ `
+
+ enqueueProgressToast(toast, 12000)
 }
 
  function getPlayerQuestEntries(payload) {
@@ -186,7 +288,7 @@ function spawnQuestToast({
   return map
  }
 
-async function refreshQuestProgressToasts() {
+ async function refreshQuestProgressToasts() {
   if (questToastBusy) return
   questToastBusy = true
 
@@ -200,7 +302,7 @@ async function refreshQuestProgressToasts() {
     return
    }
 
-   let currentEntries = getPlayerQuestEntries(stateData)
+   const currentEntries = getPlayerQuestEntries(stateData)
    if (!questProgressSnapshot) {
     questProgressSnapshot = currentEntries
     return
@@ -221,7 +323,7 @@ async function refreshQuestProgressToasts() {
     if (completedNow) {
      completionEvents.push({ prev: prevQuest, next: nextQuest })
     } else if (progressed) {
-      progressEvents.push({ prev: prevQuest, next: nextQuest })
+     progressEvents.push({ prev: prevQuest, next: nextQuest })
     }
    }
 
@@ -240,7 +342,6 @@ async function refreshQuestProgressToasts() {
 
    for (const event of completionEvents) {
     const rewardText = formatQuestRewardPreview(event.next.reward) || "Récompense prête"
-
     spawnQuestToast({
      title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
      subtitle: "Quête complétée",
@@ -261,7 +362,62 @@ async function refreshQuestProgressToasts() {
   }
  }
 
- function stopQuestToastPolling() {
+ function getAchievementUnlockedEntries(payload) {
+  const map = new Map()
+  if (!payload || !Array.isArray(payload.items)) return map
+  for (const item of payload.items) {
+   const id = String(item?.id || "")
+   if (!id || !item?.unlocked) continue
+   map.set(id, {
+    id,
+    name: String(item?.name || "Achievement"),
+    badge: String(item?.badge || "🏆"),
+    description: String(item?.description || ""),
+    title: String(item?.title || ""),
+    rewardText: String(item?.rewardText || "")
+   })
+  }
+  return map
+ }
+
+ async function refreshAchievementToasts() {
+  if (achievementToastBusy) return
+  achievementToastBusy = true
+  try {
+   const achRes = await fetch("/api/achievements?category=all", { credentials: "same-origin" })
+   if (!achRes.ok) return
+   let achData = null
+   try { achData = await achRes.json() } catch (_) {}
+   if (!achData || !achData.connected) {
+    achievementUnlockedSnapshot = null
+    return
+   }
+
+   const unlockedNow = getAchievementUnlockedEntries(achData)
+   if (!achievementUnlockedSnapshot) {
+    achievementUnlockedSnapshot = unlockedNow
+    return
+   }
+
+   const newlyUnlocked = []
+   for (const [id, item] of unlockedNow.entries()) {
+    if (!achievementUnlockedSnapshot.has(id)) {
+     newlyUnlocked.push(item)
+    }
+   }
+
+   for (const item of newlyUnlocked) {
+    spawnAchievementToast(item)
+   }
+
+   achievementUnlockedSnapshot = unlockedNow
+  } catch (_) {
+  } finally {
+   achievementToastBusy = false
+  }
+ }
+
+function stopQuestToastPolling() {
   if (questToastPollHandle) {
    clearInterval(questToastPollHandle)
    questToastPollHandle = null
@@ -275,6 +431,22 @@ async function refreshQuestProgressToasts() {
   questToastPollHandle = window.setInterval(() => {
    refreshQuestProgressToasts().catch(() => {})
   }, QUEST_TOAST_POLL_MS)
+ }
+
+ function stopAchievementToastPolling() {
+  if (achievementToastPollHandle) {
+   clearInterval(achievementToastPollHandle)
+   achievementToastPollHandle = null
+  }
+  achievementUnlockedSnapshot = null
+ }
+
+ function startAchievementToastPolling() {
+  stopAchievementToastPolling()
+  refreshAchievementToasts().catch(() => {})
+  achievementToastPollHandle = window.setInterval(() => {
+   refreshAchievementToasts().catch(() => {})
+  }, ACHIEVEMENT_TOAST_POLL_MS)
  }
 
  window.__kcQuestToastNotify = function questToastNotify(payload = {}) {
@@ -293,7 +465,7 @@ async function refreshQuestProgressToasts() {
   })
  }
 
- window.__kcQuestToastPreview = function questToastPreview() {
+window.__kcQuestToastPreview = function questToastPreview() {
  spawnQuestToast({
   title: "Quotidienne: Ouverture Rapide",
   subtitle: "2/3",
@@ -316,6 +488,19 @@ async function refreshQuestProgressToasts() {
   })
  }, 800)
 }
+
+window.__kcAchievementToastPreview = function achievementToastPreview() {
+ spawnAchievementToast({
+  id: "preview-achievement",
+  name: "Vitesse Lumière",
+  badge: "⚡",
+  description: "Gagner 1000 kamas",
+  title: "Éclair du Krosmoz",
+  rewardText: "💰 750 kamas · ⭐ 120 XP"
+ })
+}
+
+ installGlobalFetchToastHook()
 
  ensureEventToast()
  refreshEventToast().catch(() => {})
@@ -350,6 +535,7 @@ async function refreshQuestProgressToasts() {
       <li><a href="/play/quests" data-play-mode="quests">Quêtes</a></li>
       <li><a href="/events">Events</a></li>
       <li><a href="/battlepass">Battlepass</a></li>
+      <li><a href="/krosmoshop">KrosmoShop</a></li>
       <li><a href="/market">Marché</a></li>
       <li><a href="/achievements">Achievements</a></li>
       <li><a href="/profile/">Profil</a></li>
@@ -474,10 +660,11 @@ async function refreshQuestProgressToasts() {
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
- setConnectedNavLink(false)
- setTopMarketLinkVisibility(false)
- setTopEventsLinkVisibility()
+  setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
   stopQuestToastPolling()
+  stopAchievementToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "#"
@@ -497,10 +684,11 @@ async function refreshQuestProgressToasts() {
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
- setConnectedNavLink(false)
- setTopMarketLinkVisibility(false)
- setTopEventsLinkVisibility()
+  setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
   stopQuestToastPolling()
+  stopAchievementToastPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
@@ -528,6 +716,7 @@ async function refreshQuestProgressToasts() {
  setTopMarketLinkVisibility(true)
  setTopEventsLinkVisibility()
  startQuestToastPolling()
+ startAchievementToastPolling()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
   heroPlayBtn.href = "/play"
@@ -541,6 +730,7 @@ async function refreshQuestProgressToasts() {
  btn.addEventListener("click", async (event) => {
   event.preventDefault()
   stopQuestToastPolling()
+  stopAchievementToastPolling()
   try {
    await fetch("/auth/logout", {
     method: "POST",

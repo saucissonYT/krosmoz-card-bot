@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>KrosmoShop - Krosmoz Card</title>
+ <meta name="theme-color" content="#c9a84c">
+ <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="krosmoshop-page">
+ <nav class="navbar scrolled">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/leaderboard">Classement</a></li>
+    <li><a href="/tutorial">Tutoriel</a></li>
+    <li><a href="/cards">Cartes</a></li>
+    <li><a href="/guild">Guildes</a></li>
+   </ul>
+   <div class="navbar-right">
+    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
+    <a class="discord-mini" href="https://discord.gg/W7UmsfCW" target="_blank" rel="noopener" aria-label="Discord">
+     <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2h0C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z"/></svg>
+    </a>
+    <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
+     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+   </div>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+   <section class="kshop-shell">
+    <header class="kshop-hero fade-in">
+     <h1 class="section-title">KrosmoShop</h1>
+     <p class="section-subtitle">Boutique quotidienne de cartes premium.</p>
+    </header>
+
+    <div class="profile-card kshop-topbar fade-in stagger-1">
+     <div>
+      <strong id="kshopDay">Jour: --</strong>
+      <p id="kshopReset" class="kshop-muted">Reset dans --</p>
+     </div>
+     <div>
+      <strong id="kshopWallet">Kamas: --</strong>
+      <p id="kshopDiscount" class="kshop-muted">Reduction shop: --</p>
+     </div>
+     <div>
+      <strong id="kshopProgress">Achat(s): --</strong>
+      <p id="kshopStats" class="kshop-muted">Stats shop: --</p>
+     </div>
+     <div class="kshop-top-actions">
+      <button id="kshopBuyAllBtn" class="btn btn-outline" type="button">Acheter tout le reste</button>
+      <button id="kshopRefreshBtn" class="btn btn-outline" type="button">Actualiser</button>
+     </div>
+    </div>
+
+    <div id="kshopGrid" class="catalog-grid kshop-grid fade-in stagger-2"></div>
+   </section>
+
+   <footer class="footer">
+    <p>🛒 <a href="/">Krosmoz Card</a> - krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">A propos · Contact · Mentions legales</a></p>
+   </footer>
+  </div>
+ </div>
+
+ <script src="/js/web-auth.js"></script>
+ <script>
+ document.getElementById("navToggle").addEventListener("click", () => {
+  document.getElementById("navLinks").classList.toggle("open")
+ })
+
+ const state = {
+  connected: false,
+  items: [],
+  payload: null,
+  loading: false
+ }
+
+ const RARITY_ORDER = ["SSR", "S", "UR", "HR", "SR", "R", "U", "C"]
+
+ function esc(str) {
+  const d = document.createElement("div")
+  d.textContent = String(str || "")
+  return d.innerHTML
+ }
+
+ function getLoginUrl() {
+  const returnTo = `${window.location.pathname || "/krosmoshop"}${window.location.search || ""}`
+  return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
+ }
+
+ function showToast(msg, isError = false) {
+  const el = document.createElement("div")
+  el.className = `toast ${isError ? "toast-error" : ""}`
+  el.textContent = msg
+  document.body.appendChild(el)
+  window.setTimeout(() => el.classList.add("show"), 10)
+  window.setTimeout(() => {
+   el.classList.remove("show")
+   window.setTimeout(() => el.remove(), 250)
+  }, 3200)
+ }
+
+ function formatCountdown(ms) {
+  const safe = Math.max(0, Number(ms || 0))
+  const totalSec = Math.floor(safe / 1000)
+  const h = Math.floor(totalSec / 3600)
+  const m = Math.floor((totalSec % 3600) / 60)
+  return `${h}h${String(m).padStart(2, "0")}`
+ }
+
+ function sortItems(items) {
+  return [...(items || [])].sort((a, b) => {
+   const ra = RARITY_ORDER.indexOf(String(a?.rarity || "").toUpperCase())
+   const rb = RARITY_ORDER.indexOf(String(b?.rarity || "").toUpperCase())
+   if (ra !== rb) return ra - rb
+   return Number(b?.basePrice || 0) - Number(a?.basePrice || 0)
+  })
+ }
+
+ function renderTopbar(payload) {
+  const dayEl = document.getElementById("kshopDay")
+  const resetEl = document.getElementById("kshopReset")
+  const walletEl = document.getElementById("kshopWallet")
+  const discountEl = document.getElementById("kshopDiscount")
+  const progressEl = document.getElementById("kshopProgress")
+  const statsEl = document.getElementById("kshopStats")
+  const buyAllBtn = document.getElementById("kshopBuyAllBtn")
+
+  dayEl.textContent = `Jour: ${String(payload?.shopDay || "--")}`
+  resetEl.textContent = `Reset dans ${formatCountdown(payload?.cooldownMs || 0)}`
+
+  if (payload?.connected) {
+   walletEl.textContent = `Kamas: ${Number(payload?.wallet?.kamas || 0).toLocaleString("fr-FR")}`
+   discountEl.textContent = `Reduction shop: ${Number(payload?.discounts?.totalPercent || 0)}%`
+   const boughtCount = Number(payload?.progress?.boughtCount || 0)
+   const totalCount = Number(payload?.progress?.totalCount || 0)
+   progressEl.textContent = `Achat(s): ${boughtCount}/${totalCount}`
+   statsEl.textContent = `Total achetees: ${Number(payload?.stats?.cardsBought || 0)} · Kamas depenses: ${Number(payload?.stats?.kamasSpent || 0).toLocaleString("fr-FR")}`
+  } else {
+   walletEl.textContent = "Mode apercu local (connexion Discord requise)."
+   discountEl.textContent = "Reduction shop: --"
+   progressEl.textContent = `Cartes disponibles: ${Number(payload?.progress?.totalCount || 0)}`
+   statsEl.textContent = "Connecte-toi pour acheter."
+  }
+
+  buyAllBtn.disabled = !payload?.connected || state.loading
+ }
+
+ function itemActionButton(item) {
+  if (!state.connected) {
+   return `<a class="btn btn-outline" href="${esc(getLoginUrl())}">Connexion requise</a>`
+  }
+  if (item.purchased) {
+   return `<button class="btn btn-outline" type="button" disabled>Achetee</button>`
+  }
+  if (!item.canBuy) {
+   return `<button class="btn btn-outline" type="button" disabled>Manque ${Number(item.missingKamas || 0).toLocaleString("fr-FR")}</button>`
+  }
+  return `<button class="btn btn-outline action-buy" type="button" data-card-id="${esc(item.cardId)}">Acheter</button>`
+ }
+
+ function itemCard(item) {
+  const hasDiscount = Number(item.finalPrice || 0) < Number(item.basePrice || 0)
+  return `
+   <article class="catalog-card kshop-card ${item.purchased ? "kshop-card-bought" : ""}">
+    <div class="kshop-card-head">
+     <span class="chip chip-rarity">${esc(item.rarity)}</span>
+     <span class="chip">${esc(item.setName || "Set")}</span>
+    </div>
+    ${item.imageUrl ? `<div class="kshop-thumb-wrap"><img class="card-thumb" loading="lazy" src="${esc(item.imageUrl)}" alt="${esc(item.name)}" onerror="this.parentElement.style.display='none'"></div>` : ""}
+    <h3>${esc(item.name)}</h3>
+    <p class="kshop-muted">ID #${esc(item.cardId)}</p>
+    <p class="kshop-price-line">
+     ${hasDiscount ? `<span class="kshop-price-base">${Number(item.basePrice || 0).toLocaleString("fr-FR")}</span>` : ""}
+     <strong>${Number(item.finalPrice || 0).toLocaleString("fr-FR")} kamas</strong>
+    </p>
+    <p class="kshop-muted">Possedees: ${Number(item.owned || 0)}${item.purchased ? " · Deja achetee aujourd'hui" : ""}</p>
+    <div class="action-row">${itemActionButton(item)}</div>
+   </article>
+  `
+ }
+
+ function bindBuyActions() {
+  document.querySelectorAll(".action-buy").forEach((btn) => {
+   btn.addEventListener("click", async () => {
+    const cardId = String(btn.dataset.cardId || "")
+    if (!cardId) return
+    await buyOne(cardId)
+   })
+  })
+ }
+
+ function renderGrid(payload) {
+  const grid = document.getElementById("kshopGrid")
+  const items = sortItems(payload?.items || [])
+  state.items = items
+
+  if (!items.length) {
+   grid.innerHTML = `<div class="loading"><p>Aucune carte disponible pour le moment.</p></div>`
+   return
+  }
+
+  grid.innerHTML = items.map(itemCard).join("")
+  bindBuyActions()
+ }
+
+ async function api(path, options = {}) {
+  const res = await fetch(path, { credentials: "same-origin", ...options })
+  let data = null
+  try { data = await res.json() } catch (_) {}
+  return { ok: res.ok, status: res.status, data }
+ }
+
+ async function refreshShop() {
+  state.loading = true
+  const buyAllBtn = document.getElementById("kshopBuyAllBtn")
+  buyAllBtn.disabled = true
+  const grid = document.getElementById("kshopGrid")
+  grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du KrosmoShop...</p></div>`
+
+  const res = await api("/api/krosmoshop/state")
+  state.loading = false
+  if (!res.ok) {
+   grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+   return
+  }
+
+  const payload = res.data || {}
+  state.connected = Boolean(payload.connected)
+  state.payload = payload
+  renderTopbar(payload)
+  renderGrid(payload)
+ }
+
+ async function buyOne(cardId) {
+  const res = await api("/api/krosmoshop/buy", {
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({ cardId })
+  })
+  if (!res.ok) {
+   showToast(res.data?.error || "Achat impossible.", true)
+   return
+  }
+
+  const result = res.data?.result || {}
+  const cardName = String(result?.cardInfo?.name || result?.cardId || "Carte")
+  const finalPrice = Number(result?.price || 0).toLocaleString("fr-FR")
+  showToast(`${cardName} achetee pour ${finalPrice} kamas.`)
+  if (Number(res.data?.unlockedAchievements || 0) > 0) {
+   showToast(`${Number(res.data.unlockedAchievements)} achievement(s) debloque(s).`)
+  }
+
+  const payload = res.data?.state
+  if (payload) {
+   state.payload = payload
+   state.connected = Boolean(payload.connected)
+   renderTopbar(payload)
+   renderGrid(payload)
+  } else {
+   await refreshShop()
+  }
+ }
+
+ async function buyAllRemaining() {
+  const purchasable = (state.items || []).filter((item) => item.canBuy && !item.purchased)
+  if (!purchasable.length) {
+   showToast("Aucune carte achetable pour le moment.", true)
+   return
+  }
+
+  const total = purchasable.length
+  let success = 0
+  for (const item of purchasable) {
+   const res = await api("/api/krosmoshop/buy", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ cardId: item.cardId })
+   })
+   if (!res.ok) continue
+   success += 1
+  }
+
+  showToast(`${success}/${total} achat(s) effectue(s).`)
+  await refreshShop()
+ }
+
+ document.getElementById("kshopRefreshBtn").addEventListener("click", () => {
+  refreshShop()
+ })
+
+ document.getElementById("kshopBuyAllBtn").addEventListener("click", () => {
+  buyAllRemaining()
+ })
+
+ refreshShop()
+ window.setInterval(() => {
+  if (!document.hidden) refreshShop()
+ }, 60000)
+ </script>
+</body>
+</html>

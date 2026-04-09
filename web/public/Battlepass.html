@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
@@ -26,7 +26,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">â˜°</button>
    </div>
   </div>
  </nav>
@@ -35,17 +35,18 @@
   <div class="container">
    <section class="battlepass-shell">
     <header class="battlepass-hero fade-in">
-     <h1 class="section-title">🎟️ Battlepass</h1>
+     <h1 class="section-title">ðŸŽŸï¸ Battlepass</h1>
      <p class="section-subtitle">Progression de saison, rewards et bonus premium.</p>
     </header>
 
     <div class="battlepass-grid fade-in stagger-1">
      <article class="battlepass-card battlepass-season-card">
-      <h3>🗓️ Saison en cours</h3>
+      <h3>ðŸ—“ï¸ Saison en cours</h3>
       <div class="battlepass-season-body">
        <div class="battlepass-season-copy">
-        <p id="bpSeasonName" class="battlepass-strong">Chargement...</p>
-        <p id="bpSeasonSubtitle" class="battlepass-muted">...</p>
+       <p id="bpSeasonName" class="battlepass-strong">Chargement...</p>
+       <p id="bpSeasonSubtitle" class="battlepass-muted">...</p>
+       <p id="bpSeasonBonus" class="battlepass-highlight">Bonus: -</p>
         <p id="bpSeasonDates" class="battlepass-muted">-</p>
        </div>
        <div class="battlepass-season-visual-wrap" aria-hidden="true">
@@ -62,13 +63,13 @@
      </article>
 
      <article class="battlepass-card">
-      <h3>⭐ Ta progression</h3>
+      <h3>â­ Ta progression</h3>
       <p id="bpUserState" class="battlepass-strong">Connecte-toi pour voir ton Battlepass.</p>
       <div class="battlepass-progress-track" aria-hidden="true">
        <div id="bpProgressBar" class="battlepass-progress-fill" style="width:0%"></div>
       </div>
       <p id="bpProgressNumbers" class="battlepass-muted">0/0 XP</p>
-      <p id="bpClaimable" class="battlepass-highlight">🎁 0 reward à récupérer</p>
+      <p id="bpClaimable" class="battlepass-highlight">ðŸŽ 0 reward Ã  rÃ©cupÃ©rer</p>
      </article>
 
     </div>
@@ -76,7 +77,8 @@
     <div class="battlepass-head fade-in stagger-2">
      <h2>Rewards de saison</h2>
      <div class="battlepass-head-actions">
-      <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes rewards.</p>
+     <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes rewards.</p>
+      <button id="bpClaimBtn" type="button" class="btn btn-outline">Tout recuperer</button>
       <button id="bpGoCurrentBtn" type="button" class="battlepass-jump-btn" disabled>Aller a mon palier</button>
      </div>
     </div>
@@ -87,8 +89,8 @@
    </section>
 
    <footer class="footer">
-    <p>🎟️ <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>ðŸŽŸï¸ <a href="/">Krosmoz Card</a> â€” krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">Ã€ propos Â· Contact Â· Mentions lÃ©gales</a></p>
    </footer>
   </div>
  </div>
@@ -115,7 +117,7 @@
   if (Number.isNaN(dt.getTime())) return ""
   const day = dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
   const time = dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-  return `${day} à ${time}`
+  return `${day} Ã  ${time}`
  }
 
  function formatDateOnlyFr(value) {
@@ -125,8 +127,14 @@
   if (m) return `${m[3]}/${m[2]}/${m[1]}`
   const dt = new Date(raw)
   if (Number.isNaN(dt.getTime())) return "?"
-  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
- }
+ return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" })
+}
+
+function formatSeasonShortName(value) {
+ const raw = String(value || "").trim()
+ if (!raw) return "active"
+ return raw.replace(/^saison\s+/i, "").trim() || raw
+}
 
  function getLoginUrl() {
   const returnTo = `${window.location.pathname || "/battlepass"}${window.location.search || ""}`
@@ -168,41 +176,41 @@
   if (!reward || typeof reward !== "object") return "-"
   const type = String(reward.type || "")
   const value = Number(reward.value || 0)
-  if (type === "kamas") return `💰 ${fmt(value)} kamas`
-  if (type === "player_xp") return `⭐ ${fmt(value)} XP joueur`
-  if (type === "pack" || type === "pack_premium") return `📦 ${fmt(value || 1)} pack(s)`
-  if (type === "title") return `📜 ${escapeHtml(String(reward.value || "Titre"))}`
-  if (type === "badge") return `🏅 ${escapeHtml(String(reward.value || "Badge"))}`
-  if (type === "card") return `🃏 ${escapeHtml(String(reward.cardId || "Carte"))}`
-  if (type === "card_random_rare") return "🃏 Carte rare aleatoire"
-  if (type === "card_random_ssr") return "🌈 Carte SSR aleatoire"
-  if (type === "fragment_random") return `🧩 ${fmt(value || reward.quantity || 1)} fragment(s)`
+  if (type === "kamas") return `ðŸ’° ${fmt(value)} kamas`
+  if (type === "player_xp") return `â­ ${fmt(value)} XP joueur`
+  if (type === "pack" || type === "pack_premium") return `ðŸ“¦ ${fmt(value || 1)} pack(s)`
+  if (type === "title") return `ðŸ“œ ${escapeHtml(String(reward.value || "Titre"))}`
+  if (type === "badge") return `ðŸ… ${escapeHtml(String(reward.value || "Badge"))}`
+  if (type === "card") return `ðŸƒ ${escapeHtml(String(reward.cardId || "Carte"))}`
+  if (type === "card_random_rare") return "ðŸƒ Carte rare aleatoire"
+  if (type === "card_random_ssr") return "ðŸŒˆ Carte SSR aleatoire"
+  if (type === "fragment_random") return `ðŸ§© ${fmt(value || reward.quantity || 1)} fragment(s)`
   return escapeHtml(type || "Reward")
  }
 
  function formatRewards(list) {
-  if (!Array.isArray(list) || !list.length) return "—"
+  if (!Array.isArray(list) || !list.length) return "â€”"
   return list.map((reward) => rewardLabel(reward)).join(" + ")
  }
 
  function rewardShortLabel(reward) {
-  if (!reward || typeof reward !== "object") return "—"
+  if (!reward || typeof reward !== "object") return "â€”"
   const type = String(reward.type || "")
   const value = Number(reward.value || 0)
-  if (type === "kamas") return `💰 ${fmt(value)}`
-  if (type === "player_xp") return `⭐ ${fmt(value)} XP`
-  if (type === "pack" || type === "pack_premium") return `📦 x${fmt(value || 1)}`
-  if (type === "title") return "📜 Titre"
-  if (type === "badge") return "🏅 Badge"
-  if (type === "card") return "🃏 Carte"
-  if (type === "card_random_rare") return "🃏 Rare"
-  if (type === "card_random_ssr") return "🌈 SSR"
-  if (type === "fragment_random") return `🧩 x${fmt(value || reward.quantity || 1)}`
+  if (type === "kamas") return `ðŸ’° ${fmt(value)}`
+  if (type === "player_xp") return `â­ ${fmt(value)} XP`
+  if (type === "pack" || type === "pack_premium") return `ðŸ“¦ x${fmt(value || 1)}`
+  if (type === "title") return "ðŸ“œ Titre"
+  if (type === "badge") return "ðŸ… Badge"
+  if (type === "card") return "ðŸƒ Carte"
+  if (type === "card_random_rare") return "ðŸƒ Rare"
+  if (type === "card_random_ssr") return "ðŸŒˆ SSR"
+  if (type === "fragment_random") return `ðŸ§© x${fmt(value || reward.quantity || 1)}`
   return escapeHtml(type || "Reward")
  }
 
  function formatRewardsShort(list) {
-  if (!Array.isArray(list) || !list.length) return "—"
+  if (!Array.isArray(list) || !list.length) return "â€”"
   if (list.length === 1) return rewardShortLabel(list[0])
   return `${rewardShortLabel(list[0])} +${list.length - 1}`
  }
@@ -236,18 +244,21 @@
  }
 
  function renderSeasonInfo(season) {
-  const name = document.getElementById("bpSeasonName")
-  const subtitle = document.getElementById("bpSeasonSubtitle")
-  const dates = document.getElementById("bpSeasonDates")
-  if (!name || !subtitle || !dates) return
+ const name = document.getElementById("bpSeasonName")
+ const subtitle = document.getElementById("bpSeasonSubtitle")
+ const bonus = document.getElementById("bpSeasonBonus")
+ const dates = document.getElementById("bpSeasonDates")
+ if (!name || !subtitle || !bonus || !dates) return
 
-  name.textContent = `${season?.emoji || "🎟️"} ${season?.name || "Saison"}`
-  subtitle.textContent = season?.subtitle || "Saison en cours."
-  const start = formatDateOnlyFr(season?.startDate)
-  const end = formatDateOnlyFr(season?.endDate)
-  dates.textContent = `Date de début : ${start} | Date de fin : ${end}`
-  updateSeasonVisual(season)
- }
+ name.textContent = `${season?.emoji || "🎟️"} ${season?.name || "Saison"}`
+ subtitle.textContent = season?.subtitle || "Saison en cours."
+ const bonusDesc = String(season?.bonusDescription || "").trim()
+ bonus.textContent = `${season?.subtitle || "Saison"} : bonus ${bonusDesc || "Aucun bonus saisonnier"}`
+ const start = formatDateOnlyFr(season?.startDate)
+ const end = formatDateOnlyFr(season?.endDate)
+ dates.textContent = `Date de début : ${start} | Date de fin : ${end}`
+ updateSeasonVisual(season)
+}
 
 function renderDisconnected() {
   const userState = document.getElementById("bpUserState")
@@ -263,8 +274,8 @@ function renderDisconnected() {
   userState.textContent = "Connecte-toi avec Discord pour afficher ta progression."
   progressBar.style.width = "0%"
   progressNums.textContent = "0/0 XP"
-  claimable.textContent = "🎁 0 reward à récupérer"
-  if (hint) hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a> · <a href="/battlepass?preview=1">Mode apercu local</a>`
+  claimable.textContent = "ðŸŽ 0 reward Ã  rÃ©cupÃ©rer"
+  if (hint) hint.innerHTML = `Clique ici: <a href="${getLoginUrl()}">Connexion Discord</a> Â· <a href="/battlepass?preview=1">Mode apercu local</a>`
   if (claimBtn) claimBtn.disabled = true
   if (premiumBtn) {
    premiumBtn.disabled = true
@@ -316,16 +327,11 @@ function renderDisconnected() {
   const currentLevel = Math.max(1, Number(progress?.currentLevel || 1))
   const hasPremium = Boolean(progress?.hasPremium)
   const intraLevel = Math.min(1, Math.max(0, Number(progress?.xpPercent || 0) / 100))
-  const firstPending = rows.find((row) => {
-   const claimed = Boolean(row?.claimedFree) && (!hasPremium || !Array.isArray(row?.premiumRewards) || row.premiumRewards.length === 0 || Boolean(row?.claimedPremium))
-   return !claimed
-  })
-  const pendingLevel = Math.max(1, Number(firstPending?.level || currentLevel))
-  const visualLevel = Math.min(currentLevel, pendingLevel)
-  const visualIntra = visualLevel === currentLevel ? intraLevel : 0
+  const visualLevel = currentLevel
+  const visualIntra = intraLevel
   const progressIndex = Math.min(totalLevels - 1, Math.max(0, (visualLevel - 1) + visualIntra))
   const progressRatio = totalLevels <= 1 ? 1 : (progressIndex / (totalLevels - 1))
-  setCurrentTierTarget(visualLevel)
+  setCurrentTierTarget(currentLevel)
 
   const steps = rows.map((row) => {
    const level = Number(row.level || 0)
@@ -342,9 +348,9 @@ function renderDisconnected() {
    const side = level % 2 === 1 ? "left" : "right"
    const freeText = formatRewardsShort(row.freeRewards)
    const premiumText = formatRewardsShort(row.premiumRewards)
-   let stateLabel = "Verrouillé"
-   if (isClaimed) stateLabel = claimedAtLabel ? `Récupéré le ${claimedAtLabel}` : "Récupéré"
-   else if (isRecoverable) stateLabel = "Récupérable"
+   let stateLabel = "VerrouillÃ©"
+   if (isClaimed) stateLabel = claimedAtLabel ? `RÃ©cupÃ©rÃ© le ${claimedAtLabel}` : "RÃ©cupÃ©rÃ©"
+   else if (isRecoverable) stateLabel = "RÃ©cupÃ©rable"
    const nodeClass = [
    "bp-node-core",
    isUnlocked ? "is-unlocked" : "is-locked",
@@ -360,7 +366,7 @@ function renderDisconnected() {
    const stepCopyClass = `bp-step-copy${isRecoverable ? " is-recoverable" : ""}`
    const stepCopyTag = isRecoverable ? "button" : "div"
    const stepCopyAttrs = isRecoverable
-    ? `class="${stepCopyClass}" type="button" data-claim-level="${level}" aria-label="Récupérer l'étape ${String(level).padStart(2, "0")}"`
+    ? `class="${stepCopyClass}" type="button" data-claim-level="${level}" aria-label="RÃ©cupÃ©rer l'Ã©tape ${String(level).padStart(2, "0")}"`
     : `class="${stepCopyClass}"`
 
    return `
@@ -369,13 +375,13 @@ function renderDisconnected() {
        <div class="bp-step-node">
         <div class="${nodeClass}">
          <span class="bp-node-level">Palier ${level}</span>
-         <span class="bp-node-free">🎁 ${escapeHtml(freeText)}</span>
-         <span class="bp-node-premium">💎 ${escapeHtml(premiumText)}</span>
-         <span class="bp-node-check">✓</span>
+         <span class="bp-node-free">ðŸŽ ${escapeHtml(freeText)}</span>
+         <span class="bp-node-premium">ðŸ’Ž ${escapeHtml(premiumText)}</span>
+         <span class="bp-node-check">âœ“</span>
         </div>
        </div>
        <${stepCopyTag} ${stepCopyAttrs}>
-        <h3>Étape ${String(level).padStart(2, "0")}</h3>
+        <h3>Ã‰tape ${String(level).padStart(2, "0")}</h3>
         <p>${stateLabel}</p>
       </${stepCopyTag}>
      </div>
@@ -407,10 +413,10 @@ function renderConnected(data) {
   const meta = document.getElementById("bpRewardsMeta")
 
   const userName = discord?.displayName || discord?.username || "Joueur"
-  userState.textContent = `${userName} · Niveau BP ${Number(progress.currentLevel || 1)}`
+  userState.textContent = `${userName} Â· Niveau BP ${Number(progress.currentLevel || 1)}`
   progressBar.style.width = `${Math.min(100, Math.max(0, Number(progress.xpPercent || 0)))}%`
   progressNums.textContent = `${fmt(progress.xpInLevel || 0)}/${fmt(progress.xpLevelMax || 0)} XP (${Number(progress.xpPercent || 0)}%)`
-  claimable.textContent = `🎁 ${fmt(progress.claimableCount || 0)} reward(s) à récupérer`
+  claimable.textContent = `ðŸŽ ${fmt(progress.claimableCount || 0)} reward(s) Ã  rÃ©cupÃ©rer`
 
   if (claimBtn) claimBtn.disabled = Number(progress.claimableCount || 0) <= 0
   if (premiumBtn) {
@@ -420,8 +426,8 @@ function renderConnected(data) {
     : `Acheter Premium (${fmt(season.premiumPrice || 18000)} kamas)`
   }
 
-  if (hint) hint.textContent = `Kamas: ${fmt(me.kamas || 0)} · Premium: ${progress.hasPremium ? "Oui" : "Non"}`
-  meta.textContent = `${rows.length} paliers affiches · Saison: ${season.name || "active"}`
+  if (hint) hint.textContent = `Kamas: ${fmt(me.kamas || 0)} Â· Premium: ${progress.hasPremium ? "Oui" : "Non"}`
+  meta.textContent = `${rows.length} paliers affiches · Saison : ${formatSeasonShortName(season.name || season.id || "active")}`
 
   renderRewardsTimeline(rows, progress)
 }
@@ -487,9 +493,10 @@ function renderConnected(data) {
    },
    season: {
     id: "emeraude",
-    emoji: "🎟️",
+    emoji: "ðŸŽŸï¸",
     name: "Saison Emeraude",
     subtitle: "Mode apercu local sans connexion Discord.",
+    bonusDescription: "+20% XP Battle Pass pendant la saison",
     startDate: "2026-04-01",
     endDate: "2026-06-30",
     premiumPrice: 18000
@@ -505,7 +512,7 @@ async function loadBattlepass() {
    renderConnected(preview)
    const meta = document.getElementById("bpRewardsMeta")
    if (meta) {
-    meta.textContent = `${preview.rewards.length} paliers affiches · Mode apercu local`
+    meta.textContent = `${preview.rewards.length} paliers affiches Â· Mode apercu local`
    }
    return
   }
@@ -526,10 +533,32 @@ async function loadBattlepass() {
  async function claimAllRewards() {
   const r = await api("/api/battlepass/claim", { method: "POST" })
   if (!r.ok) {
-   showToast(r.data?.error || "Impossible de réclamer.", true)
+   showToast(r.data?.error || "Impossible de rÃ©clamer.", true)
    return false
   }
-  showToast(`Rewards récupérées: ${Number(r.data?.result?.total || 0)}`)
+ showToast(`Rewards rÃ©cupÃ©rÃ©es: ${Number(r.data?.result?.total || 0)}`)
+  await loadBattlepass()
+  return true
+ }
+
+ async function claimLevelReward(level) {
+  const safeLevel = Math.max(1, Math.floor(Number(level || 0)))
+  if (!Number.isFinite(safeLevel) || safeLevel <= 0) {
+   showToast("Palier invalide.", true)
+   return false
+  }
+
+  const r = await api("/api/battlepass/claim-level", {
+   method: "POST",
+   body: { level: safeLevel }
+  })
+  if (!r.ok) {
+   showToast(r.data?.error || "Impossible de rÃ©clamer ce palier.", true)
+   return false
+  }
+
+  const claimedCount = Number(r.data?.result?.total || 0)
+  showToast(`Palier ${safeLevel} rÃ©cupÃ©rÃ© (${claimedCount} reward(s)).`)
   await loadBattlepass()
   return true
  }
@@ -564,13 +593,14 @@ async function loadBattlepass() {
    const target = event.target.closest(".bp-step-copy.is-recoverable")
    if (!target) return
    if (isPreviewMode()) {
-    showToast("Action indisponible en mode aperçu local.", true)
+    showToast("Action indisponible en mode aperÃ§u local.", true)
     return
    }
    if (target.dataset.loading === "1") return
    target.dataset.loading = "1"
    target.disabled = true
-   await claimAllRewards()
+   const level = Number(target.dataset.claimLevel || 0)
+   await claimLevelReward(level)
    target.dataset.loading = "0"
   })
  }
@@ -579,3 +609,4 @@ async function loadBattlepass() {
  </script>
 </body>
 </html>
+
