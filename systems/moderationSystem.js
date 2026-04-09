@@ -279,6 +279,17 @@ function hasNoluck(userId) {
 }
 
 /**
+ * Alias de compatibilité.
+ * Certains modules utilisent encore `hasNoLuck` (camel-case),
+ * on redirige vers l'implémentation canonique `hasNoluck`.
+ * @param {string} userId - ID Discord
+ * @returns {boolean}
+ */
+function hasNoLuck(userId) {
+ return hasNoluck(userId)
+}
+
+/**
  * Récupérer les infos de malchance d'un joueur.
  * @param {string} userId - ID Discord
  * @returns {NoluckEntry|null}
@@ -298,6 +309,7 @@ module.exports = {
  getAllSanctions,
  setNoluck,
  removeNoluck,
+ hasNoLuck,
  hasNoluck,
  getNoluck
 }
