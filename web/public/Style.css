@@ -3233,6 +3233,34 @@ body.market-page #refreshBtn:hover {
  font-size: 0.78rem;
 }
 
+.quest-toast-actions {
+ margin-top: 8px;
+ display: flex;
+ justify-content: flex-end;
+}
+
+.quest-toast-action-btn {
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ min-height: 30px;
+ padding: 6px 12px;
+ border-radius: 999px;
+ border: 1px solid rgba(225, 193, 102, 0.55);
+ background: linear-gradient(135deg, rgba(226, 192, 104, 0.24), rgba(158, 121, 40, 0.22));
+ color: #ffe8ad;
+ font-size: 0.76rem;
+ font-weight: 700;
+ text-decoration: none;
+ transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quest-toast-action-btn:hover {
+ transform: translateY(-1px);
+ filter: brightness(1.12);
+ box-shadow: 0 6px 14px rgba(215, 176, 85, 0.28);
+}
+
 .spinner {
  width: 40px;
  height: 40px;

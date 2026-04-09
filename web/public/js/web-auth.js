@@ -105,29 +105,39 @@
   return `${String(type || "daily")}:${String(id || "")}`
  }
 
- function formatQuestRewardLine(result) {
-  if (!result) return ""
-  const parts = []
-  if (Number(result.totalKamas || 0) > 0) parts.push(`💰 +${Number(result.totalKamas || 0).toLocaleString("fr-FR")}`)
-  if (Number(result.totalXp || 0) > 0) parts.push(`⭐ +${Number(result.totalXp || 0).toLocaleString("fr-FR")} XP`)
-  if (Number(result.totalPacks || 0) > 0) parts.push(`📦 +${Number(result.totalPacks || 0).toLocaleString("fr-FR")}`)
-  if (Number(result.totalBpXp || 0) > 0) parts.push(`🎟️ +${Number(result.totalBpXp || 0).toLocaleString("fr-FR")} XP BP`)
-  return parts.join(" • ")
- }
+function formatQuestRewardPreview(reward) {
+ if (!reward) return ""
+ const parts = []
+ if (Number(reward.kamas || 0) > 0) parts.push(`💰 +${Number(reward.kamas || 0).toLocaleString("fr-FR")}`)
+ if (Number(reward.xp || 0) > 0) parts.push(`⭐ +${Number(reward.xp || 0).toLocaleString("fr-FR")} XP`)
+ if (Number(reward.packs || 0) > 0) parts.push(`📦 +${Number(reward.packs || 0).toLocaleString("fr-FR")}`)
+ return parts.join(" • ")
+}
 
- function spawnQuestToast({ title = "Quête", subtitle = "", fromPct = 0, toPct = 0, variant = "progress", rewardText = "" } = {}) {
-  const host = ensureQuestToastHost()
-  const toast = document.createElement("article")
-  toast.className = `quest-progress-toast quest-progress-toast-${variant}`
+function spawnQuestToast({
+ title = "Quête",
+ subtitle = "",
+ fromPct = 0,
+ toPct = 0,
+ variant = "progress",
+ rewardText = "",
+ actionHref = "",
+ actionLabel = ""
+} = {}) {
+ const host = ensureQuestToastHost()
+ const toast = document.createElement("article")
+ toast.className = `quest-progress-toast quest-progress-toast-${variant}`
+ const hasAction = String(actionHref || "").trim() && String(actionLabel || "").trim()
   toast.innerHTML = `
-   <div class="quest-toast-head">
-    <strong>${title}</strong>
-    <span class="quest-toast-chip">${variant === "complete" ? "Complétée" : `${toPct}%`}</span>
-   </div>
-   <p>${subtitle}</p>
-   <div class="quest-toast-bar"><span></span></div>
-   ${rewardText ? `<small class="quest-toast-reward">${rewardText}</small>` : ""}
-  `
+  <div class="quest-toast-head">
+   <strong>${title}</strong>
+   <span class="quest-toast-chip">${variant === "complete" ? "Complétée" : `${toPct}%`}</span>
+  </div>
+  <p>${subtitle}</p>
+  <div class="quest-toast-bar"><span></span></div>
+  ${rewardText ? `<small class="quest-toast-reward">${rewardText}</small>` : ""}
+  ${hasAction ? `<div class="quest-toast-actions"><a class="quest-toast-action-btn" href="${actionHref}">${actionLabel}</a></div>` : ""}
+ `
 
   host.appendChild(toast)
   const fill = toast.querySelector(".quest-toast-bar span")
@@ -140,12 +150,12 @@
 
   requestAnimationFrame(() => toast.classList.add("show"))
 
-  const ttl = variant === "complete" ? 6200 : 4200
-  window.setTimeout(() => {
-   toast.classList.remove("show")
-   window.setTimeout(() => toast.remove(), 260)
-  }, ttl)
- }
+ const ttl = hasAction ? 9000 : (variant === "complete" ? 6200 : 4200)
+ window.setTimeout(() => {
+  toast.classList.remove("show")
+  window.setTimeout(() => toast.remove(), 260)
+ }, ttl)
+}
 
  function getPlayerQuestEntries(payload) {
   const map = new Map()
@@ -173,27 +183,7 @@
   return map
  }
 
- async function claimQuestAutomatically(type, questId) {
-  try {
-   const res = await fetch("/api/quests/claim", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-     scope: "player",
-     type: String(type || "daily"),
-     questId: String(questId || "")
-    })
-   })
-   let data = null
-   try { data = await res.json() } catch (_) {}
-   return { ok: res.ok, data }
-  } catch (_) {
-   return { ok: false, data: null }
-  }
- }
-
- async function refreshQuestProgressToasts() {
+async function refreshQuestProgressToasts() {
   if (questToastBusy) return
   questToastBusy = true
 
@@ -244,13 +234,8 @@
     })
    }
 
-   let finalState = stateData
    for (const event of completionEvents) {
-    const claim = await claimQuestAutomatically(event.next.type, event.next.id)
-    const claimResult = claim?.data?.result || null
-    const rewardText = claim?.ok
-     ? formatQuestRewardLine(claimResult)
-     : "Récompense prête dans Quêtes"
+    const rewardText = formatQuestRewardPreview(event.next.reward) || "Récompense prête"
 
     spawnQuestToast({
      title: `${event.next.type === "weekly" ? "Hebdo" : "Quotidienne"}: ${event.next.name}`,
@@ -258,15 +243,13 @@
      fromPct: 0,
      toPct: 100,
      variant: "complete",
-     rewardText
+     rewardText,
+     actionHref: "/play/quests",
+     actionLabel: "Récupérer la récompense"
     })
-
-    if (claim?.ok && claim?.data?.state) {
-     finalState = claim.data.state
-    }
    }
 
-   questProgressSnapshot = getPlayerQuestEntries(finalState)
+   questProgressSnapshot = getPlayerQuestEntries(stateData)
   } catch (_) {
   } finally {
    questToastBusy = false
@@ -292,13 +275,15 @@
  window.__kcQuestToastNotify = function questToastNotify(payload = {}) {
   const fromRaw = Number(payload?.fromPct)
   const toRaw = Number(payload?.toPct)
-  spawnQuestToast({
-   title: String(payload?.title || "Quête"),
-   subtitle: String(payload?.subtitle || ""),
-   fromPct: Number.isFinite(fromRaw) ? fromRaw : 0,
-   toPct: Number.isFinite(toRaw) ? toRaw : 100,
-   variant: payload?.variant === "progress" ? "progress" : "complete",
-   rewardText: String(payload?.rewardText || "")
+ spawnQuestToast({
+  title: String(payload?.title || "Quête"),
+  subtitle: String(payload?.subtitle || ""),
+  fromPct: Number.isFinite(fromRaw) ? fromRaw : 0,
+  toPct: Number.isFinite(toRaw) ? toRaw : 100,
+  variant: payload?.variant === "progress" ? "progress" : "complete",
+  rewardText: String(payload?.rewardText || ""),
+  actionHref: String(payload?.actionHref || ""),
+  actionLabel: String(payload?.actionLabel || "")
   })
  }
 
@@ -311,16 +296,18 @@
    variant: "progress"
   })
   window.setTimeout(() => {
-   spawnQuestToast({
-    title: "Quotidienne: Ouverture Rapide",
-    subtitle: "Quête complétée",
-    fromPct: 0,
-    toPct: 100,
-    variant: "complete",
-    rewardText: "💰 +300 • ⭐ +50 XP • 🎟️ +80 XP BP"
-   })
-  }, 800)
- }
+  spawnQuestToast({
+   title: "Quotidienne: Ouverture Rapide",
+   subtitle: "Quête complétée",
+   fromPct: 0,
+   toPct: 100,
+   variant: "complete",
+   rewardText: "💰 +300 • ⭐ +50 XP • 🎟️ +80 XP BP",
+   actionHref: "/play/quests",
+   actionLabel: "Récupérer la récompense"
+  })
+ }, 800)
+}
 
  ensureEventToast()
  refreshEventToast().catch(() => {})
