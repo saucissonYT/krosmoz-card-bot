@@ -32,21 +32,38 @@ function initializeSystems() {
 }
 
 async function bootstrap() {
+ log.info("Bootstrap demarre", {
+  nodeEnv: process.env.NODE_ENV || null,
+  port: process.env.PORT || null,
+  railwayService: process.env.RAILWAY_SERVICE_ID || null
+ })
+
  /*
   * Priorité plateforme: exposer /health le plus tôt possible.
   * L'init métier peut ensuite se faire sans bloquer le healthcheck.
   */
+ log.info("Demarrage du serveur web")
  startWebServer()
+ log.info("Serveur web lance")
 
  try {
+  log.info("Initialisation des systemes: debut")
   initializeSystems()
+  log.info("Initialisation des systemes: ok")
  } catch (error) {
   log.error("Echec initialisation systemes (web garde actif)", { err: error })
  }
 
+ log.info("Creation client Discord")
  const client = attachClientState(createClient())
  const commandsPath = path.join(__dirname, "..", "commands")
- const loaded = loadCommands(client, commandsPath)
+ let loaded = 0
+ try {
+  loaded = loadCommands(client, commandsPath)
+  log.info("Commandes chargees", { count: loaded, path: commandsPath })
+ } catch (error) {
+  log.error("Echec loadCommands (web garde actif)", { err: error, path: commandsPath })
+ }
 
  client.once("clientReady", async () => {
   log.info("Bot connecte : " + client.user.tag)
@@ -71,9 +88,11 @@ async function bootstrap() {
   startEventScheduler(client, [DISCORD_AUTO_EVENT_CHANNEL_ID])
  })
 
+ log.info("Enregistrement handlers Discord")
  registerMessageCreateHandler(client)
  registerInteractionCreateHandler(client)
  registerReactionRolesHandler(client)
+ log.info("Handlers Discord enregistres")
 
  setWebHooks({
   onWebMarketBuy: async ({ buyerId, listing }) => {
@@ -107,6 +126,7 @@ async function bootstrap() {
   return client
  }
 
+ log.info("Tentative connexion Discord")
  client.login(token).catch((error) => {
   log.error("Connexion Discord échouée (service web conservé actif)", {
    err: error

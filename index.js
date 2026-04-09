@@ -9,6 +9,7 @@
 
 const fs   = require("fs")
 const path = require("path")
+const http = require("http")
 
 const { createLogger } = require("./systems/logger")
 const { bootstrap }    = require("./app/bootstrap")
@@ -141,6 +142,33 @@ process.on("uncaughtException", (err) => {
 
 bootstrap().catch((error) => {
  log.fatal("Fatal bootstrap error", { err: error })
+ if (isRailway) {
+  log.error("Bootstrap en erreur sur Railway: process maintenu pour diagnostic", {
+   port: process.env.PORT || null
+  })
+  const fallbackPortRaw = Number(process.env.PORT || 3000)
+  const fallbackPort = Number.isFinite(fallbackPortRaw) && fallbackPortRaw > 0 ? fallbackPortRaw : 3000
+  const fallback = http.createServer((req, res) => {
+   if (req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify({
+     status: "degraded",
+     reason: "bootstrap_error",
+     at: new Date().toISOString()
+    }))
+    return
+   }
+   res.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" })
+   res.end("Service indisponible (bootstrap error)")
+  })
+  fallback.listen(fallbackPort, "0.0.0.0", () => {
+   log.warn("Serveur fallback actif", { port: fallbackPort })
+  })
+  fallback.on("error", (err) => {
+   log.error("Echec serveur fallback", { err })
+  })
+  return
+ }
  releaseLock()
  process.exit(1)
 })

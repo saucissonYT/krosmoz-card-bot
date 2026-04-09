@@ -2,6 +2,7 @@ const crypto = require("crypto")
 const express = require("express")
 const fs = require("fs")
 const path = require("path")
+const { createLogger } = require("../systems/logger")
 
 const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST, SELL_PRICE } = require("../systems/constants")
 const { getUser, save } = require("../systems/userSystem")
@@ -82,6 +83,7 @@ const {
  dbLoadMarketHistory,
  dbGlobalStats
 } = require("../systems/database")
+const webLog = createLogger("WEB")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const FRAGMENT_MIN_PRICE = 250
@@ -1723,7 +1725,7 @@ function createWebApp() {
    userCount = dbCountUsers()
   } catch (_) {}
 
-  res.json({
+  const payload = {
    status: "ok",
    uptime: Math.floor(uptime),
    uptimeHuman: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`,
@@ -1734,7 +1736,18 @@ function createWebApp() {
    users: userCount,
    cacheEntries: apiCache.size(),
    timestamp: new Date().toISOString()
-  })
+  }
+
+  if (process.env.RAILWAY_SERVICE_ID || process.env.HEALTH_LOGS === "1") {
+   webLog.info("Healthcheck repondu", {
+    method: req.method,
+    path: req.path,
+    status: payload.status,
+    uptimeSec: payload.uptime
+   })
+  }
+
+  res.json(payload)
  })
 
  app.use(express.static(PUBLIC_DIR, { index: false }))
@@ -3366,18 +3379,37 @@ function setWebHooks(hooks = {}) {
 }
 
 function startWebServer(port) {
- const app = createWebApp()
- const p = Number(port || process.env.PORT || 3000)
- startWebPinataLifecycleLoop()
- ensureWebPinataLifecycle().catch((error) => {
-  console.error("[WEB] lifecycle init pinata:", error)
+ webLog.info("Demarrage web server: init", {
+  requestedPort: port ?? null,
+  envPort: process.env.PORT || null,
+  nodeEnv: process.env.NODE_ENV || null,
+  railwayService: process.env.RAILWAY_SERVICE_ID || null
  })
 
- app.listen(p, "0.0.0.0", () => {
-  console.log("\n==============================")
-  console.log("   WEB SERVER")
-  console.log(`   http://localhost:${p}`)
-  console.log("==============================\n")
+ const app = createWebApp()
+ const parsedPort = Number(port || process.env.PORT || 3000)
+ const p = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000
+ if (p !== parsedPort) {
+  webLog.warn("PORT invalide, fallback 3000", {
+   parsedPort: Number.isFinite(parsedPort) ? parsedPort : String(parsedPort),
+   rawPort: port || process.env.PORT || null
+  })
+ }
+
+ startWebPinataLifecycleLoop()
+ ensureWebPinataLifecycle().catch((error) => {
+  webLog.error("Erreur init lifecycle pinata", { err: error })
+ })
+
+ const server = app.listen(p, "0.0.0.0", () => {
+  webLog.info("Web server en ecoute", {
+   host: "0.0.0.0",
+   port: p,
+   healthUrl: `http://0.0.0.0:${p}/health`
+  })
+ })
+ server.on("error", (error) => {
+  webLog.fatal("Echec listen web server", { err: error, port: p })
  })
 
  return app
