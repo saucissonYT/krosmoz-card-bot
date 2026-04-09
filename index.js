@@ -18,6 +18,12 @@ const log = createLogger("PROCESS")
 /* ─── LOCK FILE ─── */
 
 const LOCK_FILE = path.join(process.cwd(), ".bot.lock")
+const isRailway = Boolean(
+ process.env.RAILWAY_SERVICE_ID ||
+ process.env.RAILWAY_PROJECT_ID ||
+ process.env.RAILWAY_ENVIRONMENT
+)
+const shouldUseLock = !isRailway
 
 function acquireLock() {
 
@@ -41,12 +47,17 @@ function acquireLock() {
 }
 
 function releaseLock() {
+ if (!shouldUseLock) return
  try {
   fs.rmSync(LOCK_FILE, { force: true })
  } catch (_) {}
 }
 
-acquireLock()
+if (shouldUseLock) {
+ acquireLock()
+} else {
+ log.info("Lock file desactive sur Railway (non bloquant)")
+}
 
 /* ─── GRACEFUL SHUTDOWN ─── */
 

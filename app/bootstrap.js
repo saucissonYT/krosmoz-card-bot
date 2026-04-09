@@ -32,7 +32,17 @@ function initializeSystems() {
 }
 
 async function bootstrap() {
- initializeSystems()
+ /*
+  * Priorité plateforme: exposer /health le plus tôt possible.
+  * L'init métier peut ensuite se faire sans bloquer le healthcheck.
+  */
+ startWebServer()
+
+ try {
+  initializeSystems()
+ } catch (error) {
+  log.error("Echec initialisation systemes (web garde actif)", { err: error })
+ }
 
  const client = attachClientState(createClient())
  const commandsPath = path.join(__dirname, "..", "commands")
@@ -90,13 +100,6 @@ async function bootstrap() {
    }
   }
  })
-
- /*
-  * IMPORTANT RAILWAY:
-  * Le healthcheck doit répondre rapidement même si Discord tarde (ou échoue) au login.
-  * On démarre donc le serveur web immédiatement, puis on tente la connexion Discord.
-  */
- startWebServer()
 
  const token = String(process.env.TOKEN || "").trim()
  if (!token) {
