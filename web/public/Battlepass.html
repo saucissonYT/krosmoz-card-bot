@@ -209,11 +209,83 @@ function formatSeasonShortName(value) {
   return escapeHtml(type || "Récompense")
  }
 
- function formatRewardsShort(list) {
+function formatRewardsShort(list) {
   if (!Array.isArray(list) || !list.length) return "—"
   if (list.length === 1) return rewardShortLabel(list[0])
   return `${rewardShortLabel(list[0])} +${list.length - 1}`
+}
+
+function normalizeUiText(value) {
+ const raw = String(value || "")
+ if (!raw) return ""
+ if (!/[ÃÂâð]/.test(raw)) return raw
+ try {
+  return decodeURIComponent(escape(raw))
+ } catch (_) {
+  return raw
  }
+}
+
+function toastSafeText(value) {
+ return String(value || "")
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#39;")
+}
+
+function formatClaimedRewardsForToast(result) {
+ const items = Array.isArray(result?.claimedRewards) ? result.claimedRewards : []
+ const mapped = items
+  .map((entry) => {
+   const rawText = normalizeUiText(entry?.text || "").trim()
+   if (!rawText) return ""
+   const prefix = String(entry?.track || "").toLowerCase() === "premium" ? "💎" : "🎁"
+   return `${prefix} ${rawText}`
+  })
+  .filter(Boolean)
+ if (!mapped.length) return ""
+ if (mapped.length <= 4) return mapped.join(" • ")
+ return `${mapped.slice(0, 4).join(" • ")} • +${mapped.length - 4}`
+}
+
+function notifyBattlepassLevelClaim(level, result) {
+ const claimedCount = Number(result?.total || 0)
+ const rewardsText = formatClaimedRewardsForToast(result)
+ const title = toastSafeText(`Palier ${level} : les récompenses`)
+ const subtitle = toastSafeText("Récupération Battle Pass")
+ const description = toastSafeText(`${claimedCount} récompense(s) récupérée(s)`)
+ const rewardText = toastSafeText(rewardsText)
+
+ if (typeof window.__kcQuestToastNotify === "function") {
+  window.__kcQuestToastNotify({
+   title,
+   subtitle,
+   description,
+   fromPct: 0,
+   toPct: 100,
+   variant: "complete",
+   rewardText
+  })
+  return
+ }
+
+ if (typeof window.__kcRewardToastNotify === "function") {
+  window.__kcRewardToastNotify({
+   title,
+   subtitle,
+   description,
+   rewardText,
+   chipLabel: "Battle Pass",
+   tone: "event"
+  })
+  return
+ }
+
+ const fallbackSuffix = rewardsText ? ` ${rewardsText}` : ""
+ showToast(`Palier ${level} récupéré (${claimedCount} récompense(s)).${fallbackSuffix}`)
+}
 
  const BP_SEASON_ASSETS = {
   emeraude: "/assets/ui/bp%20emeraude.png",
@@ -542,7 +614,7 @@ async function loadBattlepass() {
   return true
  }
 
- async function claimLevelReward(level) {
+async function claimLevelReward(level) {
   const safeLevel = Math.max(1, Math.floor(Number(level || 0)))
   if (!Number.isFinite(safeLevel) || safeLevel <= 0) {
    showToast("Palier invalide.", true)
@@ -558,8 +630,7 @@ async function loadBattlepass() {
    return false
   }
 
-  const claimedCount = Number(r.data?.result?.total || 0)
-  showToast(`Palier ${safeLevel} récupéré (${claimedCount} récompense(s)).`)
+  notifyBattlepassLevelClaim(safeLevel, r.data?.result || {})
   await loadBattlepass()
   return true
  }

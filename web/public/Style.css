@@ -578,6 +578,18 @@ body.index-page .index-sets-subtitle {
  font-weight: 600;
 }
 
+body.index-page .index-features-subtitle {
+ color: #edf4ff;
+ text-shadow: 0 2px 10px rgba(0, 0, 0, 0.46);
+ font-weight: 600;
+}
+
+body.index-page .index-activity-subtitle {
+ color: #edf4ff;
+ text-shadow: 0 2px 10px rgba(0, 0, 0, 0.46);
+ font-weight: 600;
+}
+
 body.index-page .hero-buttons .btn-outline {
  background: rgba(8, 15, 40, 0.6);
  border-color: rgba(165, 190, 255, 0.3);
@@ -1427,6 +1439,71 @@ body.leaderboard-page .footer {
  grid-template-columns: 1.8fr repeat(3, minmax(140px, 1fr)) auto auto;
  gap: 10px;
  margin-bottom: 18px;
+}
+
+.cards-toolbar {
+ grid-template-columns: 1.6fr minmax(180px, 1fr) repeat(3, minmax(130px, 1fr)) auto auto;
+ align-items: start;
+}
+
+.rarity-multi {
+ position: relative;
+ cursor: pointer;
+ user-select: none;
+}
+
+.rarity-multi summary {
+ list-style: none;
+ font-size: 0.95rem;
+ color: var(--text-primary);
+}
+
+.rarity-multi summary::-webkit-details-marker {
+ display: none;
+}
+
+.rarity-multi[open] summary {
+ color: var(--gold-light);
+}
+
+.rarity-multi-panel {
+ position: absolute;
+ left: -1px;
+ right: -1px;
+ top: calc(100% + 6px);
+ z-index: 30;
+ display: grid;
+ gap: 6px;
+ padding: 10px;
+ border-radius: 10px;
+ border: 1px solid rgba(102, 139, 220, 0.5);
+ background: linear-gradient(165deg, rgba(10, 15, 38, 0.96), rgba(8, 12, 31, 0.96));
+ box-shadow: 0 10px 24px rgba(4, 8, 22, 0.5);
+}
+
+.rarity-multi-panel label {
+ display: inline-flex;
+ align-items: center;
+ gap: 6px;
+ font-size: 0.83rem;
+ color: #dbe3ff;
+}
+
+.rarity-multi-panel input[type="checkbox"] {
+ accent-color: #d2b253;
+}
+
+.rarity-multi-actions {
+ display: grid;
+ grid-template-columns: 1fr 1fr;
+ gap: 6px;
+ margin-top: 4px;
+}
+
+.rarity-multi-actions .btn {
+ min-height: 30px;
+ font-size: 0.77rem;
+ padding: 5px 8px;
 }
 
 .market-toolbar {
@@ -2731,6 +2808,51 @@ body.market-page .market-card .kshop-mini-thumb {
  margin-right: 4px;
 }
 
+body.cards-page .cards-kshop-card {
+ min-height: 212px;
+ padding: 10px;
+}
+
+body.cards-page .cards-kshop-card h3 {
+ font-size: 0.74rem;
+ margin: 5px 0;
+ line-height: 1.25;
+ min-height: 2.4em;
+}
+
+body.cards-page .cards-kshop-card p {
+ font-size: 0.75rem;
+ margin: 1px 0;
+}
+
+body.cards-page .cards-kshop-card .chip {
+ font-size: 0.7rem;
+ padding: 3px 7px;
+}
+
+body.cards-page .cards-kshop-card .kshop-muted {
+ color: #9fb0de;
+}
+
+body.cards-page .cards-kshop-card .kshop-meta-row {
+ align-items: flex-start;
+}
+
+body.cards-page .cards-kshop-card .kshop-price-line {
+ margin-bottom: 2px;
+}
+
+body.cards-page .cards-kshop-card .kshop-mini-thumb-wrap {
+ width: 96px;
+ height: 96px;
+ flex: 0 0 96px;
+}
+
+body.cards-page .cards-kshop-card.cards-kshop-card-owned {
+ border-color: rgba(107, 199, 140, 0.55);
+ background: linear-gradient(165deg, rgba(10, 29, 30, 0.84), rgba(7, 20, 24, 0.88));
+}
+
 body.market-page .market-footer-domain {
  color: #7483b4;
  font-weight: 600;
@@ -2748,6 +2870,10 @@ body.tutorial-page .tutorial-footer-domain {
 
 .catalog-card.card-incomplete .card-thumb {
  filter: grayscale(100%) brightness(0.16) contrast(115%);
+}
+
+.cards-kshop-card.card-incomplete .kshop-mini-thumb {
+ filter: grayscale(100%) brightness(0.22) contrast(115%);
 }
 
 .catalog-card.card-incomplete h3,
@@ -2929,7 +3055,9 @@ body.tutorial-page .tutorial-footer-domain {
 
 .my-listings-grid {
  display: grid;
- grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+ grid-template-columns: repeat(auto-fill, minmax(86px, 86px));
+ justify-content: flex-start;
+ align-content: flex-start;
  gap: 10px;
  margin: 10px 0 12px;
  max-height: 238px;
@@ -3189,12 +3317,7 @@ body.market-page .market-my-detail-block {
 }
 
 body.market-page .market-controls-card {
- padding: 0;
- border: 0;
- border-radius: 0;
- background: transparent;
- box-shadow: none;
- backdrop-filter: none;
+ padding: 10px 12px;
 }
 
 body.market-page .market-listings-grid-block {
@@ -3757,6 +3880,7 @@ body.krosmoshop-page .kshop-card .chip {
  .rarity-grid { grid-template-columns: repeat(4, 1fr); }
  .xp-bar-wrapper { margin-left: auto; margin-right: auto; }
  .toolbar { grid-template-columns: 1fr 1fr; }
+ .cards-toolbar { grid-template-columns: 1fr 1fr; }
  .market-shell { gap: 12px; }
  .market-hero { padding: 14px; }
  .market-controls-head { flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -3789,7 +3913,7 @@ body.krosmoshop-page .kshop-card .chip {
  .trade-panel { grid-template-columns: 1fr; }
  .inline-form { grid-template-columns: 1fr; }
  .market-sell-btn { width: 100%; }
- .my-listings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 280px; }
+ .my-listings-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 80px)); justify-content: flex-start; max-height: 280px; }
  .my-listing-icon { min-height: 120px; }
  .my-listing-detail-card .mini-remove { width: 100%; justify-self: stretch; }
  .auth-inner { flex-direction: column; align-items: flex-start; }
@@ -3838,6 +3962,7 @@ body.krosmoshop-page .kshop-card .chip {
  #heroPlayBtn { min-width: 240px; min-height: 68px; padding: 18px 52px; font-size: 1.18rem; }
  .rarity-grid { grid-template-columns: repeat(2, 1fr); }
  .toolbar { grid-template-columns: 1fr; }
+ .cards-toolbar { grid-template-columns: 1fr; }
  .market-kicker { font-size: 0.72rem; }
  .market-card-title { min-height: 0; }
  .leaderboard-active-label { font-size: 0.82rem; }

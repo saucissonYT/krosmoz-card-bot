@@ -324,6 +324,54 @@
  border-color: rgba(201, 168, 76, 0.8);
 }
 
+.play-kshop-card {
+ border: 1px solid rgba(88, 122, 200, 0.42);
+ background: linear-gradient(165deg, rgba(10, 15, 38, 0.86), rgba(7, 10, 28, 0.9));
+ border-radius: 12px;
+ padding: 10px;
+ min-height: 212px;
+ cursor: default;
+}
+
+.play-kshop-card h3 {
+ font-family: "Cinzel", serif;
+ font-size: 0.74rem;
+ margin: 5px 0;
+ line-height: 1.25;
+ min-height: 2.4em;
+ color: #f0d264;
+}
+
+.play-kshop-card p {
+ font-size: 0.75rem;
+ margin: 1px 0;
+}
+
+.play-kshop-card .chip {
+ font-size: 0.7rem;
+ padding: 3px 7px;
+}
+
+.play-kshop-card .kshop-muted {
+ color: #9fb0de;
+}
+
+.play-kshop-card .kshop-meta-row {
+ margin-top: 4px;
+ align-items: flex-start;
+}
+
+.play-kshop-card .kshop-price-line {
+ margin: 0;
+ font-size: 0.84rem;
+}
+
+.play-kshop-card .kshop-mini-thumb-wrap {
+ width: 94px;
+ height: 94px;
+ flex: 0 0 94px;
+}
+
 .play-card-img-wrap {
  aspect-ratio: 1 / 1;
  border: 0;
@@ -364,10 +412,12 @@
  min-height: 34px;
  width: 100%;
  justify-content: center;
- padding: 7px 10px;
- font-size: 0.74rem;
+ padding: 7px 8px;
+ font-size: 0.71rem;
  line-height: 1;
  white-space: nowrap;
+ text-overflow: ellipsis;
+ overflow: hidden;
  border-color: rgba(201, 168, 76, 0.5);
  background: rgba(11, 17, 43, 0.82);
  color: #f3dfab;

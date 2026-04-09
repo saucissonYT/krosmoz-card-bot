@@ -1354,31 +1354,69 @@ function computeCardsCatalog(query) {
  const setNames = getCardSetNameMap(sets)
 
  const q = normalizeText(query.q)
- const rarity = normalizeText(query.rarity).toUpperCase()
+ const rarityRaw = Array.isArray(query.rarity) ? query.rarity : [query.rarity]
+ const rarityList = [...new Set(
+  rarityRaw
+   .flatMap((value) => String(value || "").split(","))
+   .map((value) => normalizeText(value).toUpperCase())
+   .filter(Boolean)
+ )]
+ const raritySet = rarityList.length ? new Set(rarityList) : null
  const set = normalizeText(query.set)
  const sort = normalizeText(query.sort) || "id"
+ const order = normalizeText(query.order || query.dir || "asc") === "desc" ? "desc" : "asc"
+ const orderFactor = order === "desc" ? -1 : 1
+ const rarityRank = (rarityValue) => {
+  const idx = RARITY_ORDER.indexOf(String(rarityValue || "").toUpperCase())
+  return idx >= 0 ? idx : RARITY_ORDER.length
+ }
 
  let filtered = cards.filter((card) => {
   if (q && !String(card.name || "").toLowerCase().includes(q)) return false
-  if (rarity && String(card.rarity || "").toUpperCase() !== rarity) return false
+  if (raritySet && !raritySet.has(String(card.rarity || "").toUpperCase())) return false
   if (set && String(card.set || "").toLowerCase() !== set) return false
   return true
  })
 
  switch (sort) {
   case "name":
-   filtered = filtered.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "fr"))
+   filtered = filtered.sort((a, b) =>
+    orderFactor * (
+     String(a.name || "").localeCompare(String(b.name || ""), "fr") ||
+     (Number(a.id || 0) - Number(b.id || 0))
+    )
+   )
    break
   case "rarity":
    filtered = filtered.sort((a, b) => {
-    const left = RARITY_ORDER.indexOf(String(a.rarity || ""))
-    const right = RARITY_ORDER.indexOf(String(b.rarity || ""))
-    if (left !== right) return left - right
-    return String(a.name || "").localeCompare(String(b.name || ""), "fr")
+    const left = rarityRank(a.rarity)
+    const right = rarityRank(b.rarity)
+    return orderFactor * (
+     (left - right) ||
+     String(a.name || "").localeCompare(String(b.name || ""), "fr") ||
+     (Number(a.id || 0) - Number(b.id || 0))
+    )
    })
    break
+  case "set":
+   filtered = filtered.sort((a, b) =>
+    orderFactor * (
+     String(setNames.get(String(a.set || "")) || a.set || "").localeCompare(
+      String(setNames.get(String(b.set || "")) || b.set || ""),
+      "fr"
+     ) ||
+     String(a.name || "").localeCompare(String(b.name || ""), "fr") ||
+     (Number(a.id || 0) - Number(b.id || 0))
+    )
+   )
+   break
   default:
-   filtered = filtered.sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+   filtered = filtered.sort((a, b) =>
+    orderFactor * (
+     (Number(a.id || 0) - Number(b.id || 0)) ||
+     String(a.name || "").localeCompare(String(b.name || ""), "fr")
+    )
+   )
    break
  }
 

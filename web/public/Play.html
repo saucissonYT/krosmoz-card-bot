@@ -300,40 +300,55 @@ function setMode(mode, updateUrl = true) {
   return items
  }
 
- function renderInventoryGrid() {
-  const grid = document.getElementById("playGrid")
-  const items = getFilteredItems()
-  if (!items.length) {
-   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun résultat avec ces filtres.</p></div>'
-   return
-  }
-  grid.innerHTML = items.map((item) => {
-   const isCard = state.inventoryView === "cards" && String(item.itemType || "card") !== "fragment"
-   let label = `x${fmt(item.qty)}`
-   if (item.itemType === "fragment") label = `Fragment ${item.fragmentNumber}/5 - x${fmt(item.qty)}`
-   const sellPrice = Number(item.sellPrice || 0)
-   const sellAction = isCard
-    ? `
-      <div class="play-card-actions">
+function renderInventoryGrid() {
+ const grid = document.getElementById("playGrid")
+ const items = getFilteredItems()
+ if (!items.length) {
+  grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun résultat avec ces filtres.</p></div>'
+  return
+ }
+ grid.innerHTML = items.map((item) => {
+  const isCard = state.inventoryView === "cards" && String(item.itemType || "card") !== "fragment"
+  const rarity = String(item.rarity || "C").toUpperCase()
+  const setName = String(item.setName || item.set || "Set")
+  const cardName = String(item.cardName || "Carte")
+  const cardId = String(item.cardId || "")
+  const qty = Number(item.qty || 0)
+  const isFragment = String(item.itemType || "card") === "fragment"
+  const quantityLabel = isFragment
+   ? `Fragment ${Number(item.fragmentNumber || 0)}/5 • x${fmt(qty)}`
+   : `Possedees: x${fmt(qty)}`
+  const sellPrice = Number(item.sellPrice || 0)
+  const miniThumbSrc = String(item.imageUrl || "/assets/ui/pack-back-normal.png")
+  const sellAction = isCard
+   ? `
+      <div class="action-row play-card-actions">
        <button
         type="button"
         class="btn btn-outline play-card-sell-btn"
         data-card-id="${escapeHtml(item.cardId)}"
         data-card-name="${escapeHtml(item.cardName || "Carte")}"
         data-sell-price="${sellPrice}">
-        Vendre (${fmt(sellPrice)} kamas)
+        Vendre ${fmt(sellPrice)} kamas
        </button>
       </div>
      `
-    : ""
-   return `
-    <article class="play-card">
-     <div class="play-card-img-wrap">
-      ${item.imageUrl ? `<img src="${escapeHtml(item.imageUrl)}" alt="${escapeHtml(item.cardName)}">` : "<span>?</span>"}
+   : ""
+  return `
+    <article class="play-card kshop-card play-kshop-card">
+     <div class="kshop-card-head">
+      <span class="chip chip-rarity">${escapeHtml(rarity)}</span>
+      <span class="chip">${escapeHtml(setName)}</span>
      </div>
-     <div class="play-card-meta">
-      <strong>${escapeHtml(item.rarity || "C")} ${escapeHtml(item.cardName)}</strong>
-      <small>${escapeHtml(item.setName || item.set)} - ${escapeHtml(label)}</small>
+     <h3>${escapeHtml(cardName)}</h3>
+     <p class="kshop-muted">${cardId ? `ID #${escapeHtml(cardId)}` : "ID --"}</p>
+     <div class="kshop-meta-row">
+      <div class="kshop-meta-main">
+       <p class="kshop-price-line"><strong>${escapeHtml(quantityLabel)}</strong></p>
+      </div>
+      <div class="kshop-mini-thumb-wrap" aria-hidden="true">
+       <img class="kshop-mini-thumb" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
+      </div>
      </div>
      ${sellAction}
     </article>
