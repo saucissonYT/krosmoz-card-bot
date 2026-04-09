@@ -1526,6 +1526,13 @@ function createWebApp() {
   const host = String(req.headers.host || "")
   const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production"
   const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1")
+  const pathName = String(req.path || "")
+  const isHealthPath = pathName === "/health"
+
+  // Always allow health checks without redirect to avoid platform restart loops.
+  if (isHealthPath) {
+   return next()
+  }
 
   if (isProd && !isLocal && proto && !proto.includes("https")) {
    return res.redirect(301, `https://${host}${req.originalUrl}`)
