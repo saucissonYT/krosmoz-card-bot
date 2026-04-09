@@ -109,8 +109,9 @@
   document.getElementById("navLinks").classList.toggle("open")
  })
 
- const state = { page: 1, limit: 20, me: null, connected: false, myListingId: null }
+ const state = { page: 1, limit: 20, me: null, connected: false, myListingId: null, preview: false, previewData: null }
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+ const PREVIEW_STORAGE_KEY = "kc_market_preview_v1"
  const RARITY_EMOJI = {
   C: "⚪",
   U: "🟢",
@@ -120,6 +121,438 @@
   UR: "🟠",
   S: "✨",
   SSR: "🌈"
+ }
+
+ function isPreviewMode() {
+  const params = new URLSearchParams(window.location.search || "")
+  const raw = String(params.get("preview") || params.get("demo") || params.get("local") || "").toLowerCase()
+  if (raw === "0" || raw === "false" || raw === "no" || raw === "off") return false
+  if (raw === "1" || raw === "true" || raw === "yes" || raw === "on") return true
+  const host = String(window.location.hostname || "").toLowerCase()
+  const productionHosts = new Set(["krosmozcard.fr", "www.krosmozcard.fr"])
+  if (productionHosts.has(host)) return false
+  return true
+ }
+
+ function shouldResetPreview() {
+  const params = new URLSearchParams(window.location.search || "")
+  const raw = String(params.get("reset") || "").toLowerCase()
+  return raw === "1" || raw === "true" || raw === "yes"
+ }
+
+ function rarityBasePrice(rarity) {
+  const map = { C: 100, U: 220, R: 420, SR: 760, HR: 1200, UR: 1900, S: 4800, SSR: 12000 }
+  return Number(map[String(rarity || "C").toUpperCase()] || 100)
+ }
+
+ function clonePreviewData(data) {
+  return JSON.parse(JSON.stringify(data || {}))
+ }
+
+ function buildPreviewCatalog() {
+  return [
+   { cardId: "1199", cardName: "Familier Titcham", rarity: "SSR", setId: "kelba", setName: "Kelba" },
+   { cardId: "752", cardName: "Casque de Rezak", rarity: "S", setId: "sufokia", setName: "Sufokia" },
+   { cardId: "766", cardName: "Champignon Luidegit", rarity: "S", setId: "sufokia", setName: "Sufokia" },
+   { cardId: "1194", cardName: "Familier Geist", rarity: "UR", setId: "kelba", setName: "Kelba" },
+   { cardId: "1416", cardName: "Protection du Divin Orrok", rarity: "UR", setId: "kelba", setName: "Kelba" },
+   { cardId: "2313", cardName: "Sceau du Maitre Bijoutier", rarity: "UR", setId: "sberg", setName: "Sberg" },
+   { cardId: "2283", cardName: "Plastron du Corbeau Blanc", rarity: "HR", setId: "sberg", setName: "Sberg" },
+   { cardId: "2258", cardName: "Panoplie du Corbeau Blanc", rarity: "HR", setId: "sberg", setName: "Sberg" },
+   { cardId: "734", cardName: "Baton des Rois", rarity: "HR", setId: "sufokia", setName: "Sufokia" },
+   { cardId: "1865", cardName: "Scaramel le Fondant", rarity: "HR", setId: "katrepat", setName: "Katrepat" },
+   { cardId: "1922", cardName: "Ailes du Corbeau Blanc", rarity: "SR", setId: "sberg", setName: "Sberg" },
+   { cardId: "1583", cardName: "Ceinture de Vampyro", rarity: "SR", setId: "katrepat", setName: "Katrepat" },
+   { cardId: "166", cardName: "Casque Bouftou Imperial", rarity: "SR", setId: "astrub", setName: "Astrub" },
+   { cardId: "1456", cardName: "Toison d'Exarnus", rarity: "SR", setId: "kelba", setName: "Kelba" },
+   { cardId: "774", cardName: "Coiffe Sanglante", rarity: "SR", setId: "sufokia", setName: "Sufokia" },
+   { cardId: "442", cardName: "Marteau Katrepat", rarity: "R", setId: "katrepat", setName: "Katrepat" },
+   { cardId: "912", cardName: "Cape Tofu Royal", rarity: "R", setId: "amakna", setName: "Amakna" },
+   { cardId: "388", cardName: "Bottes de Cania", rarity: "R", setId: "cania", setName: "Cania" },
+   { cardId: "121", cardName: "Anneau du Gobelin", rarity: "U", setId: "astrub", setName: "Astrub" },
+   { cardId: "63", cardName: "Baguette du Percepteur", rarity: "U", setId: "amakna", setName: "Amakna" },
+   { cardId: "24", cardName: "Petite Dague", rarity: "C", setId: "astrub", setName: "Astrub" },
+   { cardId: "11", cardName: "Corde de Chanvre", rarity: "C", setId: "incarnam", setName: "Incarnam" }
+  ]
+ }
+
+ function buildPreviewData() {
+  const now = Date.now()
+  const catalog = buildPreviewCatalog()
+  const sellers = [
+   { id: "seller-meowl", displayName: "Meowl" },
+   { id: "seller-sauci", displayName: "Sauci" },
+   { id: "seller-krob", displayName: "Krob" },
+   { id: "seller-ina", displayName: "Inaya" },
+   { id: "seller-bonta", displayName: "Bontarien" }
+  ]
+
+  const listings = []
+  let nextId = 4100
+  for (let i = 0; i < catalog.length; i += 1) {
+   const card = catalog[i]
+   const seller = sellers[i % sellers.length]
+   const base = rarityBasePrice(card.rarity)
+   const cardPrice = Math.max(1, Math.round(base * (0.74 + (i % 5) * 0.06)))
+   listings.push({
+    id: nextId++,
+    type: "card",
+    cardId: card.cardId,
+    cardName: card.cardName,
+    rarity: card.rarity,
+    setId: card.setId,
+    setName: card.setName,
+    price: cardPrice,
+    minimumPrice: cardPrice,
+    seller: seller.id,
+    sellerProfile: { displayName: seller.displayName },
+    imageUrl: "",
+    createdAt: now - (i + 1) * 60 * 60 * 1000
+   })
+
+   if (i % 2 === 0) {
+    const fragPrice = Math.max(1, Math.round(base * (0.28 + (i % 3) * 0.05)))
+    const minPrice = Math.max(1, Math.round(fragPrice * 0.9))
+    listings.push({
+     id: nextId++,
+     type: "fragment",
+     fragmentNumber: (i % 5) + 1,
+     cardId: card.cardId,
+     cardName: card.cardName,
+     rarity: card.rarity,
+     setId: card.setId,
+     setName: card.setName,
+     price: fragPrice,
+     minimumPrice: minPrice,
+     seller: seller.id,
+     sellerProfile: { displayName: seller.displayName },
+     imageUrl: "",
+     createdAt: now - (i + 1) * 42 * 60 * 1000
+    })
+   }
+  }
+
+  const localMe = { id: "local-user", displayName: "Toi (local)", kamas: 38000 }
+  const meListings = [
+   {
+    id: nextId++,
+    type: "card",
+    cardId: "734",
+    cardName: "Baton des Rois",
+    rarity: "HR",
+    setId: "sufokia",
+    setName: "Sufokia",
+    price: 950,
+    minimumPrice: 950,
+    seller: localMe.id,
+    sellerProfile: { displayName: localMe.displayName },
+    imageUrl: "",
+    createdAt: now - 8 * 60 * 1000
+   },
+   {
+    id: nextId++,
+    type: "fragment",
+    fragmentNumber: 3,
+    cardId: "752",
+    cardName: "Casque de Rezak",
+    rarity: "S",
+    setId: "sufokia",
+    setName: "Sufokia",
+    price: 1780,
+    minimumPrice: 1600,
+    seller: localMe.id,
+    sellerProfile: { displayName: localMe.displayName },
+    imageUrl: "",
+    createdAt: now - 4 * 60 * 1000
+   }
+  ]
+
+  return {
+   nextListingId: nextId,
+   me: localMe,
+   catalog,
+   inventory: {
+    cards: [
+     { cardId: "1194", cardName: "Familier Geist", rarity: "UR", setId: "kelba", setName: "Kelba", imageUrl: "", qty: 1 },
+     { cardId: "442", cardName: "Marteau Katrepat", rarity: "R", setId: "katrepat", setName: "Katrepat", imageUrl: "", qty: 2 },
+     { cardId: "121", cardName: "Anneau du Gobelin", rarity: "U", setId: "astrub", setName: "Astrub", imageUrl: "", qty: 3 },
+     { cardId: "24", cardName: "Petite Dague", rarity: "C", setId: "astrub", setName: "Astrub", imageUrl: "", qty: 4 }
+    ],
+    fragments: [
+     { cardId: "752", cardName: "Casque de Rezak", rarity: "S", setId: "sufokia", setName: "Sufokia", imageUrl: "", fragmentNumber: 1, qty: 1 },
+     { cardId: "752", cardName: "Casque de Rezak", rarity: "S", setId: "sufokia", setName: "Sufokia", imageUrl: "", fragmentNumber: 2, qty: 1 },
+     { cardId: "1583", cardName: "Ceinture de Vampyro", rarity: "SR", setId: "katrepat", setName: "Katrepat", imageUrl: "", fragmentNumber: 4, qty: 2 },
+     { cardId: "63", cardName: "Baguette du Percepteur", rarity: "U", setId: "amakna", setName: "Amakna", imageUrl: "", fragmentNumber: 5, qty: 1 }
+    ]
+   },
+   listings: [...meListings, ...listings]
+  }
+ }
+
+ function savePreviewData(data) {
+  try { window.localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(data || {})) } catch (_) {}
+ }
+
+ function loadPreviewData() {
+  try {
+   const raw = window.localStorage.getItem(PREVIEW_STORAGE_KEY)
+   if (raw) {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === "object") return parsed
+   }
+  } catch (_) {}
+  const fallback = buildPreviewData()
+  savePreviewData(fallback)
+  return fallback
+ }
+
+ function parseRequestBody(rawBody) {
+  if (!rawBody) return {}
+  if (typeof rawBody === "string") {
+   try { return JSON.parse(rawBody) } catch (_) { return {} }
+  }
+  if (typeof rawBody === "object") return rawBody
+  return {}
+ }
+
+ function getPreviewSetList(data) {
+  const map = new Map()
+  for (const card of data.catalog || []) {
+   map.set(String(card.setId || card.setName || "").toLowerCase(), {
+    id: String(card.setId || card.setName || ""),
+    name: String(card.setName || card.setId || "Set")
+   })
+  }
+  return [...map.values()]
+ }
+
+ function sortPreviewListings(items, sort) {
+  const mode = String(sort || "recent")
+  if (mode === "price_asc") {
+   items.sort((a, b) => Number(a.price || 0) - Number(b.price || 0) || Number(b.createdAt || 0) - Number(a.createdAt || 0))
+   return items
+  }
+  if (mode === "price_desc") {
+   items.sort((a, b) => Number(b.price || 0) - Number(a.price || 0) || Number(b.createdAt || 0) - Number(a.createdAt || 0))
+   return items
+  }
+  items.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+  return items
+ }
+
+ function filterPreviewListings(data, searchParams) {
+  const q = String(searchParams.get("q") || "").trim().toLowerCase()
+  const type = String(searchParams.get("type") || "all")
+  const rarity = String(searchParams.get("rarity") || "").toUpperCase()
+  const set = String(searchParams.get("set") || "").toLowerCase()
+  const minPrice = Number(searchParams.get("minPrice") || 0)
+  const maxPrice = Number(searchParams.get("maxPrice") || 0)
+  const sort = String(searchParams.get("sort") || "recent")
+
+  const filtered = (data.listings || []).filter((item) => {
+   if (q && !String(item.cardName || "").toLowerCase().includes(q)) return false
+   if (type !== "all" && String(item.type || "") !== type) return false
+   if (rarity && String(item.rarity || "").toUpperCase() !== rarity) return false
+   if (set) {
+    const itemSetId = String(item.setId || "").toLowerCase()
+    const itemSetName = String(item.setName || "").toLowerCase()
+    if (itemSetId !== set && itemSetName !== set) return false
+   }
+   const price = Number(item.price || 0)
+   if (Number.isFinite(minPrice) && minPrice > 0 && price < minPrice) return false
+   if (Number.isFinite(maxPrice) && maxPrice > 0 && price > maxPrice) return false
+   return true
+  })
+
+  return sortPreviewListings(filtered, sort)
+ }
+
+ function upsertInventoryCard(inventory, listing) {
+  const cards = inventory.cards || []
+  const index = cards.findIndex((c) => String(c.cardId) === String(listing.cardId))
+  if (index >= 0) {
+   cards[index].qty = Number(cards[index].qty || 0) + 1
+   return
+  }
+  cards.push({
+   cardId: String(listing.cardId || ""),
+   cardName: String(listing.cardName || "Carte"),
+   rarity: String(listing.rarity || "C"),
+   setId: String(listing.setId || listing.setName || ""),
+   setName: String(listing.setName || "Set"),
+   imageUrl: String(listing.imageUrl || ""),
+   qty: 1
+  })
+ }
+
+ function upsertInventoryFragment(inventory, listing) {
+  const fragments = inventory.fragments || []
+  const index = fragments.findIndex((f) => String(f.cardId) === String(listing.cardId) && Number(f.fragmentNumber) === Number(listing.fragmentNumber))
+  if (index >= 0) {
+   fragments[index].qty = Number(fragments[index].qty || 0) + 1
+   return
+  }
+  fragments.push({
+   cardId: String(listing.cardId || ""),
+   cardName: String(listing.cardName || "Fragment"),
+   rarity: String(listing.rarity || "C"),
+   setId: String(listing.setId || listing.setName || ""),
+   setName: String(listing.setName || "Set"),
+   imageUrl: String(listing.imageUrl || ""),
+   fragmentNumber: Number(listing.fragmentNumber || 1),
+   qty: 1
+  })
+ }
+
+ async function previewApi(path, options = {}) {
+  const data = state.previewData || loadPreviewData()
+  state.previewData = data
+  const url = new URL(path, window.location.origin)
+  const method = String(options.method || "GET").toUpperCase()
+  const body = parseRequestBody(options.body)
+
+  if (method === "GET" && url.pathname === "/api/oauth/status") {
+   return { ok: true, status: 200, data: { connected: true } }
+  }
+
+  if (method === "GET" && url.pathname === "/api/me") {
+   return { ok: true, status: 200, data: data.me }
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/inventory") {
+   return { ok: true, status: 200, data: data.inventory || { cards: [], fragments: [] } }
+  }
+
+  if (method === "GET" && url.pathname === "/api/me/listings") {
+   const items = (data.listings || [])
+    .filter((item) => String(item.seller) === String(data.me?.id || ""))
+    .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0))
+   return { ok: true, status: 200, data: { items } }
+  }
+
+  if (method === "GET" && url.pathname === "/api/sets") {
+   return { ok: true, status: 200, data: getPreviewSetList(data) }
+  }
+
+  if (method === "GET" && url.pathname === "/api/market") {
+   const page = Math.max(1, Number(url.searchParams.get("page") || 1))
+   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 20)))
+   const filtered = filterPreviewListings(data, url.searchParams)
+   const total = filtered.length
+   const pages = Math.max(1, Math.ceil(total / limit))
+   const safePage = Math.min(page, pages)
+   const start = (safePage - 1) * limit
+   const items = filtered.slice(start, start + limit)
+   return { ok: true, status: 200, data: { page: safePage, pages, total, items } }
+  }
+
+  if (method === "POST" && url.pathname === "/api/market/buy") {
+   const listingId = Number(body.listingId)
+   const listings = data.listings || []
+   const idx = listings.findIndex((item) => Number(item.id) === listingId)
+   if (idx < 0) return { ok: false, status: 404, data: { error: "Annonce introuvable." } }
+   const listing = listings[idx]
+   if (String(listing.seller) === String(data.me?.id || "")) {
+    return { ok: false, status: 400, data: { error: "Tu ne peux pas acheter ta propre annonce." } }
+   }
+   const price = Number(listing.price || 0)
+   if (Number(data.me?.kamas || 0) < price) {
+    return { ok: false, status: 400, data: { error: "Kamas insuffisants." } }
+   }
+   data.me.kamas = Number(data.me.kamas || 0) - price
+   listings.splice(idx, 1)
+   if (listing.type === "fragment") upsertInventoryFragment(data.inventory, listing)
+   else upsertInventoryCard(data.inventory, listing)
+   savePreviewData(data)
+   return { ok: true, status: 200, data: { result: { listing } } }
+  }
+
+  if (method === "POST" && url.pathname === "/api/market/remove") {
+   const listingId = Number(body.listingId)
+   const listings = data.listings || []
+   const idx = listings.findIndex((item) => Number(item.id) === listingId)
+   if (idx < 0) return { ok: false, status: 404, data: { error: "Annonce introuvable." } }
+   const listing = listings[idx]
+   if (String(listing.seller) !== String(data.me?.id || "")) {
+    return { ok: false, status: 403, data: { error: "Tu ne peux retirer que tes annonces." } }
+   }
+   listings.splice(idx, 1)
+   if (listing.type === "fragment") upsertInventoryFragment(data.inventory, listing)
+   else upsertInventoryCard(data.inventory, listing)
+   savePreviewData(data)
+   return { ok: true, status: 200, data: { ok: true } }
+  }
+
+  if (method === "POST" && url.pathname === "/api/market/sell-card") {
+   const cardId = String(body.cardId || "")
+   const price = Number(body.price || 0)
+   if (!cardId || !Number.isFinite(price) || price <= 0) {
+    return { ok: false, status: 400, data: { error: "Parametres invalides." } }
+   }
+   const cards = data.inventory?.cards || []
+   const idx = cards.findIndex((card) => String(card.cardId) === cardId && Number(card.qty || 0) > 0)
+   if (idx < 0) return { ok: false, status: 400, data: { error: "Carte indisponible dans ton inventaire." } }
+   const source = { ...(cards[idx] || {}) }
+   cards[idx].qty = Number(cards[idx].qty || 0) - 1
+   if (cards[idx].qty <= 0) cards.splice(idx, 1)
+   const sourceFallback = (data.catalog || []).find((card) => String(card.cardId) === cardId) || {}
+   const listing = {
+    id: Number(data.nextListingId || 10000),
+    type: "card",
+    cardId,
+    cardName: String(source.cardName || source.name || sourceFallback.cardName || "Carte"),
+    rarity: String(source.rarity || sourceFallback.rarity || "C"),
+    setId: String(source.setId || source.set || source.setName || sourceFallback.setId || sourceFallback.setName || ""),
+    setName: String(source.setName || source.setId || sourceFallback.setName || sourceFallback.setId || "Set"),
+    price: Math.round(price),
+    minimumPrice: Math.round(price),
+    seller: String(data.me?.id || "local-user"),
+    sellerProfile: { displayName: String(data.me?.displayName || "Toi") },
+    imageUrl: String(source.imageUrl || sourceFallback.imageUrl || ""),
+    createdAt: Date.now()
+   }
+   data.nextListingId = Number(data.nextListingId || 10000) + 1
+   data.listings = [listing, ...(data.listings || [])]
+   savePreviewData(data)
+   return { ok: true, status: 200, data: { result: { listing } } }
+  }
+
+  if (method === "POST" && url.pathname === "/api/market/sell-fragment") {
+   const cardId = String(body.cardId || "")
+   const fragmentNumber = Number(body.fragmentNumber || 0)
+   const price = Number(body.price || 0)
+   if (!cardId || !Number.isFinite(fragmentNumber) || fragmentNumber < 1 || fragmentNumber > 5 || !Number.isFinite(price) || price <= 0) {
+    return { ok: false, status: 400, data: { error: "Parametres invalides." } }
+   }
+   const fragments = data.inventory?.fragments || []
+   const idx = fragments.findIndex((frag) => String(frag.cardId) === cardId && Number(frag.fragmentNumber) === fragmentNumber && Number(frag.qty || 0) > 0)
+   if (idx < 0) return { ok: false, status: 400, data: { error: "Fragment indisponible dans ton inventaire." } }
+   const source = fragments[idx]
+   source.qty = Number(source.qty || 0) - 1
+   if (source.qty <= 0) fragments.splice(idx, 1)
+   const listing = {
+    id: Number(data.nextListingId || 10000),
+    type: "fragment",
+    fragmentNumber,
+    cardId,
+    cardName: String(source.cardName || "Fragment"),
+    rarity: String(source.rarity || "C"),
+    setId: String(source.setId || source.set || source.setName || ""),
+    setName: String(source.setName || source.setId || "Set"),
+    price: Math.round(price),
+    minimumPrice: Math.max(1, Math.round(price * 0.9)),
+    seller: String(data.me?.id || "local-user"),
+    sellerProfile: { displayName: String(data.me?.displayName || "Toi") },
+    imageUrl: String(source.imageUrl || ""),
+    createdAt: Date.now()
+   }
+   data.nextListingId = Number(data.nextListingId || 10000) + 1
+   data.listings = [listing, ...(data.listings || [])]
+   savePreviewData(data)
+   return { ok: true, status: 200, data: { result: { listing } } }
+  }
+
+  return { ok: false, status: 404, data: { error: `Route locale non geree: ${method} ${url.pathname}` } }
  }
 
  function escapeHtml(str) {
@@ -134,6 +567,7 @@
  }
 
  async function api(path, options = {}) {
+  if (state.preview) return previewApi(path, options)
   const config = { credentials: "same-origin", ...options }
   const res = await fetch(path, config)
   let payload = null
@@ -143,9 +577,9 @@
 
  async function loadSets() {
   try {
-   const res = await fetch("/api/sets")
+   const res = await api("/api/sets")
    if (!res.ok) return
-   const sets = await res.json()
+   const sets = res.data || []
    const select = document.getElementById("setSelect")
    for (const set of sets || []) {
     const opt = document.createElement("option")
@@ -200,18 +634,19 @@
   box.textContent = `💰 Tes kamas: ${kamas}`
  }
 
- function listingCard(item) {
+function listingCard(item) {
   const seller = item.sellerProfile?.displayName || item.seller
   const isMine = state.connected && state.me && String(item.seller) === String(state.me.id)
-  const fragmentInfo = item.type === "fragment"
-   ? `
-      <p class="market-card-line"><span>🧩 Fragment</span><strong>${item.fragmentNumber}/5</strong></p>
-      <p class="market-card-line"><span>Prix mini</span><strong>${Number(item.minimumPrice || 0).toLocaleString("fr-FR")} kamas</strong></p>
-     `
-   : `<p class="market-card-line"><span>Type</span><strong>Carte complete</strong></p>`
-  const image = item.imageUrl
-   ? `<div class="card-thumb-wrap"><img class="card-thumb" loading="lazy" src="${item.imageUrl}" alt="${escapeHtml(item.cardName)}" onerror="this.parentElement.style.display='none'"></div>`
-   : ""
+  const cardId = String(item.cardId || item.card_id || item.cardID || item.id || "--")
+  const rarity = escapeHtml(String(item.rarity || "C"))
+  const setName = escapeHtml(String(item.setName || "Set"))
+  const cardName = escapeHtml(String(item.cardName || "Carte inconnue"))
+  const finalPrice = Number(item.price || 0)
+  const minimumPrice = Number(item.minimumPrice || 0)
+  const showMinimumPrice = item.type === "fragment" && minimumPrice > 0 && minimumPrice !== finalPrice
+  const typeLabel = item.type === "fragment"
+   ? `Fragment ${Number(item.fragmentNumber || 0)}/5`
+   : "Carte complete"
 
   const action = !state.connected
    ? `<button class="btn btn-outline action-login">Connexion requise</button>`
@@ -219,25 +654,31 @@
     ? `<button class="btn btn-outline action-remove" data-id="${item.id}">Retirer</button>`
     : `<button class="btn btn-outline action-buy" data-id="${item.id}">Acheter</button>`
 
+  const thumbSrc = escapeHtml(String(item.imageUrl || "/assets/ui/pack-back-normal.png"))
+  const ownedClass = isMine ? " market-card-owned" : ""
+
   return `
-   <article class="catalog-card market-card">
-    ${image}
-    <div class="market-card-top">
-     <div class="catalog-card-head">
-      <span class="chip chip-rarity">${item.rarity}</span>
-      <span class="chip">${item.type === "fragment" ? "🧩 Fragment" : "Carte"}</span>
+   <article class="catalog-card market-card kshop-card${ownedClass}">
+    <div class="kshop-card-head">
+     <span class="chip chip-rarity">${rarity}</span>
+     <span class="chip">${setName}</span>
+    </div>
+    <h3 class="market-card-title">${cardName}</h3>
+    <p class="kshop-muted">ID #${escapeHtml(cardId)}</p>
+    <div class="kshop-meta-row">
+     <div class="kshop-meta-main">
+      <p class="kshop-price-line">
+       ${showMinimumPrice ? `<span class="kshop-price-base">${minimumPrice.toLocaleString("fr-FR")}</span>` : ""}
+       <strong>${finalPrice.toLocaleString("fr-FR")} kamas</strong>
+      </p>
+      <p class="kshop-muted"><span class="market-inline-label">Vendeur:</span><strong>${escapeHtml(String(seller || "Inconnu"))}</strong></p>
+      <p class="kshop-muted"><span class="market-inline-label">Type:</span><strong>${escapeHtml(typeLabel)}</strong></p>
      </div>
-     <p class="market-card-set">${escapeHtml(item.setName)}</p>
+     <div class="kshop-mini-thumb-wrap" aria-hidden="true">
+      <img class="kshop-mini-thumb market-mini-thumb" loading="lazy" src="${thumbSrc}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
+     </div>
     </div>
-    <h3 class="market-card-title">${escapeHtml(item.cardName)}</h3>
-    <div class="market-card-body">
-     <p class="market-card-line"><span>Vendeur</span><strong>${escapeHtml(seller)}</strong></p>
-     ${fragmentInfo}
-    </div>
-    <div class="market-card-footer">
-     <p class="price-line market-price">${Number(item.price || 0).toLocaleString("fr-FR")} kamas</p>
-     <div class="action-row">${action}</div>
-    </div>
+    <div class="action-row">${action}</div>
    </article>
   `
  }
@@ -270,7 +711,7 @@
 
   const data = res.data || {}
   state.page = data.page || 1
-  meta.textContent = "Annonces actives"
+  meta.textContent = state.preview ? "Annonces actives (mode local)" : "Annonces actives"
 
   const items = data.items || []
   if (!items.length) {
@@ -584,6 +1025,17 @@ async function refreshConnectedData() {
   await refreshConnectedData()
  }
 
+ function initPreviewMode() {
+  state.preview = isPreviewMode()
+  if (!state.preview) return
+
+  if (shouldResetPreview()) {
+   try { window.localStorage.removeItem(PREVIEW_STORAGE_KEY) } catch (_) {}
+  }
+  state.previewData = loadPreviewData()
+  showToast("Mode local du marche actif (annonces simulees).")
+ }
+
  document.getElementById("sellCardBtn").addEventListener("click", async () => {
   const cardId = document.getElementById("sellCardSelect").value
   const price = Number(document.getElementById("sellCardPrice").value)
@@ -636,6 +1088,7 @@ async function refreshConnectedData() {
  })
  document.getElementById("sortSelect").addEventListener("change", () => { state.page = 1; loadMarket() })
 
+ initPreviewMode()
  loadSets().then(() => initAuth().then(loadMarket))
  </script>
 </body>

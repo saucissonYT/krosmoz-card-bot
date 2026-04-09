@@ -326,9 +326,9 @@
 
 .play-card-img-wrap {
  aspect-ratio: 1 / 1;
- border: 1px solid rgba(255, 255, 255, 0.1);
- border-radius: 10px;
- background: #0d1128;
+ border: 0;
+ border-radius: 0;
+ background: transparent;
  overflow: hidden;
  display: grid;
  place-items: center;
@@ -362,7 +362,12 @@
 
 .play-card-sell-btn {
  min-height: 34px;
- font-size: 0.78rem;
+ width: 100%;
+ justify-content: center;
+ padding: 7px 10px;
+ font-size: 0.74rem;
+ line-height: 1;
+ white-space: nowrap;
  border-color: rgba(201, 168, 76, 0.5);
  background: rgba(11, 17, 43, 0.82);
  color: #f3dfab;
