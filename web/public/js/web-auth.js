@@ -8,7 +8,9 @@
  const QUEST_TOAST_POLL_MS = 9000
  const ACHIEVEMENT_TOAST_POLL_MS = 9000
  const EVENT_REWARD_TOAST_POLL_MS = 6000
+ const PLAYER_PROGRESS_POLL_MS = 8000
  const MAX_GLOBAL_PROGRESS_TOASTS = 5
+ const PLAYER_MAX_LEVEL = 200
  let questToastPollHandle = null
  let questToastBusy = false
  let questProgressSnapshot = null
@@ -17,9 +19,15 @@
  let achievementUnlockedSnapshot = null
  let eventRewardToastPollHandle = null
  let eventRewardToastBusy = false
+ let playerProgressPollHandle = null
  let progressToastQueue = []
  let progressToastVisibleCount = 0
  let progressRefreshTimer = null
+ let playerProgressSnapshot = null
+ let playerProgressBusy = false
+ let levelUpAnimationQueue = []
+ let levelUpAnimationActive = false
+ let levelUpAnimationAutoCloseTimer = null
  const LOCAL_MODE_STORAGE_KEY = "kc_local_mode"
  const LOCAL_MODE_COOKIE_NAME = "kc_local_auth"
  const DAILY_BUTTON_REFRESH_MS = 60000
@@ -288,12 +296,13 @@ function drainProgressToastQueue() {
    window.clearTimeout(progressRefreshTimer)
    progressRefreshTimer = null
   }
-  progressRefreshTimer = window.setTimeout(() => {
-   progressRefreshTimer = null
-   refreshQuestProgressToasts().catch(() => {})
-   refreshAchievementToasts().catch(() => {})
-  }, nextDelay)
- }
+ progressRefreshTimer = window.setTimeout(() => {
+  progressRefreshTimer = null
+  refreshQuestProgressToasts().catch(() => {})
+  refreshAchievementToasts().catch(() => {})
+  refreshPlayerProgressToasts().catch(() => {})
+ }, nextDelay)
+}
 
  function installGlobalFetchToastHook() {
  if (!window || typeof window.fetch !== "function" || window.__kcProgressToastHooked) return
@@ -334,9 +343,592 @@ function drainProgressToastQueue() {
   return Math.max(0, Math.min(100, Math.round((safeCurrent / safeGoal) * 100)))
  }
 
- function toQuestKey(type, id) {
-  return `${String(type || "daily")}:${String(id || "")}`
+function toQuestKey(type, id) {
+ return `${String(type || "daily")}:${String(id || "")}`
+}
+
+function getPlayerXpRequiredForLevel(level) {
+ const safeLevel = Math.max(1, Math.floor(Number(level || 1)))
+ if (safeLevel >= PLAYER_MAX_LEVEL) return 0
+ return 100 + (safeLevel * 35)
+}
+
+function getPlayerTotalXp(level, xpInLevel = 0) {
+ const safeLevel = Math.max(1, Math.floor(Number(level || 1)))
+ let total = Math.max(0, Number(xpInLevel || 0))
+ for (let i = 1; i < safeLevel; i += 1) {
+  total += getPlayerXpRequiredForLevel(i)
  }
+ return total
+}
+
+function normalizePlayerProgressState(payload = {}) {
+ if (!payload || typeof payload !== "object") return null
+ const level = Math.max(1, Math.floor(Number(payload.level || 1)))
+ const xp = Math.max(0, Number(payload.xp || 0))
+ const xpRequiredRaw = Math.max(0, Number(payload.xpRequired || 0))
+ const xpRequired = xpRequiredRaw > 0 ? xpRequiredRaw : getPlayerXpRequiredForLevel(level)
+ return {
+  id: String(payload.id || ""),
+  level,
+  xp,
+  xpRequired,
+  totalXp: getPlayerTotalXp(level, xp)
+ }
+}
+
+const PLAYER_LEVEL_TITLES = Object.freeze({
+ 10: "Aspirant du Krosmoz",
+ 20: "Eclaireur des Douze",
+ 30: "Gardien des Portails",
+ 40: "Traqueur des Reliques",
+ 50: "Maitre des Etincelles",
+ 60: "Sentinelle Astrale",
+ 70: "Passeur de Dimensions",
+ 80: "Archiviste Arcane",
+ 90: "Veilleur des Constellations",
+ 100: "Champion du Krosmoz",
+ 110: "Seigneur des Fragments",
+ 120: "Strategue des Arcanes",
+ 130: "Commandeur des Cartes",
+ 140: "Oracle des Douze",
+ 150: "Heroe des Mondes",
+ 160: "Regent des Portails",
+ 170: "Legat Celeste",
+ 180: "Maitre des Legendes",
+ 190: "Parangon du Nexus",
+ 200: "Legende Eternelle"
+})
+
+function getPlayerKamasRewardAmount(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+ if (safeLevel <= 1) return 0
+ const t = (safeLevel - 2) / 198
+ return Math.round(100 + ((100000 - 100) * Math.max(0, Math.min(1, t))))
+}
+
+function getPlayerFragmentRewardAmount(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+ if (safeLevel <= 1) return 0
+ if (safeLevel <= 189) {
+  const t = (safeLevel - 2) / 187
+  return Math.round(1 + ((10 - 1) * Math.max(0, Math.min(1, t))))
+ }
+ const tThl = (safeLevel - 190) / 10
+ return Math.round(11 + ((30 - 11) * Math.max(0, Math.min(1, tThl))))
+}
+
+function getPlayerPackRewardAmount(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+ if (safeLevel <= 1) return 0
+ if (safeLevel <= 189) {
+  const t = (safeLevel - 2) / 187
+  return Math.round(1 + ((10 - 1) * Math.max(0, Math.min(1, t))))
+ }
+ const tThl = (safeLevel - 190) / 10
+ return Math.round(11 + ((30 - 11) * Math.max(0, Math.min(1, tThl))))
+}
+
+function getPlayerCardRewardProfile(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+
+ if (safeLevel === 200) return { rarity: "UR", amount: 6 }
+ if (safeLevel >= 195) return { rarity: "UR", amount: 4 }
+ if (safeLevel >= 190) return { rarity: "SSR", amount: 6 }
+ if (safeLevel >= 180) return { rarity: "SSR", amount: 5 }
+ if (safeLevel >= 170) return { rarity: "SR", amount: 4 }
+ if (safeLevel >= 150) return { rarity: "S", amount: 4 }
+ if (safeLevel >= 130) return { rarity: "S", amount: 3 }
+ if (safeLevel >= 100) return { rarity: "R", amount: 3 }
+ if (safeLevel >= 80) return { rarity: "R", amount: 2 }
+ if (safeLevel >= 50) return { rarity: "U", amount: 2 }
+ return { rarity: "C", amount: 1 }
+}
+
+function getPlayerTitleForLevel(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+ return PLAYER_LEVEL_TITLES[safeLevel] || `Parangon ${safeLevel}`
+}
+
+function getPlayerBadgeForTitle(title) {
+ return `Insigne ${String(title || "").trim()}`.trim()
+}
+
+function getPlayerLevelReward(level) {
+ const safeLevel = Math.max(1, Math.min(PLAYER_MAX_LEVEL, Math.floor(Number(level || 1))))
+ const kamasAmount = getPlayerKamasRewardAmount(safeLevel)
+ const fragmentAmount = getPlayerFragmentRewardAmount(safeLevel)
+ const packAmount = getPlayerPackRewardAmount(safeLevel)
+ const cardProfile = getPlayerCardRewardProfile(safeLevel)
+ const isTitleLevel = safeLevel % 10 === 0
+ const isThlLevel = safeLevel >= 190
+
+ const slots = [
+  { type: "kamas", amount: kamasAmount },
+  { type: "packs", amount: packAmount },
+  { type: "fragments", amount: fragmentAmount }
+ ]
+
+ if (isTitleLevel) {
+  const title = getPlayerTitleForLevel(safeLevel)
+  slots.push({ type: "title", value: title })
+  slots.push({ type: "badge", value: getPlayerBadgeForTitle(title) })
+ } else {
+  slots.push({ type: "cards", amount: cardProfile.amount, rarity: cardProfile.rarity })
+
+  if (isThlLevel) {
+   slots.push({
+    type: "cards",
+    amount: 1 + Math.floor((safeLevel - 190) / 2),
+    rarity: safeLevel >= 195 ? "UR" : "SSR"
+   })
+  }
+ }
+
+ const totalKamas = slots.reduce((sum, slot) => {
+  if (String(slot?.type || "") !== "kamas") return sum
+  return sum + Math.max(0, Number(slot?.amount || 0))
+ }, 0)
+
+ const totalPacks = slots.reduce((sum, slot) => {
+  if (String(slot?.type || "") !== "packs") return sum
+  return sum + Math.max(0, Number(slot?.amount || 0))
+ }, 0)
+
+ return {
+  level: safeLevel,
+  slots,
+  milestone: Boolean(isTitleLevel || isThlLevel),
+  milestoneText: isTitleLevel
+   ? `Niveau ${safeLevel}: ${getPlayerTitleForLevel(safeLevel)}`
+   : (isThlLevel ? `Niveau ${safeLevel}: recompenses THL renforcees` : ""),
+  kamas: totalKamas,
+  packs: totalPacks
+ }
+}
+
+function buildLevelRewards(fromLevel, toLevel) {
+ const rewards = []
+ const start = Math.max(1, Math.floor(Number(fromLevel || 1)))
+ const end = Math.max(start, Math.floor(Number(toLevel || start)))
+ for (let lvl = start + 1; lvl <= end; lvl += 1) {
+  rewards.push(getPlayerLevelReward(lvl))
+ }
+ return rewards
+}
+
+function formatLevelUpRewardText(levelRewards = []) {
+ if (!Array.isArray(levelRewards) || levelRewards.length <= 0) return ""
+
+ let totalKamas = 0
+ let totalPacks = 0
+ let totalFragments = 0
+ let totalCards = 0
+ const cardRarityTotals = {}
+ const unlockedTitles = []
+ const unlockedBadges = []
+
+ for (const reward of levelRewards) {
+  const slots = Array.isArray(reward?.slots) ? reward.slots : []
+  for (const slot of slots) {
+   const type = String(slot?.type || "").toLowerCase()
+   if (type === "kamas") {
+    totalKamas += Math.max(0, Number(slot?.amount || 0))
+   } else if (type === "packs") {
+    totalPacks += Math.max(0, Number(slot?.amount || 0))
+   } else if (type === "fragments") {
+    totalFragments += Math.max(0, Number(slot?.amount || 0))
+   } else if (type === "cards") {
+    const amount = Math.max(0, Number(slot?.amount || 0))
+    totalCards += amount
+    const rarity = String(slot?.rarity || "C").toUpperCase()
+    cardRarityTotals[rarity] = (cardRarityTotals[rarity] || 0) + amount
+   } else if (type === "title") {
+    const value = String(slot?.value || "").trim()
+    if (value) unlockedTitles.push(value)
+   } else if (type === "badge") {
+    const value = String(slot?.value || "").trim()
+    if (value) unlockedBadges.push(value)
+   }
+  }
+ }
+
+ const parts = []
+ if (totalKamas > 0) parts.push(`💰 +${totalKamas.toLocaleString("fr-FR")} kamas`)
+ if (totalPacks > 0) parts.push(`📦 +${totalPacks.toLocaleString("fr-FR")} pack(s)`)
+ if (totalFragments > 0) parts.push(`🧩 +${totalFragments.toLocaleString("fr-FR")} fragment(s)`)
+ if (totalCards > 0) {
+  const rarityPart = Object.entries(cardRarityTotals)
+   .map(([rarity, amount]) => `${rarity} x${Number(amount || 0).toLocaleString("fr-FR")}`)
+   .join(", ")
+  parts.push(`🃏 +${totalCards.toLocaleString("fr-FR")} carte(s)${rarityPart ? ` (${rarityPart})` : ""}`)
+ }
+ if (unlockedTitles.length > 0) {
+  const maxTitles = 2
+  const preview = unlockedTitles.slice(0, maxTitles).join(", ")
+  const extra = unlockedTitles.length > maxTitles ? ` +${unlockedTitles.length - maxTitles}` : ""
+  parts.push(`🏷️ ${preview}${extra}`)
+ }
+ if (unlockedBadges.length > 0) {
+  parts.push(`🏅 +${unlockedBadges.length.toLocaleString("fr-FR")} badge(s)`)
+ }
+
+ return parts.length ? `🎁 Récompense level up: ${parts.join(" • ")}` : ""
+}
+
+function ensureLevelUpAnimationStyles() {
+ if (document.getElementById("kcLevelUpAnimStyle")) return
+ const style = document.createElement("style")
+ style.id = "kcLevelUpAnimStyle"
+ style.textContent = `
+  .kc-levelup-overlay{
+   position:fixed;inset:0;z-index:13000;display:grid;place-items:center;
+   padding:16px;opacity:0;pointer-events:none;transition:opacity .22s ease;
+  }
+  .kc-levelup-overlay.show{opacity:1;pointer-events:auto;}
+  .kc-levelup-overlay[hidden]{display:none;}
+  .kc-levelup-backdrop{
+   position:absolute;inset:0;
+   background:radial-gradient(circle at center, rgba(255,223,120,.18), rgba(0,0,0,.86));
+   backdrop-filter: blur(2px);
+  }
+  .kc-levelup-modal{
+   position:relative;width:min(820px,96vw);border-radius:12px;
+   border:1px solid rgba(246,210,77,.42);
+   background:linear-gradient(180deg, rgba(12,12,16,.98), rgba(5,5,8,.99));
+   box-shadow:0 24px 64px rgba(0,0,0,.62);
+   padding:72px 18px 16px;
+   transform:translateY(14px) scale(.97);
+   animation:kc-levelup-pop .32s ease-out forwards;
+  }
+  @keyframes kc-levelup-pop{
+   to{transform:translateY(0) scale(1);}
+  }
+  .kc-levelup-ribbon{
+   position:absolute;left:50%;top:-72px;transform:translateX(-50%);
+   width:min(620px,86vw);height:145px;pointer-events:none;
+  }
+  .kc-levelup-ribbon img{
+   position:absolute;left:0;top:50%;width:100%;height:auto;transform:translateY(-48.2%);
+  }
+  .kc-levelup-ribbon-text{
+   position:absolute;left:50%;top:40%;transform:translate(-50%,-58%);
+   font-family:"Cinzel","Times New Roman",serif;font-weight:900;
+   letter-spacing:.06em;font-size:clamp(1.45rem,3vw,2.05rem);color:#1b1304;
+  }
+  .kc-levelup-title{
+   margin:0;text-align:center;color:#f8df72;font-size:clamp(1.4rem,2.6vw,1.95rem);
+   letter-spacing:.15em;
+  }
+  .kc-levelup-rewards{
+   margin-top:14px;padding:14px 8px;border-top:1px solid rgba(255,255,255,.22);
+   border-bottom:1px solid rgba(255,255,255,.16);
+   display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;
+  }
+  .kc-levelup-reward{
+   border:1px solid rgba(255,255,255,.12);border-radius:10px;
+   background:linear-gradient(165deg, rgba(22,22,24,.96), rgba(10,10,12,.98));
+   padding:8px 6px;text-align:center;
+   animation:kc-levelup-reward-in .25s ease-out both;
+   animation-delay:var(--d,0ms);
+  }
+  @keyframes kc-levelup-reward-in{
+   from{opacity:0;transform:translateY(8px) scale(.96);}
+   to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  .kc-levelup-reward-icon-wrap{
+   width:58px;height:58px;margin:0 auto 6px;display:grid;place-items:center;position:relative;
+  }
+  .kc-levelup-reward-icon{
+   width:100%;height:100%;object-fit:contain;display:block;
+  }
+  .kc-levelup-reward-fallback{
+   display:none;font-size:1.45rem;line-height:1;
+  }
+  .kc-levelup-reward-icon-wrap.is-missing .kc-levelup-reward-icon{display:none;}
+  .kc-levelup-reward-icon-wrap.is-missing .kc-levelup-reward-fallback{display:block;}
+  .kc-levelup-reward-label{
+   margin:0;color:#c8c8cf;font-size:.78rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;
+  }
+  .kc-levelup-reward-value{
+   margin:2px 0 0;color:#fff;font-size:1.72rem;font-weight:900;line-height:1;
+  }
+  .kc-levelup-meta{
+   margin:10px 0 0;text-align:center;color:#c8c8d1;font-size:.96rem;
+  }
+  .kc-levelup-actions{
+   margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);
+   display:flex;justify-content:center;
+  }
+  .kc-levelup-continue{
+   min-width:170px;min-height:44px;border-radius:9px;cursor:pointer;
+   border:1px solid rgba(240,202,109,.72);
+   background:linear-gradient(180deg, #e0c26f, #b6862c);
+   color:#201303;font-weight:900;font-size:1rem;letter-spacing:.03em;
+  }
+  .kc-levelup-continue:hover{filter:brightness(1.05);}
+  @media (max-width: 720px){
+   .kc-levelup-modal{padding-top:58px;}
+   .kc-levelup-ribbon{top:-56px;height:120px;width:min(520px,92vw);}
+   .kc-levelup-rewards{grid-template-columns:repeat(3,minmax(0,1fr));}
+   .kc-levelup-reward-icon-wrap{width:52px;height:52px;}
+   .kc-levelup-reward-value{font-size:1.45rem;}
+  }
+ `
+ document.head.appendChild(style)
+}
+
+function ensureLevelUpAnimationOverlay() {
+ let root = document.getElementById("kcLevelUpOverlay")
+ if (root) return root
+ ensureLevelUpAnimationStyles()
+ root = document.createElement("div")
+ root.id = "kcLevelUpOverlay"
+ root.className = "kc-levelup-overlay"
+ root.hidden = true
+ root.innerHTML = `
+  <div class="kc-levelup-backdrop" data-kc-levelup-close></div>
+  <section class="kc-levelup-modal" aria-label="Level up">
+   <div class="kc-levelup-ribbon">
+    <img src="/assets/ui/ruban%20niveau.png" alt="" aria-hidden="true">
+    <span class="kc-levelup-ribbon-text" id="kcLevelUpRibbonText">NIVEAU 2</span>
+   </div>
+   <h2 class="kc-levelup-title">GAINS</h2>
+   <div class="kc-levelup-rewards" id="kcLevelUpRewards"></div>
+   <p class="kc-levelup-meta" id="kcLevelUpMeta"></p>
+   <div class="kc-levelup-actions">
+    <button type="button" class="kc-levelup-continue" id="kcLevelUpContinue">CONTINUER</button>
+   </div>
+  </section>
+ `
+ document.body.appendChild(root)
+ const closeEls = root.querySelectorAll("[data-kc-levelup-close], #kcLevelUpContinue")
+ for (const closeEl of closeEls) {
+  closeEl.addEventListener("click", () => advanceLevelUpAnimationQueue())
+ }
+ return root
+}
+
+function getLevelUpRewardIconSrc(type) {
+ const key = String(type || "").toLowerCase()
+ if (key === "kamas") return "/assets/ui/gain%20kamas%20level%20up.png"
+ if (key === "packs") return "/assets/ui/gain%20packs%20level%20up.png"
+ if (key === "fragments") return "/assets/ui/gain%20fragments%20level%20up.png"
+ if (key === "cards") return "/assets/ui/gain%20carte%20level%20up.png"
+ if (key === "title") return "/assets/ui/gain%20titre%20level%20up.png"
+ if (key === "badge") return "/assets/ui/gain%20badge%20level%20up.png"
+ return "/assets/ui/gain%20titre%20level%20up.png"
+}
+
+function getLevelUpRewardFallbackEmoji(type) {
+ const key = String(type || "").toLowerCase()
+ if (key === "kamas") return "💰"
+ if (key === "packs") return "📦"
+ if (key === "fragments") return "🧩"
+ if (key === "cards") return "🃏"
+ if (key === "badge") return "🏅"
+ return "🏷️"
+}
+
+function toLevelUpAnimationRewards(levelReward = {}) {
+ const slots = Array.isArray(levelReward?.slots) ? levelReward.slots : []
+ return slots.slice(0, 5).map((slot) => {
+  const type = String(slot?.type || "").toLowerCase()
+  if (type === "cards") {
+   const rarity = String(slot?.rarity || "").toUpperCase()
+   return {
+    type,
+    label: rarity ? `CARTES ${rarity}` : "CARTES",
+    amount: Math.max(0, Number(slot?.amount || 0))
+   }
+  }
+  if (type === "title") {
+   return { type, label: "TITRE", amount: 1, value: String(slot?.value || "") }
+  }
+  if (type === "badge") {
+   return { type, label: "BADGE", amount: 1, value: String(slot?.value || "") }
+  }
+  if (type === "kamas") return { type, label: "KAMAS", amount: Math.max(0, Number(slot?.amount || 0)) }
+  if (type === "packs") return { type, label: "PACKS", amount: Math.max(0, Number(slot?.amount || 0)) }
+  if (type === "fragments") return { type, label: "FRAGMENTS", amount: Math.max(0, Number(slot?.amount || 0)) }
+  return { type: "title", label: "GAIN", amount: Math.max(0, Number(slot?.amount || 0)) }
+ })
+}
+
+function clearLevelUpAnimationTimer() {
+ if (!levelUpAnimationAutoCloseTimer) return
+ window.clearTimeout(levelUpAnimationAutoCloseTimer)
+ levelUpAnimationAutoCloseTimer = null
+}
+
+function renderCurrentLevelUpAnimation() {
+ const root = ensureLevelUpAnimationOverlay()
+ const current = levelUpAnimationQueue[0]
+ if (!current) {
+  clearLevelUpAnimationTimer()
+  root.classList.remove("show")
+  window.setTimeout(() => { root.hidden = true }, 220)
+  levelUpAnimationActive = false
+  return
+ }
+
+ const ribbonText = root.querySelector("#kcLevelUpRibbonText")
+ const rewardsHost = root.querySelector("#kcLevelUpRewards")
+ const meta = root.querySelector("#kcLevelUpMeta")
+ const continueBtn = root.querySelector("#kcLevelUpContinue")
+
+ const safeLevel = Math.max(1, Math.floor(Number(current?.level || 1)))
+ if (ribbonText) ribbonText.textContent = `NIVEAU ${safeLevel}`
+
+ const rewards = Array.isArray(current?.rewards) ? current.rewards : []
+ if (rewardsHost) {
+  rewardsHost.innerHTML = rewards.map((reward, index) => `
+   <article class="kc-levelup-reward" style="--d:${index * 60}ms">
+    <div class="kc-levelup-reward-icon-wrap">
+     <img class="kc-levelup-reward-icon" src="${getLevelUpRewardIconSrc(reward?.type)}" alt="">
+     <span class="kc-levelup-reward-fallback">${getLevelUpRewardFallbackEmoji(reward?.type)}</span>
+    </div>
+    <p class="kc-levelup-reward-label">${String(reward?.label || "GAIN")}</p>
+    <p class="kc-levelup-reward-value">+${Math.max(0, Number(reward?.amount || 0)).toLocaleString("fr-FR")}</p>
+   </article>
+  `).join("")
+
+  rewardsHost.querySelectorAll(".kc-levelup-reward-icon-wrap").forEach((wrap) => {
+   const img = wrap.querySelector(".kc-levelup-reward-icon")
+   if (!img) return
+   img.addEventListener("error", () => wrap.classList.add("is-missing"), { once: true })
+   img.addEventListener("load", () => wrap.classList.remove("is-missing"), { once: true })
+  })
+ }
+
+ const metaTextRaw = String(current?.milestoneText || "").trim()
+ const queueInfo = levelUpAnimationQueue.length > 1
+  ? `(${levelUpAnimationQueue.length} niveaux en attente)`
+  : ""
+ const metaText = metaTextRaw || `Bravo, tu as atteint le niveau ${safeLevel}.`
+ if (meta) meta.textContent = queueInfo ? `${metaText} ${queueInfo}` : metaText
+ if (continueBtn) continueBtn.textContent = levelUpAnimationQueue.length > 1 ? "SUIVANT" : "FERMER"
+
+ root.hidden = false
+ requestAnimationFrame(() => root.classList.add("show"))
+ clearLevelUpAnimationTimer()
+ levelUpAnimationAutoCloseTimer = window.setTimeout(() => {
+  advanceLevelUpAnimationQueue()
+ }, 6500)
+}
+
+function advanceLevelUpAnimationQueue() {
+ clearLevelUpAnimationTimer()
+ if (levelUpAnimationQueue.length > 0) {
+  levelUpAnimationQueue.shift()
+ }
+ renderCurrentLevelUpAnimation()
+}
+
+function enqueueLevelUpAnimations(levelRewards = []) {
+ const rows = Array.isArray(levelRewards) ? levelRewards : []
+ if (rows.length <= 0) return
+ for (const reward of rows) {
+  levelUpAnimationQueue.push({
+   level: Math.max(1, Math.floor(Number(reward?.level || 1))),
+   rewards: toLevelUpAnimationRewards(reward),
+   milestoneText: String(reward?.milestoneText || "")
+  })
+ }
+ if (levelUpAnimationActive) return
+ levelUpAnimationActive = true
+ renderCurrentLevelUpAnimation()
+}
+
+function stopLevelUpAnimations() {
+ clearLevelUpAnimationTimer()
+ levelUpAnimationQueue = []
+ levelUpAnimationActive = false
+ const root = document.getElementById("kcLevelUpOverlay")
+ if (!root) return
+ root.classList.remove("show")
+ root.hidden = true
+}
+
+function spawnPlayerXpToast({
+ previous = null,
+ current = null,
+ gainedXp = 0
+} = {}) {
+ if (!previous || !current) return
+ const levelUp = Number(current.level || 1) > Number(previous.level || 1)
+ const levelRewards = levelUp ? buildLevelRewards(previous.level, current.level) : []
+ const fromPct = toQuestPercent(previous.xp, Math.max(1, Number(previous.xpRequired || 1)))
+ const toPct = toQuestPercent(current.xp, Math.max(1, Number(current.xpRequired || 1)))
+ const safeGainedXp = Math.max(0, Number(gainedXp || 0))
+ const rewardText = levelUp
+  ? formatLevelUpRewardText(levelRewards)
+  : `⭐ +${safeGainedXp.toLocaleString("fr-FR")} XP`
+
+ const toast = document.createElement("article")
+ toast.className = `quest-progress-toast xp-progress-toast toast-tone-xp${levelUp ? " xp-progress-toast-levelup" : ""}`
+ toast.innerHTML = `
+  <button type="button" class="quest-toast-close" aria-label="Fermer">&times;</button>
+  <div class="quest-toast-head">
+   <strong>${levelUp ? `NIVEAU ${Number(current.level || 1)} !` : "XP gagnée"}</strong>
+   <span class="quest-toast-chip">${levelUp ? "LEVEL UP" : `Niveau ${Number(current.level || 1)}`}</span>
+  </div>
+  <p>${levelUp ? `Niveau ${Number(previous.level || 1)} → ${Number(current.level || 1)}` : `Niveau ${Number(current.level || 1)}`}</p>
+  <small class="quest-toast-desc">${Math.max(0, Number(current.xp || 0)).toLocaleString("fr-FR")}/${Math.max(0, Number(current.xpRequired || 0)).toLocaleString("fr-FR")} XP • +${safeGainedXp.toLocaleString("fr-FR")} XP</small>
+  <div class="quest-toast-bar"><span></span></div>
+  ${rewardText ? `<small class="quest-toast-reward xp-toast-level-reward">${rewardText}</small>` : ""}
+ `
+
+ toast.__onToastMount = () => {
+  const fill = toast.querySelector(".quest-toast-bar span")
+  if (!fill) return
+  fill.style.width = `${Math.max(0, Math.min(100, fromPct))}%`
+  requestAnimationFrame(() => {
+   fill.style.width = `${Math.max(0, Math.min(100, toPct))}%`
+  })
+ }
+
+ enqueueProgressToast(toast, levelUp ? 12000 : 8500)
+}
+
+async function refreshPlayerProgressToasts() {
+ if (playerProgressBusy) return
+ playerProgressBusy = true
+ try {
+  const res = await fetch("/api/me", { credentials: "same-origin" })
+  if (!res.ok) return
+  let me = null
+  try { me = await res.json() } catch (_) {}
+  const current = normalizePlayerProgressState(me || {})
+  if (!current) return
+
+  if (!playerProgressSnapshot || playerProgressSnapshot.id !== current.id) {
+   playerProgressSnapshot = current
+   return
+  }
+
+  const previous = playerProgressSnapshot
+  const gainedXp = Math.max(0, Number(current.totalXp || 0) - Number(previous.totalXp || 0))
+  const levelUp = Number(current.level || 1) > Number(previous.level || 1)
+  const levelRewards = levelUp ? buildLevelRewards(previous.level, current.level) : []
+
+  if (gainedXp > 0 || levelUp) {
+   spawnPlayerXpToast({
+    previous,
+    current,
+    gainedXp
+   })
+  }
+  if (levelUp && levelRewards.length > 0) {
+   enqueueLevelUpAnimations(levelRewards)
+  }
+
+  playerProgressSnapshot = current
+ } catch (_) {
+ } finally {
+  playerProgressBusy = false
+ }
+}
 
 function formatQuestRewardPreview(reward) {
  if (!reward) return ""
@@ -655,6 +1247,23 @@ function stopQuestToastPolling() {
   achievementToastPollHandle = window.setInterval(() => {
    refreshAchievementToasts().catch(() => {})
   }, ACHIEVEMENT_TOAST_POLL_MS)
+ }
+
+ function stopPlayerProgressPolling() {
+  if (playerProgressPollHandle) {
+   clearInterval(playerProgressPollHandle)
+   playerProgressPollHandle = null
+  }
+  playerProgressSnapshot = null
+  stopLevelUpAnimations()
+ }
+
+ function startPlayerProgressPolling() {
+  stopPlayerProgressPolling()
+  refreshPlayerProgressToasts().catch(() => {})
+  playerProgressPollHandle = window.setInterval(() => {
+   refreshPlayerProgressToasts().catch(() => {})
+  }, PLAYER_PROGRESS_POLL_MS)
  }
 
  async function refreshEventRewardToasts() {
@@ -1111,6 +1720,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   stopQuestToastPolling()
   stopAchievementToastPolling()
   stopEventRewardToastPolling()
+  stopPlayerProgressPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "#"
@@ -1138,6 +1748,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    stopQuestToastPolling()
    stopAchievementToastPolling()
    stopEventRewardToastPolling()
+   stopPlayerProgressPolling()
    if (heroPlayBtn) {
     heroPlayBtn.textContent = "JOUER"
     heroPlayBtn.href = "/auth/discord?local=1&returnTo=%2Fplay%2Finventory"
@@ -1161,6 +1772,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   stopQuestToastPolling()
   stopAchievementToastPolling()
   stopEventRewardToastPolling()
+  stopPlayerProgressPolling()
   if (heroPlayBtn) {
    heroPlayBtn.textContent = "JOUER"
    heroPlayBtn.href = "/auth/discord?returnTo=%2Fplay"
@@ -1178,6 +1790,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   const meRes = await fetch("/api/me", { credentials: "same-origin" })
   if (meRes.ok) me = await meRes.json()
  } catch (_) {}
+ playerProgressSnapshot = normalizePlayerProgressState(me || {})
 
  setAuthBodyClass(true)
  setPlaySubnav(true)
@@ -1191,6 +1804,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  startQuestToastPolling()
  startAchievementToastPolling()
  startEventRewardToastPolling()
+ startPlayerProgressPolling()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
   heroPlayBtn.href = localSessionActive ? "/play/inventory?local=1" : "/play"
@@ -1207,6 +1821,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   stopQuestToastPolling()
   stopAchievementToastPolling()
   stopEventRewardToastPolling()
+  stopPlayerProgressPolling()
   if (localSessionActive) {
    localModeEnabled = false
    writeLocalModeToStorage(false)

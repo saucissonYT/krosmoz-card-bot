@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Level Up Preview</title>
+ <style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Jost:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+   --bg-1: #040404;
+   --bg-2: #0a0a0a;
+   --panel-1: #101010;
+   --panel-2: #070707;
+   --gold-1: #f6d24d;
+   --gold-2: #b27b18;
+   --gold-3: #ffef9b;
+   --text-1: #f5f5f5;
+   --text-2: #c2c2c2;
+   --accent-blue: #8dc8ff;
+   --accent-cyan: #9ce8ff;
+   --accent-green: #a8f5c9;
+   --ease-out-back: cubic-bezier(0.16, 0.95, 0.35, 1.2);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+   margin: 0;
+   min-height: 100%;
+   font-family: "Jost", "Segoe UI", sans-serif;
+   color: var(--text-1);
+   background:
+    radial-gradient(circle at 50% 30%, rgba(255, 211, 98, 0.08), transparent 40%),
+    radial-gradient(circle at 15% 80%, rgba(83, 130, 255, 0.09), transparent 42%),
+    linear-gradient(180deg, var(--bg-1), var(--bg-2));
+   overflow: hidden;
+  }
+
+  .lvlup-stage {
+   position: fixed;
+   inset: 0;
+   display: grid;
+   place-items: center;
+   padding: 18px;
+   isolation: isolate;
+  }
+
+  .lvlup-bg-glow {
+   position: absolute;
+   inset: 0;
+   z-index: 0;
+   pointer-events: none;
+   background:
+    radial-gradient(circle at 50% 58%, rgba(255, 211, 98, 0.16), rgba(255, 211, 98, 0) 48%),
+    radial-gradient(circle at 50% 18%, rgba(126, 170, 255, 0.1), rgba(126, 170, 255, 0) 54%);
+   animation: lvlup-bg-breathe 8s ease-in-out infinite;
+  }
+
+  .lvlup-bg-rays {
+   position: absolute;
+   inset: -30vmax;
+   z-index: 0;
+   pointer-events: none;
+   background: repeating-conic-gradient(
+    from 0deg,
+    rgba(255, 220, 128, 0.08) 0deg 7deg,
+    rgba(255, 220, 128, 0) 7deg 15deg
+   );
+   mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95) 0 34%, rgba(0, 0, 0, 0.35) 60%, transparent 78%);
+   opacity: 0.5;
+   transform-origin: 50% 50%;
+   animation: lvlup-rays-rotate 28s linear infinite;
+  }
+
+  .lvlup-bg-orbs {
+   position: absolute;
+   inset: 0;
+   z-index: 0;
+   pointer-events: none;
+   overflow: hidden;
+  }
+
+  .lvlup-bg-orb {
+   position: absolute;
+   width: clamp(140px, 22vw, 300px);
+   aspect-ratio: 1;
+   border-radius: 999px;
+   filter: blur(18px);
+   opacity: 0.24;
+   animation: lvlup-orb-float var(--dur, 14s) ease-in-out infinite;
+   animation-delay: var(--delay, 0s);
+  }
+
+  .lvlup-bg-orb.orb-gold {
+   background: radial-gradient(circle at 40% 40%, rgba(255, 228, 143, 0.66), rgba(255, 186, 57, 0.12) 62%, transparent 84%);
+  }
+
+  .lvlup-bg-orb.orb-blue {
+   background: radial-gradient(circle at 40% 40%, rgba(149, 208, 255, 0.56), rgba(66, 132, 255, 0.14) 62%, transparent 84%);
+  }
+
+  .lvlup-burst {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   width: min(80vw, 980px);
+   aspect-ratio: 1;
+   transform: translate(-50%, -50%) scale(0.45);
+   border-radius: 999px;
+   opacity: 0;
+   z-index: 1;
+   pointer-events: none;
+   background:
+    radial-gradient(circle at center, rgba(255, 235, 173, 0.34), rgba(255, 235, 173, 0.12) 30%, rgba(255, 235, 173, 0) 60%),
+    repeating-conic-gradient(from 0deg, rgba(255, 222, 129, 0.18) 0deg 6deg, rgba(255, 222, 129, 0) 6deg 12deg);
+   mix-blend-mode: screen;
+  }
+
+  .lvlup-stage.burst-active .lvlup-burst {
+   animation: lvlup-burst-ring 780ms ease-out 1;
+  }
+
+  .lvlup-vignette {
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+   background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 34%, rgba(0, 0, 0, 0.68) 100%);
+   z-index: 0;
+  }
+
+  .lvlup-flash {
+   position: absolute;
+   inset: 0;
+   background: radial-gradient(circle at center, rgba(255, 230, 141, 0.35), rgba(255, 230, 141, 0) 55%);
+   opacity: 0;
+   pointer-events: none;
+   z-index: 1;
+  }
+
+  .lvlup-stage.flash-active .lvlup-flash {
+   animation: lvlup-flash 520ms ease-out 1;
+  }
+
+  .lvlup-particles {
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+   z-index: 1;
+  }
+
+  .lvlup-particle {
+   position: absolute;
+   width: 4px;
+   height: 4px;
+   border-radius: 999px;
+   opacity: 0;
+   background: #fff5be;
+   box-shadow: 0 0 12px rgba(255, 227, 142, 0.72);
+   animation: lvlup-particle-float var(--dur, 3.8s) linear infinite;
+   animation-delay: var(--delay, 0s);
+  }
+
+  .lvlup-modal {
+   position: relative;
+   width: min(780px, 100%);
+   border-radius: 10px;
+   border: 1px solid rgba(255, 223, 140, 0.35);
+   background: linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(8, 8, 8, 0.99));
+   box-shadow:
+    0 26px 70px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(255, 231, 165, 0.1) inset;
+   transform: translateY(22px) scale(0.92);
+   opacity: 0;
+   z-index: 2;
+   overflow: visible;
+  }
+
+  .lvlup-modal.playing {
+   animation: lvlup-modal-in 620ms var(--ease-out-back) forwards;
+  }
+
+  .lvlup-ribbon {
+   position: absolute;
+   left: 50%;
+   top: -82px;
+   transform: translateX(-50%) translateY(-20px) scale(0.88);
+   opacity: 0;
+   width: min(760px, 96%);
+   height: 160px;
+   z-index: 3;
+   overflow: hidden;
+   filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.55));
+  }
+
+  .lvlup-ribbon.is-fallback {
+   background: linear-gradient(180deg, #ffe981, var(--gold-1) 42%, var(--gold-2));
+   border-radius: 10px;
+   box-shadow:
+    0 14px 24px rgba(0, 0, 0, 0.48),
+    0 0 0 2px rgba(93, 64, 14, 0.5) inset;
+  }
+
+  .lvlup-ribbon.is-fallback::before,
+  .lvlup-ribbon.is-fallback::after {
+   content: "";
+   position: absolute;
+   bottom: 5px;
+   width: 92px;
+   height: 42px;
+   background: linear-gradient(180deg, #f8d85f, #9f6d15);
+   z-index: -1;
+   clip-path: polygon(0 62%, 82% 0, 100% 100%, 12% 100%);
+   filter: brightness(0.9);
+  }
+
+  .lvlup-ribbon.is-fallback::before { left: -56px; transform: scaleX(-1); }
+  .lvlup-ribbon.is-fallback::after { right: -56px; }
+
+  .lvlup-ribbon img {
+   position: absolute;
+   left: 0;
+   top: 50%;
+   width: 100%;
+   height: auto;
+   transform: translateY(-48.3%);
+   user-select: none;
+   pointer-events: none;
+  }
+
+  .lvlup-ribbon-text {
+   position: absolute;
+   left: 50%;
+   top: 40%;
+   transform: translate(-50%, -58%);
+   color: #1a1305;
+   text-transform: uppercase;
+   letter-spacing: 0.06em;
+   font-size: clamp(1.52rem, 3.15vw, 2.18rem);
+   font-weight: 900;
+   text-shadow:
+    0 1px 0 rgba(255, 244, 195, 0.74),
+    0 0 8px rgba(255, 239, 171, 0.2);
+   white-space: nowrap;
+  }
+
+  .lvlup-ribbon.show {
+   animation: lvlup-ribbon-in 540ms var(--ease-out-back) forwards;
+  }
+
+  .lvlup-inner {
+   padding: 82px 18px 18px;
+  }
+
+  .lvlup-heading {
+   text-align: center;
+   margin: 0;
+   font-size: clamp(1.45rem, 2.8vw, 2rem);
+   letter-spacing: 0.16em;
+   color: #f8df72;
+   opacity: 0;
+   transform: translateY(10px);
+  }
+
+  .lvlup-heading.show {
+   animation: lvlup-fade-up 420ms ease-out forwards;
+  }
+
+  .lvlup-rewards {
+   margin-top: 18px;
+   border-top: 1px solid rgba(255, 255, 255, 0.32);
+   border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+   padding: 18px 12px;
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   gap: 14px;
+  }
+
+  .lvlup-rewards[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lvlup-rewards[data-count="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+  .lvlup-reward-card {
+   border: 1px solid rgba(255, 255, 255, 0.18);
+   border-radius: 10px;
+   background: linear-gradient(165deg, rgba(22, 22, 22, 0.97), rgba(12, 12, 12, 0.99));
+   box-shadow: 0 12px 22px rgba(0, 0, 0, 0.5);
+   padding: 12px 8px 10px;
+   text-align: center;
+   transform: translateY(16px) scale(0.92);
+   opacity: 0;
+  }
+
+  .lvlup-reward-card.revealed {
+   animation: lvlup-reward-in 440ms var(--ease-out-back) forwards;
+  }
+
+  .lvlup-icon-wrap {
+   width: 86px;
+   height: 86px;
+   margin: 0 auto 8px;
+   border-radius: 0;
+   border: 0;
+   background: transparent;
+   display: grid;
+   place-items: center;
+   box-shadow: none;
+   overflow: hidden;
+   position: relative;
+  }
+
+  .lvlup-reward-card.revealed .lvlup-icon-wrap {
+   animation: lvlup-icon-pulse 540ms ease-out 1;
+  }
+
+  .lvlup-icon {
+   width: 54px;
+   height: 54px;
+   display: block;
+  }
+
+  .lvlup-icon-image {
+   width: 100%;
+   height: 100%;
+   object-fit: contain;
+   display: block;
+   padding: 8px;
+  }
+
+  .lvlup-icon-fallback {
+   display: none;
+  }
+
+  .lvlup-icon-wrap.is-image-missing .lvlup-icon-image {
+   display: none;
+  }
+
+  .lvlup-icon-wrap.is-image-missing .lvlup-icon-fallback {
+   display: block;
+  }
+
+  .lvlup-icon path,
+  .lvlup-icon circle,
+  .lvlup-icon rect,
+  .lvlup-icon polygon {
+   stroke-width: 1.4;
+   stroke: rgba(255, 255, 255, 0.36);
+  }
+
+  .lvlup-icon.kamas path,
+  .lvlup-icon.kamas circle { fill: #ffd66d; }
+  .lvlup-icon.packs rect,
+  .lvlup-icon.packs path { fill: #8ec8ff; }
+  .lvlup-icon.fragments path,
+  .lvlup-icon.fragments polygon { fill: #f39cff; }
+  .lvlup-icon.cards rect,
+  .lvlup-icon.cards path { fill: #bce3ff; }
+  .lvlup-icon.title path,
+  .lvlup-icon.title polygon { fill: #95f7be; }
+  .lvlup-icon.badge path,
+  .lvlup-icon.badge circle { fill: #ffdd8f; }
+
+  .lvlup-reward-label {
+   margin: 0;
+   color: var(--text-2);
+   font-size: 0.82rem;
+   letter-spacing: 0.03em;
+   text-transform: uppercase;
+  }
+
+  .lvlup-reward-value {
+   margin: 4px 0 0;
+   color: #ffffff;
+   font-size: 2rem;
+   font-weight: 900;
+   line-height: 1;
+   text-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .lvlup-rewards[data-count="4"] .lvlup-reward-card { padding: 10px 6px 8px; }
+  .lvlup-rewards[data-count="4"] .lvlup-icon-wrap { width: 74px; height: 74px; margin-bottom: 6px; }
+  .lvlup-rewards[data-count="4"] .lvlup-icon { width: 44px; height: 44px; }
+  .lvlup-rewards[data-count="4"] .lvlup-icon-image { padding: 7px; }
+  .lvlup-rewards[data-count="4"] .lvlup-reward-value { font-size: 1.65rem; }
+
+  .lvlup-rewards[data-count="5"] .lvlup-reward-card { padding: 9px 5px 7px; }
+  .lvlup-rewards[data-count="5"] .lvlup-icon-wrap { width: 64px; height: 64px; margin-bottom: 5px; border-radius: 0; }
+  .lvlup-rewards[data-count="5"] .lvlup-icon { width: 38px; height: 38px; }
+  .lvlup-rewards[data-count="5"] .lvlup-icon-image { padding: 6px; }
+  .lvlup-rewards[data-count="5"] .lvlup-reward-label { font-size: 0.72rem; }
+  .lvlup-rewards[data-count="5"] .lvlup-reward-value { font-size: 1.42rem; }
+
+  .lvlup-meta {
+   margin: 12px 0 0;
+   text-align: center;
+   color: #c3c3c3;
+   font-size: 0.92rem;
+   min-height: 1.2rem;
+  }
+
+  .lvlup-actions {
+   margin-top: 14px;
+   padding-top: 14px;
+   border-top: 1px solid rgba(255, 255, 255, 0.24);
+   display: flex;
+   justify-content: center;
+   gap: 12px;
+   flex-wrap: wrap;
+  }
+
+  .lvlup-btn {
+   min-width: 164px;
+   min-height: 48px;
+   border-radius: 8px;
+   border: 1px solid rgba(255, 255, 255, 0.3);
+   font-size: 1.08rem;
+   font-weight: 800;
+   letter-spacing: 0.03em;
+   color: #f2f4ff;
+   cursor: pointer;
+   transition: transform 0.15s ease, filter 0.15s ease;
+  }
+
+  .lvlup-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+
+  .lvlup-btn.profile {
+   background: linear-gradient(180deg, rgba(72, 72, 72, 0.95), rgba(35, 35, 35, 0.98));
+  }
+
+  .lvlup-btn.close {
+   border-color: rgba(240, 202, 109, 0.76);
+   background: linear-gradient(180deg, #e0c26f, #b6862c);
+   color: #201303;
+   text-shadow: 0 1px 0 rgba(255, 244, 195, 0.55);
+  }
+
+  .lvlup-toolbar {
+   position: fixed;
+   left: 14px;
+   top: 14px;
+   z-index: 3;
+   display: flex;
+   gap: 8px;
+  }
+
+  .lvlup-toolbar button {
+   min-height: 34px;
+   border-radius: 999px;
+   border: 1px solid rgba(255, 255, 255, 0.24);
+   background: rgba(12, 17, 33, 0.86);
+   color: #edf2ff;
+   padding: 0 12px;
+   font-weight: 700;
+   cursor: pointer;
+  }
+
+  @keyframes lvlup-modal-in {
+   0% { opacity: 0; transform: translateY(22px) scale(0.92); }
+   100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes lvlup-bg-breathe {
+   0%, 100% { opacity: 0.78; transform: scale(1); }
+   50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  @keyframes lvlup-rays-rotate {
+   from { transform: rotate(0deg); }
+   to { transform: rotate(360deg); }
+  }
+
+  @keyframes lvlup-orb-float {
+   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+   50% { transform: translate3d(0, -22px, 0) scale(1.08); }
+  }
+
+  @keyframes lvlup-ribbon-in {
+   0% { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.88); }
+   100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+
+  @keyframes lvlup-fade-up {
+   0% { opacity: 0; transform: translateY(10px); }
+   100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes lvlup-reward-in {
+   0% { opacity: 0; transform: translateY(16px) scale(0.92); }
+   100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes lvlup-icon-pulse {
+   0% { transform: scale(0.84); filter: brightness(1); }
+   45% { transform: scale(1.08); filter: brightness(1.22); }
+   100% { transform: scale(1); filter: brightness(1); }
+  }
+
+  @keyframes lvlup-flash {
+   0% { opacity: 0; }
+   35% { opacity: 1; }
+   100% { opacity: 0; }
+  }
+
+  @keyframes lvlup-burst-ring {
+   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.45); }
+   25% { opacity: 0.95; }
+   100% { opacity: 0; transform: translate(-50%, -50%) scale(1.24); }
+  }
+
+  @keyframes lvlup-particle-float {
+   0% { transform: translate3d(0, 18px, 0) scale(0.55); opacity: 0; }
+   12% { opacity: 0.95; }
+   80% { opacity: 0.65; }
+   100% { transform: translate3d(var(--xdrift, 0px), -170px, 0) scale(1.14); opacity: 0; }
+  }
+
+  @media (max-width: 720px) {
+   .lvlup-ribbon {
+    width: min(560px, 98%);
+    height: 126px;
+    top: -62px;
+   }
+   .lvlup-ribbon img { transform: translateY(-48.2%); }
+   .lvlup-ribbon-text {
+    top: 40%;
+    font-size: clamp(1.06rem, 6vw, 1.45rem);
+   }
+   .lvlup-inner { padding: 62px 14px 14px; }
+   .lvlup-rewards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+   .lvlup-rewards[data-count="5"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+   .lvlup-btn { min-width: 140px; min-height: 42px; font-size: 0.96rem; }
+  }
+ </style>
+</head>
+<body>
+ <div class="lvlup-stage" id="lvlupStage">
+  <div class="lvlup-bg-glow"></div>
+  <div class="lvlup-bg-rays"></div>
+  <div class="lvlup-bg-orbs" aria-hidden="true">
+   <span class="lvlup-bg-orb orb-gold" style="left:8%;top:18%;--dur:16s;--delay:-2.5s"></span>
+   <span class="lvlup-bg-orb orb-blue" style="right:10%;top:14%;--dur:14s;--delay:-5s"></span>
+   <span class="lvlup-bg-orb orb-gold" style="left:18%;bottom:8%;--dur:18s;--delay:-7.2s"></span>
+   <span class="lvlup-bg-orb orb-blue" style="right:14%;bottom:10%;--dur:20s;--delay:-3.8s"></span>
+  </div>
+  <div class="lvlup-vignette"></div>
+  <div class="lvlup-burst" id="lvlupBurst"></div>
+  <div class="lvlup-flash"></div>
+  <div class="lvlup-particles" id="lvlupParticles" aria-hidden="true"></div>
+
+  <section class="lvlup-modal" id="lvlupModal" aria-label="Level up preview">
+   <div class="lvlup-ribbon" id="lvlupRibbon">
+    <img id="lvlupRibbonArt" src="assets/ui/ruban%20niveau.png" alt="" aria-hidden="true">
+    <span class="lvlup-ribbon-text" id="lvlupRibbonText">NIVEAU 5</span>
+   </div>
+   <div class="lvlup-inner">
+    <h2 class="lvlup-heading" id="lvlupHeading">GAINS</h2>
+    <div class="lvlup-rewards" id="lvlupRewards"></div>
+    <p class="lvlup-meta" id="lvlupMeta"></p>
+    <div class="lvlup-actions">
+     <button class="lvlup-btn profile" type="button">PROFIL</button>
+     <button class="lvlup-btn close" type="button" id="lvlupCloseBtn">FERMER</button>
+    </div>
+   </div>
+  </section>
+ </div>
+
+ <div class="lvlup-toolbar">
+  <button type="button" id="lvlupReplayBtn">Rejouer animation</button>
+ </div>
+
+ <script>
+  const LEVEL_TITLES = Object.freeze({
+   10: "Aspirant du Krosmoz",
+   20: "Eclaireur des Douze",
+   30: "Gardien des Portails",
+   40: "Traqueur des Reliques",
+   50: "Maitre des Etincelles",
+   60: "Sentinelle Astrale",
+   70: "Passeur de Dimensions",
+   80: "Archiviste Arcane",
+   90: "Veilleur des Constellations",
+   100: "Champion du Krosmoz",
+   110: "Seigneur des Fragments",
+   120: "Strategue des Arcanes",
+   130: "Commandeur des Cartes",
+   140: "Oracle des Douze",
+   150: "Heroe des Mondes",
+   160: "Regent des Portails",
+   170: "Legat Celeste",
+   180: "Maitre des Legendes",
+   190: "Parangon du Nexus",
+   200: "Legende Eternelle"
+  })
+
+  const stageEl = document.getElementById("lvlupStage")
+  const modalEl = document.getElementById("lvlupModal")
+  const ribbonEl = document.getElementById("lvlupRibbon")
+  const ribbonArtEl = document.getElementById("lvlupRibbonArt")
+  const ribbonTextEl = document.getElementById("lvlupRibbonText")
+  const headingEl = document.getElementById("lvlupHeading")
+  const rewardsEl = document.getElementById("lvlupRewards")
+  const metaEl = document.getElementById("lvlupMeta")
+  const replayBtn = document.getElementById("lvlupReplayBtn")
+  const closeBtn = document.getElementById("lvlupCloseBtn")
+  const particlesEl = document.getElementById("lvlupParticles")
+  const burstEl = document.getElementById("lvlupBurst")
+
+  if (ribbonArtEl) {
+   ribbonArtEl.addEventListener("error", () => {
+    ribbonArtEl.style.display = "none"
+    ribbonEl.classList.add("is-fallback")
+   }, { once: true })
+   ribbonArtEl.addEventListener("load", () => {
+    ribbonEl.classList.remove("is-fallback")
+    ribbonArtEl.style.display = ""
+   }, { once: true })
+  }
+
+  function randomInt(min, max) {
+   const low = Math.min(Number(min || 0), Number(max || 0))
+   const high = Math.max(Number(min || 0), Number(max || 0))
+   return Math.floor(Math.random() * ((high - low) + 1)) + low
+  }
+
+  function getTitleForLevel(level) {
+   return String(LEVEL_TITLES[level] || `Parangon ${level}`)
+  }
+
+  function getKamasAmount(level) {
+   if (level <= 1) return 0
+   const t = (level - 2) / 198
+   return Math.round(100 + ((100000 - 100) * Math.max(0, Math.min(1, t))))
+  }
+
+  function getPackAmount(level) {
+   if (level <= 1) return 0
+   if (level <= 189) {
+    const t = (level - 2) / 187
+    return Math.round(1 + ((10 - 1) * Math.max(0, Math.min(1, t))))
+   }
+   const tThl = (level - 190) / 10
+   return Math.round(11 + ((30 - 11) * Math.max(0, Math.min(1, tThl))))
+  }
+
+  function getFragmentAmount(level) {
+   if (level <= 1) return 0
+   if (level <= 189) {
+    const t = (level - 2) / 187
+    return Math.round(1 + ((10 - 1) * Math.max(0, Math.min(1, t))))
+   }
+   const tThl = (level - 190) / 10
+   return Math.round(11 + ((30 - 11) * Math.max(0, Math.min(1, tThl))))
+  }
+
+  function getCardProfile(level) {
+   if (level === 200) return { rarity: "UR", amount: 6 }
+   if (level >= 195) return { rarity: "UR", amount: 4 }
+   if (level >= 190) return { rarity: "SSR", amount: 6 }
+   if (level >= 180) return { rarity: "SSR", amount: 5 }
+   if (level >= 170) return { rarity: "SR", amount: 4 }
+   if (level >= 150) return { rarity: "S", amount: 4 }
+   if (level >= 130) return { rarity: "S", amount: 3 }
+   if (level >= 100) return { rarity: "R", amount: 3 }
+   if (level >= 80) return { rarity: "R", amount: 2 }
+   if (level >= 50) return { rarity: "U", amount: 2 }
+   return { rarity: "C", amount: 1 }
+  }
+
+  function buildRandomLevelUp() {
+   const level = randomInt(2, 200)
+   const rewards = [
+    { type: "kamas", label: "KAMAS", amount: getKamasAmount(level) },
+    { type: "packs", label: "PACKS", amount: getPackAmount(level) },
+    { type: "fragments", label: "FRAGMENTS", amount: getFragmentAmount(level) }
+   ]
+
+   if (level % 10 === 0) {
+    rewards.push({ type: "title", label: "TITRE", amount: 1, value: getTitleForLevel(level) })
+    rewards.push({ type: "badge", label: "BADGE", amount: 1, value: `Insigne ${getTitleForLevel(level)}` })
+   } else {
+    const card = getCardProfile(level)
+    rewards.push({ type: "cards", label: `CARTES ${card.rarity}`, amount: card.amount })
+    if (level >= 190) {
+     rewards.push({
+      type: "cards",
+      label: `BONUS ${level >= 195 ? "UR" : "SSR"}`,
+      amount: 1 + Math.floor((level - 190) / 2)
+     })
+    }
+   }
+
+   return { level, rewards }
+  }
+
+  function iconSvg(type) {
+   if (type === "kamas") {
+    return `
+     <svg class="lvlup-icon kamas" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="22"></circle>
+      <path d="M24 27h16v4H24zm0 7h16v4H24z"></path>
+     </svg>
+    `
+   }
+  if (type === "packs") {
+   return `
+     <svg class="lvlup-icon packs" viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="13" y="18" width="38" height="30" rx="7"></rect>
+      <path d="M13 30h38M32 18v30"></path>
+     </svg>
+    `
+  }
+   if (type === "fragments") {
+    return `
+     <svg class="lvlup-icon fragments" viewBox="0 0 64 64" aria-hidden="true">
+      <polygon points="32,9 47,20 42,43 22,43 17,20"></polygon>
+      <path d="M24 26h16M28 32h8"></path>
+     </svg>
+    `
+   }
+   if (type === "cards") {
+    return `
+     <svg class="lvlup-icon cards" viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="16" y="14" width="28" height="36" rx="5"></rect>
+      <path d="M22 22h16M22 30h12M22 38h10"></path>
+     </svg>
+    `
+   }
+   if (type === "badge") {
+    return `
+     <svg class="lvlup-icon badge" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="24" r="12"></circle>
+      <path d="M24 36l-4 18 12-8 12 8-4-18"></path>
+     </svg>
+    `
+   }
+  return `
+    <svg class="lvlup-icon title" viewBox="0 0 64 64" aria-hidden="true">
+     <path d="M12 16h40v10c0 12-10 22-20 22S12 38 12 26z"></path>
+     <polygon points="26,48 38,48 42,58 22,58"></polygon>
+    </svg>
+   `
+  }
+
+  function getRewardIconSrc(type) {
+   const key = String(type || "").toLowerCase()
+   if (key === "kamas") return "assets/ui/gain%20kamas%20level%20up.png"
+   if (key === "packs") return "assets/ui/gain%20packs%20level%20up.png"
+   if (key === "fragments") return "assets/ui/gain%20fragments%20level%20up.png"
+   if (key === "cards") return "assets/ui/gain%20carte%20level%20up.png"
+   if (key === "title") return "assets/ui/gain%20titre%20level%20up.png"
+   if (key === "badge") return "assets/ui/gain%20badge%20level%20up.png"
+   return "assets/ui/gain%20titre%20level%20up.png"
+  }
+
+  function iconMarkup(type) {
+   const src = getRewardIconSrc(type)
+   const safeType = String(type || "")
+   return `
+    <img class="lvlup-icon-image" src="${src}" alt="" loading="eager" decoding="async">
+    <span class="lvlup-icon-fallback">${iconSvg(safeType)}</span>
+   `
+  }
+
+  function formatAmount(value) {
+   const safe = Math.max(0, Number(value || 0))
+   return safe.toLocaleString("fr-FR")
+  }
+
+  function animateCounter(el, target, duration = 820) {
+   if (!el) return
+   const end = Math.max(0, Number(target || 0))
+   if (end <= 0) {
+    el.textContent = "+0"
+    return
+   }
+   const startAt = performance.now()
+   function tick(now) {
+    const p = Math.min(1, (now - startAt) / duration)
+    const eased = 1 - Math.pow(1 - p, 3)
+    const value = Math.round(end * eased)
+    el.textContent = `+${value.toLocaleString("fr-FR")}`
+    if (p < 1) window.requestAnimationFrame(tick)
+   }
+   window.requestAnimationFrame(tick)
+  }
+
+  function renderRewards(levelUpData) {
+   const rewards = Array.isArray(levelUpData?.rewards) ? levelUpData.rewards : []
+   rewardsEl.dataset.count = String(Math.max(0, Math.min(5, rewards.length)))
+   rewardsEl.innerHTML = rewards.map((reward, index) => `
+    <article class="lvlup-reward-card" data-index="${index}">
+     <div class="lvlup-icon-wrap">${iconMarkup(String(reward?.type || ""))}</div>
+     <p class="lvlup-reward-label">${String(reward?.label || "GAIN")}</p>
+     <p class="lvlup-reward-value" data-target="${Math.max(0, Number(reward?.amount || 0))}">+0</p>
+    </article>
+   `).join("")
+
+   rewardsEl.querySelectorAll(".lvlup-icon-wrap").forEach((wrap) => {
+    const img = wrap.querySelector(".lvlup-icon-image")
+    if (!img) return
+    img.addEventListener("error", () => {
+     wrap.classList.add("is-image-missing")
+    }, { once: true })
+    img.addEventListener("load", () => {
+     wrap.classList.remove("is-image-missing")
+    }, { once: true })
+   })
+  }
+
+  function spawnParticles() {
+   const dots = []
+   for (let i = 0; i < 56; i += 1) {
+    const left = Math.round(Math.random() * 100)
+    const top = 58 + Math.round(Math.random() * 40)
+    const delay = (Math.random() * 4.2).toFixed(2)
+    const dur = (3 + (Math.random() * 2.4)).toFixed(2)
+    const drift = Math.round((Math.random() * 90) - 45)
+    const size = (2 + (Math.random() * 3.5)).toFixed(2)
+    const hue = Math.random() < 0.65 ? "gold" : "blue"
+    const color = hue === "gold"
+     ? "rgba(255,234,166,0.95)"
+     : "rgba(158,224,255,0.95)"
+    dots.push(`<span class="lvlup-particle" style="left:${left}%;top:${top}%;width:${size}px;height:${size}px;background:${color};box-shadow:0 0 14px ${hue === "gold" ? "rgba(255,218,126,0.75)" : "rgba(126,196,255,0.72)"};--delay:${delay}s;--dur:${dur}s;--xdrift:${drift}px"></span>`)
+   }
+   particlesEl.innerHTML = dots.join("")
+  }
+
+  function resetAnimationState() {
+   stageEl.classList.remove("flash-active")
+   stageEl.classList.remove("burst-active")
+   modalEl.classList.remove("playing")
+   ribbonEl.classList.remove("show")
+   headingEl.classList.remove("show")
+   if (burstEl) burstEl.style.opacity = "0"
+   rewardsEl.querySelectorAll(".lvlup-reward-card").forEach((card) => {
+    card.classList.remove("revealed")
+    const valueEl = card.querySelector(".lvlup-reward-value")
+    if (valueEl) valueEl.textContent = "+0"
+   })
+  }
+
+  function playLevelUpAnimation(levelUpData) {
+   const safeLevel = Math.max(1, Number(levelUpData?.level || 1))
+   if (ribbonTextEl) ribbonTextEl.textContent = `NIVEAU ${safeLevel}`
+   metaEl.textContent = `Bravo, tu as atteint le niveau ${safeLevel}.`
+   renderRewards(levelUpData)
+   resetAnimationState()
+   spawnParticles()
+
+   window.requestAnimationFrame(() => {
+    stageEl.classList.add("flash-active")
+    stageEl.classList.add("burst-active")
+    modalEl.classList.add("playing")
+   })
+
+   window.setTimeout(() => ribbonEl.classList.add("show"), 180)
+   window.setTimeout(() => headingEl.classList.add("show"), 380)
+
+   const cards = [...rewardsEl.querySelectorAll(".lvlup-reward-card")]
+   cards.forEach((card, index) => {
+    window.setTimeout(() => {
+     card.classList.add("revealed")
+     const valueEl = card.querySelector(".lvlup-reward-value")
+     const target = Number(valueEl?.dataset?.target || 0)
+     animateCounter(valueEl, target, 820)
+    }, 620 + (index * 190))
+   })
+  }
+
+  replayBtn.addEventListener("click", () => playLevelUpAnimation(buildRandomLevelUp()))
+  closeBtn.addEventListener("click", () => {
+   modalEl.style.display = "none"
+   window.setTimeout(() => {
+    modalEl.style.display = ""
+    playLevelUpAnimation(buildRandomLevelUp())
+   }, 180)
+  })
+
+  playLevelUpAnimation(buildRandomLevelUp())
+ </script>
+</body>
+</html>
