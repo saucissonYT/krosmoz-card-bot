@@ -1099,6 +1099,17 @@ body.leaderboard-page .footer {
  transform: scale(1.01);
 }
 
+.lb-row-placeholder {
+ cursor: default;
+ border: 1px dashed rgba(110, 126, 176, 0.35);
+ opacity: 0.88;
+}
+
+.lb-row-placeholder:hover {
+ background: var(--bg-card);
+ transform: none;
+}
+
 .lb-row td {
  padding: 14px 20px;
  vertical-align: middle;
@@ -1135,6 +1146,14 @@ body.leaderboard-page .footer {
  border-radius: 50%;
  border: 2px solid rgba(255, 255, 255, 0.1);
  object-fit: cover;
+}
+
+.lb-avatar-placeholder {
+ display: grid;
+ place-items: center;
+ color: var(--text-muted);
+ font-family: 'JetBrains Mono', monospace;
+ font-weight: 700;
 }
 
 .lb-name {
@@ -2346,6 +2365,13 @@ body.guild-page .guild-shell {
  min-height: 30px;
  padding: 4px 10px;
  font-size: 0.78rem;
+}
+
+.lb-detail-btn-disabled {
+ pointer-events: none;
+ opacity: 0.65;
+ min-width: 64px;
+ justify-content: center;
 }
 
 .btn.danger {

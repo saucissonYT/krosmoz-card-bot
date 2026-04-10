@@ -105,6 +105,14 @@
   guilds: "niv."
  }
 
+ const LEADERBOARD_TOP_LIMIT = 10
+
+ function padLeaderboardEntries(entries, limit = LEADERBOARD_TOP_LIMIT) {
+  const safe = Array.isArray(entries) ? entries.slice(0, limit) : []
+  while (safe.length < limit) safe.push(null)
+  return safe
+ }
+
  function updateLeaderboardActiveLabel(category) {
   const label = document.getElementById("leaderboardActiveLabel")
   if (!label) return
@@ -138,19 +146,32 @@
    const res = await fetch(`/api/leaderboard/${category}`)
    const data = await res.json()
 
-   if (!data.length) {
-    container.innerHTML = `
-     <div class="loading">
-      <p style="color: var(--text-secondary)">Aucun joueur dans cette catégorie.</p>
-     </div>`
-    return
-   }
-
    const unit = CATEGORY_UNITS[category] || ""
+   const paddedData = padLeaderboardEntries(data, LEADERBOARD_TOP_LIMIT)
 
    if (category === "guilds") {
-    const rowsGuild = data.map((entry, i) => {
+    const rowsGuild = paddedData.map((entry, i) => {
      const rank = i + 1
+     if (!entry) {
+      return `
+       <tr class="lb-row lb-row-placeholder">
+        <td class="lb-rank">#${rank}</td>
+        <td>
+         <div class="lb-user">
+          <div class="lb-avatar lb-avatar-placeholder">-</div>
+          <div>
+           <div class="lb-name">-</div>
+           <div class="lb-title">-</div>
+          </div>
+         </div>
+        </td>
+        <td class="lb-level">-</td>
+        <td class="lb-value guild-lb-actions">
+         <span>-</span>
+         <span class="btn btn-outline lb-detail-btn lb-detail-btn-disabled">-</span>
+        </td>
+       </tr>`
+     }
      const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : ""
      const rowClass = rank <= 3 ? `top-${rank}` : ""
      const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`
@@ -182,8 +203,25 @@
     return
    }
 
-   const rows = data.map((entry, i) => {
+   const rows = paddedData.map((entry, i) => {
     const rank = i + 1
+    if (!entry) {
+     return `
+      <tr class="lb-row lb-row-placeholder">
+       <td class="lb-rank">#${rank}</td>
+       <td>
+        <div class="lb-user">
+         <div class="lb-avatar lb-avatar-placeholder">-</div>
+         <div>
+          <div class="lb-name">-</div>
+          <div class="lb-title">-</div>
+         </div>
+        </div>
+       </td>
+       <td class="lb-level">-</td>
+       <td class="lb-value">-</td>
+      </tr>`
+    }
     const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : ""
     const rowClass = rank <= 3 ? `top-${rank}` : ""
     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`

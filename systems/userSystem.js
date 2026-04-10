@@ -525,7 +525,7 @@ function getUser(id) {
    fragments:   [],
    shinyCards:  {},
    kamas:       0,
-   packs:       0,
+   packs:       5,
    lastPack:    0,
    lastClaim:   0,
    pity:        {},

@@ -20,6 +20,7 @@ const { resetRegistry } = require("../systems/cardRegistry")
 resetRegistry()
 
 const { checkAchievements } = require("../systems/achievementEngine")
+const achievementRegistry = require("../systems/achievementRegistry")
 
 let passed = 0
 let failed = 0
@@ -122,6 +123,45 @@ test("achievement secret 666 kamas se débloque", () => {
 })
 
 /* ── Résultats ── */
+
+
+/* -------- Succ?s "X secrets" : uniquement via des succ?s secrets -------- */
+
+test("les succ?s 'X secrets' ne se valident pas avec des succ?s non-secrets", () => {
+ const nonSecretIds = Object.keys(achievementRegistry).filter((id) => !achievementRegistry[id]?.secret)
+ const user = makeUser({
+  achievements: nonSecretIds.slice(0, 200),
+  title: "Nouveau"
+ })
+ const unlocked = checkAchievements(user, null)
+ assert.ok(!unlocked.includes("secretMurmure"), "secretMurmure ne doit pas se d?bloquer via des succ?s non-secrets")
+ assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze ne doit pas se d?bloquer via des succ?s non-secrets")
+})
+
+test("secretMurmure se valide avec 3 succ?s secrets r?els", () => {
+ const secretIds = Object.keys(achievementRegistry).filter(
+  (id) => achievementRegistry[id]?.secret && id !== "secretMurmure" && id !== "secretEnigmeDouze"
+ )
+ const user = makeUser({
+  achievements: secretIds.slice(0, 3),
+  title: "Nouveau"
+ })
+ const unlocked = checkAchievements(user, null)
+ assert.ok(unlocked.includes("secretMurmure"), "secretMurmure doit se d?bloquer avec 3 succ?s secrets")
+ assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze ne doit pas se d?bloquer avec 3 secrets")
+})
+
+test("secretEnigmeDouze se valide avec 12 succ?s secrets r?els", () => {
+ const secretIds = Object.keys(achievementRegistry).filter(
+  (id) => achievementRegistry[id]?.secret && id !== "secretEnigmeDouze"
+ )
+ const user = makeUser({
+  achievements: secretIds.slice(0, 12),
+  title: "Nouveau"
+ })
+ const unlocked = checkAchievements(user, null)
+ assert.ok(unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze doit se d?bloquer avec 12 succ?s secrets")
+})
 
 console.log(`\n══════ Résultats : ${passed} passed, ${failed} failed ══════\n`)
 process.exit(failed > 0 ? 1 : 0)
