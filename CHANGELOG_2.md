@@ -9,6 +9,100 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-10 -> 2026-04-10) - Site web local, UX, guildes
+
+### Added
+
+- **Mode local web et simulation complete** (`web/Server.js`, `web/public/*`)
+  - Simulation de connexion locale pour naviguer sur tout le site sans push
+  - Donnees de demo locales pour tester rapidement les pages (inventaire, marche, battle pass, quetes, events, krosmoshop, classement, guildes)
+  - Regeneration de seed locale au redemarrage pour relancer un cycle de test propre
+
+- **Nouvelle experience Guilde cote web** (`web/public/Guild.html`, `web/public/GuildDetail.html`, `web/Server.js`)
+  - Page guilde orientee gestion: nom, niveau, jauge XP, ID, date de creation, bonus actifs, quetes completees
+  - Bloc membres avec liste complete, role du joueur connecte et actions associees
+  - Panneau meneur/officier: inviter, exclure, promouvoir, retrograder, transferer le lead, renommer, dissoudre
+  - Cas "sans guilde": creation (5000 kamas), liste des guildes disponibles, candidature
+  - Detail de guilde sur page dediee, accessible depuis le classement
+
+- **Classement guildes web** (`web/public/Leaderboard.html`, `web/Server.js`)
+  - Ajout d'une 8e categorie "Guildes"
+  - Tri des guildes par niveau avec action "Detail" par ligne
+
+- **Systeme de notifications guilde web persistant** (`web/Server.js`, `systems/guildSystem.js`, `systems/guildQuestSystem.js`)
+  - Notifications meneur/officier: nouvelle candidature, join, leave
+  - Notifications membres: join/leave d'un membre, quete de guilde terminee
+  - Stockage et replay des notifs pour les joueurs deconnectes
+
+- **Extension achievements web/site** (`systems/achievements/achievementSiteExpansion.js`, `systems/achievementProgressTracker.js`, `systems/achievementRegistry.js`)
+  - Ajout d'un bloc de 92 succes "site/web"
+  - Suivi dedie des actions web (daily web, shop view/buy, market, battle pass, profil, guildes, interactions sociales)
+  - Integration dans le registre global des succes
+
+### Changed
+
+- **DA cartes alignee KrosmoShop** (`web/public/Cards.html`, `web/public/Play.html`, `web/public/Market.html`, `web/public/Style.css`, `web/public/Play.css`)
+  - Reprise du style de cartes KrosmoShop sur les pages Cartes, Marche et Inventaire
+  - Grille ajustee pour eviter le chevauchement image/texte (5 cartes par ligne sur desktop)
+  - Reduction/ajustement des tailles de vignettes et cartes pour une lecture stable
+
+- **Tri Cartes et Inventaire modernise**
+  - Filtrage multi-raretes (plusieurs raretes actives en meme temps)
+  - Ajout de l'ordre croissant/decroissant sur les tris (ex: ID, rarete)
+
+- **Navigation web harmonisee**
+  - Placement "Guildes" dans la 2e barre (entre Marche et Achievements), puis retrait du lien doublon dans la barre du haut
+  - Conservation de la structure double-navbar en local pour iteration rapide
+
+- **Tutoriel web refondu** (`web/public/Tutorial.html`)
+  - Nouveau parcours "Jouer sur le site" prioritaire
+  - Bloc Discord re-ecrit avec lien cliquable et positionnement "autre facon de jouer"
+  - Nettoyage du contenu (suppression des anciennes astuces/cycles non souhaites)
+
+- **Profil web enrichi** (`web/public/Profile.html`, `web/Server.js`)
+  - Changement de titre depuis le profil
+  - Affichage des badges sous la barre XP
+
+- **Battle Pass web**
+  - Bouton "Tout recuperer" rendu plus lisible (style inspire bouton vendre du marche)
+  - Ajout d'un bouton Premium dans "Ta progression" (acheter premium / deja achete)
+  - Ajustements pop-up de recuperation de paliers pour un affichage clair des recompenses
+
+- **Daily web dans la navbar** (`web/public/*`, `web/Server.js`)
+  - Bouton claim daily en haut (users connectes uniquement)
+  - Timer jusqu'au prochain claim
+  - Emoji cadeau ajoute au bouton
+
+- **README et compteurs aligns** (`README.md`, `commands/joueur/krosmohelp.js`, `web/public/Index.html`)
+  - Mention explicite de la version site/web
+  - Mise a jour des compteurs de succes et textes d'aide associes
+
+### Fixed
+
+- **Popups / modales web**
+  - Correction des soucis d'emoji/accents sur certaines popups (roulette notamment)
+  - Ajout d'une croix de fermeture rapide sur les popups
+  - Correctifs de superposition des toasts et gestion de file d'attente
+
+- **Marche web**
+  - Ajustements des blocs de fond (suppression/reintroduction selon sections demandees)
+  - Correction des dimensions de conteneurs quand peu d'annonces sont presentes (market + mes annonces)
+
+- **Inventaire web**
+  - Suppression des cadres image non souhaites
+  - Bouton "Vendre (X kamas)" force sur une seule ligne
+
+- **Index / landing**
+  - Suppression du gros bloc englobant dans le hero (en gardant le contenu)
+  - Amelioration de lisibilite sur plusieurs titres/phrases clefs (couleurs et contraste)
+
+- **Classement web**
+  - Reduction de la hauteur des 7 blocs filtres pour une interface plus compacte
+
+- **Guildes web layout**
+  - Espacement entre les blocs "sans guilde"
+  - Espacement entre les lignes/blocs membres/quetes pour meilleure lisibilite
+
 ### Updates (2026-04-08 -> 2026-04-09)
 
 ### Added

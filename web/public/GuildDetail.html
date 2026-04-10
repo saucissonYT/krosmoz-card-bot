@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Détail Guilde ? Krosmoz Card</title>
+ <meta name="theme-color" content="#c9a84c">
+ <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="guild-page">
+ <nav class="navbar scrolled">
+  <div class="navbar-inner">
+   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
+   <ul class="navbar-links" id="navLinks">
+    <li><a href="/">Accueil</a></li>
+    <li><a href="/leaderboard">Classement</a></li>
+    <li><a href="/tutorial">Tutoriel</a></li>
+    <li><a href="/cards">Cartes</a></li>
+   </ul>
+   <div class="navbar-right">
+    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
+   </div>
+  </div>
+ </nav>
+
+ <div class="page">
+  <div class="container">
+   <section class="guild-shell">
+    <header class="fade-in">
+     <h1 class="section-title">🛡️ Détail de guilde</h1>
+     <p class="section-subtitle">Vue publique de la guilde.</p>
+    </header>
+    <div id="guildDetailRoot" class="fade-in stagger-1">
+     <div class="loading"><div class="spinner"></div><p>Chargement du détail...</p></div>
+    </div>
+   </section>
+
+   <footer class="footer">
+    <p>🎴 <a href="/">Krosmoz Card</a> · krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">? propos · Contact · Mentions légales</a></p>
+   </footer>
+  </div>
+ </div>
+
+ <script src="/js/web-auth.js"></script>
+ <script>
+ document.getElementById("navToggle").addEventListener("click", () => {
+  document.getElementById("navLinks").classList.toggle("open")
+ })
+
+ function esc(value) {
+  const node = document.createElement("div")
+  node.textContent = String(value || "")
+  return node.innerHTML
+ }
+
+ function fmt(value) {
+  return Number(value || 0).toLocaleString("fr-FR")
+ }
+
+ function fmtDate(iso) {
+  if (!iso) return "?"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "?"
+  return d.toLocaleString("fr-FR")
+ }
+
+ function memberRow(member) {
+  const avatar = member?.discord?.avatarURL || "https://cdn.discordapp.com/embed/avatars/0.png"
+  const name = member?.discord?.displayName || member?.id || "Joueur"
+  return `
+   <div class="guild-member-row">
+    <div class="guild-member-main">
+     <img class="lb-avatar" src="${esc(avatar)}" alt="" loading="lazy" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+     <div>
+      <p class="guild-member-name">${esc(name)}</p>
+      <p class="kshop-muted">${esc(member.role || "Membre")} · ${esc(member.title || "Nouveau")}</p>
+     </div>
+    </div>
+    <div class="guild-member-stats">
+     <span>Niv. ${fmt(member.level || 1)}</span>
+     <span>${fmt(member.totalCards || 0)} cartes</span>
+    </div>
+   </div>
+  `
+ }
+
+ async function loadGuildDetail() {
+  const root = document.getElementById("guildDetailRoot")
+  const byPath = window.location.pathname.match(/^\/guild\/detail\/(.+)$/)
+  const guildId = byPath && byPath[1] ? decodeURIComponent(byPath[1]) : new URLSearchParams(window.location.search).get("id")
+  if (!guildId) {
+   root.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Aucune guilde ciblée.</p></div>`
+   return
+  }
+
+  try {
+   const res = await fetch(`/api/guild/${encodeURIComponent(guildId)}`, { credentials: "same-origin" })
+   const data = await res.json()
+   if (!res.ok) {
+    root.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">${esc(data?.error || "Guilde introuvable.")}</p></div>`
+    return
+   }
+
+   const members = Array.isArray(data.members) ? data.members : []
+   root.innerHTML = `
+    <article class="guild-panel guild-main-card">
+     <div class="guild-main-head">
+      <h2>${esc(data.emoji || "🛡️")} ${esc(data.name || "Guilde")}</h2>
+      <span class="chip">Niv. ${fmt(data.level)}</span>
+     </div>
+     <div class="guild-kpis">
+      <span class="chip">ID: ${esc(data.id)}</span>
+      <span class="chip">${fmt(members.length)}/${fmt(data.maxMembers || 10)} membres</span>
+      <span class="chip">XP: ${fmt(data.xp || 0)}</span>
+      <span class="chip">Créée le: ${esc(fmtDate(data.createdAt))}</span>
+     </div>
+     <p class="kshop-muted">Quêtes complétées: ${fmt(data.stats?.questsCompleted || 0)} · XP totale gagnée: ${fmt(data.stats?.totalXpEarned || 0)}</p>
+    </article>
+
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Membres</h3>
+      <a class="btn btn-outline" href="/guild">Retour gestion</a>
+     </div>
+     <div class="guild-members-grid">
+      ${members.map(memberRow).join("") || `<p class="kshop-muted">Aucun membre.</p>`}
+     </div>
+    </section>
+   `
+  } catch (_) {
+   root.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+  }
+ }
+
+ loadGuildDetail()
+ </script>
+</body>
+</html>

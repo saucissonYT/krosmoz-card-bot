@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Classement — Krosmoz Card</title>
+ <title>Classement ? Krosmoz Card</title>
  <meta name="description" content="Classement des meilleurs collecteurs de Krosmoz Card">
  <meta name="theme-color" content="#c9a84c">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏆</text></svg>">
@@ -20,7 +20,6 @@
     <li><a href="/leaderboard" class="active">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -30,7 +29,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
    </div>
   </div>
  </nav>
@@ -53,6 +52,7 @@
       <button class="tab-btn" data-cat="achievements"><span class="tab-icon">&#x1F3C6;</span><span>Succès</span></button>
       <button class="tab-btn" data-cat="ssr"><span class="tab-icon">&#x1F308;</span><span>SSR</span></button>
       <button class="tab-btn" data-cat="packs"><span class="tab-icon">&#x1F4E6;</span><span>Packs</span></button>
+      <button class="tab-btn" data-cat="guilds"><span class="tab-icon">&#x1F3F0;</span><span>Guildes</span></button>
      </div>
      <p id="leaderboardActiveLabel" class="leaderboard-active-label"></p>
     </div>
@@ -60,14 +60,14 @@
     <div id="leaderboardContent" class="leaderboard-content-shell">
      <div class="loading">
       <div class="spinner"></div>
-      <p>Chargement du classement…</p>
+      <p>Chargement du classement⬦</p>
      </div>
     </div>
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>🎴 <a href="/">Krosmoz Card</a> · krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">? propos · Contact · Mentions légales</a></p>
    </footer>
 
   </div>
@@ -90,7 +90,8 @@
   level: "⭐ Niveau",
   achievements: "🏆 Succès",
   ssr: "🌈 SSR",
-  packs: "📦 Packs ouverts"
+  packs: "📦 Packs ouverts",
+  guilds: "🛡️ Guildes (niveau)"
  }
 
  const CATEGORY_UNITS = {
@@ -100,7 +101,8 @@
   level: "niv.",
   achievements: "succès",
   ssr: "SSR",
-  packs: "packs"
+  packs: "packs",
+  guilds: "niv."
  }
 
  function updateLeaderboardActiveLabel(category) {
@@ -129,10 +131,10 @@
   container.innerHTML = `
    <div class="loading">
     <div class="spinner"></div>
-    <p>Chargement…</p>
+    <p>Chargement⬦</p>
    </div>`
 
-  try {
+ try {
    const res = await fetch(`/api/leaderboard/${category}`)
    const data = await res.json()
 
@@ -146,11 +148,45 @@
 
    const unit = CATEGORY_UNITS[category] || ""
 
+   if (category === "guilds") {
+    const rowsGuild = data.map((entry, i) => {
+     const rank = i + 1
+     const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : ""
+     const rowClass = rank <= 3 ? `top-${rank}` : ""
+     const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`
+     const members = `${Number(entry.members || 0)}/${Number(entry.maxMembers || 10)}`
+     return `
+      <tr class="lb-row ${rowClass}">
+       <td class="lb-rank ${rankClass}">${medal}</td>
+       <td>
+        <div class="lb-user">
+         <div class="lb-avatar" style="display:grid;place-items:center;font-size:1.1rem">${escapeHTML(entry.emoji || "🛡️")}</div>
+         <div>
+          <div class="lb-name">${escapeHTML(entry.name || "Guilde")}</div>
+          <div class="lb-title">${members} membres</div>
+         </div>
+        </div>
+       </td>
+       <td class="lb-level">Niv. ${Number(entry.level || 1)}</td>
+       <td class="lb-value guild-lb-actions">
+        <span>${Number(entry.value || entry.level || 1)} ${unit}</span>
+        <a class="btn btn-outline lb-detail-btn" href="/guild/detail/${encodeURIComponent(String(entry.guildId || ""))}">Détail</a>
+       </td>
+      </tr>`
+    }).join("")
+
+    container.innerHTML = `
+     <table class="lb-table fade-in">
+      <tbody>${rowsGuild}</tbody>
+     </table>`
+    return
+   }
+
    const rows = data.map((entry, i) => {
     const rank = i + 1
     const rankClass = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : ""
     const rowClass = rank <= 3 ? `top-${rank}` : ""
-    const medal = rank === 1 ? "👑" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`
     const avatar = entry.discord?.avatarURL || `https://cdn.discordapp.com/embed/avatars/0.png`
     const name = entry.discord?.displayName || entry.userId
     const value = typeof entry.value === "number" ? entry.value.toLocaleString("fr-FR") : entry.value

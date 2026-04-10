@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Guildes — Krosmoz Card</title>
+ <title>Guildes ? Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -16,7 +16,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild" class="active">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -26,35 +25,31 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
    </div>
   </div>
  </nav>
 
  <div class="page">
   <div class="container">
-   <section style="padding-top:40px">
-    <h1 class="section-title fade-in">🏰 Détail des guildes</h1>
-    <p class="section-subtitle fade-in stagger-1">Recherche et fiche complète de guilde</p>
+   <section class="guild-shell">
+    <header class="fade-in">
+     <h1 class="section-title">🛡️ Gestion de guilde</h1>
+     <p class="section-subtitle">Gère ta guilde, tes membres, les candidatures, et les quêtes de guilde.</p>
+    </header>
 
-    <div class="toolbar fade-in stagger-2">
-     <input id="guildSearch" class="input" placeholder="Nom ou ID de guilde..." />
-     <select id="guildSort" class="input input-select">
-      <option value="level">Tri: Niveau</option>
-      <option value="members">Tri: Membres</option>
-      <option value="name">Tri: Nom</option>
-     </select>
-     <button id="searchBtn" class="btn btn-outline market-sell-btn">Rechercher</button>
+    <div id="guildDevTools" class="guild-panel fade-in stagger-1" hidden></div>
+    <div id="guildApp" class="fade-in stagger-2">
+     <div class="loading">
+      <div class="spinner"></div>
+      <p>Chargement de ta guilde...</p>
+     </div>
     </div>
-
-    <div id="guildList" class="catalog-grid"></div>
-
-    <div id="guildDetail" class="profile-card" style="margin-top:20px; display:none"></div>
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>🎴 <a href="/">Krosmoz Card</a> · krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">? propos · Contact · Mentions légales</a></p>
    </footer>
   </div>
  </div>
@@ -65,120 +60,589 @@
   document.getElementById("navLinks").classList.toggle("open")
  })
 
- let currentGuildId = null
-
- function escapeHtml(str) {
-  const div = document.createElement("div")
-  div.textContent = String(str || "")
-  return div.innerHTML
+ const state = {
+  guildState: null,
+  localSession: false
  }
 
- function guildCard(g) {
+ function esc(value) {
+  const node = document.createElement("div")
+  node.textContent = String(value || "")
+  return node.innerHTML
+ }
+
+ function fmt(value) {
+  return Number(value || 0).toLocaleString("fr-FR")
+ }
+
+ function fmtDate(iso) {
+  if (!iso) return "?"
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return "?"
+  return d.toLocaleString("fr-FR")
+ }
+
+ function showToast(message, isError = false) {
+  if (typeof window.__kcDismissBottomNotifs === "function") {
+   window.__kcDismissBottomNotifs({
+    keepLegacyToast: false,
+    keepProgressToasts: false,
+    keepEventToast: false
+   })
+  }
+  const toast = document.createElement("div")
+  toast.className = `toast ${isError ? "toast-error" : ""}`
+  toast.textContent = String(message || "")
+  document.body.appendChild(toast)
+  setTimeout(() => toast.classList.add("show"), 10)
+  setTimeout(() => {
+   toast.classList.remove("show")
+   setTimeout(() => toast.remove(), 250)
+  }, 2600)
+ }
+
+ async function api(path, options = {}) {
+  const method = String(options.method || "GET").toUpperCase()
+  const headers = new Headers(options.headers || {})
+  let body = options.body
+  if (method !== "GET" && method !== "HEAD") {
+   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json")
+   const ct = String(headers.get("Content-Type") || "")
+   if (ct.includes("application/json")) {
+    if (body === undefined) body = "{}"
+    else if (typeof body !== "string") body = JSON.stringify(body)
+   }
+  }
+  const res = await fetch(path, { credentials: "same-origin", ...options, method, headers, body: method === "GET" || method === "HEAD" ? undefined : body })
+  let data = null
+  try { data = await res.json() } catch (_) {}
+  return { ok: res.ok, status: res.status, data }
+ }
+
+ function guildSummaryCard(guild, me) {
+  const role = esc(guild.rankLabel || guild.rank || "Membre")
+  const bonusActive = Array.isArray(guild.bonuses) ? guild.bonuses.filter((row) => row.active) : []
+  const bonusHtml = bonusActive.length
+   ? bonusActive.map((row) => `<li><strong>${esc(row.label)}:</strong> +${esc(row.value)}${esc(row.unit || "")}</li>`).join("")
+   : "<li>Aucun bonus actif pour le moment.</li>"
+
   return `
-   <article class="catalog-card">
-    <div class="catalog-card-head">
-     <span class="chip">${escapeHtml(g.emoji || "🏰")}</span>
-     <span class="chip">Niv. ${g.level}</span>
+   <article class="guild-panel guild-main-card">
+    <div class="guild-main-head">
+     <h2>${esc(guild.emoji || "🛡️")} ${esc(guild.name || "Guilde")}</h2>
+     <span class="chip">Niv. ${fmt(guild.level)}</span>
     </div>
-    <h3>${escapeHtml(g.name)}</h3>
-    <p>ID: ${escapeHtml(g.id)}</p>
-    <p>Membres: ${g.members}/10</p>
-    <button class="btn btn-outline guild-open" data-id="${escapeHtml(g.id)}">Voir le détail</button>
+    <div class="guild-xp-track">
+     <div class="guild-xp-meta">
+      <span>XP guilde</span>
+      <span>${fmt(guild.xp)} / ${fmt(guild.xpRequired)}</span>
+     </div>
+     <div class="xp-bar"><div class="xp-bar-fill" style="width:${Math.max(0, Math.min(100, Number(guild.xpPct || 0)))}%"></div></div>
+    </div>
+    <div class="guild-kpis">
+     <span class="chip">ID: ${esc(guild.id)}</span>
+     <span class="chip">${fmt(guild.memberCount)}/${fmt(guild.maxMembers)} membres</span>
+     <span class="chip">Ton rôle: ${role}</span>
+     <span class="chip">Quêtes complétées: ${fmt(guild.stats?.questsCompleted || 0)}</span>
+     <span class="chip">Créée le: ${esc(fmtDate(guild.createdAt))}</span>
+    </div>
+    <div class="guild-bonus-list">
+     <h3>Bonus actifs</h3>
+     <ul>${bonusHtml}</ul>
+    </div>
+    <p class="kshop-muted">Connecté: <strong>${esc(me?.discord?.displayName || me?.id || "Joueur")}</strong></p>
    </article>
   `
  }
 
- async function loadGuildList() {
-  const root = document.getElementById("guildList")
-  const q = document.getElementById("guildSearch").value.trim()
-  const sort = document.getElementById("guildSort").value
-  root.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement des guildes...</p></div>`
-
-  try {
-   const params = new URLSearchParams({ limit: "30", sort })
-   if (q) params.set("q", q)
-   const res = await fetch(`/api/guilds?${params.toString()}`)
-   const data = await res.json()
-   const items = data.items || []
-
-   if (!items.length) {
-    root.innerHTML = `<div class="loading"><p>Aucune guilde trouvée.</p></div>`
-    return
-   }
-
-   root.innerHTML = items.map(guildCard).join("")
-   root.querySelectorAll(".guild-open").forEach((btn) => {
-    btn.addEventListener("click", () => openGuild(btn.dataset.id))
-   })
-
-   if (!currentGuildId) openGuild(items[0].id)
-  } catch (_) {
-   root.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
-  }
- }
-
- function memberRow(m) {
-  const name = m.discord?.displayName || m.id
+ function guildMemberRow(member) {
+  const avatar = member?.discord?.avatarURL || "https://cdn.discordapp.com/embed/avatars/0.png"
+  const name = member?.discord?.displayName || member?.id || "Joueur"
   return `
-   <tr class="lb-row" onclick="window.location='/profile/${m.id}'">
-    <td>${escapeHtml(name)}<div class="lb-title">${escapeHtml(m.role)} · ${escapeHtml(m.title || "Nouveau")}</div></td>
-    <td class="lb-level">Niv. ${m.level}</td>
-    <td class="lb-value">${Number(m.totalCards || 0).toLocaleString("fr-FR")} cartes</td>
-   </tr>
+   <div class="guild-member-row">
+    <div class="guild-member-main">
+     <img class="lb-avatar" src="${esc(avatar)}" alt="" loading="lazy" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
+     <div>
+      <p class="guild-member-name">${esc(name)}</p>
+      <p class="kshop-muted">${esc(member.role || "Membre")} · ${esc(member.title || "Nouveau")}</p>
+     </div>
+    </div>
+    <div class="guild-member-stats">
+     <span>Niv. ${fmt(member.level || 1)}</span>
+     <span>${fmt(member.totalCards || 0)} cartes</span>
+    </div>
+   </div>
   `
  }
 
- async function openGuild(id) {
-  currentGuildId = id
-  const detail = document.getElementById("guildDetail")
-  detail.style.display = "block"
-  detail.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement du détail...</p></div>`
-
-  try {
-   const res = await fetch(`/api/guild/${encodeURIComponent(id)}`)
-   if (!res.ok) {
-    detail.innerHTML = `<p style="color:var(--rarity-HR)">Guilde introuvable.</p>`
-    return
-   }
-   const g = await res.json()
-   detail.innerHTML = `
-    <h2>${escapeHtml(g.emoji || "🏰")} ${escapeHtml(g.name)} — Niv. ${g.level}</h2>
-    <div class="stats-inline">
-     <span class="chip">Membres: ${g.members.length}/${g.maxMembers}</span>
-     <span class="chip">XP: ${Number(g.xp || 0).toLocaleString("fr-FR")}</span>
-     <span class="chip">Quêtes complétées: ${Number(g.stats?.questsCompleted || 0).toLocaleString("fr-FR")}</span>
-     <span class="chip">Cards total: ${Number(g.stats?.totalCards || 0).toLocaleString("fr-FR")}</span>
-    </div>
-    <table class="lb-table" style="margin-top:12px">
-     <tbody>${(g.members || []).map(memberRow).join("")}</tbody>
-    </table>
+ function questGroupCard(group, canClaim, type) {
+  if (!group || !Array.isArray(group.quests)) return ""
+  const label = type === "daily" ? "Quêtes journalières" : "Quêtes hebdomadaires"
+  const rows = group.quests.map((quest) => {
+   const done = Boolean(quest.done)
+   const claimed = Boolean(quest.claimed)
+   const canClaimOne = canClaim && done && !claimed
+   return `
+    <article class="guild-quest-row ${done ? "done" : ""}">
+     <div>
+      <p><strong>${esc(quest.emoji || "🎯")} ${esc(quest.name || "Quête")}</strong></p>
+      <p class="kshop-muted">${esc(quest.desc || "")}</p>
+      <p class="kshop-muted">${fmt(quest.current)} / ${fmt(quest.goal)} · +${fmt(quest.reward?.guildXp || 0)} XP guilde</p>
+     </div>
+     <div class="guild-quest-actions">
+      <span class="chip">${claimed ? "Réclamée" : done ? "Terminée" : "En cours"}</span>
+      ${canClaimOne ? `<button class="btn btn-outline guild-claim-one" data-type="${esc(type)}" data-quest-id="${esc(quest.id)}">Valider</button>` : ""}
+     </div>
+    </article>
    `
+  }).join("")
+
+  const groupClaimable = canClaim && group.quests.some((quest) => quest.done && !quest.claimed)
+  return `
+   <section class="guild-panel">
+    <div class="guild-panel-head">
+     <h3>${label}</h3>
+     <span class="chip">Reset: ${esc(group.resetIn || "--")}</span>
+    </div>
+    <p class="kshop-muted">Progression: ${fmt(group.summary?.completed || 0)}/${fmt(group.summary?.total || 0)} · XP potentiel: ${fmt(group.summary?.xpPotential || 0)}</p>
+    <div class="guild-quests-grid">${rows}</div>
+    ${groupClaimable ? `<button class="btn btn-outline guild-claim-all" data-type="${esc(type)}">Tout valider (${esc(type)})</button>` : ""}
+   </section>
+  `
+ }
+
+ function getManageOptions(guild, mode) {
+  const members = Array.isArray(guild.members) ? guild.members : []
+  if (mode === "kick") return members.filter((m) => String(m.id) !== String(state.guildState?.me?.id || ""))
+  if (mode === "promote") return members.filter((m) => m.role !== "Meneur" && m.role !== "Officier")
+  if (mode === "demote") return members.filter((m) => m.role === "Officier")
+  if (mode === "transfer") return members.filter((m) => String(m.id) !== String(state.guildState?.me?.id || ""))
+  return members
+ }
+
+ function buildSelectOptions(items) {
+  if (!items.length) return `<option value="">Aucun membre disponible</option>`
+  return [`<option value="">Sélectionner</option>`, ...items.map((item) => {
+   const name = item?.discord?.displayName || item?.id || "Joueur"
+   return `<option value="${esc(item.id)}">${esc(name)} (${esc(item.role || "Membre")})</option>`
+  })].join("")
+ }
+
+ function renderGuildState(payload) {
+  const root = document.getElementById("guildApp")
+  const guild = payload?.guild
+  const me = payload?.me
+  const quests = payload?.quests
+  if (!guild) {
+   renderNoGuild(payload)
+   return
+  }
+
+  const membersHtml = (guild.members || []).map(guildMemberRow).join("") || `<p class="kshop-muted">Aucun membre.</p>`
+  const applications = Array.isArray(guild.applications) ? guild.applications : []
+  const applicationRows = applications.length
+   ? applications.map((entry) => {
+     const name = entry?.discord?.displayName || entry?.userId || "Candidat"
+     const canManage = Boolean(guild.canManage)
+     return `
+      <div class="guild-app-row">
+       <div>
+        <p><strong>${esc(name)}</strong></p>
+        <p class="kshop-muted">ID ${esc(entry.userId)} · Niv. ${fmt(entry.level || 1)} · ${esc(entry.title || "Nouveau")}</p>
+       </div>
+       ${canManage ? `
+       <div class="guild-inline-actions">
+        <button class="btn btn-outline guild-app-accept" data-user-id="${esc(entry.userId)}">Accepter</button>
+        <button class="btn btn-outline guild-app-reject" data-user-id="${esc(entry.userId)}">Refuser</button>
+       </div>` : ""}
+      </div>
+     `
+    }).join("")
+   : `<p class="kshop-muted">Aucune candidature en attente.</p>`
+
+  const kickOptions = buildSelectOptions(getManageOptions(guild, "kick"))
+  const promoteOptions = buildSelectOptions(getManageOptions(guild, "promote"))
+  const demoteOptions = buildSelectOptions(getManageOptions(guild, "demote"))
+  const transferOptions = buildSelectOptions(getManageOptions(guild, "transfer"))
+  const canManage = Boolean(guild.canManage)
+  const canLead = Boolean(guild.canLead)
+  const showInviteLocal = Boolean(state.localSession)
+
+  root.innerHTML = `
+   <div class="guild-state-stack">
+    ${guildSummaryCard(guild, me)}
+
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Membres</h3>
+      <a class="btn btn-outline" href="/guild/detail/${encodeURIComponent(guild.id)}">Voir la fiche publique</a>
+     </div>
+     <div class="guild-members-grid">${membersHtml}</div>
+    </section>
+
+    ${canManage ? `
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Panel gestion (meneur/officier)</h3>
+     </div>
+     <div class="guild-manage-grid">
+      <div class="guild-form-block">
+       <label>Candidatures en attente</label>
+       <div class="guild-app-list">${applicationRows}</div>
+      </div>
+
+      <div class="guild-form-block">
+       <label>Exclure un membre</label>
+       <select id="guildKickSelect" class="input input-select">${kickOptions}</select>
+       <button id="guildKickBtn" class="btn btn-outline">Exclure</button>
+      </div>
+
+      ${showInviteLocal ? `
+      <div class="guild-form-block">
+       <label>Inviter (mode local: ajout direct via ID Discord)</label>
+       <input id="guildInviteIdInput" class="input" placeholder="ID Discord (ex: 980000000000000001)">
+       <button id="guildInviteBtn" class="btn btn-outline">Inviter</button>
+      </div>` : ""}
+     </div>
+    </section>` : ""}
+
+    ${canLead ? `
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Panel meneur</h3>
+     </div>
+     <div class="guild-manage-grid">
+      <div class="guild-form-block">
+       <label>Promouvoir officier</label>
+       <select id="guildPromoteSelect" class="input input-select">${promoteOptions}</select>
+       <button id="guildPromoteBtn" class="btn btn-outline">Promouvoir</button>
+      </div>
+
+      <div class="guild-form-block">
+       <label>Rétrograder officier</label>
+       <select id="guildDemoteSelect" class="input input-select">${demoteOptions}</select>
+       <button id="guildDemoteBtn" class="btn btn-outline">Rétrograder</button>
+      </div>
+
+      <div class="guild-form-block">
+       <label>Transférer le lead</label>
+       <select id="guildTransferSelect" class="input input-select">${transferOptions}</select>
+       <button id="guildTransferBtn" class="btn btn-outline">Transférer</button>
+      </div>
+
+      <div class="guild-form-block">
+       <label>Renommer la guilde (2000 kamas)</label>
+       <input id="guildRenameInput" class="input" maxlength="24" placeholder="Nouveau nom">
+       <button id="guildRenameBtn" class="btn btn-outline">Renommer</button>
+      </div>
+
+      <div class="guild-form-block">
+       <label>Dissoudre la guilde</label>
+       <button id="guildDisbandBtn" class="btn btn-outline danger">Dissoudre</button>
+      </div>
+     </div>
+    </section>` : ""}
+
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Quêtes de guilde</h3>
+      ${canManage ? `<button id="guildClaimAllBothBtn" class="btn btn-outline">Tout valider (daily + weekly)</button>` : ""}
+     </div>
+     ${questGroupCard(quests?.daily, Boolean(quests?.canClaim), "daily")}
+     ${questGroupCard(quests?.weekly, Boolean(quests?.canClaim), "weekly")}
+    </section>
+
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Actions personnelles</h3>
+     </div>
+     <p class="kshop-muted">Tu peux quitter la guilde à tout moment (sauf si tu es meneur).</p>
+     <button id="guildLeaveBtn" class="btn btn-outline">Quitter la guilde</button>
+    </section>
+   </div>
+  `
+
+  bindGuildActions()
+ }
+
+ function renderNoGuild(payload) {
+  const root = document.getElementById("guildApp")
+  const directory = Array.isArray(payload?.guildDirectory) ? payload.guildDirectory : []
+  const cards = directory.map((guild) => `
+   <article class="catalog-card guild-directory-card">
+    <div class="catalog-card-head">
+     <span class="chip">${esc(guild.emoji || "🛡️")}</span>
+     <span class="chip">Niv. ${fmt(guild.level)}</span>
+    </div>
+    <h3>${esc(guild.name)}</h3>
+    <p>${fmt(guild.members)}/${fmt(guild.maxMembers)} membres</p>
+    <p>ID: ${esc(guild.id)}</p>
+    <div class="guild-inline-actions">
+     <a class="btn btn-outline" href="/guild/detail/${encodeURIComponent(guild.id)}">Détail</a>
+     <button class="btn btn-outline guild-apply-btn" data-guild-id="${esc(guild.id)}" ${guild.canApply && !guild.hasApplied ? "" : "disabled"}>
+      ${guild.hasApplied ? "Candidature envoyée" : guild.canApply ? "Postuler" : "Complet"}
+     </button>
+    </div>
+   </article>
+  `).join("")
+
+  root.innerHTML = `
+   <div class="guild-no-guild-stack">
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h2>Tu n'as pas de guilde</h2>
+     </div>
+     <p class="kshop-muted">Crée ta guilde pour 5000 kamas, ou postule dans une guilde existante.</p>
+     <div class="guild-inline-form">
+      <input id="guildCreateInput" class="input" maxlength="24" placeholder="Nom de ta guilde">
+      <button id="guildCreateBtn" class="btn btn-outline">Créer (5000 kamas)</button>
+     </div>
+    </section>
+
+    <section class="guild-panel">
+     <div class="guild-panel-head">
+      <h3>Guildes disponibles</h3>
+     </div>
+     <div class="catalog-grid">${cards || `<p class="kshop-muted">Aucune guilde trouvée.</p>`}</div>
+    </section>
+   </div>
+  `
+
+  const createBtn = document.getElementById("guildCreateBtn")
+  if (createBtn) {
+   createBtn.addEventListener("click", async () => {
+    const input = document.getElementById("guildCreateInput")
+    const name = String(input?.value || "").trim()
+    if (!name) return showToast("Choisis un nom de guilde.", true)
+    const res = await api("/api/guild/create", { method: "POST", body: { name } })
+    if (!res.ok) return showToast(res.data?.error || "Création impossible.", true)
+    showToast("Guilde créée.")
+    await refreshGuildState()
+   })
+  }
+
+  root.querySelectorAll(".guild-apply-btn").forEach((button) => {
+   button.addEventListener("click", async () => {
+    const guildId = button.dataset.guildId
+    if (!guildId) return
+    const res = await api("/api/guild/apply", { method: "POST", body: { guildId } })
+    if (!res.ok) return showToast(res.data?.error || "Postulation impossible.", true)
+    showToast("Candidature envoyée.")
+    await refreshGuildState()
+   })
+  })
+ }
+
+ async function claimGuildQuest(type, questId = "") {
+  const res = await api("/api/quests/claim", {
+   method: "POST",
+   body: { scope: "guild", type, questId }
+  })
+  if (!res.ok) {
+   showToast(res.data?.error || "Validation impossible.", true)
+   return
+  }
+  showToast(`Récompense guilde récupérée (+${fmt(res.data?.result?.totalXP || 0)} XP guilde).`)
+  await refreshGuildState()
+ }
+
+ function bindGuildActions() {
+  document.querySelectorAll(".guild-claim-one").forEach((button) => {
+   button.addEventListener("click", async () => {
+    await claimGuildQuest(button.dataset.type, button.dataset.questId)
+   })
+  })
+  document.querySelectorAll(".guild-claim-all").forEach((button) => {
+   button.addEventListener("click", async () => {
+    await claimGuildQuest(button.dataset.type, "")
+   })
+  })
+
+  const claimBothBtn = document.getElementById("guildClaimAllBothBtn")
+  if (claimBothBtn) {
+   claimBothBtn.addEventListener("click", async () => {
+    await claimGuildQuest("daily", "")
+    await claimGuildQuest("weekly", "")
+   })
+  }
+
+  const leaveBtn = document.getElementById("guildLeaveBtn")
+  if (leaveBtn) {
+   leaveBtn.addEventListener("click", async () => {
+    const ok = window.confirm("Quitter ta guilde ?")
+    if (!ok) return
+    const res = await api("/api/guild/leave", { method: "POST", body: {} })
+    if (!res.ok) return showToast(res.data?.error || "Impossible de quitter la guilde.", true)
+    showToast("Tu as quitté la guilde.")
+    await refreshGuildState()
+   })
+  }
+
+  const kickBtn = document.getElementById("guildKickBtn")
+  if (kickBtn) {
+    kickBtn.addEventListener("click", async () => {
+    const select = document.getElementById("guildKickSelect")
+    const targetId = String(select?.value || "")
+    if (!targetId) return showToast("Choisis un membre.", true)
+    const res = await api("/api/guild/manage/kick", { method: "POST", body: { targetId } })
+    if (!res.ok) return showToast(res.data?.error || "Exclusion impossible.", true)
+    showToast("Membre exclu.")
+    await refreshGuildState()
+   })
+  }
+
+  const inviteBtn = document.getElementById("guildInviteBtn")
+  if (inviteBtn) {
+   inviteBtn.addEventListener("click", async () => {
+    const input = document.getElementById("guildInviteIdInput")
+    const targetId = String(input?.value || "").trim()
+    if (!targetId) return showToast("Saisis un ID Discord.", true)
+    const res = await api("/api/guild/manage/invite", { method: "POST", body: { targetId } })
+    if (!res.ok) return showToast(res.data?.error || "Invitation impossible.", true)
+    showToast("Joueur ajouté à la guilde.")
+    await refreshGuildState()
+   })
+  }
+
+  document.querySelectorAll(".guild-app-accept").forEach((button) => {
+   button.addEventListener("click", async () => {
+    const applicantId = button.dataset.userId
+    const res = await api("/api/guild/application/respond", { method: "POST", body: { applicantId, action: "accept" } })
+    if (!res.ok) return showToast(res.data?.error || "Action impossible.", true)
+    showToast("Candidature acceptée.")
+    await refreshGuildState()
+   })
+  })
+
+  document.querySelectorAll(".guild-app-reject").forEach((button) => {
+   button.addEventListener("click", async () => {
+    const applicantId = button.dataset.userId
+    const res = await api("/api/guild/application/respond", { method: "POST", body: { applicantId, action: "reject" } })
+    if (!res.ok) return showToast(res.data?.error || "Action impossible.", true)
+    showToast("Candidature refusée.")
+    await refreshGuildState()
+   })
+  })
+
+  const promoteBtn = document.getElementById("guildPromoteBtn")
+  if (promoteBtn) {
+   promoteBtn.addEventListener("click", async () => {
+    const targetId = String(document.getElementById("guildPromoteSelect")?.value || "")
+    if (!targetId) return showToast("Choisis un membre.", true)
+    const res = await api("/api/guild/manage/promote", { method: "POST", body: { targetId } })
+    if (!res.ok) return showToast(res.data?.error || "Promotion impossible.", true)
+    showToast("Membre promu officier.")
+    await refreshGuildState()
+   })
+  }
+
+  const demoteBtn = document.getElementById("guildDemoteBtn")
+  if (demoteBtn) {
+   demoteBtn.addEventListener("click", async () => {
+    const targetId = String(document.getElementById("guildDemoteSelect")?.value || "")
+    if (!targetId) return showToast("Choisis un officier.", true)
+    const res = await api("/api/guild/manage/demote", { method: "POST", body: { targetId } })
+    if (!res.ok) return showToast(res.data?.error || "Rétrogradation impossible.", true)
+    showToast("Officier rétrogradé.")
+    await refreshGuildState()
+   })
+  }
+
+  const transferBtn = document.getElementById("guildTransferBtn")
+  if (transferBtn) {
+   transferBtn.addEventListener("click", async () => {
+    const targetId = String(document.getElementById("guildTransferSelect")?.value || "")
+    if (!targetId) return showToast("Choisis un membre.", true)
+    const ok = window.confirm("Confirmer le transfert de leadership ?")
+    if (!ok) return
+    const res = await api("/api/guild/manage/transfer", { method: "POST", body: { targetId } })
+    if (!res.ok) return showToast(res.data?.error || "Transfert impossible.", true)
+    showToast("Leadership transféré.")
+    await refreshGuildState()
+   })
+  }
+
+  const renameBtn = document.getElementById("guildRenameBtn")
+  if (renameBtn) {
+   renameBtn.addEventListener("click", async () => {
+    const name = String(document.getElementById("guildRenameInput")?.value || "").trim()
+    if (!name) return showToast("Saisis un nom.", true)
+    const res = await api("/api/guild/manage/rename", { method: "POST", body: { name } })
+    if (!res.ok) return showToast(res.data?.error || "Renommage impossible.", true)
+    showToast("Guilde renommée.")
+    await refreshGuildState()
+   })
+  }
+
+  const disbandBtn = document.getElementById("guildDisbandBtn")
+  if (disbandBtn) {
+   disbandBtn.addEventListener("click", async () => {
+    const ok = window.confirm("Dissoudre définitivement la guilde ?")
+    if (!ok) return
+    const res = await api("/api/guild/manage/disband", { method: "POST", body: {} })
+    if (!res.ok) return showToast(res.data?.error || "Dissolution impossible.", true)
+    showToast("Guilde dissoute.")
+    await refreshGuildState()
+   })
+  }
+ }
+
+ function renderDevTools() {
+  const root = document.getElementById("guildDevTools")
+  if (!root) return
+  if (!state.localSession) {
+   root.hidden = true
+   root.innerHTML = ""
+   return
+  }
+
+  root.hidden = false
+  root.innerHTML = `
+   <div class="guild-panel-head">
+    <h3>Mode test local</h3>
+   </div>
+   <p class="kshop-muted">Basculer rapidement entre les cas de test: meneur, officier, membre, sans guilde.</p>
+   <div class="guild-inline-actions">
+    <button class="btn btn-outline guild-dev-switch" data-mode="leader">Meneur</button>
+    <button class="btn btn-outline guild-dev-switch" data-mode="officer">Officier</button>
+    <button class="btn btn-outline guild-dev-switch" data-mode="member">Membre</button>
+    <button class="btn btn-outline guild-dev-switch" data-mode="none">Sans guilde</button>
+   </div>
+  `
+
+  root.querySelectorAll(".guild-dev-switch").forEach((button) => {
+   button.addEventListener("click", async () => {
+    const mode = String(button.dataset.mode || "")
+    const res = await api("/api/guild/dev/switch-role", { method: "POST", body: { mode } })
+    if (!res.ok) return showToast(res.data?.error || "Switch local impossible.", true)
+    showToast(`Mode local: ${mode}`)
+    await refreshGuildState()
+   })
+  })
+ }
+
+ async function refreshGuildState() {
+  const r = await api("/api/guild/me")
+  if (!r.ok) {
+   document.getElementById("guildApp").innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Connexion requise.</p></div>`
+   return
+  }
+  state.guildState = r.data
+  renderGuildState(r.data)
+ }
+
+ async function init() {
+  try {
+   const status = await api("/api/oauth/status")
+   state.localSession = Boolean(status.data?.localAuthSession || status.data?.localAuthEnabled)
   } catch (_) {
-   detail.innerHTML = `<p style="color:var(--rarity-HR)">Erreur de chargement de la guilde.</p>`
+   state.localSession = false
   }
+  renderDevTools()
+  await refreshGuildState()
  }
 
- document.getElementById("searchBtn").addEventListener("click", () => {
-  currentGuildId = null
-  loadGuildList()
- })
- document.getElementById("guildSearch").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-   currentGuildId = null
-   loadGuildList()
-  }
- })
- document.getElementById("guildSort").addEventListener("change", () => {
-  currentGuildId = null
-  loadGuildList()
- })
-
- const byPath = window.location.pathname.match(/^\/guild\/(.+)$/)
- if (byPath && byPath[1]) {
-  currentGuildId = decodeURIComponent(byPath[1])
-  openGuild(currentGuildId)
- }
- loadGuildList()
+ init()
  </script>
 </body>
 </html>

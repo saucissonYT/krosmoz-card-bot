@@ -287,7 +287,7 @@ Attention : Krosmo-bot peut voler ta carte... (1% SSR !)
 31 lots pondérés : kamas, packs, cartes, fragments.
 Jackpot secret ultra-rare : SSR Shiny + 10 000 kamas + 5 packs !
 
-**/achievements** → Voir tes **555 succès**
+**/achievements** → Voir tes **665 succès**
 Progression, économie, RNG, secrets, events, Battle Pass...
 Les succès débloquent des badges et des titres.`
     )
@@ -316,8 +316,8 @@ Collection, richesse, SSR, packs, succès, niveau, **guildes**.
 **/titre** → Choisir ton titre affiché
 Les titres se débloquent via les achievements et les crafts.
 
-**/achievements** → Voir tes 555 succès
-474 classiques + 81 Battle Pass.
+**/achievements** → Voir tes 665 succès
+579 classiques + 86 Battle Pass.
 
 **Rangs :** 🟢 Nouveau → 🥉 Bronze → 🥈 Argent → 🥇 Or → 💠 Platine → 💎 Diamant → 🌟 Mythique → 👑 Légende
 Basés sur le nombre de succès débloqués.
@@ -423,7 +423,7 @@ Chaque saison a un **bonus passif** actif pour tous les joueurs.
 📅 Quête hebdomadaire : +250 XP/quête
 ✅ Compléter un set : +480 XP
 
-**81 succès Battle Pass** : globaux permanents + saisonniers exclusifs.`
+**86 succès Battle Pass** : globaux permanents + saisonniers exclusifs.`
     )
     .setColor(0x1B6B3A)
 

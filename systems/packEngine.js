@@ -1,7 +1,8 @@
-ï»¿const { generatePack: coreGeneratePack } = require("./pack")
+const { generatePack: coreGeneratePack } = require("./pack")
 const { getCards, getCardsBySet } = require("./cardRegistry")
 const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
+const { recordAction } = require("./achievementProgressTracker")
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
@@ -9,7 +10,7 @@ const rarityXP={
  C:0,U:2,R:5,SR:8,HR:12,UR:20,S:25,SSR:30
 }
 
-/* XP de guilde gagnÃ©e par carte selon sa raretÃ© (trÃ¨s rÃ©duit) */
+/* XP de guilde gagnée par carte selon sa rareté (très réduit) */
 const GUILD_XP_PER_RARITY={
  C:1, U:1, R:3, SR:3, HR:4, UR:6, S:7, SSR:8
 }
@@ -67,14 +68,14 @@ function generatePack(user){
  }
 
  if(!setId){
-  console.error("âŒ NO SET ID FOR USER", user.id)
+  console.error("? NO SET ID FOR USER", user.id)
   return []
  }
 
  const result = coreGeneratePack(user,setId)
 
  if(!result || !Array.isArray(result.pack)){
-  console.error("âŒ INVALID PACK RESULT", result)
+  console.error("? INVALID PACK RESULT", result)
   return []
  }
 
@@ -91,7 +92,7 @@ function generateGlobalPack(size=5){
 
 function generateCustomPack(pool,size=5){
  if(!pool || !pool.length){
-  console.error("âŒ EMPTY CUSTOM POOL")
+  console.error("? EMPTY CUSTOM POOL")
   return []
  }
  return Array.from({length:size},()=>pool[Math.floor(Math.random()*pool.length)])
@@ -100,10 +101,10 @@ function generateCustomPack(pool,size=5){
 /* ================= PALINDROME ================= */
 
 /*
- * FIX : les chiffres Ã  1 digit (1â€“9) sont mathÃ©matiquement des palindromes
- * ("5" retournÃ© = "5"), ce qui dÃ©clenchait le succÃ¨s dÃ¨s les premiÃ¨res cartes.
- * On exige au moins 2 digits â€” premier palindrome atteignable : 11 cartes.
- * CohÃ©rent avec levelPalindrome dans achievementLevel.js.
+ * FIX : les chiffres à 1 digit (1–9) sont mathématiquement des palindromes
+ * ("5" retourné = "5"), ce qui déclenchait le succès dès les premières cartes.
+ * On exige au moins 2 digits — premier palindrome atteignable : 11 cartes.
+ * Cohérent avec levelPalindrome dans achievementLevel.js.
  */
 function isPalindrome(n){
  const s = String(n)
@@ -114,8 +115,8 @@ function isPalindrome(n){
 
 /**
  * Remplace toutes les cartes du pack par des cartes C (blanches).
- * AppelÃ© si le joueur est sous malchance.
- * On garde la mÃªme taille de pack et le mÃªme set.
+ * Appelé si le joueur est sous malchance.
+ * On garde la même taille de pack et le même set.
  */
 function applyNoLuck(pack, setId){
  try{
@@ -139,7 +140,7 @@ function openPack(user, setId, userId, options = {}){
 
  const isSimpleCommandOpen = options.isSimpleCommandOpen !== false
  const pityKey = options.pityKey || setId
- /* Capture pity AVANT le pack pour dÃ©tecter le hard pity */
+ /* Capture pity AVANT le pack pour détecter le hard pity */
  const pitySSRBefore = user.pity?.[pityKey]?.SSR ?? 0
 
  /* ---- Charger les bonus ---- */
@@ -174,7 +175,7 @@ function openPack(user, setId, userId, options = {}){
     luckyPack = false
    }
   }catch(err){
-   console.error("[NO_LUCK] Erreur vÃ©rification malchance :", err)
+   console.error("[NO_LUCK] Erreur vérification malchance :", err)
   }
  }
 
@@ -198,12 +199,12 @@ function openPack(user, setId, userId, options = {}){
 
  if(user.stats.ssrPulled===undefined)   user.stats.ssrPulled=0
  /*
-  * FIX : packsOpened n'est plus incrÃ©mentÃ© ici.
-  * Il est incrÃ©mentÃ© par l'appelant (krosmoz.js, eventpack.jsâ€¦)
-  * avant la boucle d'ouverture, ce qui Ã©vitait un double-comptage :
+  * FIX : packsOpened n'est plus incrémenté ici.
+  * Il est incrémenté par l'appelant (krosmoz.js, eventpack.js…)
+  * avant la boucle d'ouverture, ce qui évitait un double-comptage :
   *   - krosmoz.js  : packsOpened += packCount  (avant la boucle)
-  *   - packEngine  : packsOpened++              (Ã— packCount dans la boucle)
-  *   = 2 Ã— packCount au lieu de packCount
+  *   - packEngine  : packsOpened++              (× packCount dans la boucle)
+  *   = 2 × packCount au lieu de packCount
   */
  if(user.stats.packsOpened===undefined)  user.stats.packsOpened=0
  if(user.stats.shinySSR===undefined)     user.stats.shinySSR=0
@@ -249,8 +250,8 @@ function openPack(user, setId, userId, options = {}){
 
  /* ---- Stats pack ---- */
  /*
-  * NE PAS incrÃ©menter packsOpened ici â€” gÃ©rÃ© par l'appelant.
-  * On conserve uniquement les stats propres Ã  chaque pack individuel.
+  * NE PAS incrémenter packsOpened ici — géré par l'appelant.
+  * On conserve uniquement les stats propres à chaque pack individuel.
   */
 
  const parisNow = getParisTimeParts()
@@ -336,8 +337,9 @@ function openPack(user, setId, userId, options = {}){
  if(best) xpGain+=rarityXP[best.rarity] || 0
 
  addXP(user,xpGain)
+ recordAction(user, "pack", Date.now())
 
- /* ---- XP GUILDE via pack (trÃ¨s rÃ©duit : C=1, R=3, UR=6, SSR=8) ---- */
+ /* ---- XP GUILDE via pack (très réduit : C=1, R=3, UR=6, SSR=8) ---- */
  if(userId){
   try{
    const { getUserGuild, addGuildXP, saveGuilds } = require("./guildSystem")

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Tutoriel — Krosmoz Card</title>
+ <title>Tutoriel · Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -16,7 +16,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial" class="active">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -33,108 +32,95 @@
 
  <div class="page">
   <div class="container">
-   <section style="padding-top:40px">
-    <h1 class="section-title fade-in">📘 Tutoriel Rapide</h1>
-    <p class="section-subtitle fade-in stagger-1">Le guide utile pour bien démarrer et progresser vite.</p>
+   <section class="tutorial-shell">
+    <header class="tutorial-hero fade-in">
+     <h1 class="section-title">📘 Tutoriel Complet</h1>
+     <p class="section-subtitle">Commence sur le site pour progresser vite, puis utilise Discord pour accélérer encore.</p>
+    </header>
 
-    <div class="features-grid">
-     <article class="feature-card fade-in stagger-1">
-      <div class="feature-icon">🚀</div>
-      <h3>1. Démarrage conseillé</h3>
-      <p>Ouvre tes packs gratuits/heure avec <code>/krosmoz</code>, puis fais ton <code>/daily</code> et tes <code>/quests</code> chaque jour.</p>
-      <p>Ensuite, recycle tes doublons avec <code>/fusion</code> pour monter rapidement en rareté.</p>
-     </article>
+    <article class="profile-card fade-in stagger-1 tutorial-panel">
+     <h2>1) Jouer</h2>
+     <p class="tutorial-intro">Depuis le site, tu as une vue claire de ta progression et tu peux gérer rapidement tes cartes, quêtes, marché, battle pass et guilde.</p>
+     <div class="features-grid tutorial-grid">
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🔐</div>
+       <h3>Connexion & aperçu compte</h3>
+       <p>Connecte-toi via Discord (bouton en haut), puis vérifie <strong>Profil</strong>, <strong>niveau</strong>, <strong>kamas</strong>, <strong>titres</strong> et <strong>badges</strong>.</p>
+      </div>
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🎟️</div>
+       <h3>Boucle de gains immédiats</h3>
+       <p>Passe par <strong>Battle Pass</strong>, <strong>Quêtes</strong>, <strong>Événements</strong>, puis <strong>Krosmoshop</strong> pour récupérer tout ce qui est disponible.</p>
+      </div>
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🃏</div>
+       <h3>Collection & optimisation</h3>
+       <p>Dans <strong>Cartes</strong> et <strong>Inventaire</strong>, trie par rareté/ID, vends les doublons, et garde ce qui sert à la fusion/craft.</p>
+      </div>
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🛒</div>
+       <h3>Marché & économie</h3>
+       <p>Sur <strong>Marché</strong>, compare les prix, pose des annonces propres, et achète ce qui débloque des paliers/quêtes en priorité.</p>
+      </div>
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🧪</div>
+       <h3>Fusion & fragments</h3>
+       <p>Utilise la <strong>fusion</strong> pour transformer les doublons et le <strong>craft fragments</strong> pour viser les cartes hautes raretés.</p>
+      </div>
+      <div class="feature-card tutorial-step-card">
+       <div class="feature-icon">🏰</div>
+       <h3>Guilde & classements</h3>
+       <p>Rejoins/crée une guilde pour les bonus communs, puis suis tes perfs sur <strong>Classement</strong> et ajuste ton cycle.</p>
+      </div>
+     </div>
+    </article>
 
-     <article class="feature-card fade-in stagger-2">
-      <div class="feature-icon">🎴</div>
-      <h3>2. Commandes essentielles</h3>
-      <p><code>/krosmoz</code>, <code>/inventaire</code>, <code>/profil</code>, <code>/mystats</code>, <code>/achievements</code>, <code>/titre</code>.</p>
-      <p>Ces commandes sont la base pour suivre ta progression et débloquer tes récompenses.</p>
-     </article>
+    <article class="profile-card fade-in stagger-2 tutorial-panel">
+     <h2>2) Cycle conseillé pour avancer vite</h2>
+     <div class="tutorial-cycle">
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">1</span><p>Récupère tout ce qui est claimable: quêtes, paliers Battle Pass, récompenses d’event.</p></div>
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">2</span><p>Ouvre tes packs et actualise ton inventaire.</p></div>
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">3</span><p>Fais fusion/craft avec les doublons et fragments.</p></div>
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">4</span><p>Vends le surplus utilement sur le marché (prix cohérents).</p></div>
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">5</span><p>Achète les cartes clés pour finir des sets/quests.</p></div>
+      <div class="tutorial-cycle-item"><span class="tutorial-cycle-index">6</span><p>Contrôle progression: profil, achievements, ranking, guilde.</p></div>
+     </div>
+    </article>
 
-     <article class="feature-card fade-in stagger-3">
-      <div class="feature-icon">🛒</div>
-      <h3>3. Économie & marché</h3>
-      <p>Vends tes doublons via <code>/sellcard</code> ou <code>/sellduplicates</code>, et utilise <code>/market</code> pour acheter/vendre aux autres joueurs.</p>
-      <p>Sur le site, utilise le bouton Connexion Discord en haut pour trader directement.</p>
-     </article>
-
-     <article class="feature-card fade-in stagger-1">
-      <div class="feature-icon">🧩</div>
-      <h3>4. Fragments SSR</h3>
-      <p>Tu ne peux pas offrir un fragment, mais tu peux le vendre au marché.</p>
-      <p>Quand tu as les 5 fragments d’une SSR: <code>/craft</code> pour créer la carte.</p>
-     </article>
-
-     <article class="feature-card fade-in stagger-2">
-      <div class="feature-icon">🎲</div>
-      <h3>5. Bonus réguliers</h3>
-      <p>Joue la roulette <code>/roulette</code> (cooldown 1h), fais le shop <code>/krosmoshop</code> et garde un streak quotidien.</p>
-      <p>Ces actions donnent beaucoup d’XP, de kamas et d’achievements sur le long terme.</p>
-     </article>
-
-     <article class="feature-card fade-in stagger-3">
-      <div class="feature-icon">🏰</div>
-      <h3>6. Guilde & collectif</h3>
-      <p>Rejoins une guilde avec <code>/guild</code> pour profiter des bonus et des quêtes de guilde.</p>
-      <p>Les bonus guilde + bonus de niveau joueur se cumulent, c’est un énorme accélérateur.</p>
-     </article>
-    </div>
-
-    <div class="profile-card" style="margin-top:22px">
-     <h2>🧭 Parcours recommandé (très court)</h2>
-     <p class="result-meta">1) <code>/krosmoz</code> + <code>/daily</code> · 2) <code>/quests</code> · 3) <code>/fusion</code> · 4) <code>/market</code> · 5) <code>/craft</code> · 6) <code>/guild</code></p>
-    </div>
-
-    <div class="profile-card" style="margin-top:18px">
-     <h2>📚 Liste des commandes joueur (Discord)</h2>
-     <p><strong>🃏 Cartes & Collection</strong></p>
-     <p><code>📦 /krosmoz</code> — Ouvrir un pack de 5 cartes et tenter ta chance sur les raretés.</p>
-     <p><code>🗂️ /inventaire</code> — Voir ta collection complète, triable par rareté ou par set.</p>
-     <p><code>🔍 /carte</code> — Afficher les détails d'une carte par son ID.</p>
-     <p><code>📋 /listcards</code> — Lister toutes les cartes disponibles dans le jeu.</p>
-     <p><code>🎰 /roulette</code> — Jouer à la roulette et obtenir une récompense (1 fois par heure).</p>
-
-     <p style="margin-top:10px"><strong>⚗️ Fusion & Vente</strong></p>
-     <p><code>🔥 /fusion</code> — Fusionner des doublons pour monter en rareté (avec chance de critique).</p>
-     <p><code>💸 /sellcard</code> — Vendre une carte au bot contre des kamas.</p>
-     <p><code>♻️ /sellduplicate</code> — Vendre automatiquement tous tes doublons en un clic.</p>
-
-     <p style="margin-top:10px"><strong>🛒 Économie & Marché</strong></p>
-     <p><code>🏪 /market</code> — Acheter ou vendre des cartes entre joueurs.</p>
-     <p><code>🛍️ /krosmoshop</code> — Boutique quotidienne avec des cartes rares à prix fixe.</p>
-     <p><code>💰 /balance</code> — Voir ton solde de kamas actuel.</p>
-     <p><code>🎁 /buypack</code> — Acheter des packs avec tes kamas.</p>
-
-     <p style="margin-top:10px"><strong>🎁 Récompenses & Quêtes</strong></p>
-     <p><code>☀️ /daily</code> — Récupérer ta récompense quotidienne (streak bonus jusqu'à ×2).</p>
-     <p><code>📜 /quests</code> — Voir et claim tes quêtes journalières et hebdomadaires.</p>
-     <p><code>🏆 /achievement</code> — Consulter ta progression sur les 469 succès débloquables.</p>
-     <p><code>⚔️ /battlepass</code> — Voir le Battle Pass de la saison et réclamer tes paliers.</p>
-     <p><code>🎟️ /eventpack</code> — Ouvrir un pack d'événement lié aux 19 Dieux du Krosmoz.</p>
-     <p><code>🪄 /pity</code> — Voir ta pity SSR actuelle et ton historique de malchance.</p>
-
-     <p style="margin-top:10px"><strong>🏛️ Guilde</strong></p>
-     <p><code>⚜️ /guild</code> — Créer, rejoindre ou voir les infos de ta guilde.</p>
-     <p><code>🔧 /guildmanage</code> — Inviter, exclure, promouvoir des membres ou renommer la guilde.</p>
-
-     <p style="margin-top:10px"><strong>👤 Profil & Stats</strong></p>
-     <p><code>🪪 /profil</code> — Voir ton profil: niveau, titre, kamas, badges, succès.</p>
-     <p><code>📊 /mystats</code> — Statistiques détaillées sur 6 pages (RNG, économie, events…).</p>
-     <p><code>🎖️ /titre</code> — Changer le titre affiché sur ton profil.</p>
-     <p><code>🏅 /leaderboard</code> — Classements par collection, richesse, SSR, guilde et plus.</p>
-
-     <p style="margin-top:10px"><strong>🤝 Social</strong></p>
-     <p><code>🎀 /gift</code> — Donner une de tes cartes à un autre joueur.</p>
-     <p><code>🔄 /trade</code> — Proposer un échange de cartes avec un autre joueur.</p>
-
-     <p style="margin-top:10px"><strong>❓ Aide</strong></p>
-     <p><code>📖 /krosmohelp</code> — Guide complet du bot: mécaniques, RNG, pity, events…</p>
-    </div>
+    <article class="profile-card fade-in stagger-3 tutorial-panel">
+     <h2>3) Jouer sur Discord (commandes)</h2>
+     <p class="tutorial-intro">Si tu veux découvrir une autre façon de jouer via des commandes sur discord et rencontrer d'autres joueurs : <a href="https://discord.gg/W7UmsfCW" target="_blank" rel="noopener">discord</a>.</p>
+     <div class="tutorial-command-grid">
+      <div class="tutorial-command-card">
+       <h3>🎴 Cartes & ouverture</h3>
+       <p><code>/krosmoz</code> · <code>/inventaire</code> · <code>/carte</code> · <code>/listcards</code> · <code>/eventpack</code></p>
+      </div>
+      <div class="tutorial-command-card">
+       <h3>🧪 Fusion & craft</h3>
+       <p><code>/fusion</code> · <code>/craft</code> · <code>/pity</code></p>
+      </div>
+      <div class="tutorial-command-card">
+       <h3>💰 Économie</h3>
+       <p><code>/balance</code> · <code>/buypack</code> · <code>/market</code> · <code>/sellcard</code> · <code>/sellduplicate</code> · <code>/krosmoshop</code></p>
+      </div>
+      <div class="tutorial-command-card">
+       <h3>🏆 Progression</h3>
+       <p><code>/daily</code> · <code>/quests</code> · <code>/achievement</code> · <code>/battlepass</code> · <code>/roulette</code></p>
+      </div>
+      <div class="tutorial-command-card">
+       <h3>👤 Profil & stats</h3>
+       <p><code>/profil</code> · <code>/mystats</code> · <code>/titre</code> · <code>/leaderboard</code></p>
+      </div>
+      <div class="tutorial-command-card">
+       <h3>🤝 Social & guilde</h3>
+       <p><code>/gift</code> · <code>/trade</code> · <code>/guild</code> · <code>/guildmanage</code></p>
+      </div>
+     </div>
+    </article>
    </section>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — <span class="tutorial-footer-domain">krosmozcard.fr</span></p>
+    <p>🎴 <a href="/">Krosmoz Card</a> · <span class="tutorial-footer-domain">krosmozcard.fr</span></p>
     <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
    </footer>
   </div>

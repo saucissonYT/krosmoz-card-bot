@@ -1,6 +1,12 @@
 const { data } = require("./dataManager")
 const { getUser, save: saveUserData } = require("./userSystem")
 const { getCardsById } = require("./cardRegistry")
+const {
+ recordMarketListing,
+ recordMarketBuy,
+ recordMarketSale,
+ recordMarketRemove
+} = require("./achievementProgressTracker")
 
 if (!data.market) data.market = []
 if (!data.marketHistory) data.marketHistory = []
@@ -101,6 +107,7 @@ function addListing(sellerId, cardId, price) {
 
  if (!seller.stats) seller.stats = {}
  seller.stats.cardsSold = (seller.stats.cardsSold || 0) + 1
+ recordMarketListing(seller, cardId, Date.now())
 
  const cardsById = getCardsById()
  const card = cardsById[String(cardId)]
@@ -188,6 +195,18 @@ function buyCard(buyerId, listingId) {
   buyer.cards[listing.card] = (buyer.cards[listing.card] || 0) + 1
   buyer.stats.cardsBought = (buyer.stats.cardsBought || 0) + 1
   buyer.stats.marketBought = (buyer.stats.marketBought || 0) + 1
+  recordMarketBuy(buyer, listing.card, Date.now())
+  recordMarketSale(seller, listing, listing.price - tax, Date.now())
+
+  try {
+   const { getUserGuild } = require("./guildSystem")
+   const sellerGuild = getUserGuild(String(listing.seller || ""))
+   const buyerGuild = getUserGuild(String(buyerId || ""))
+   if (sellerGuild && buyerGuild && String(sellerGuild.id) === String(buyerGuild.id)) {
+    seller.stats.guildMemberTrades = (seller.stats.guildMemberTrades || 0) + 1
+    buyer.stats.guildMemberTrades = (buyer.stats.guildMemberTrades || 0) + 1
+   }
+  } catch (_) {}
  }
 
  data.market = data.market.filter((entry) => entry.id !== listingId)
@@ -228,6 +247,7 @@ function removeListing(userId, listingId) {
  }
 
  data.market = data.market.filter((entry) => entry.id !== listingId)
+ recordMarketRemove(user, Date.now())
  persistUsers(userId)
  return { success: true }
 }

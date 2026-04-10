@@ -23,6 +23,7 @@ const { getCards }                    = require("../../systems/cardRegistry")
 const { getUser, save }              = require("../../systems/userSystem")
 const { achievementCheck }           = require("../../systems/achievementCheck")
 const { notifyAchievements }         = require("../../systems/achievementNotifier")
+const { recordTradeAccepted }        = require("../../systems/achievementProgressTracker")
 
 /* ─── State en mémoire ───────────────────────────────────────── */
 
@@ -353,6 +354,12 @@ module.exports = {
 
    from.cards[trade.wantCard] = (from.cards[trade.wantCard] || 0) + 1
    to.cards[trade.giveCard]   = (to.cards[trade.giveCard] || 0) + 1
+
+   recordTradeAccepted(
+    { ...from, id: trade.from },
+    { ...to, id: trade.to },
+    Date.now()
+   )
 
    /* FIX : save ciblé pour les 2 joueurs */
    save(trade.from)

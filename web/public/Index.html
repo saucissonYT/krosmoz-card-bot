@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Krosmoz Card — Collectionne les cartes du Krosmoz</title>
+ <title>Krosmoz Card ? Collectionne les cartes du Krosmoz</title>
  <meta name="description" content="Bot Discord TCG inspiré de l'univers Krosmoz. Collectionne 2349 cartes, fusionne, échange, et deviens le meilleur collecteur !">
  <meta name="theme-color" content="#c9a84c">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>">
@@ -11,7 +11,7 @@
 
  <!-- Open Graph -->
  <meta property="og:title" content="Krosmoz Card">
- <meta property="og:description" content="Bot Discord TCG — 2349 cartes, 7 sets, 19 events, 469 achievements">
+ <meta property="og:description" content="Bot Discord TCG ? 2349 cartes, 7 sets, 19 events, 579 achievements">
  <meta property="og:type" content="website">
  <meta property="og:url" content="https://krosmozcard.fr">
 </head>
@@ -26,7 +26,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -36,7 +35,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
    </div>
   </div>
  </nav>
@@ -47,7 +46,7 @@
    <!-- HERO -->
    <section class="hero">
    <div class="hero-badge">🌈 2349 cartes · 7 sets · 19 dieux</div>
-    <div class="hero-season" id="heroSeason">🎟️ Saison Battle Pass en cours...</div>
+    <div class="hero-season" id="heroSeason">🟢 Saison Battle Pass en cours...</div>
     <h1>Collectionne les cartes<br>du <span class="gold">Krosmoz</span></h1>
     <p>
      Ouvre des packs, fusionne tes doublons, échange sur le marché, 
@@ -76,39 +75,39 @@
    <!-- STATS BAR -->
    <section class="stats-bar" id="statsBar">
     <div class="stat-item">
-     <div class="stat-value" id="stat-players">—</div>
+     <div class="stat-value" id="stat-players">?</div>
      <div class="stat-label">Joueurs</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-cards">—</div>
+     <div class="stat-value" id="stat-cards">?</div>
      <div class="stat-label">Cartes existantes</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-packs">—</div>
+     <div class="stat-value" id="stat-packs">?</div>
      <div class="stat-label">Packs ouverts</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-fusions">—</div>
+     <div class="stat-value" id="stat-fusions">?</div>
      <div class="stat-label">Fusions</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-roulettes">—</div>
+     <div class="stat-value" id="stat-roulettes">?</div>
      <div class="stat-label">Roulettes</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-pinatas">—</div>
+     <div class="stat-value" id="stat-pinatas">?</div>
      <div class="stat-label">Pinatas</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-ssr">—</div>
+     <div class="stat-value" id="stat-ssr">?</div>
      <div class="stat-label">SSR possédées</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-guilds">—</div>
+     <div class="stat-value" id="stat-guilds">?</div>
      <div class="stat-label">Guildes</div>
     </div>
     <div class="stat-item">
-     <div class="stat-value" id="stat-achievements">—</div>
+     <div class="stat-value" id="stat-achievements">?</div>
      <div class="stat-label">Succès débloqués</div>
     </div>
    </section>
@@ -121,7 +120,7 @@
     <div class="features-grid">
 
      <div class="feature-card fade-in stagger-1">
-      <div class="feature-icon">📦</div>
+      <div class="feature-icon">🎴</div>
       <h3>Ouvre des packs</h3>
       <p>Tire des cartes parmi 8 raretés, de Commune à SSR. Système de pity garanti pour les plus malchanceux.</p>
      </div>
@@ -139,31 +138,31 @@
      </div>
 
      <div class="feature-card fade-in stagger-4">
-      <div class="feature-icon">🎲</div>
+      <div class="feature-icon">🎟️</div>
       <h3>19 Events des Dieux</h3>
-      <p>Ecaflip, Osamodas, Pandawa, Xelor… Chaque Dieu modifie les packs avec son pouvoir unique.</p>
+      <p>Ecaflip, Osamodas, Pandawa, Xelor⬦ Chaque Dieu modifie les packs avec son pouvoir unique.</p>
      </div>
 
      <div class="feature-card fade-in stagger-1">
-      <div class="feature-icon">🏰</div>
+      <div class="feature-icon">🛡️</div>
       <h3>Guildes & quêtes</h3>
       <p>Crée ta guilde, recrute des membres, complète des quêtes collectives et débloquez des bonus permanents.</p>
      </div>
 
      <div class="feature-card fade-in stagger-2">
       <div class="feature-icon">🏆</div>
-      <h3>469 Succès</h3>
-      <p>Débloque des badges, des titres et des récompenses en jouant. Certains sont secrets…</p>
+      <h3>579 Succès</h3>
+      <p>Débloque des badges, des titres et des récompenses en jouant. Certains sont secrets⬦</p>
      </div>
 
      <div class="feature-card fade-in stagger-3">
-      <div class="feature-icon">🧩</div>
+      <div class="feature-icon">🛡️</div>
       <h3>Fragments & Craft</h3>
       <p>Collecte les 5 fragments d'une carte SSR pour la crafter. La voie du collectionneur patient.</p>
      </div>
 
      <div class="feature-card fade-in stagger-4">
-      <div class="feature-icon">🎡</div>
+      <div class="feature-icon">🎰</div>
       <h3>Roulette d'Ecaflip</h3>
       <p>Tente ta chance une fois par heure. 31 lots possibles, dont un jackpot secret légendaire.</p>
      </div>
@@ -192,7 +191,7 @@
 
    <!-- FOOTER -->
    <footer class="footer">
-    <p>🎴 Krosmoz Card — Bot Discord TCG inspiré de l'univers <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
+    <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
     <p style="margin-top:8px; font-size:0.8rem">Projet non affilié à Ankama Games</p>
     <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
    </footer>
@@ -239,14 +238,14 @@
 
  function rarityEmoji(rarity) {
   switch (String(rarity || "").toUpperCase()) {
-   case "SSR": return "🌟"
-   case "S": return "✨"
-   case "UR": return "💎"
-   case "HR": return "🔥"
+   case "SSR": return "🌈"
+   case "S": return "⚪"
+   case "UR": return "🟡"
+   case "HR": return "🔴"
    case "SR": return "🟣"
    case "R": return "🔵"
    case "U": return "🟢"
-   default: return "⚪"
+   default: return "🟤"
   }
  }
 
@@ -269,7 +268,7 @@
     : "Date inconnue"
    const kind = item?.kind || "unknown"
 
-   /* ── Market (achat carte / fragment) ── */
+   /* Market (achat carte / fragment) */
    if (kind === "market_card" || kind === "market_fragment") {
     const buyer = escapeHtml(item?.buyer?.name || "Joueur")
     const seller = escapeHtml(item?.seller?.name || "Joueur")
@@ -294,12 +293,12 @@
     `
    }
 
-   /* ── Event start ── */
+   /* Event start */
    if (kind === "event_start") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">⚡ Event des Dieux démarré</div>
+       <div class="activity-title">🟢 Event des Dieux démarré</div>
        <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
       </div>
       <div class="activity-side">
@@ -309,7 +308,7 @@
     `
    }
 
-   /* ── Event end ── */
+   /* Event end */
    if (kind === "event_end") {
     return `
      <article class="activity-item">
@@ -324,13 +323,13 @@
     `
    }
 
-   /* ── Drop S ── */
+   /* Drop S */
    if (kind === "drop_s") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">✨ Drop S</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "???")}</strong></div>
+       <div class="activity-title">⚪ Drop S</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "Carte inconnue")}</strong></div>
       </div>
       <div class="activity-side">
        <div class="activity-time">${dateLabel}</div>
@@ -339,13 +338,13 @@
     `
    }
 
-   /* ── Drop SSR ── */
+   /* Drop SSR */
    if (kind === "drop_ssr") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🌟 Drop SSR</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "???")}</strong>${item?.shiny ? " 🌈 SHINY" : ""}</div>
+       <div class="activity-title">🌈 Drop SSR</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "Carte inconnue")}</strong>${item?.shiny ? " 🌈 SHINY" : ""}</div>
       </div>
       <div class="activity-side">
        <div class="activity-time">${dateLabel}</div>
@@ -354,13 +353,13 @@
     `
    }
 
-   /* ── Guild create ── */
+   /* Guild create */
    if (kind === "guild_create") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">🏰 Guilde créée</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a fondé <strong>${escapeHtml(item?.guildName || "???")}</strong></div>
+       <div class="activity-title">🛡️ Guilde créée</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a fondé <strong>${escapeHtml(item?.guildName || "Guilde inconnue")}</strong></div>
       </div>
       <div class="activity-side">
        <div class="activity-time">${dateLabel}</div>
@@ -369,13 +368,13 @@
     `
    }
 
-   /* ── Guild disband ── */
+   /* Guild disband */
    if (kind === "guild_disband") {
     return `
      <article class="activity-item">
       <div class="activity-main">
-       <div class="activity-title">💀 Guilde dissoute</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.guildName || "???")}</strong> a été dissoute</div>
+       <div class="activity-title">💥 Guilde dissoute</div>
+       <div class="activity-meta"><strong>${escapeHtml(item?.guildName || "Guilde inconnue")}</strong> a été dissoute</div>
       </div>
       <div class="activity-side">
        <div class="activity-time">${dateLabel}</div>
@@ -384,7 +383,7 @@
     `
    }
 
-   /* ── Piñata start ── */
+   /* Piñata start */
    if (kind === "pinata_start" || kind === "pinata_start_web") {
     return `
      <article class="activity-item">
@@ -399,7 +398,7 @@
     `
    }
 
-   /* ── Piñata end ── */
+   /* Piñata end */
    if (kind === "pinata" || kind === "pinata_end" || kind === "pinata_web") {
     const participants = Number(item?.participants || 0)
     const participantsLabel = participants <= 0
@@ -418,11 +417,11 @@
     `
    }
 
-   /* ── Fallback ── */
+   /* Fallback */
    return `
     <article class="activity-item">
      <div class="activity-main">
-      <div class="activity-title">📋 ${escapeHtml(kind)}</div>
+      <div class="activity-title">🔹 ${escapeHtml(kind)}</div>
       <div class="activity-meta">${dateLabel}</div>
      </div>
     </article>
@@ -461,12 +460,12 @@
 
    const name = String(data?.name || "Saison")
    const subtitle = String(data?.subtitle || "")
-   const emoji = String(data?.emoji || "🎟️")
+   const emoji = String(data?.emoji || "🟢")
    const remaining = Number.isFinite(data?.daysRemaining) ? ` · ${data.daysRemaining}j restants` : ""
    el.textContent = `${emoji} ${name}${subtitle ? ` — ${subtitle}` : ""}${remaining}`
   } catch (err) {
    console.error("BattlePass season error:", err)
-   el.textContent = "🎟️ Saison Battle Pass en cours"
+   el.textContent = "🟢 Saison Battle Pass en cours"
   }
  }
 
@@ -493,23 +492,23 @@
    const grid = document.getElementById("setsGrid")
 
    const setEmojis = {
-    incarnam: "🌿", astrub: "🏘️", amakna: "🌾",
-    sufokia: "🌊", kelba: "🦅", katrepat: "🦇", sberg: "❄️"
+    incarnam: "🌈", astrub: "🏛️", amakna: "🌾",
+    sufokia: "🌊", kelba: "🎪", katrepat: "🔥", sberg: "❄️"
    }
 
    grid.innerHTML = sets.map(set => `
     <div class="feature-card">
-     <div class="feature-icon">${setEmojis[set.id] || "📚"}</div>
+     <div class="feature-icon">${setEmojis[set.id] || "🧭"}</div>
      <h3>${set.name}</h3>
      <p>${set.description || "Set de cartes du Krosmoz"}</p>
      <p><strong>${(set.totalCards || 0).toLocaleString("fr-FR")} cartes</strong></p>
     </div>
    `).join("") + `
     <div class="feature-card">
-     <div class="feature-icon">❓</div>
+     <div class="feature-icon">✨</div>
      <h3>À venir...</h3>
      <p>Un nouveau set est en préparation.</p>
-     <p><strong>??? cartes</strong></p>
+     <p><strong>Nouvelles cartes bientôt</strong></p>
     </div>
    `
   } catch (err) {
@@ -525,3 +524,4 @@
 
 </body>
 </html>
+

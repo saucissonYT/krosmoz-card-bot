@@ -4,6 +4,11 @@ const path = require("path")
 const { addXP }         = require("./progressionSystem")
 const { getUser, save } = require("./userSystem")
 const {
+ recordBattlePassLevelGain,
+ recordBattlePassRewardClaim,
+ recordBattlePassPremiumBuy
+} = require("./achievementProgressTracker")
+const {
  addDaysDateOnly,
  ensureCurrentSeason,
  getBattlePassPaths,
@@ -720,6 +725,27 @@ async function addBattlePassXP(userId, sourceOrAmount, maybeSource) {
  const newLevel = computeLevel(progress.totalXP, season.xpCurve || [], null)
  progress.currentLevel = newLevel
 
+ const user = getUser(userId)
+ if (user) {
+  if ((newLevel - oldLevel) >= 2) {
+   user.stats = user.stats || {}
+   user.stats.bpDoubleLevelUps = Number(user.stats.bpDoubleLevelUps || 0) + 1
+  }
+  recordBattlePassLevelGain(user, newLevel - oldLevel)
+  user.stats = user.stats || {}
+  user.stats.bpHighestLevel = Math.max(Number(user.stats.bpHighestLevel || 0), Number(newLevel || 0))
+  if (oldLevel < 36 && newLevel >= 40) {
+   user.stats.bpLastLevelsClosed = Number(user.stats.bpLastLevelsClosed || 0) + 5
+  } else if (newLevel > oldLevel && newLevel >= 36) {
+   const gainInLastSegment = Math.max(0, Math.min(newLevel, 40) - Math.max(oldLevel, 35))
+   user.stats.bpLastLevelsClosed = Number(user.stats.bpLastLevelsClosed || 0) + gainInLastSegment
+  }
+  if (oldLevel < 40 && newLevel >= 40) {
+   user.stats.bpSeasonsCompleted = Number(user.stats.bpSeasonsCompleted || 0) + 1
+  }
+  save(userId)
+ }
+
  const unlocked = checkAndUnlockAchievements(progress, season)
  saveUserProgress(progress)
 
@@ -773,6 +799,14 @@ async function claimAllBattlePassRewards(userId) {
   }
 
   const newlyUnlocked = checkAndUnlockAchievements(progress, season)
+  const user = getUser(userId)
+  if (user) {
+   recordBattlePassRewardClaim(user, claimedRewards.length, {
+    all: true,
+    seasonEndDate: current.endDate
+   })
+   save(userId)
+  }
   saveUserProgress(progress)
 
   return {
@@ -846,6 +880,14 @@ async function claimBattlePassLevelReward(userId, level) {
   progress.claimedPremium = [...new Set(progress.claimedPremium.map((value) => Number(value || 0)).filter((value) => value > 0))]
 
   const newlyUnlocked = checkAndUnlockAchievements(progress, season)
+  const user = getUser(userId)
+  if (user) {
+   recordBattlePassRewardClaim(user, claimedRewards.length, {
+    all: false,
+    seasonEndDate: current.endDate
+   })
+   save(userId)
+  }
   saveUserProgress(progress)
 
   return {
@@ -891,9 +933,10 @@ async function buyPremium(userId) {
   if ((user.kamas || 0) < (season.premiumPrice || 18000))
    return { ok: false, error: `Kamas insuffisants (${season.premiumPrice || 18000} requis).` }
 
-  user.kamas -= (season.premiumPrice || 18000)
-  progress.hasPremium = true
-  progress.stats.premiumBuys = (progress.stats.premiumBuys || 0) + 1
+ user.kamas -= (season.premiumPrice || 18000)
+ progress.hasPremium = true
+ progress.stats.premiumBuys = (progress.stats.premiumBuys || 0) + 1
+ recordBattlePassPremiumBuy(user)
 
   save(userId)
 

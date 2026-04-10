@@ -293,6 +293,11 @@ function claimQuest(user, questId, type){
  if(quest.reward.packs) user.packs = (user.packs || 0) + quest.reward.packs
  if(quest.reward.xp) addXP(user, quest.reward.xp)
 
+ if(!user.stats || typeof user.stats !== "object") user.stats = {}
+ user.stats.questClaims = (user.stats.questClaims || 0) + 1
+ if(type === "daily") user.stats.dailyQuestClaims = (user.stats.dailyQuestClaims || 0) + 1
+ if(type === "weekly") user.stats.weeklyQuestClaims = (user.stats.weeklyQuestClaims || 0) + 1
+
  data.claimed.push(questId)
 
  let completionBonus = false
@@ -301,6 +306,8 @@ function claimQuest(user, questId, type){
   if(bonus.kamas) user.kamas = (user.kamas || 0) + bonus.kamas
   if(bonus.packs) user.packs = (user.packs || 0) + bonus.packs
   if(bonus.xp) addXP(user, bonus.xp)
+  if(type === "daily") user.stats.dailyQuestPerfectDays = (user.stats.dailyQuestPerfectDays || 0) + 1
+  if(type === "weekly") user.stats.weeklyQuestPerfectWeeks = (user.stats.weeklyQuestPerfectWeeks || 0) + 1
   completionBonus = true
  }
 

@@ -17,7 +17,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -115,7 +114,7 @@ let rouletteCooldownTimer = null
  function normalizeUiText(value) {
   const raw = String(value || "")
   if (!raw) return ""
-  if (!/[ÃÂâð]/.test(raw)) return raw
+  if (!/[\uFFFD]/.test(raw)) return raw
   try {
    return decodeURIComponent(escape(raw))
   } catch (_) {
@@ -779,4 +778,5 @@ function showEventPackOpeningAnimation(payload) {
  </script>
 </body>
 </html>
+
 

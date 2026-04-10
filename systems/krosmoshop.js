@@ -4,6 +4,7 @@ const path = require("path")
 const { getCardsById } = require("./cardRegistry")
 const { getUser, save } = require("./userSystem")
 const { achievementCheck } = require("./achievementCheck")
+const { recordShopBuy } = require("./achievementProgressTracker")
 
 let DATA_DIR = "/data"
 if(!fs.existsSync(DATA_DIR)){
@@ -249,6 +250,15 @@ function buyFromShop(userId,cardId){
   user.krosmoshopStats.daysVisited = (user.krosmoshopStats.daysVisited||0)+1
   user.krosmoshopStats._lastDay = today
  }
+
+ recordShopBuy(user, {
+  ts: Date.now(),
+  rarity: entry.rarity,
+  finalPrice,
+  originalPrice: entry.price,
+  dayKey: today,
+  shopSize: Array.isArray(shop.cards) ? shop.cards.length : 15
+ })
 
  /* -------- CARD INFO -------- */
 

@@ -20,6 +20,105 @@
  let progressToastQueue = []
  let progressToastVisibleCount = 0
  let progressRefreshTimer = null
+ const LOCAL_MODE_STORAGE_KEY = "kc_local_mode"
+ const LOCAL_MODE_COOKIE_NAME = "kc_local_auth"
+ const DAILY_BUTTON_REFRESH_MS = 60000
+ const DAILY_BUTTON_TICK_MS = 1000
+ let dailyButtonRefreshHandle = null
+ let dailyButtonTickHandle = null
+ let dailyStateRefreshBusy = false
+ let dailyButtonBusy = false
+ let dailyState = {
+  canClaim: false,
+  nextClaimAt: 0,
+  remainingMs: 0,
+  streak: 0,
+  lastDaily: 0
+ }
+
+ function isTruthyFlag(value) {
+  const raw = String(value || "").trim().toLowerCase()
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on"
+ }
+
+ function isLoopbackHost() {
+  const host = String(window.location.hostname || "").toLowerCase()
+  return host === "localhost" || host === "127.0.0.1" || host === "::1"
+ }
+
+ function readLocalModeFromStorage() {
+  try {
+   const raw = window.localStorage.getItem(LOCAL_MODE_STORAGE_KEY)
+   if (raw === null) return null
+   return isTruthyFlag(raw)
+  } catch (_) {
+   return null
+  }
+ }
+
+ function writeLocalModeToStorage(enabled) {
+  try {
+   window.localStorage.setItem(LOCAL_MODE_STORAGE_KEY, enabled ? "1" : "0")
+  } catch (_) {}
+ }
+
+ function syncLocalModeCookie(enabled) {
+  if (enabled) {
+   document.cookie = `${LOCAL_MODE_COOKIE_NAME}=1; Path=/; Max-Age=31536000; SameSite=Lax`
+   return
+  }
+  document.cookie = `${LOCAL_MODE_COOKIE_NAME}=0; Path=/; Max-Age=31536000; SameSite=Lax`
+ }
+
+ function readLocalModeFromUrl() {
+  const params = new URLSearchParams(window.location.search || "")
+  if (!params.has("local")) return null
+  return isTruthyFlag(params.get("local"))
+ }
+
+ const localModeFromUrl = readLocalModeFromUrl()
+ const localModeFromStorage = readLocalModeFromStorage()
+ let localModeEnabled = localModeFromUrl !== null
+  ? Boolean(localModeFromUrl)
+  : (localModeFromStorage !== null ? Boolean(localModeFromStorage) : isLoopbackHost())
+  writeLocalModeToStorage(localModeEnabled)
+  syncLocalModeCookie(localModeEnabled)
+
+ function hasLegacyBottomToasts() {
+  return document.querySelectorAll(".toast").length > 0
+ }
+
+ function removeLegacyBottomToasts() {
+  const toasts = document.querySelectorAll(".toast")
+  for (const toast of toasts) {
+   if (toast && typeof toast.remove === "function") toast.remove()
+  }
+ }
+
+ function dismissProgressToasts() {
+  progressToastQueue = []
+  progressToastVisibleCount = 0
+  const host = document.getElementById("globalQuestToastHost")
+  if (!host || !host.children) return
+  for (const child of Array.from(host.children)) {
+   if (child && typeof child.remove === "function") child.remove()
+  }
+ }
+
+ function dismissBottomNotifications(options = {}) {
+  const keepLegacyToast = Boolean(options?.keepLegacyToast)
+  const keepProgressToasts = Boolean(options?.keepProgressToasts)
+  const keepEventToast = Boolean(options?.keepEventToast)
+
+  if (!keepLegacyToast) removeLegacyBottomToasts()
+  if (!keepProgressToasts) dismissProgressToasts()
+  if (!keepEventToast) {
+   const eventToast = document.getElementById("globalEventToast")
+   if (eventToast) eventToast.hidden = true
+  }
+ }
+
+ window.__kcDismissBottomNotifs = dismissBottomNotifications
 
 function ensureEventToast() {
  let toast = document.getElementById("globalEventToast")
@@ -70,6 +169,10 @@ function ensureEventToast() {
    toast.hidden = true
    return
   }
+  if (hasActiveProgressToasts() || hasLegacyBottomToasts()) {
+   toast.hidden = true
+   return
+  }
 
   const messages = []
   if (eventActive) {
@@ -96,18 +199,31 @@ function ensureEventToast() {
   } catch (_) {}
  }
 
- function ensureQuestToastHost() {
-  let host = document.getElementById("globalQuestToastHost")
-  if (host) return host
-  host = document.createElement("div")
-  host.id = "globalQuestToastHost"
-  host.className = "quest-toast-host"
-  document.body.appendChild(host)
-  return host
+function ensureQuestToastHost() {
+ let host = document.getElementById("globalQuestToastHost")
+ if (host) return host
+ host = document.createElement("div")
+ host.id = "globalQuestToastHost"
+ host.className = "quest-toast-host"
+ document.body.appendChild(host)
+ return host
+}
+
+ function hasActiveProgressToasts() {
+  const host = document.getElementById("globalQuestToastHost")
+  const hasVisible = Number(progressToastVisibleCount || 0) > 0
+  const hasQueued = Array.isArray(progressToastQueue) && progressToastQueue.length > 0
+  const hasMounted = Boolean(host && host.children && host.children.length > 0)
+  return hasVisible || hasQueued || hasMounted
  }
 
- function enqueueProgressToast(toast, ttl = 7000) {
-  if (!(toast instanceof HTMLElement)) return
+function enqueueProgressToast(toast, ttl = 7000) {
+ if (!(toast instanceof HTMLElement)) return
+  dismissBottomNotifications({
+   keepLegacyToast: false,
+   keepProgressToasts: true,
+   keepEventToast: false
+  })
   progressToastQueue.push({
    toast,
    ttl: Math.max(2500, Number(ttl || 7000))
@@ -124,6 +240,8 @@ function drainProgressToastQueue() {
 
   progressToastVisibleCount += 1
   host.appendChild(toast)
+  const eventToast = document.getElementById("globalEventToast")
+  if (eventToast) eventToast.hidden = true
 
   if (typeof toast.__onToastMount === "function") {
    toast.__onToastMount()
@@ -142,6 +260,11 @@ function drainProgressToastQueue() {
     if (toast.isConnected) toast.remove()
     progressToastVisibleCount = Math.max(0, progressToastVisibleCount - 1)
     drainProgressToastQueue()
+    if (progressToastVisibleCount <= 0 && progressToastQueue.length <= 0) {
+     window.setTimeout(() => {
+      refreshEventToast().catch(() => {})
+     }, 160)
+    }
    }, 260)
   }
 
@@ -173,16 +296,27 @@ function drainProgressToastQueue() {
  }
 
  function installGlobalFetchToastHook() {
-  if (!window || typeof window.fetch !== "function" || window.__kcProgressToastHooked) return
-  const nativeFetch = window.fetch.bind(window)
-  window.fetch = async function kcProgressToastFetch(input, init) {
-   const response = await nativeFetch(input, init)
-   try {
-    const method = String(init?.method || (input && typeof input === "object" ? input.method : "") || "GET").toUpperCase()
-    const requestUrlRaw = typeof input === "string"
-     ? input
-     : String(input?.url || "")
-    const requestUrl = requestUrlRaw.startsWith(window.location.origin)
+ if (!window || typeof window.fetch !== "function" || window.__kcProgressToastHooked) return
+ const nativeFetch = window.fetch.bind(window)
+ window.fetch = async function kcProgressToastFetch(input, init) {
+  const requestUrlRaw = typeof input === "string"
+   ? input
+   : String(input?.url || "")
+  const isSameOrigin = requestUrlRaw.startsWith("/") || requestUrlRaw.startsWith(window.location.origin)
+  let outboundInit = init
+  if (localModeEnabled && isSameOrigin) {
+   const headers = new Headers((init && init.headers) || (input && typeof input === "object" ? input.headers : undefined))
+   headers.set("x-kc-local-auth", "1")
+   outboundInit = {
+    ...(init || {}),
+    headers
+   }
+  }
+
+  const response = await nativeFetch(input, outboundInit)
+  try {
+   const method = String(outboundInit?.method || (input && typeof input === "object" ? input.method : "") || "GET").toUpperCase()
+   const requestUrl = requestUrlRaw.startsWith(window.location.origin)
      ? requestUrlRaw.slice(window.location.origin.length)
      : requestUrlRaw
     if (response?.ok && method !== "GET" && String(requestUrl || "").startsWith("/api/")) {
@@ -216,7 +350,7 @@ function formatQuestRewardPreview(reward) {
 function normalizeUiText(value) {
  const raw = String(value || "")
  if (!raw) return ""
- if (!/[ÃÂâð]/.test(raw)) return raw
+ if (!/[\uFFFD]/.test(raw)) return raw
  try {
   return decodeURIComponent(escape(raw))
  } catch (_) {
@@ -677,6 +811,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
       <li><a href="/battlepass">Battlepass</a></li>
       <li><a href="/krosmoshop">KrosmoShop</a></li>
       <li><a href="/market">Marché</a></li>
+      <li><a href="/guild">Guildes</a></li>
       <li><a href="/achievements">Achievements</a></li>
       <li><a href="/profile/">Profil</a></li>
      </ul>
@@ -728,6 +863,172 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   }
 
   profileEl.href = `/profile/${encodeURIComponent(String(userId))}`
+ }
+
+ function formatDailyCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+ }
+
+ function stopDailyButtonTimers() {
+  if (dailyButtonRefreshHandle) {
+   window.clearInterval(dailyButtonRefreshHandle)
+   dailyButtonRefreshHandle = null
+  }
+  if (dailyButtonTickHandle) {
+   window.clearInterval(dailyButtonTickHandle)
+   dailyButtonTickHandle = null
+  }
+ }
+
+ function syncDailyState(nextState) {
+  dailyState = {
+   canClaim: Boolean(nextState?.canClaim),
+   nextClaimAt: Number(nextState?.nextClaimAt || 0),
+   remainingMs: Math.max(0, Number(nextState?.remainingMs || 0)),
+   streak: Math.max(0, Number(nextState?.streak || 0)),
+   lastDaily: Math.max(0, Number(nextState?.lastDaily || 0))
+  }
+ }
+
+ function renderDailyButton() {
+  if (!right) return
+  const dailyEl = right.querySelector("#globalDailyBtn")
+  if (!dailyEl) return
+
+  const now = Date.now()
+  const remainingMs = dailyState.canClaim
+   ? 0
+   : Math.max(0, Number(dailyState.nextClaimAt || 0) - now || Number(dailyState.remainingMs || 0))
+
+  dailyEl.classList.toggle("btn-daily-ready", Boolean(dailyState.canClaim) && !dailyButtonBusy)
+  dailyEl.classList.toggle("btn-daily-wait", !Boolean(dailyState.canClaim) && !dailyButtonBusy)
+
+  if (dailyButtonBusy) {
+   dailyEl.textContent = "🎁 Claim daily..."
+   dailyEl.setAttribute("aria-disabled", "true")
+   dailyEl.style.pointerEvents = "none"
+   dailyEl.style.opacity = "0.7"
+   return
+  }
+
+  if (dailyState.canClaim) {
+   dailyEl.textContent = "🎁 Claim daily"
+   dailyEl.setAttribute("aria-disabled", "false")
+   dailyEl.style.pointerEvents = ""
+   dailyEl.style.opacity = ""
+   dailyEl.title = "Réclamer ta récompense /daily"
+   return
+  }
+
+  dailyEl.textContent = `🎁 Daily ${formatDailyCountdown(remainingMs)}`
+  dailyEl.setAttribute("aria-disabled", "true")
+  dailyEl.style.pointerEvents = "none"
+  dailyEl.style.opacity = "0.85"
+  dailyEl.title = "Prochaine claim à minuit (heure Paris)"
+ }
+
+ async function refreshDailyButtonState() {
+  if (dailyStateRefreshBusy) return
+  dailyStateRefreshBusy = true
+  try {
+   const res = await fetch("/api/daily/state", { credentials: "same-origin" })
+   if (!res.ok) return
+   const data = await res.json()
+   if (!data?.connected) return
+   syncDailyState(data?.state || {})
+   renderDailyButton()
+  } catch (_) {
+  } finally {
+   dailyStateRefreshBusy = false
+  }
+ }
+
+ function setDailyButton(userId) {
+  if (!right) return
+  let dailyEl = right.querySelector("#globalDailyBtn")
+  const profileEl = right.querySelector("#globalProfileBtn")
+
+  if (!userId) {
+   if (dailyEl) dailyEl.remove()
+   stopDailyButtonTimers()
+   syncDailyState({ canClaim: false, nextClaimAt: 0, remainingMs: 0, streak: 0, lastDaily: 0 })
+   dailyButtonBusy = false
+   return
+  }
+
+  if (!dailyEl) {
+   dailyEl = document.createElement("a")
+   dailyEl.id = "globalDailyBtn"
+   dailyEl.className = "btn btn-outline btn-auth-top btn-daily-top"
+   dailyEl.href = "#"
+   dailyEl.textContent = "🎁 Daily --:--:--"
+   right.insertBefore(dailyEl, profileEl || btn)
+   dailyEl.addEventListener("click", async (event) => {
+    event.preventDefault()
+    if (dailyButtonBusy || !dailyState.canClaim) return
+    dailyButtonBusy = true
+    renderDailyButton()
+    try {
+     const claimRes = await fetch("/api/daily/claim", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+     })
+     const claimData = await claimRes.json().catch(() => ({}))
+     if (!claimRes.ok) {
+      if (claimData?.state) syncDailyState(claimData.state)
+      throw new Error(String(claimData?.error || "Claim daily impossible."))
+     }
+
+     if (claimData?.state) syncDailyState(claimData.state)
+     const reward = claimData?.result?.reward || {}
+     let rewardText = ""
+     if (reward?.type === "pack") rewardText = `📦 +${Number(reward?.value || 0)} pack(s)`
+     else if (reward?.type === "kamas") rewardText = `💰 +${Number(reward?.value || 0).toLocaleString("fr-FR")} kamas`
+     else if (reward?.type === "ssr") rewardText = `🌈 ${String(reward?.value?.name || "Carte SSR")}`
+     spawnRewardToast({
+      title: "🎁 Daily récupérée",
+      subtitle: `Streak ${Number(claimData?.result?.streak || 0)}/7`,
+      description: "Récompense quotidienne obtenue.",
+      rewardText,
+      chipLabel: "Daily",
+      tone: "event"
+     })
+     scheduleProgressRefresh(180)
+    } catch (error) {
+     spawnRewardToast({
+      title: "⏳ Daily indisponible",
+      description: String(error?.message || "Réessaie un peu plus tard."),
+      chipLabel: "Daily",
+      tone: "event"
+     })
+    } finally {
+      dailyButtonBusy = false
+      renderDailyButton()
+      refreshDailyButtonState().catch(() => {})
+    }
+   })
+  } else {
+   right.insertBefore(dailyEl, profileEl || btn)
+  }
+
+  stopDailyButtonTimers()
+  renderDailyButton()
+  refreshDailyButtonState().catch(() => {})
+  dailyButtonRefreshHandle = window.setInterval(() => {
+   refreshDailyButtonState().catch(() => {})
+  }, DAILY_BUTTON_REFRESH_MS)
+  dailyButtonTickHandle = window.setInterval(() => {
+   if (!dailyState.canClaim && Number(dailyState.nextClaimAt || 0) > 0 && Date.now() >= Number(dailyState.nextClaimAt || 0)) {
+    refreshDailyButtonState().catch(() => {})
+   }
+   renderDailyButton()
+  }, DAILY_BUTTON_TICK_MS)
  }
 
  function setConnectedNavLink(connected) {
@@ -795,11 +1096,15 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   if (res.ok) status = await res.json()
  } catch (_) {}
 
- if (!status?.enabled) {
+ const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
+ const localSessionActive = Boolean(localModeEnabled || status?.localAuthSession || status?.localAuthEnabled)
+
+ if (!status?.enabled && !localModeEnabled) {
   setAuthBodyClass(false)
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
+  setDailyButton(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
   setTopEventsLinkVisibility()
@@ -820,11 +1125,36 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   return
  }
 
- if (!status.connected) {
+ if (!status?.connected) {
+  if (localModeEnabled) {
+   setAuthBodyClass(false)
+   setPlaySubnav(false)
+   setAuthState("Mode local (hors ligne)")
+   setProfileLink(null)
+   setDailyButton(null)
+   setConnectedNavLink(false)
+   setTopMarketLinkVisibility(false)
+   setTopEventsLinkVisibility()
+   stopQuestToastPolling()
+   stopAchievementToastPolling()
+   stopEventRewardToastPolling()
+   if (heroPlayBtn) {
+    heroPlayBtn.textContent = "JOUER"
+    heroPlayBtn.href = "/auth/discord?local=1&returnTo=%2Fplay%2Finventory"
+    heroPlayBtn.removeAttribute("aria-disabled")
+    heroPlayBtn.style.pointerEvents = ""
+    heroPlayBtn.style.opacity = ""
+   }
+   btn.textContent = "Activer mode local"
+   btn.href = `/auth/discord?local=1&returnTo=${encodeURIComponent(returnTo)}`
+   return
+  }
+
   setAuthBodyClass(false)
   setPlaySubnav(false)
   setAuthState("")
   setProfileLink(null)
+  setDailyButton(null)
   setConnectedNavLink(false)
   setTopMarketLinkVisibility(false)
   setTopEventsLinkVisibility()
@@ -839,7 +1169,6 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    heroPlayBtn.style.opacity = ""
   }
   btn.textContent = "Connexion Discord"
-  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
   return
  }
@@ -852,8 +1181,10 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
 
  setAuthBodyClass(true)
  setPlaySubnav(true)
- setAuthState("")
- setProfileLink(me?.id || status.userId)
+ setAuthState(localSessionActive ? "Mode local" : "")
+ const connectedUserId = me?.id || status.userId || null
+ setProfileLink(connectedUserId)
+ setDailyButton(connectedUserId)
  setConnectedNavLink(true)
  setTopMarketLinkVisibility(true)
  setTopEventsLinkVisibility()
@@ -862,19 +1193,25 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  startEventRewardToastPolling()
  if (heroPlayBtn) {
   heroPlayBtn.textContent = "JOUER"
-  heroPlayBtn.href = "/play"
+  heroPlayBtn.href = localSessionActive ? "/play/inventory?local=1" : "/play"
   heroPlayBtn.removeAttribute("aria-disabled")
   heroPlayBtn.style.pointerEvents = ""
   heroPlayBtn.style.opacity = ""
  }
 
- btn.textContent = "Deconnexion"
+ btn.textContent = localSessionActive ? "Quitter mode local" : "Deconnexion"
  btn.href = "#"
  btn.addEventListener("click", async (event) => {
   event.preventDefault()
+  setDailyButton(null)
   stopQuestToastPolling()
   stopAchievementToastPolling()
   stopEventRewardToastPolling()
+  if (localSessionActive) {
+   localModeEnabled = false
+   writeLocalModeToStorage(false)
+   syncLocalModeCookie(false)
+  }
   try {
    await fetch("/auth/logout", {
     method: "POST",

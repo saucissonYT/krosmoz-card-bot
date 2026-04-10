@@ -14,12 +14,56 @@
 
 const { getUser } = require("./userSystem")
 const { getGuild, addGuildXP, saveGuilds } = require("./guildSystem")
+const { enqueueWebRewardToast } = require("./webToastQueue")
 
 /* ================= CONSTANTES ================= */
 
 const BASE_CALIBRATION = 8
 const MIN_EFFECTIVE = 1
 const MAX_EFFECTIVE = 8
+
+function toGuildUserId(value){
+ return String(value || "").trim()
+}
+
+function buildMemberLabel(userId){
+ const safeUserId = toGuildUserId(userId)
+ if(!safeUserId) return "Un membre"
+ const user = getUser(safeUserId)
+ const suffix = safeUserId.slice(-4)
+ const title = String(user?.title || "").trim()
+ if(title && title.toLowerCase() !== "nouveau") return `${title} (#${suffix})`
+ return `Joueur #${suffix}`
+}
+
+function notifyGuildQuestCompletion(guild, claimerId, type, quests, totalXP, bonusXP){
+ if(!guild || !Array.isArray(guild.memberIds) || guild.memberIds.length <= 0) return
+ if(!Array.isArray(quests) || quests.length <= 0) return
+
+ const typeLabel = type === "daily" ? "journaliere" : "hebdomadaire"
+ const questNames = quests.map(q => String(q?.name || "Quete")).filter(Boolean)
+ const listPreview = questNames.slice(0, 2).join(" • ")
+ const extraCount = Math.max(0, questNames.length - 2)
+ const rewardParts = [`+${Number(totalXP || 0).toLocaleString("fr-FR")} XP guilde`]
+ if(Number(bonusXP || 0) > 0) rewardParts.push(`bonus parfait +${Number(bonusXP || 0)} XP`)
+ const claimerLabel = buildMemberLabel(claimerId)
+
+ for(const memberId of guild.memberIds){
+  const safeMemberId = toGuildUserId(memberId)
+  if(!safeMemberId) continue
+  try{
+   enqueueWebRewardToast(safeMemberId, {
+    type: "guild",
+    tone: "event",
+    title: "Quete de guilde terminee",
+    subtitle: `${claimerLabel} a valide ${questNames.length} quete(s) ${typeLabel}(s)`,
+    description: `${listPreview}${extraCount > 0 ? ` (+${extraCount})` : ""}`,
+    rewardText: rewardParts.join(" • "),
+    chipLabel: "Guilde"
+   })
+  }catch(_){}
+ }
+}
 
 /* ================= POOL JOURNALIER (quêtes légères) ================= */
 
@@ -300,12 +344,18 @@ function claimGuildQuests(guildId, claimerId, type = "weekly", questId = ""){
 
  let totalXP = 0
  let claimed = 0
+ const claimedQuestRows = []
 
  for(const q of questsToClaim){
   if(q.done && !q.claimed){
    claimedArr.push(q.id)
    totalXP += q.xp
    claimed++
+   claimedQuestRows.push({
+    id: String(q.id || ""),
+    name: String(q.name || "Quete"),
+    xp: Number(q.xp || 0)
+   })
    guild.stats.questsCompleted = (guild.stats.questsCompleted || 0) + 1
   }
  }
@@ -330,6 +380,7 @@ function claimGuildQuests(guildId, claimerId, type = "weekly", questId = ""){
 
  const levelResult = addGuildXP(guildId, totalXP)
  saveGuilds()
+ notifyGuildQuestCompletion(guild, claimerId, type, claimedQuestRows, totalXP, bonusXP)
 
  /* Stats semaine parfaite (uniquement pour les hebdo) */
  const isPerfect = type === "weekly" && allDone && claimed > 0

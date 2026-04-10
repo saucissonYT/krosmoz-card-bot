@@ -1,23 +1,38 @@
-const crypto = require("crypto")
+﻿const crypto = require("crypto")
 const express = require("express")
 const fs = require("fs")
 const path = require("path")
 const { createLogger } = require("../systems/logger")
+const { data: appData, save: saveAppData } = require("../systems/dataManager")
+const { resetRegistry: resetCardRegistry } = require("../systems/cardRegistry")
 
 const { MAX_PLAYER_LEVEL, PACK_PRICE, FUSION_COST, SELL_PRICE } = require("../systems/constants")
-const { getUser, save } = require("../systems/userSystem")
+const { getUser, save, updateActivityStreak } = require("../systems/userSystem")
+const {
+ USER_TOASTS_MAX_POP,
+ enqueueWebRewardToast,
+ popWebRewardToasts
+} = require("../systems/webToastQueue")
 const { addXP } = require("../systems/progressionSystem")
 const { getShop, buyFromShop } = require("../systems/krosmoshop")
-const { getUserGuildBonuses } = require("../systems/guildBonuses")
+const { getGuildBonuses, getUserGuildBonuses } = require("../systems/guildBonuses")
 const { getPlayerBonuses } = require("../systems/playerbonuses")
 const {
  addBattlePassXP,
  buyPremium,
  claimBattlePassLevelReward,
  claimAllBattlePassRewards,
+ computeLevel,
  getBattlePassOverview,
- getBattlePassRewardsView
+ getBattlePassRewardsView,
+ getUserProgress,
+ saveUserProgress
 } = require("../systems/battlePassService")
+const {
+ claimDaily,
+ canClaim: canClaimDaily,
+ getNextMidnightParisMs
+} = require("../systems/dailySystem")
 const { achievementCheck } = require("../systems/achievementCheck")
 const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonService")
 const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../systems/sellHelper")
@@ -30,6 +45,7 @@ const {
 } = require("../systems/fragmentService")
 const { isSetUnlocked } = require("../systems/setUnlockSystem")
 const {
+ startEvent,
  getEvent,
  isEventActive,
  initUserEvent,
@@ -46,7 +62,26 @@ const {
  getUserListings,
  removeListing
 } = require("../systems/market")
-const { getAllGuilds, getUserGuild, getGuildRank } = require("../systems/guildSystem")
+const {
+ createGuild,
+ disbandGuild,
+ joinGuild,
+ leaveGuild,
+ kickMember,
+ promoteOfficer,
+ demoteOfficer,
+ transferLeader,
+ renameGuild,
+ devForceJoin,
+ devSetLevel: devSetGuildLevel,
+ getAllGuilds,
+ getGuild,
+ getGuildRank,
+ getUserGuild,
+ saveGuilds,
+ xpRequired,
+ MAX_MEMBERS
+} = require("../systems/guildSystem")
 const {
  ensureUserQuests,
  getDailyQuests,
@@ -73,11 +108,21 @@ const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
 const {
+ recordAction,
+ recordWebLogin,
+ recordShopView,
+ recordGuildApplication,
+ recordGuildApplicationReview,
+ recordGuildRecruitment,
+ recordProfileView
+} = require("../systems/achievementProgressTracker")
+const {
  getSchedulerNextRun,
  setSchedulerNextRun
 } = require("../systems/schedulerStateStore")
 const {
  dbLoadUser,
+ dbAddMarketHistory,
  dbCountUsers,
  dbLeaderboard,
  dbLoadMarketHistory,
@@ -114,13 +159,13 @@ const WEB_PINATA_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000
 const WEB_PINATA_MAX_INTERVAL_MS = 5 * 60 * 60 * 1000
 const WEB_NO_ACTIVITY_PENALTY_MS = 3 * 60 * 60 * 1000
 const WEB_PINATA_TIMER_KEY = "web_pinata"
-const WEB_PINATA_ALLOWED_EMOJIS = ["🪅", "🎉", "⭐", "🔥", "💰", "🌈", "🧩", "🎴"]
+const WEB_PINATA_ALLOWED_EMOJIS = ["🍀", "🔥", "⚡", "💎", "🎯", "✨", "🎉", "💥"]
 const WEB_PINATA_TIERS = [
  { minScore: 1, label: "🥉 Bronze", kamas: [100, 300], xp: 10, bpXp: 30, cardChance: 0, cardPool: [], fragmentChance: 0 },
  { minScore: 5, label: "🥈 Argent", kamas: [300, 700], xp: 25, bpXp: 60, cardChance: 0.25, cardPool: ["C", "U"], fragmentChance: 0 },
  { minScore: 10, label: "🥇 Or", kamas: [700, 1400], xp: 50, bpXp: 100, cardChance: 0.4, cardPool: ["C", "U", "R"], fragmentChance: 0.1 },
  { minScore: 18, label: "💎 Diamant", kamas: [1400, 2500], xp: 100, bpXp: 150, cardChance: 0.55, cardPool: ["C", "U", "R", "SR"], fragmentChance: 0.18 },
- { minScore: 28, label: "🌈 Krosmique", kamas: [2500, 4000], xp: 160, bpXp: 220, cardChance: 0.7, cardPool: ["C", "U", "R", "SR", "UR"], fragmentChance: 0.25 }
+ { minScore: 28, label: "🌌 Krosmique", kamas: [2500, 4000], xp: 160, bpXp: 220, cardChance: 0.7, cardPool: ["C", "U", "R", "SR", "UR"], fragmentChance: 0.25 }
 ]
 const WEB_PINATA_MULTIPLIERS = [
  { min: 1, mult: 1.0 },
@@ -172,12 +217,9 @@ const {
  formatReward: formatRouletteReward
 } = rouletteGameplay
 
-/* ── Journal d'activité en mémoire (ring buffer) ── */
+/* Journal d'activité en mémoire (ring buffer) */
 const ACTIVITY_LOG_MAX = 200
 const activityLog = []
-const WEB_REWARD_TOASTS_MAX_PER_USER = 30
-const WEB_REWARD_TOASTS_MAX_POP = 5
-const webRewardToastsByUser = new Map()
 
 function pushActivity(entry) {
  if (!entry || !entry.kind) return
@@ -188,56 +230,12 @@ function pushActivity(entry) {
  if (activityLog.length > ACTIVITY_LOG_MAX) activityLog.length = ACTIVITY_LOG_MAX
 }
 
-function buildWebRewardToastId(prefix = "evt") {
- return `${String(prefix || "evt")}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-}
-
-function enqueueWebRewardToast(userId, toastPayload = {}) {
- const safeUserId = String(userId || "").trim()
- if (!safeUserId) return null
-
- const queue = webRewardToastsByUser.get(safeUserId) || []
- const entry = {
-  id: String(toastPayload.id || buildWebRewardToastId(String(toastPayload.type || "evt"))),
-  type: String(toastPayload.type || "event"),
-  tone: String(toastPayload.tone || "event"),
-  title: String(toastPayload.title || "Récompense obtenue"),
-  subtitle: String(toastPayload.subtitle || ""),
-  description: String(toastPayload.description || ""),
-  rewardText: String(toastPayload.rewardText || ""),
-  chipLabel: String(toastPayload.chipLabel || "Gagné"),
-  createdAt: Date.now()
- }
-
- queue.push(entry)
- if (queue.length > WEB_REWARD_TOASTS_MAX_PER_USER) {
-  queue.splice(0, queue.length - WEB_REWARD_TOASTS_MAX_PER_USER)
- }
- webRewardToastsByUser.set(safeUserId, queue)
- return entry
-}
-
-function popWebRewardToasts(userId, limit = WEB_REWARD_TOASTS_MAX_POP) {
- const safeUserId = String(userId || "").trim()
- if (!safeUserId) return []
- const queue = webRewardToastsByUser.get(safeUserId)
- if (!Array.isArray(queue) || queue.length <= 0) return []
-
- const safeLimit = Math.max(1, Math.min(20, Number(limit || WEB_REWARD_TOASTS_MAX_POP)))
- const items = queue.splice(0, safeLimit)
- if (queue.length <= 0) {
-  webRewardToastsByUser.delete(safeUserId)
- } else {
-  webRewardToastsByUser.set(safeUserId, queue)
- }
- return items
-}
 
 function formatWebPinataRewardText(row = {}) {
  const parts = []
  const kamas = Number(row.kamas || 0)
  const xp = Number(row.xp || 0)
- if (kamas > 0) parts.push(`💰 +${kamas.toLocaleString("fr-FR")} kamas`)
+ if (kamas > 0) parts.push(`🪙 +${kamas.toLocaleString("fr-FR")} kamas`)
  if (xp > 0) parts.push(`⭐ +${xp.toLocaleString("fr-FR")} XP`)
  if (row?.card?.cardName) {
   const rarity = String(row?.card?.rarity || "")
@@ -260,14 +258,15 @@ const CARD_IMAGES_REPO_DIR = path.join(process.cwd(), "cards", "images")
 const DISCORD_USER_TTL_MS = 5 * 60 * 1000
 const discordUserCache = new Map()
 
-/* ── Cache données statiques (cards / sets) ── */
+/* Cache données statiques (cards / sets) */
 const STATIC_CACHE_TTL = 60 * 1000
 let _cardsCache = null
 let _cardsCacheAt = 0
 let _setsCache = null
 let _setsCacheAt = 0
+let _localCardsBootstrapTried = false
 
-/* ── Nettoyage périodique du cache Discord + sessions expirées (toutes les 10 min) ── */
+/* Nettoyage périodique du cache Discord + sessions expirées (toutes les 10 min) */
 setInterval(() => {
  const now = Date.now()
  for (const [key, entry] of discordUserCache) {
@@ -284,6 +283,16 @@ const OAUTH_REDIRECT_URI = process.env.DISCORD_WEB_REDIRECT_URI || ""
 const OAUTH_SCOPE = process.env.DISCORD_WEB_SCOPE || "identify"
 const WEB_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
 const webSessions = new Map()
+const WEB_LOCAL_AUTH_COOKIE = "kc_local_auth"
+const WEB_LOCAL_AUTH_FORCE = String(process.env.WEB_LOCAL_AUTH || "").trim().toLowerCase()
+const WEB_LOCAL_AUTH_USER_ID = String(process.env.WEB_LOCAL_AUTH_USER_ID || "999999999999999999").trim() || "999999999999999999"
+const WEB_LOCAL_DEMO_WORLD = String(process.env.WEB_LOCAL_DEMO_WORLD || "1").trim().toLowerCase()
+const WEB_LOCAL_DEMO_SEED_VERSION = 5
+const WEB_LOCAL_DEMO_BOT_COUNT = 34
+const WEB_LOCAL_DEMO_ID_BASE = 980000000000000000n
+const localDiscordProfileOverrides = new Map()
+const localDevUserSeededUsers = new Set()
+let localDemoWorldSeeded = false
 
 function findSetsPath() {
  const candidates = [
@@ -313,7 +322,131 @@ function loadUser(userId) {
  return dbLoadUser(userId)
 }
 
+function normalizeDemoCardName(rawName) {
+ const text = String(rawName || "")
+  .replace(/[_-]+/g, " ")
+  .replace(/\s+/g, " ")
+  .trim()
+ if (!text) return "Carte inconnue"
+ return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function buildLocalCardsFromImages() {
+ const sourceRoots = [CARD_IMAGES_RUNTIME_DIR, CARD_IMAGES_REPO_DIR]
+ const raritySet = new Set(RARITY_ORDER)
+ const rawSets = readJSON(findSetsPath(), [])
+ const setCandidates = (Array.isArray(rawSets) ? rawSets : (rawSets?.sets || []))
+  .map((row) => String(row?.id || "").trim().toLowerCase())
+  .filter(Boolean)
+ const playableSets = setCandidates.length > 0 ? setCandidates : ["katrepat"]
+ const byId = new Map()
+ let syntheticId = 100000
+
+ for (const rootDir of sourceRoots) {
+  if (!fs.existsSync(rootDir)) continue
+  const stack = [{ dir: rootDir, setHint: null }]
+
+  while (stack.length > 0) {
+   const { dir, setHint } = stack.pop()
+   let entries = []
+   try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+   } catch (_) {
+    continue
+   }
+
+   for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      const nextSetHint = setHint || entry.name
+      stack.push({ dir: fullPath, setHint: nextSetHint })
+      continue
+    }
+    if (!entry.isFile()) continue
+    if (!/\.(png|jpg|jpeg|webp)$/i.test(entry.name)) continue
+
+    const ext = path.extname(entry.name)
+    const stem = entry.name.slice(0, -ext.length)
+    const parts = stem.split("_").filter(Boolean)
+    if (parts.length <= 0) continue
+
+    let rarity = "C"
+    const last = String(parts[parts.length - 1] || "").toUpperCase()
+    if (raritySet.has(last)) {
+     rarity = last
+     parts.pop()
+    }
+
+    let parsedId = Number.parseInt(String(parts[0] || ""), 10)
+    if (Number.isInteger(parsedId)) {
+     parts.shift()
+    } else {
+     parsedId = syntheticId++
+    }
+
+    const cardId = String(parsedId)
+    if (byId.has(cardId)) continue
+    const sourceSetId = String(setHint || "katrepat").toLowerCase()
+    const setId = String(playableSets[Math.abs(parsedId) % playableSets.length] || "katrepat")
+    if (setId !== sourceSetId) {
+     try {
+      const targetDir = path.join(CARD_IMAGES_RUNTIME_DIR, setId)
+      const targetPath = path.join(targetDir, entry.name)
+      if (!fs.existsSync(targetPath)) {
+       fs.mkdirSync(targetDir, { recursive: true })
+       fs.copyFileSync(fullPath, targetPath)
+      }
+     } catch (_) {}
+    }
+    const cardName = normalizeDemoCardName(parts.join(" "))
+
+    byId.set(cardId, {
+     id: parsedId,
+     name: cardName,
+     rarity,
+     set: setId,
+     image: entry.name
+    })
+   }
+  }
+ }
+
+ return [...byId.values()].sort((a, b) =>
+  Number(a.id || 0) - Number(b.id || 0) ||
+  String(a.name || "").localeCompare(String(b.name || ""), "fr")
+ )
+}
+
+function bootstrapCardsFromImagesIfNeeded() {
+ if (_localCardsBootstrapTried) return
+ _localCardsBootstrapTried = true
+
+ const existingCards = readJSON(CARDS_PATH, [])
+ if (Array.isArray(existingCards) && existingCards.length > 0) return
+
+ const generatedCards = buildLocalCardsFromImages()
+ if (!generatedCards.length) return
+
+ try {
+  fs.mkdirSync(path.dirname(CARDS_PATH), { recursive: true })
+  fs.writeFileSync(CARDS_PATH, `${JSON.stringify(generatedCards, null, 2)}\n`, "utf8")
+ } catch (_) {}
+
+ try {
+  if (appData && Array.isArray(appData.cards)) {
+   appData.cards = generatedCards
+   saveAppData()
+   resetCardRegistry()
+  }
+ } catch (_) {}
+
+ _cardsCache = generatedCards
+ _cardsCacheAt = Date.now()
+ webLog.info("Bootstrap cartes locales depuis les images", { cards: generatedCards.length })
+}
+
 function getCards() {
+ bootstrapCardsFromImagesIfNeeded()
  const now = Date.now()
  if (_cardsCache && (now - _cardsCacheAt) < STATIC_CACHE_TTL) return _cardsCache
  _cardsCache = readJSON(CARDS_PATH, [])
@@ -594,7 +727,7 @@ function buildQuestStatePayload(userId) {
   guild: {
    id: String(guild.id || ""),
    name: String(guild.name || "Guilde"),
-   emoji: String(guild.emoji || "🏰"),
+   emoji: String(guild.emoji || "🛡️"),
    rank,
    canClaim,
    level: Number(guild.level || 1),
@@ -687,7 +820,7 @@ function buildQuestPreviewPayload() {
   guild: {
    id: "preview-guild",
    name: "Guilde Aperçu",
-   emoji: "🏰",
+   emoji: "🛡️",
    rank: "visiteur",
    canClaim: false,
    level: 12,
@@ -863,7 +996,7 @@ async function finalizeWebPinataRound() {
   enqueueWebRewardToast(String(userId), {
    type: "event",
    tone: "event",
-   title: "🪅 Piñata d'Écaflip",
+   title: "🎉 Piñata d'Écaflip",
    subtitle: `${String(tier.label || "Participant")} • Score ${score}`,
    description: "Récompense de fin de piñata",
    rewardText: formatWebPinataRewardText(row),
@@ -1055,6 +1188,55 @@ function parseCookies(req) {
  }, {})
 }
 
+function isTruthyFlag(value) {
+ const raw = String(value || "").trim().toLowerCase()
+ return raw === "1" || raw === "true" || raw === "yes" || raw === "on"
+}
+
+function isFalsyFlag(value) {
+ const raw = String(value || "").trim().toLowerCase()
+ return raw === "0" || raw === "false" || raw === "no" || raw === "off"
+}
+
+function isLoopbackHost(req) {
+ const host = String(req.headers.host || req.hostname || "").toLowerCase()
+ return host.startsWith("localhost") || host.startsWith("127.0.0.1") || host.startsWith("[::1]") || host.startsWith("::1")
+}
+
+function canUseLocalAuth(req) {
+ if (isTruthyFlag(WEB_LOCAL_AUTH_FORCE)) return true
+ if (String(process.env.NODE_ENV || "").toLowerCase() === "production") return false
+ return isLoopbackHost(req)
+}
+
+function hasLocalAuthSignal(req, cookies = null) {
+ const sourceCookies = cookies || parseCookies(req)
+ const headerFlag = req.headers["x-kc-local-auth"]
+ const queryFlag = req.query?.local
+ const cookieFlag = sourceCookies[WEB_LOCAL_AUTH_COOKIE]
+ return isTruthyFlag(headerFlag) || isTruthyFlag(queryFlag) || isTruthyFlag(cookieFlag)
+}
+
+function hasLocalAuthDisableSignal(req, cookies = null) {
+ const sourceCookies = cookies || parseCookies(req)
+ const headerFlag = req.headers["x-kc-local-auth"]
+ const queryFlag = req.query?.local
+ const cookieFlag = sourceCookies[WEB_LOCAL_AUTH_COOKIE]
+ return isFalsyFlag(headerFlag) || isFalsyFlag(queryFlag) || isFalsyFlag(cookieFlag)
+}
+
+function buildLocalSession(req, cookies = null) {
+ if (!canUseLocalAuth(req)) return null
+ if (hasLocalAuthDisableSignal(req, cookies)) return null
+ const autoLocalWhenOauthMissing = !oauthConfigured()
+ if (!hasLocalAuthSignal(req, cookies) && !autoLocalWhenOauthMissing) return null
+ return {
+  token: `local:${WEB_LOCAL_AUTH_USER_ID}`,
+  userId: WEB_LOCAL_AUTH_USER_ID,
+  local: true
+ }
+}
+
 function sanitizeReturnPath(value) {
  const raw = String(value || "").trim()
  if (!raw) return null
@@ -1093,6 +1275,11 @@ function createWebSession(userId) {
  }
 
  const token = crypto.randomBytes(32).toString("hex")
+ const user = getUser(String(userId || ""))
+ if (user) {
+  recordWebLogin(user, Date.now())
+  save(String(userId || ""))
+ }
  webSessions.set(token, {
   userId: String(userId),
   expiresAt: Date.now() + WEB_SESSION_TTL_MS
@@ -1100,8 +1287,654 @@ function createWebSession(userId) {
  return token
 }
 
+function isLocalDemoWorldEnabled() {
+ return !isFalsyFlag(WEB_LOCAL_DEMO_WORLD)
+}
+
+function getLocalDemoUserId(index) {
+ return String(WEB_LOCAL_DEMO_ID_BASE + BigInt(Math.max(1, Number(index || 1))))
+}
+
+function getLocalDemoBotName(index) {
+ const baseNames = [
+  "Aldren", "Briska", "Caelys", "Darnok", "Elyra", "Feyris", "Galven", "Helion",
+  "Ilyne", "Jorim", "Kalyra", "Lioren", "Myrth", "Nerion", "Orlune", "Phaeris",
+  "Quorin", "Ravyn", "Sylwen", "Tarian", "Ulric", "Vaelis", "Weyra", "Xelion",
+  "Ysara", "Zorath", "Arvyn", "Belros", "Cyria", "Delya", "Eron", "Falyn",
+  "Grynd", "Havor", "Irven", "Jelra", "Kaelor", "Lunis", "Marek", "Nyxen"
+ ]
+ const safeIndex = Math.max(0, Number(index || 0))
+ const root = baseNames[safeIndex % baseNames.length]
+ const suffix = String(Math.floor(safeIndex / baseNames.length) + 1).padStart(2, "0")
+ return `${root} ${suffix}`
+}
+
+function setLocalDiscordProfile(userId, displayName, username = null) {
+ const safeId = String(userId || "").trim()
+ if (!safeId) return
+ const fallbackUsername = String(username || displayName || `aventurier_${safeId.slice(-4)}`)
+  .toLowerCase()
+  .replace(/[^a-z0-9_]/g, "_")
+ const value = {
+  id: safeId,
+  username: fallbackUsername,
+  displayName: String(displayName || fallbackUsername),
+  avatar: null,
+  avatarURL: null
+ }
+ localDiscordProfileOverrides.set(safeId, value)
+ discordUserCache.set(safeId, { value, expiresAt: Date.now() + DISCORD_USER_TTL_MS })
+}
+
+function ensureLocalDiscordProfiles(localUserId) {
+ setLocalDiscordProfile(localUserId, "Sauci Local", "sauci_local")
+ for (let index = 0; index < WEB_LOCAL_DEMO_BOT_COUNT; index++) {
+  const userId = getLocalDemoUserId(index + 1)
+  setLocalDiscordProfile(userId, getLocalDemoBotName(index), `joueur_${String(index + 1).padStart(2, "0")}`)
+ }
+}
+
+function getCurrentDayId() {
+ const now = new Date()
+ const yyyy = now.getFullYear()
+ const mm = String(now.getMonth() + 1).padStart(2, "0")
+ const dd = String(now.getDate()).padStart(2, "0")
+ return `${yyyy}-${mm}-${dd}`
+}
+
+function getCurrentWeekId() {
+ const now = new Date()
+ const jan1 = new Date(now.getFullYear(), 0, 1)
+ const days = Math.floor((now - jan1) / 86400000)
+ const week = Math.ceil((days + jan1.getDay() + 1) / 7)
+ return `${now.getFullYear()}-W${String(week).padStart(2, "0")}`
+}
+
+function ensureQuestStatValue(user, stat, absoluteValue) {
+ const safeValue = Math.max(0, Math.floor(Number(absoluteValue || 0)))
+ if (!user.stats || typeof user.stats !== "object") user.stats = {}
+ if (!user.krosmoshopStats || typeof user.krosmoshopStats !== "object") {
+  user.krosmoshopStats = {
+   cardsBought: 0,
+   ssrBought: 0,
+   sBought: 0,
+   kamasSpent: 0,
+   daysVisited: 0
+  }
+ }
+
+ if (stat === "_shopBought" || stat === "shopBought") {
+  user.stats.shopBought = Math.max(Number(user.stats.shopBought || 0), safeValue)
+  user.krosmoshopStats.cardsBought = Math.max(Number(user.krosmoshopStats.cardsBought || 0), safeValue)
+  return
+ }
+ if (stat === "_shopKamasSpent") {
+  user.krosmoshopStats.kamasSpent = Math.max(Number(user.krosmoshopStats.kamasSpent || 0), safeValue)
+  return
+ }
+ if (stat === "_kamasEarned") {
+  user.stats.kamasEarned = Math.max(Number(user.stats.kamasEarned || 0), safeValue)
+  user.stats.totalKamasEarned = Math.max(Number(user.stats.totalKamasEarned || 0), safeValue)
+  return
+ }
+ user.stats[stat] = Math.max(Number(user.stats[stat] || 0), safeValue)
+}
+
+function ensureUserCardsForDemo(user, cards, options = {}) {
+ if (!user.cards || typeof user.cards !== "object") user.cards = {}
+ if (!Array.isArray(cards) || cards.length <= 0) return
+
+ const uniqueTarget = Math.max(1, Math.min(cards.length, Number(options.uniqueTarget || 30)))
+ const minQty = Math.max(1, Number(options.minQty || 1))
+ const maxQty = Math.max(minQty, Number(options.maxQty || 3))
+ const offset = Math.max(0, Number(options.offset || 0)) % cards.length
+ const sortedCards = [...cards].sort((a, b) =>
+  Number(a?.id || 0) - Number(b?.id || 0) ||
+  String(a?.name || "").localeCompare(String(b?.name || ""), "fr")
+ )
+ const rotated = sortedCards.slice(offset).concat(sortedCards.slice(0, offset))
+
+ for (let index = 0; index < uniqueTarget; index++) {
+  const card = rotated[index]
+  if (!card) continue
+  const cardId = String(card.id || "")
+  if (!cardId) continue
+  const span = Math.max(1, (maxQty - minQty) + 1)
+  const qty = minQty + ((index + offset) % span)
+  if (Number(user.cards[cardId] || 0) < qty) {
+   user.cards[cardId] = qty
+  }
+ }
+}
+
+function ensureUserFragmentsForDemo(user, cards, options = {}) {
+ if (!Array.isArray(user.fragments)) user.fragments = []
+ const prioritized = cards.filter((card) => ["SSR", "S", "UR"].includes(String(card?.rarity || "").toUpperCase()))
+ if (!prioritized.length) return
+
+ const fullSets = Math.max(0, Number(options.fullSets || 0))
+ const partialSets = Math.max(0, Number(options.partialSets || 0))
+ const offset = Math.max(0, Number(options.offset || 0)) % prioritized.length
+ const rotated = prioritized.slice(offset).concat(prioritized.slice(0, offset))
+ const existing = new Set(
+  user.fragments.map((fragment) => `${String(fragment?.cardId || "")}:${Number(fragment?.fragmentNumber || 0)}`)
+ )
+
+ const addFragment = (cardId, fragmentNumber) => {
+  const key = `${String(cardId)}:${Number(fragmentNumber)}`
+  if (existing.has(key)) return
+  user.fragments.push({
+   cardId: String(cardId),
+   fragmentNumber: Number(fragmentNumber),
+   source: "local-demo",
+   obtainedAt: new Date().toISOString()
+  })
+  existing.add(key)
+ }
+
+ for (let index = 0; index < fullSets; index++) {
+  const card = rotated[index]
+  if (!card) break
+  for (let fragmentNumber = 1; fragmentNumber <= 5; fragmentNumber++) {
+   addFragment(card.id, fragmentNumber)
+  }
+ }
+
+ for (let index = fullSets; index < fullSets + partialSets; index++) {
+  const card = rotated[index]
+  if (!card) break
+  const maxFragment = 1 + (index % 4)
+  for (let fragmentNumber = 1; fragmentNumber <= maxFragment; fragmentNumber++) {
+   addFragment(card.id, fragmentNumber)
+  }
+ }
+}
+
+function ensureLocalBattlePassProgress(userId, targetLevel, premium = false, claimedRatio = 0.4) {
+ const currentSeason = ensureCurrentSeason()
+ const season = getSeasonTemplate(currentSeason.activeSeason)
+ if (!season) return
+
+ const progress = getUserProgress(userId, currentSeason.activeSeason)
+ const safeTarget = Math.max(1, Math.floor(Number(targetLevel || 1)))
+ const curve = Array.isArray(season.xpCurve) ? season.xpCurve : []
+ const totalLevels = Math.max(1, Number(season.totalLevels || 40))
+ const xpFloor = safeTarget > 1
+  ? (curve[Math.min(curve.length - 1, Math.max(0, safeTarget - 2))] || 0)
+  : 0
+ const endlessBonus = safeTarget > totalLevels
+  ? (safeTarget - totalLevels) * 900
+  : 250
+
+ progress.totalXP = Math.max(Number(progress.totalXP || 0), Number(xpFloor || 0) + endlessBonus)
+ progress.currentLevel = computeLevel(progress.totalXP, curve, null)
+ progress.hasPremium = Boolean(progress.hasPremium || premium)
+
+ const maxClaimableLevel = Math.min(totalLevels, progress.currentLevel)
+ const claimedFreeMax = Math.max(0, Math.min(maxClaimableLevel, Math.floor(maxClaimableLevel * Number(claimedRatio || 0.4))))
+ const claimedPremiumMax = progress.hasPremium
+  ? Math.max(0, Math.min(maxClaimableLevel, Math.floor(claimedFreeMax * 0.8)))
+  : 0
+
+ progress.claimedFree = Array.from({ length: claimedFreeMax }, (_, idx) => idx + 1)
+ progress.claimedPremium = Array.from({ length: claimedPremiumMax }, (_, idx) => idx + 1)
+ const nowIso = new Date().toISOString()
+ progress.claimedFreeAt = {}
+ progress.claimedPremiumAt = {}
+ for (const level of progress.claimedFree) {
+  progress.claimedFreeAt[String(level)] = nowIso
+ }
+ for (const level of progress.claimedPremium) {
+  progress.claimedPremiumAt[String(level)] = nowIso
+ }
+
+ if (!progress.stats || typeof progress.stats !== "object") progress.stats = {}
+ progress.stats.packsOpened = Math.max(Number(progress.stats.packsOpened || 0), Math.floor(progress.currentLevel * 3))
+ progress.stats.fusions = Math.max(Number(progress.stats.fusions || 0), Math.floor(progress.currentLevel * 1.6))
+ progress.stats.dailyClaims = Math.max(Number(progress.stats.dailyClaims || 0), 15)
+ progress.stats.marketSales = Math.max(Number(progress.stats.marketSales || 0), 18)
+ progress.stats.events = Math.max(Number(progress.stats.events || 0), 10)
+ progress.stats.rouletteSpins = Math.max(Number(progress.stats.rouletteSpins || 0), 25)
+
+ saveUserProgress(progress)
+}
+
+function clearListingsForSeller(sellerId) {
+ const existing = getUserListings(sellerId)
+ for (const listing of existing || []) {
+  const listingId = Number(listing?.id || 0)
+  if (!Number.isFinite(listingId) || listingId <= 0) continue
+  removeListing(sellerId, listingId)
+ }
+}
+
+function ensureMarketListingsForSeller(sellerId, targetCount, cardsById, sellerOffset = 0) {
+ const marketBasePrice = {
+  C: 120,
+  U: 220,
+  R: 420,
+  SR: 760,
+  HR: 1300,
+  UR: 2200,
+  S: 4300,
+  SSR: 11800
+ }
+
+ const user = getUser(sellerId)
+ if (!user) return
+ if (!user.cards || typeof user.cards !== "object") user.cards = {}
+ if (!Array.isArray(user.fragments)) user.fragments = []
+
+ const existingListings = getUserListings(sellerId)
+ const missing = Math.max(0, Number(targetCount || 0) - existingListings.length)
+ if (missing <= 0) return
+
+ const sellableCards = Object.entries(user.cards)
+  .filter(([, qty]) => Number(qty || 0) > 1)
+  .map(([cardId, qty]) => {
+   const card = cardsById.get(String(cardId))
+   return {
+    cardId: String(cardId),
+    qty: Number(qty || 0),
+    rarity: String(card?.rarity || "C").toUpperCase()
+   }
+  })
+  .sort((a, b) => {
+   const left = RARITY_ORDER.indexOf(a.rarity)
+   const right = RARITY_ORDER.indexOf(b.rarity)
+   return right - left || Number(b.qty || 0) - Number(a.qty || 0)
+  })
+
+ let created = 0
+ for (let index = 0; index < sellableCards.length && created < missing; index++) {
+  const row = sellableCards[index]
+  const base = Number(marketBasePrice[row.rarity] || 180)
+  const factor = 0.86 + (((index + sellerOffset) % 7) * 0.08)
+  const price = Math.max(50, Math.floor(base * factor))
+  const result = addListing(sellerId, row.cardId, price)
+  if (!result?.error) created++
+ }
+
+ const fragmentTarget = Math.min(2, Math.max(0, Math.floor(Number(targetCount || 0) / 5)))
+ let fragmentCreated = 0
+ const fragments = [...user.fragments]
+ for (let index = 0; index < fragments.length && fragmentCreated < fragmentTarget; index++) {
+  const fragment = fragments[index]
+  const card = cardsById.get(String(fragment?.cardId || ""))
+  const rarity = String(card?.rarity || "SSR").toUpperCase()
+  const base = Math.max(250, Math.floor(Number(marketBasePrice[rarity] || 1400) * 0.3))
+  const price = base + (((index + sellerOffset) % 5) * 85)
+  const result = addFragmentListing(
+   sellerId,
+   String(fragment.cardId || ""),
+   Number(fragment.fragmentNumber || 0),
+   price
+  )
+  if (!result?.error) fragmentCreated++
+ }
+
+ save(sellerId)
+}
+
+function seedLocalMarketHistory(cards, sellers, buyers) {
+ const marketBasePrice = {
+  C: 120,
+  U: 220,
+  R: 420,
+  SR: 760,
+  HR: 1300,
+  UR: 2200,
+  S: 4300,
+  SSR: 11800
+ }
+
+ if (!Array.isArray(cards) || cards.length <= 0) return
+ if (!Array.isArray(sellers) || sellers.length <= 0) return
+ if (!Array.isArray(buyers) || buyers.length <= 0) return
+
+ const pool = cards.slice(0, Math.min(cards.length, 120))
+ const now = Date.now()
+ for (let index = 0; index < 48; index++) {
+  const card = pool[(index * 11) % pool.length]
+  if (!card) continue
+  const seller = String(sellers[index % sellers.length] || "")
+  const buyer = String(buyers[(index * 3 + 2) % buyers.length] || "")
+  if (!seller || !buyer || seller === buyer) continue
+  const rarity = String(card?.rarity || "C").toUpperCase()
+  const base = Number(marketBasePrice[rarity] || 200)
+  const price = Math.max(40, Math.floor(base * (0.78 + ((index % 6) * 0.09))))
+  dbAddMarketHistory({
+   seller,
+   buyer,
+   card: String(card.id),
+   price,
+   type: "card",
+   fragmentNumber: null,
+   timestamp: now - ((index + 1) * 17 * 60 * 1000)
+  })
+ }
+}
+
+function ensureLocalGuildWorld(localUserId, botIds) {
+ const guildNames = [
+  "Chroniques du Krosmoz",
+  "Veilleurs d Astrub",
+  "Compagnie des Douze",
+  "Sberg Vanguard",
+  "Conclave des Runes",
+  "Brigade de Kelba"
+ ]
+
+ const existingByName = new Map(
+  getGuildList().map((guild) => [normalizeText(guild?.name), guild])
+ )
+
+ const guildIds = []
+ const allMembers = [localUserId, ...botIds]
+ const segmentSize = [8, 6, 6, 5, 5, 5]
+ let cursor = 0
+
+ for (let index = 0; index < guildNames.length; index++) {
+  const name = guildNames[index]
+  const normalized = normalizeText(name)
+  let guild = existingByName.get(normalized) || null
+
+  if (!guild) {
+   const leaderId = index === 0
+    ? localUserId
+    : botIds[Math.max(0, botIds.length - index)]
+   const leader = getUser(leaderId)
+   if (Number(leader.kamas || 0) < 5000) leader.kamas = 5000
+   save(leaderId)
+   const created = createGuild(leaderId, name)
+   if (created?.guild) guild = created.guild
+  }
+  if (!guild?.id) continue
+
+  guildIds.push(String(guild.id))
+  const desired = Math.max(3, Number(segmentSize[index] || 5))
+  const members = []
+  if (index === 0) members.push(localUserId)
+  while (members.length < desired && cursor < allMembers.length) {
+   const nextId = allMembers[cursor]
+   cursor++
+   if (!nextId || members.includes(nextId)) continue
+   members.push(nextId)
+  }
+  for (const memberId of members) {
+   devForceJoin(memberId, guild.id)
+  }
+
+  const targetLevel = Math.max(5, Math.min(50, 10 + (index * 7)))
+  devSetGuildLevel(guild.id, targetLevel)
+ }
+
+ const dayId = getCurrentDayId()
+ const weekId = getCurrentWeekId()
+ for (let index = 0; index < guildIds.length; index++) {
+  const guild = getGuild(guildIds[index])
+  if (!guild) continue
+  if (!guild.stats || typeof guild.stats !== "object") guild.stats = {}
+  guild.stats.totalXpEarned = Math.max(Number(guild.stats.totalXpEarned || 0), 3000 + (index * 2200))
+  guild.stats.questsCompleted = Math.max(Number(guild.stats.questsCompleted || 0), 15 + (index * 6))
+  guild.questsWeek = weekId
+  guild.questsDay = dayId
+  guild.questSnapshot = {}
+  guild.questDaySnapshot = {}
+  guild.questsClaimed = Array.isArray(guild.questsClaimed) ? guild.questsClaimed : []
+  guild.questsDayClaimed = Array.isArray(guild.questsDayClaimed) ? guild.questsDayClaimed : []
+ }
+ saveGuilds()
+}
+
+function ensureLocalDevUserSeed(userId) {
+ const safeUserId = String(userId || "").trim()
+ if (!safeUserId) return
+ if (localDevUserSeededUsers.has(safeUserId)) return
+
+ const user = getUser(safeUserId)
+ if (!user) return
+
+ let dirty = false
+ const forceReset = isLocalDemoWorldEnabled()
+
+ if (forceReset || Number(user.kamas || 0) < 260000) {
+  user.kamas = 260000
+  dirty = true
+ }
+
+ if (forceReset || Number(user.packs || 0) < 45) {
+  user.packs = 45
+  dirty = true
+ }
+
+ if (!user.progression || typeof user.progression !== "object" || forceReset || Number(user.progression.level || 0) < 28) {
+  user.progression = { level: 28, xp: 530, totalXp: 98000 }
+  dirty = true
+ } else {
+  if (!Number.isFinite(Number(user.progression.xp))) {
+   user.progression.xp = 530
+   dirty = true
+  }
+  if (!Number.isFinite(Number(user.progression.totalXp))) {
+   user.progression.totalXp = 98000
+   dirty = true
+  }
+ }
+
+ const cards = getCards()
+ ensureUserCardsForDemo(user, cards, { uniqueTarget: 170, minQty: 2, maxQty: 6, offset: 9 })
+ ensureUserFragmentsForDemo(user, cards, { fullSets: 14, partialSets: 10, offset: 4 })
+ dirty = true
+
+ const allAchievementIds = Object.keys(achievementRegistry || {})
+ if (!Array.isArray(user.achievements)) user.achievements = []
+ if (user.achievements.length < Math.min(70, allAchievementIds.length)) {
+  const target = Math.min(allAchievementIds.length, 90)
+  const picked = []
+  for (let index = 0; index < target; index++) {
+   picked.push(String(allAchievementIds[(index * 7) % allAchievementIds.length]))
+  }
+  user.achievements = [...new Set([...user.achievements, ...picked])]
+  dirty = true
+ }
+
+ if (!Array.isArray(user.titles)) user.titles = ["Nouveau"]
+ for (const title of ["Nouveau", "Collectionneur", "Marchand du Krosmoz", "Alchimiste"]) {
+  if (!user.titles.includes(title)) user.titles.push(title)
+ }
+ if (String(user.title || "").trim() === "" || user.title === "Nouveau") {
+  user.title = "Maitre des Douze"
+  dirty = true
+ }
+
+ if (!user.stats || typeof user.stats !== "object") user.stats = {}
+ ensureQuestStatValue(user, "packsOpened", 410)
+ ensureQuestStatValue(user, "packsBought", 180)
+ ensureQuestStatValue(user, "fusions", 135)
+ ensureQuestStatValue(user, "fusionCrit", 24)
+ ensureQuestStatValue(user, "cardsSold", 190)
+ ensureQuestStatValue(user, "cardsBought", 118)
+ ensureQuestStatValue(user, "marketBought", 54)
+ ensureQuestStatValue(user, "ssrPulled", 36)
+ ensureQuestStatValue(user, "shinySSR", 7)
+ ensureQuestStatValue(user, "dailyClaims", 42)
+ ensureQuestStatValue(user, "eventPacksOpened", 29)
+ ensureQuestStatValue(user, "ssrFromEvent", 6)
+ ensureQuestStatValue(user, "rouletteSpins", 98)
+ ensureQuestStatValue(user, "_kamasEarned", 960000)
+ ensureQuestStatValue(user, "_shopBought", 45)
+ ensureQuestStatValue(user, "_shopKamasSpent", 93000)
+ ensureQuestStatValue(user, "giftsGiven", 28)
+ ensureQuestStatValue(user, "profileViews", 71)
+ ensureQuestStatValue(user, "inventoryOpen", 84)
+ ensureQuestStatValue(user, "leaderboardViews", 53)
+ ensureQuestStatValue(user, "botMentions", 15)
+ ensureQuestStatValue(user, "pinataParticipations", 11)
+ ensureQuestStatValue(user, "pinataReactionsTotal", 186)
+ ensureQuestStatValue(user, "pinataKamasWon", 12400)
+ ensureQuestStatValue(user, "krosmozOpened", 32)
+ user.stats.activityStreak = forceReset
+  ? 19
+  : Math.max(Number(user.stats.activityStreak || 0), 19)
+ user.daily = user.daily || { streak: 0, lastDaily: 0 }
+ user.daily.streak = forceReset
+  ? 12
+  : Math.max(Number(user.daily.streak || 0), 12)
+
+ ensureUserQuests(user)
+ const daily = getDailyQuests().quests || []
+ const weekly = getWeeklyQuests().quests || []
+ for (const quest of daily) {
+  const baseline = Number(user.quests?.daily?.snapshot?.[quest.stat] || 0)
+  ensureQuestStatValue(user, quest.stat, baseline + Number(quest.goal || 1) + 2)
+ }
+ for (const quest of weekly) {
+  const baseline = Number(user.quests?.weekly?.snapshot?.[quest.stat] || 0)
+  ensureQuestStatValue(user, quest.stat, baseline + Number(quest.goal || 1) + 5)
+ }
+ if (user.quests?.daily && Array.isArray(user.quests.daily.claimed) && user.quests.daily.claimed.length <= 0 && daily[0]) {
+  user.quests.daily.claimed.push(String(daily[0].id))
+ }
+ if (user.quests?.weekly && Array.isArray(user.quests.weekly.claimed) && user.quests.weekly.claimed.length <= 0 && weekly[0]) {
+  user.quests.weekly.claimed.push(String(weekly[0].id))
+ }
+
+ ensureLocalBattlePassProgress(safeUserId, 36, true, 0.45)
+
+ if (dirty) save(safeUserId)
+ localDevUserSeededUsers.add(safeUserId)
+}
+
+function ensureLocalDemoWorldSeed(localUserId) {
+ if (!isLocalDemoWorldEnabled()) return
+ if (localDemoWorldSeeded) return
+
+ try {
+  ensureLocalDiscordProfiles(localUserId)
+
+  const localUser = getUser(localUserId)
+  if (!localUser) return
+
+  const cards = getCards()
+  if (!Array.isArray(cards) || cards.length <= 0) return
+  const cardsById = new Map(cards.map((card) => [String(card.id), card]))
+
+  const botIds = []
+  for (let index = 0; index < WEB_LOCAL_DEMO_BOT_COUNT; index++) {
+   const botId = getLocalDemoUserId(index + 1)
+   botIds.push(botId)
+
+   const user = getUser(botId)
+   ensureUserCardsForDemo(user, cards, {
+    uniqueTarget: 95 + (index % 40),
+    minQty: 1,
+    maxQty: 4,
+    offset: 11 + (index * 3)
+   })
+   ensureUserFragmentsForDemo(user, cards, {
+    fullSets: 2 + (index % 3),
+    partialSets: 3 + (index % 4),
+    offset: index * 2
+   })
+
+   user.kamas = 30000 + (index * 4200)
+   user.packs = 20 + (index % 18)
+   user.progression = user.progression || { level: 1, xp: 0, totalXp: 0 }
+   user.progression.level = 10 + (index % 25)
+   user.progression.xp = 40 + ((index * 37) % 420)
+   user.progression.totalXp = (user.progression.level * 2800) + (index * 330)
+
+   if (!Array.isArray(user.titles)) user.titles = ["Nouveau"]
+   for (const title of ["Nouveau", "Aventurier", "Marchand"]) {
+    if (!user.titles.includes(title)) user.titles.push(title)
+   }
+   if (!user.title || user.title === "Nouveau") {
+    user.title = index % 2 === 0 ? "Aventurier" : "Marchand"
+   }
+
+   if (!Array.isArray(user.achievements)) user.achievements = []
+   const achievementIds = Object.keys(achievementRegistry || {})
+   const unlockTarget = Math.min(achievementIds.length, 10 + (index % 18))
+   for (let achIndex = 0; achIndex < unlockTarget; achIndex++) {
+    user.achievements.push(String(achievementIds[(achIndex * 5 + index) % achievementIds.length]))
+   }
+   user.achievements = [...new Set(user.achievements)]
+
+   ensureQuestStatValue(user, "packsOpened", 95 + (index * 6))
+   ensureQuestStatValue(user, "fusions", 40 + (index * 3))
+   ensureQuestStatValue(user, "cardsSold", 52 + (index * 2))
+   ensureQuestStatValue(user, "cardsBought", 31 + (index * 2))
+   ensureQuestStatValue(user, "marketBought", 17 + (index % 25))
+   ensureQuestStatValue(user, "ssrPulled", 6 + Math.floor(index / 3))
+   ensureQuestStatValue(user, "dailyClaims", 12 + (index % 20))
+   ensureQuestStatValue(user, "eventPacksOpened", 5 + (index % 12))
+   ensureQuestStatValue(user, "rouletteSpins", 16 + (index % 40))
+   ensureQuestStatValue(user, "_kamasEarned", 130000 + (index * 21000))
+   ensureQuestStatValue(user, "_shopBought", 8 + (index % 16))
+   ensureQuestStatValue(user, "_shopKamasSpent", 18000 + (index * 2400))
+   ensureQuestStatValue(user, "giftsGiven", 4 + (index % 11))
+   ensureQuestStatValue(user, "krosmozOpened", 5 + (index % 16))
+
+   ensureLocalBattlePassProgress(botId, 8 + (index % 28), index % 3 === 0, 0.32)
+   save(botId)
+  }
+
+  ensureLocalGuildWorld(localUserId, botIds)
+
+  const listingSellers = [localUserId, ...botIds.slice(0, 22)]
+  for (let index = 0; index < listingSellers.length; index++) {
+   const sellerId = listingSellers[index]
+   const targetCount = sellerId === localUserId ? 9 : 5 + (index % 3)
+   clearListingsForSeller(sellerId)
+   ensureMarketListingsForSeller(sellerId, targetCount, cardsById, index)
+  }
+
+  seedLocalMarketHistory(cards, botIds.slice(0, 14), [localUserId, ...botIds.slice(14, 28)])
+
+  if (!isEventActive()) {
+   startEvent(null)
+  }
+  const refreshedLocalUser = getUser(localUserId)
+  initUserEvent(refreshedLocalUser)
+  if (refreshedLocalUser?.event && Number(refreshedLocalUser.event.used || 0) <= 0) {
+   refreshedLocalUser.event.used = 1
+  }
+  ensureQuestStatValue(refreshedLocalUser, "eventPacksOpened", 31)
+  save(localUserId)
+
+  pushActivity({
+   kind: "drop_ssr",
+   userId: localUserId,
+   cardName: "Simulation locale SSR",
+   shiny: false,
+   timestamp: Date.now() - (12 * 60 * 1000)
+  })
+  pushActivity({
+   kind: "pinata_end",
+   participants: 24,
+   timestamp: Date.now() - (7 * 60 * 1000)
+  })
+
+  refreshedLocalUser.localDev = refreshedLocalUser.localDev || {}
+  refreshedLocalUser.localDev.worldSeedVersion = WEB_LOCAL_DEMO_SEED_VERSION
+  refreshedLocalUser.localDev.seededAt = new Date().toISOString()
+  save(localUserId)
+  localDemoWorldSeeded = true
+ } catch (error) {
+  webLog.error("Seed local demo world: echec", { err: error })
+ }
+}
+
 function resolveSession(req) {
  const cookies = parseCookies(req)
+ const localSession = buildLocalSession(req, cookies)
+ if (localSession) {
+  ensureLocalDevUserSeed(localSession.userId)
+  ensureLocalDemoWorldSeed(localSession.userId)
+  return localSession
+ }
+
  const token = cookies.kc_session
  if (!token) return null
 
@@ -1119,7 +1952,10 @@ function clearSession(req, res) {
  const cookies = parseCookies(req)
  const token = cookies.kc_session
  if (token) webSessions.delete(token)
- res.setHeader("Set-Cookie", `kc_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${isHttpsRequest(req) ? "; Secure" : ""}`)
+ res.setHeader("Set-Cookie", [
+  `kc_session=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${isHttpsRequest(req) ? "; Secure" : ""}`,
+  `${WEB_LOCAL_AUTH_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`
+ ])
 }
 
 function requireSession(req, res) {
@@ -1139,14 +1975,18 @@ function requireSessionPage(req, res) {
 }
 
 async function resolveDiscordUser(userId) {
+ const safeUserId = String(userId || "").trim()
+ const localOverride = localDiscordProfileOverrides.get(safeUserId)
+ if (localOverride) return localOverride
+
  const now = Date.now()
- const cached = discordUserCache.get(userId)
+ const cached = discordUserCache.get(safeUserId)
  if (cached && cached.expiresAt > now) return cached.value
 
  const fallback = {
-  id: userId,
-  username: userId,
-  displayName: userId,
+  id: safeUserId,
+  username: safeUserId,
+  displayName: safeUserId,
   avatar: null,
   avatarURL: null
  }
@@ -1155,25 +1995,25 @@ async function resolveDiscordUser(userId) {
   const token = process.env.TOKEN
   if (!token) return fallback
 
-  const res = await fetch(`https://discord.com/api/v10/users/${encodeURIComponent(userId)}`, {
+  const res = await fetch(`https://discord.com/api/v10/users/${encodeURIComponent(safeUserId)}`, {
    headers: { Authorization: `Bot ${token}` }
   })
   if (!res.ok) return fallback
 
   const data = await res.json()
   const avatarURL = data.avatar
-   ? `https://cdn.discordapp.com/avatars/${userId}/${data.avatar}.${data.avatar.startsWith("a_") ? "gif" : "webp"}?size=256`
-   : `https://cdn.discordapp.com/embed/avatars/${(BigInt(userId) >> 22n) % 6n}.png`
+   ? `https://cdn.discordapp.com/avatars/${safeUserId}/${data.avatar}.${data.avatar.startsWith("a_") ? "gif" : "webp"}?size=256`
+   : `https://cdn.discordapp.com/embed/avatars/${(BigInt(safeUserId) >> 22n) % 6n}.png`
 
   const value = {
-   id: userId,
+   id: safeUserId,
    username: data.username,
    displayName: data.global_name || data.username,
    avatar: data.avatar,
    avatarURL
   }
 
-  discordUserCache.set(userId, { value, expiresAt: now + DISCORD_USER_TTL_MS })
+  discordUserCache.set(safeUserId, { value, expiresAt: now + DISCORD_USER_TTL_MS })
   return value
  } catch (_) {
   return fallback
@@ -1254,10 +2094,24 @@ async function computeActivityFeed(limit = 10) {
 }
 
 function computeLeaderboard(category) {
- const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
+ const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs", "guilds"]
  if (!valid.includes(category)) return []
 
- /* Requête SQL directe — instantané, plus besoin de lire tous les fichiers */
+ if (category === "guilds") {
+  return computeGuildSummary({ sort: "level" })
+   .slice(0, 100)
+   .map((row) => ({
+    guildId: String(row.id),
+    name: String(row.name || "Guilde"),
+    emoji: String(row.emoji || "🛡️"),
+    level: Number(row.level || 1),
+    members: Number(row.members || 0),
+    maxMembers: MAX_MEMBERS,
+    value: Number(row.level || 1)
+   }))
+ }
+
+ /* Requête SQL directe ? instantané, plus besoin de lire tous les fichiers */
  return dbLeaderboard(category, 100)
 }
 
@@ -1305,6 +2159,41 @@ function computeProfile(userId) {
  const xp = user.progression?.xp || 0
  const totalXp = user.progression?.totalXp || 0
  const xpRequired = level < MAX_PLAYER_LEVEL ? 100 + (level * 35) : 0
+ const unlockedIds = Array.isArray(user.achievements) ? user.achievements.map((id) => String(id)) : []
+ const profileBadges = []
+ const seenBadges = new Set()
+
+ for (const id of unlockedIds) {
+  const ach = achievementRegistry?.[id]
+  if (!ach) continue
+  const badge = String(ach?.badge || "").trim()
+  if (!badge) continue
+  const key = `ach:${id}`
+  if (seenBadges.has(key)) continue
+  seenBadges.add(key)
+  profileBadges.push({
+   id: key,
+   badge,
+   name: String(ach?.name || id),
+   label: String(ach?.name || id),
+   source: "achievement"
+  })
+ }
+
+ for (const raw of (Array.isArray(user.badges) ? user.badges : [])) {
+  const badgeName = String(raw || "").trim()
+  if (!badgeName) continue
+  const key = `bp:${badgeName}`
+  if (seenBadges.has(key)) continue
+  seenBadges.add(key)
+  profileBadges.push({
+   id: key,
+   badge: "🏅",
+   name: badgeName,
+   label: badgeName,
+   source: "battlepass"
+  })
+ }
 
  return {
   level,
@@ -1318,6 +2207,7 @@ function computeProfile(userId) {
   maxCards: cards.length,
   title: user.title || "Nouveau",
   titles: user.titles || ["Nouveau"],
+  badges: profileBadges,
   achievements: user.achievements?.length || 0,
   guild,
   rarityBreakdown,
@@ -1327,9 +2217,9 @@ function computeProfile(userId) {
    return {
     setId: set.id,
     setName: set.name,
-    UR:  p.UR  ?? 0,
-    S:   p.S   ?? 0,
-    SSR: p.SSR ?? 0
+    UR:  p.UR || 0,
+    S:   p.S || 0,
+    SSR: p.SSR || 0
    }
   }),
   stats: {
@@ -1540,7 +2430,7 @@ function computeGuildSummary(query) {
  let items = guilds.map((g) => ({
   id: String(g.id),
   name: g.name || "Guilde",
-  emoji: g.emoji || "🏰",
+  emoji: g.emoji || "🛡️",
   level: Number(g.level || 1),
   xp: Number(g.xp || 0),
   members: Array.isArray(g.memberIds) ? g.memberIds.length : 0,
@@ -1613,7 +2503,7 @@ async function computeGuildProfile(guildId) {
  return {
   id: String(guild.id),
   name: guild.name || "Guilde",
-  emoji: guild.emoji || "🏰",
+  emoji: guild.emoji || "🛡️",
   level: Number(guild.level || 1),
   xp: Number(guild.xp || 0),
   members,
@@ -1629,6 +2519,368 @@ async function computeGuildProfile(guildId) {
    totalFusions
   }
  }
+}
+
+function asGuildId(value) {
+ return String(value || "").trim()
+}
+
+function normalizeGuildApplications(guild) {
+ if (!guild || typeof guild !== "object") return []
+ const before = Array.isArray(guild.applications) ? guild.applications : []
+ const members = new Set((guild.memberIds || []).map((id) => String(id)))
+ const seen = new Set()
+ const normalized = []
+
+ for (const row of before) {
+  const userId = asGuildId(row?.userId || row)
+  if (!userId || seen.has(userId) || members.has(userId)) continue
+  normalized.push({
+   userId,
+   createdAt: row?.createdAt || new Date().toISOString()
+  })
+  seen.add(userId)
+ }
+
+ if (
+  !Array.isArray(guild.applications) ||
+  guild.applications.length !== normalized.length ||
+  guild.applications.some((entry, index) => String(entry?.userId || entry) !== String(normalized[index]?.userId || ""))
+ ) {
+  guild.applications = normalized
+ }
+ return guild.applications
+}
+
+function removeGuildApplicationsForUser(userId) {
+ const safeUserId = asGuildId(userId)
+ if (!safeUserId) return
+ let dirty = false
+ for (const guild of getGuildList()) {
+  const apps = normalizeGuildApplications(guild)
+  const next = apps.filter((entry) => asGuildId(entry?.userId) !== safeUserId)
+  if (next.length !== apps.length) {
+   guild.applications = next
+   dirty = true
+  }
+ }
+ if (dirty) saveGuilds()
+}
+
+function addGuildApplication(guildId, applicantId) {
+ const safeGuildId = asGuildId(guildId)
+ const safeApplicantId = asGuildId(applicantId)
+ if (!safeGuildId || !safeApplicantId) return { error: "Paramètres invalides." }
+
+ const guild = getGuild(safeGuildId)
+ if (!guild) return { error: "Guilde introuvable." }
+
+ const user = getUser(safeApplicantId)
+ if (!user) return { error: "Joueur introuvable." }
+ if (user.guildId) return { error: "Tu es déjà dans une guilde." }
+ recordGuildApplication(user)
+ save(safeApplicantId)
+
+ const apps = normalizeGuildApplications(guild)
+ if (apps.some((entry) => asGuildId(entry?.userId) === safeApplicantId)) {
+  return { error: "Tu as déjà postulé dans cette guilde." }
+ }
+
+ guild.applications = [
+  ...apps,
+  { userId: safeApplicantId, createdAt: new Date().toISOString() }
+ ]
+ saveGuilds()
+
+  const applicantLabel = `Joueur #${safeApplicantId.slice(-4)}`
+  const leadershipIds = [asGuildId(guild.leaderId), ...(guild.officerIds || []).map((id) => asGuildId(id))]
+  const seen = new Set()
+  for (const reviewerId of leadershipIds) {
+   if (!reviewerId || reviewerId === safeApplicantId || seen.has(reviewerId)) continue
+   seen.add(reviewerId)
+   enqueueWebRewardToast(reviewerId, {
+    type: "guild",
+    tone: "event",
+    title: "Nouvelle candidature de guilde",
+    subtitle: `${applicantLabel} postule dans ${String(guild.name || "la guilde")}`,
+    description: `${Number(guild.applications.length || 0)} candidature(s) en attente`,
+    rewardText: "",
+    chipLabel: "Guilde"
+   })
+  }
+
+ return { ok: true }
+}
+
+function respondGuildApplication(guildId, reviewerId, applicantId, accept = false) {
+ const safeGuildId = asGuildId(guildId)
+ const safeReviewerId = asGuildId(reviewerId)
+ const safeApplicantId = asGuildId(applicantId)
+ if (!safeGuildId || !safeReviewerId || !safeApplicantId) return { error: "Paramètres invalides." }
+
+ const guild = getGuild(safeGuildId)
+ if (!guild) return { error: "Guilde introuvable." }
+
+ const rank = getGuildRank(guild.id, safeReviewerId)
+ if (rank !== "meneur" && rank !== "officier") {
+  return { error: "Seuls le meneur et les officiers peuvent traiter les candidatures." }
+ }
+ const reviewer = getUser(safeReviewerId)
+ if (reviewer) {
+  recordGuildApplicationReview(reviewer)
+  save(safeReviewerId)
+ }
+
+ const apps = normalizeGuildApplications(guild)
+ const exists = apps.some((entry) => asGuildId(entry?.userId) === safeApplicantId)
+ if (!exists) return { error: "Candidature introuvable." }
+
+ guild.applications = apps.filter((entry) => asGuildId(entry?.userId) !== safeApplicantId)
+ saveGuilds()
+
+ if (!accept) return { ok: true, action: "rejected" }
+
+ const result = joinGuild(safeApplicantId, safeGuildId)
+ if (result?.error) return { error: result.error }
+ const recruiter = getUser(safeReviewerId)
+ if (recruiter) {
+  recordGuildRecruitment(recruiter)
+  save(safeReviewerId)
+ }
+ removeGuildApplicationsForUser(safeApplicantId)
+ return { ok: true, action: "accepted", guild: result.guild }
+}
+
+function detachUserFromGuildsForLocal(userId) {
+ const safeUserId = asGuildId(userId)
+ if (!safeUserId) return
+
+ const current = getUserGuild(safeUserId)
+ if (!current) return
+
+ if (String(current.leaderId || "") === safeUserId) {
+  const replacement = (current.memberIds || []).find((id) => String(id) !== safeUserId)
+  if (replacement) {
+   transferLeader(current.id, safeUserId, String(replacement))
+   leaveGuild(safeUserId)
+  } else {
+   disbandGuild(current.id, safeUserId)
+  }
+  return
+ }
+
+ leaveGuild(safeUserId)
+}
+
+function switchLocalGuildRole(userId, mode) {
+ const safeUserId = asGuildId(userId)
+ const safeMode = String(mode || "").trim().toLowerCase()
+ if (!safeUserId) return { error: "Utilisateur invalide." }
+
+ const guilds = computeGuildSummary({ sort: "level" }).map((row) => getGuild(row.id)).filter(Boolean)
+ if (guilds.length <= 0) return { error: "Aucune guilde disponible." }
+
+ const pickGuild = (index) => guilds[Math.max(0, Math.min(guilds.length - 1, index))]
+ const user = getUser(safeUserId)
+ if (!user) return { error: "Utilisateur introuvable." }
+
+ if (safeMode === "none" || safeMode === "sans_guilde") {
+  detachUserFromGuildsForLocal(safeUserId)
+  removeGuildApplicationsForUser(safeUserId)
+  return { ok: true, mode: "none" }
+ }
+
+ let targetGuild = pickGuild(0)
+ if (safeMode === "officer" || safeMode === "officier") targetGuild = pickGuild(1)
+ if (safeMode === "member" || safeMode === "membre") targetGuild = pickGuild(2)
+ if (!targetGuild) return { error: "Guilde cible introuvable." }
+
+ detachUserFromGuildsForLocal(safeUserId)
+ if (!Array.isArray(targetGuild.memberIds)) targetGuild.memberIds = []
+ if (!Array.isArray(targetGuild.officerIds)) targetGuild.officerIds = []
+
+ if (!targetGuild.memberIds.includes(safeUserId)) {
+  if (targetGuild.memberIds.length >= MAX_MEMBERS) {
+   const removable = targetGuild.memberIds.find((id) => String(id) !== String(targetGuild.leaderId || ""))
+   if (removable) {
+    targetGuild.memberIds = targetGuild.memberIds.filter((id) => String(id) !== String(removable))
+    targetGuild.officerIds = targetGuild.officerIds.filter((id) => String(id) !== String(removable))
+    const removedUser = getUser(removable)
+    if (removedUser?.guildId && String(removedUser.guildId) === String(targetGuild.id)) {
+     delete removedUser.guildId
+     save(removable)
+    }
+   } else {
+    return { error: "La guilde est pleine." }
+   }
+  }
+  targetGuild.memberIds.push(safeUserId)
+ }
+
+ user.guildId = String(targetGuild.id)
+ save(safeUserId)
+
+ if (safeMode === "leader" || safeMode === "meneur") {
+  targetGuild.leaderId = safeUserId
+  targetGuild.officerIds = targetGuild.officerIds.filter((id) => String(id) !== safeUserId)
+ } else {
+  if (String(targetGuild.leaderId || "") === safeUserId) {
+   let newLeader = targetGuild.memberIds.find((id) => String(id) !== safeUserId) || null
+   if (!newLeader) {
+    newLeader = getLocalDemoUserId(1)
+    if (!targetGuild.memberIds.includes(newLeader)) targetGuild.memberIds.push(newLeader)
+    const fallbackLeader = getUser(newLeader)
+    fallbackLeader.guildId = String(targetGuild.id)
+    save(newLeader)
+   }
+   targetGuild.leaderId = String(newLeader)
+  }
+
+  if (safeMode === "officer" || safeMode === "officier") {
+   if (!targetGuild.officerIds.includes(safeUserId)) {
+    const leadersAndSelf = new Set([String(targetGuild.leaderId || ""), safeUserId])
+    const filtered = (targetGuild.officerIds || []).filter((id) => !leadersAndSelf.has(String(id)))
+    targetGuild.officerIds = [...filtered, safeUserId].slice(0, 3)
+   }
+  } else {
+   targetGuild.officerIds = (targetGuild.officerIds || []).filter((id) => String(id) !== safeUserId)
+  }
+ }
+
+ removeGuildApplicationsForUser(safeUserId)
+ saveGuilds()
+ return { ok: true, mode: safeMode, guildId: String(targetGuild.id) }
+}
+
+function toGuildBonusRows(bonusMap = {}) {
+ return [
+  { key: "kamasBonus", label: "Kamas bonus", unit: "%" },
+  { key: "fusionCritBonus", label: "Fusion critique", unit: "%" },
+  { key: "fusionDoubleBonus", label: "Fusion double", unit: "%" },
+  { key: "fusionTripleBonus", label: "Fusion triple", unit: "%" },
+  { key: "luckyPackBonus", label: "Lucky pack", unit: "%" },
+  { key: "xpBonus", label: "XP Battle Pass", unit: "%" },
+  { key: "playerXpBonus", label: "XP joueur", unit: "%" },
+  { key: "shopDiscount", label: "Réduction KrosmoShop", unit: "%" },
+  { key: "dailyBonusPacks", label: "Packs daily bonus", unit: "" },
+  { key: "doubleDailyBonus", label: "Chance double daily", unit: "%" }
+ ].map((row) => {
+  const value = Number(bonusMap?.[row.key] || 0)
+  return {
+   ...row,
+   value,
+   active: value > 0
+  }
+ })
+}
+
+async function buildGuildStatePayload(userId) {
+ const safeUserId = asGuildId(userId)
+ const me = getUser(safeUserId)
+ if (!me) return null
+
+ const meDiscord = await resolveDiscordUser(safeUserId)
+ const currentGuild = getUserGuild(safeUserId)
+
+ const base = {
+  connected: true,
+  me: {
+   id: safeUserId,
+   discord: meDiscord,
+   kamas: Number(me.kamas || 0),
+   level: Number(me.progression?.level || 1),
+   title: String(me.title || "Nouveau")
+  },
+  inGuild: Boolean(currentGuild),
+  guild: null,
+  quests: null,
+  guildDirectory: [],
+  pendingApplications: []
+ }
+
+ const allGuilds = computeGuildSummary({ sort: "level" })
+ const userPendingGuildIds = new Set()
+
+ for (const item of allGuilds) {
+  const guild = getGuild(item.id)
+  if (!guild) continue
+  const apps = normalizeGuildApplications(guild)
+  if (apps.some((entry) => asGuildId(entry?.userId) === safeUserId)) {
+   userPendingGuildIds.add(String(guild.id))
+  }
+ }
+
+ base.guildDirectory = allGuilds.slice(0, 80).map((row) => ({
+  id: String(row.id),
+  name: String(row.name || "Guilde"),
+  emoji: String(row.emoji || "🛡️"),
+  level: Number(row.level || 1),
+  members: Number(row.members || 0),
+  maxMembers: MAX_MEMBERS,
+  hasApplied: userPendingGuildIds.has(String(row.id)),
+  canApply: Number(row.members || 0) < MAX_MEMBERS
+ }))
+
+ base.pendingApplications = base.guildDirectory.filter((row) => row.hasApplied).map((row) => ({
+  guildId: row.id,
+  guildName: row.name,
+  createdAt: null
+ }))
+
+ if (!currentGuild) return base
+
+ const rank = getGuildRank(currentGuild.id, safeUserId)
+ const isLeader = rank === "meneur"
+ const isOfficer = rank === "officier"
+ const canManage = isLeader || isOfficer
+ const profile = await computeGuildProfile(currentGuild.id)
+ const xpCurrent = Number(currentGuild.xp || 0)
+ const xpNeed = Math.max(1, Number(xpRequired(Number(currentGuild.level || 1)) || 1))
+ const bonusMap = getGuildBonuses(Number(currentGuild.level || 1))
+ const applications = normalizeGuildApplications(currentGuild)
+ const applicationsWithUsers = await Promise.all(applications.map(async (entry) => {
+  const applicantId = asGuildId(entry?.userId)
+  if (!applicantId) return null
+  const user = loadUser(applicantId)
+  if (!user || user.guildId) return null
+  const discord = await resolveDiscordUser(applicantId)
+  return {
+   userId: applicantId,
+   createdAt: entry?.createdAt || null,
+   discord,
+   level: Number(user.progression?.level || 1),
+   title: String(user.title || "Nouveau"),
+   kamas: Number(user.kamas || 0)
+  }
+ }))
+
+ const questState = buildQuestStatePayload(safeUserId)
+ base.quests = questState?.guild || null
+ base.guild = {
+  id: String(currentGuild.id),
+  name: String(currentGuild.name || "Guilde"),
+  emoji: String(currentGuild.emoji || "🛡️"),
+  rank,
+  rankLabel: isLeader ? "Meneur" : (isOfficer ? "Officier" : "Membre"),
+  canManage,
+  canLead: isLeader,
+  level: Number(currentGuild.level || 1),
+  xp: xpCurrent,
+  xpRequired: xpNeed,
+  xpPct: Math.max(0, Math.min(100, Math.round((xpCurrent / xpNeed) * 100))),
+  createdAt: currentGuild.createdAt || null,
+  memberCount: Array.isArray(currentGuild.memberIds) ? currentGuild.memberIds.length : 0,
+  maxMembers: MAX_MEMBERS,
+  stats: {
+   questsCompleted: Number(currentGuild.stats?.questsCompleted || 0),
+   totalXpEarned: Number(currentGuild.stats?.totalXpEarned || 0)
+  },
+  bonuses: toGuildBonusRows(bonusMap),
+  members: Array.isArray(profile?.members) ? profile.members : [],
+  applications: applicationsWithUsers.filter(Boolean)
+ }
+
+ return base
 }
 
 function oauthConfigured() {
@@ -1673,6 +2925,21 @@ function buildMePayload(userId) {
   cardsCount: Object.values(user.cards || {}).reduce((a, b) => a + b, 0),
   uniqueCards: Object.keys(user.cards || {}).length,
   fragmentsCount: Array.isArray(user.fragments) ? user.fragments.length : 0
+ }
+}
+
+function buildDailyStatePayload(user) {
+ const now = Date.now()
+ const nextClaimAt = Number(getNextMidnightParisMs() || 0)
+ const canClaim = Boolean(canClaimDaily(user))
+ const remainingMs = canClaim ? 0 : Math.max(0, nextClaimAt - now)
+
+ return {
+  canClaim,
+  nextClaimAt,
+  remainingMs,
+  streak: Number(user?.daily?.streak || 0),
+  lastDaily: Number(user?.daily?.lastDaily || 0)
  }
 }
 
@@ -1792,7 +3059,7 @@ function createWebApp() {
  app.use(express.json({ limit: "50kb" }))
  app.use(express.urlencoded({ extended: false, limit: "50kb" }))
 
- /* ── Security headers (helmet-like) ── */
+ /* Security headers (helmet-like) */
  app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff")
   res.setHeader("X-Frame-Options", "DENY")
@@ -1802,10 +3069,10 @@ function createWebApp() {
   return next()
  })
 
- /* ── Rate limiter API (100 req/min par IP) ── */
+ /* Rate limiter API (100 req/min par IP) */
  app.use("/api/", createRateLimiter({ windowMs: 60000, max: 100 }))
 
- /* ── Rate limiter strict sur POST marché (20 req/min par IP) ── */
+ /* Rate limiter strict sur POST march? (20 req/min par IP) */
  const marketLimiter = createRateLimiter({ windowMs: 60000, max: 20 })
  app.use("/api/market/buy", marketLimiter)
  app.use("/api/market/sell-card", marketLimiter)
@@ -1815,7 +3082,7 @@ function createWebApp() {
  app.use("/api/game/", gameLimiter)
  app.use("/api/events/", gameLimiter)
 
- /* ── CSRF : POST API doit être application/json ── */
+ /* CSRF : POST API doit être application/json */
  app.use("/api/", (req, res, next) => {
   if (req.method === "POST") {
    const ct = String(req.headers["content-type"] || "")
@@ -1826,7 +3093,7 @@ function createWebApp() {
   return next()
  })
 
- /* ── Health check endpoint ── */
+ /* Health check endpoint */
  app.get("/health", (req, res) => {
   const uptime = process.uptime()
   const mem = process.memoryUsage()
@@ -1889,7 +3156,7 @@ app.get("/api/battlepass/season", (req, res) => {
    name: String(tpl?.name || current.activeSeason || "Saison"),
    subtitle: String(tpl?.subtitle || ""),
    bonusDescription: String(tpl?.passiveBonus?.description || ""),
-   emoji: String(tpl?.emoji || "🎟️"),
+   emoji: String(tpl?.emoji || "🎟�?"),
    startDate: current.startDate || null,
    endDate: current.endDate || null,
    daysRemaining
@@ -1921,7 +3188,7 @@ app.get("/api/battlepass/me", async (req, res) => {
     name: String(overview?.seasonTemplate?.name || overview?.currentSeason?.activeSeason || "Saison"),
     subtitle: String(overview?.seasonTemplate?.subtitle || ""),
     bonusDescription: String(overview?.seasonTemplate?.passiveBonus?.description || ""),
-    emoji: String(overview?.seasonTemplate?.emoji || "🎟️"),
+    emoji: String(overview?.seasonTemplate?.emoji || "🎟�?"),
     startDate: overview?.currentSeason?.startDate || null,
     endDate: overview?.currentSeason?.endDate || null,
     premiumPrice: Number(overview?.seasonTemplate?.premiumPrice || 18000),
@@ -2225,7 +3492,7 @@ app.post("/api/quests/claim", async (req, res) => {
  app.get("/api/leaderboard/:category", async (req, res) => {
   try {
    const category = req.params.category
-   const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs"]
+   const valid = ["cards", "unique", "kamas", "level", "achievements", "ssr", "packs", "guilds"]
    if (!valid.includes(category)) return res.status(400).json({ error: "Categorie invalide" })
    const blockedLeaderboardNames = new Set(["krosmoz-card", "nouveau"])
 
@@ -2234,6 +3501,23 @@ app.post("/api/quests/claim", async (req, res) => {
     () => computeLeaderboard(category),
     60000
    )
+
+   if (category === "guilds") {
+    const rows = (entries || [])
+     .slice(0, 50)
+     .map((entry, index) => ({
+      rank: index + 1,
+      guildId: String(entry.guildId || entry.id || ""),
+      name: String(entry.name || "Guilde"),
+      emoji: String(entry.emoji || "🛡️"),
+      level: Number(entry.level || entry.value || 1),
+      members: Number(entry.members || 0),
+      maxMembers: Number(entry.maxMembers || MAX_MEMBERS),
+      value: Number(entry.value || entry.level || 1)
+     }))
+    return res.json(rows)
+   }
+
    const resolved = await Promise.all(
     entries.map(async (entry) => {
      const discord = await resolveDiscordUser(entry.userId)
@@ -2262,12 +3546,20 @@ app.post("/api/quests/claim", async (req, res) => {
   }
  })
 
- app.get("/api/profile/:id", async (req, res) => {
-  try {
-   const userId = req.params.id
-   if (!/^\d{16,22}$/.test(userId)) return res.status(400).json({ error: "ID invalide" })
+app.get("/api/profile/:id", async (req, res) => {
+ try {
+  const userId = req.params.id
+  if (!/^\d{16,22}$/.test(userId)) return res.status(400).json({ error: "ID invalide" })
+  const viewerSession = resolveSession(req)
+  if (viewerSession?.userId) {
+   const viewer = getUser(String(viewerSession.userId))
+   if (viewer) {
+    recordProfileView(viewer)
+    save(String(viewerSession.userId))
+   }
+  }
 
-   const profile = apiCache.getOrCompute(
+  const profile = apiCache.getOrCompute(
     `profile:${userId}`,
     () => computeProfile(userId),
     30000
@@ -2356,24 +3648,319 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
+ const invalidateGuildCaches = (userIds = []) => {
+  apiCache.invalidatePrefix("leaderboard:")
+  for (const id of userIds) {
+   const safeId = asGuildId(id)
+   if (!safeId) continue
+   apiCache.invalidate(`profile:${safeId}`)
+  }
+ }
+
+ app.get("/api/guild/me", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json(payload || { connected: true, inGuild: false })
+  } catch (e) {
+   console.error("[WEB] /api/guild/me:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/create", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const name = String(req.body?.name || "").trim()
+   const result = createGuild(session.userId, name)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, guild: payload?.guild || null, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/create:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/leave", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const result = leaveGuild(session.userId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/leave:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/apply", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const guildId = asGuildId(req.body?.guildId)
+   if (!guildId) return res.status(400).json({ error: "Guilde invalide." })
+
+   const result = addGuildApplication(guildId, session.userId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/apply:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/application/respond", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const currentGuild = getUserGuild(session.userId)
+   if (!currentGuild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+
+   const guildId = asGuildId(req.body?.guildId || currentGuild.id)
+   const applicantId = asGuildId(req.body?.applicantId)
+   const action = String(req.body?.action || "").trim().toLowerCase()
+   const accept = action === "accept" || action === "accepted" || action === "approve"
+   if (!applicantId) return res.status(400).json({ error: "Candidature invalide." })
+
+   const result = respondGuildApplication(guildId, session.userId, applicantId, accept)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId, applicantId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, action: result.action, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/application/respond:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/invite", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   if (!session.local) {
+    return res.status(403).json({ error: "Invitation directe disponible uniquement en local." })
+   }
+
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+   const rank = getGuildRank(guild.id, session.userId)
+   if (rank !== "meneur" && rank !== "officier") {
+    return res.status(403).json({ error: "Seuls le meneur et les officiers peuvent inviter." })
+   }
+
+   const targetId = asGuildId(req.body?.targetId)
+   if (!/^\d{16,22}$/.test(targetId)) {
+    return res.status(400).json({ error: "ID Discord invalide." })
+   }
+   if (targetId === asGuildId(session.userId)) {
+    return res.status(400).json({ error: "Tu es déjà dans cette guilde." })
+   }
+
+  const result = joinGuild(targetId, guild.id)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const recruiter = getUser(String(session.userId))
+  if (recruiter) {
+   recordGuildRecruitment(recruiter)
+   save(String(session.userId))
+  }
+
+  removeGuildApplicationsForUser(targetId)
+   invalidateGuildCaches([session.userId, targetId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/invite:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/kick", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+
+   const targetId = asGuildId(req.body?.targetId)
+   if (!targetId) return res.status(400).json({ error: "Membre invalide." })
+
+   const result = kickMember(guild.id, session.userId, targetId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId, targetId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/kick:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/promote", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+   const targetId = asGuildId(req.body?.targetId)
+   if (!targetId) return res.status(400).json({ error: "Membre invalide." })
+
+   const result = promoteOfficer(guild.id, session.userId, targetId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId, targetId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/promote:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/demote", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+   const targetId = asGuildId(req.body?.targetId)
+   if (!targetId) return res.status(400).json({ error: "Membre invalide." })
+
+   const result = demoteOfficer(guild.id, session.userId, targetId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId, targetId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/demote:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/transfer", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+   const targetId = asGuildId(req.body?.targetId)
+   if (!targetId) return res.status(400).json({ error: "Membre invalide." })
+
+   const result = transferLeader(guild.id, session.userId, targetId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId, targetId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/transfer:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/rename", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+
+   const name = String(req.body?.name || "").trim()
+   const result = renameGuild(guild.id, session.userId, name)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches([session.userId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/rename:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/manage/disband", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   const guild = getUserGuild(session.userId)
+   if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
+
+   const memberIds = Array.isArray(guild.memberIds) ? [...guild.memberIds] : [session.userId]
+   const result = disbandGuild(guild.id, session.userId)
+   if (result?.error) return res.status(400).json({ error: String(result.error) })
+
+   invalidateGuildCaches(memberIds)
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/manage/disband:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/guild/dev/switch-role", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   if (!session.local) return res.status(403).json({ error: "Disponible uniquement en mode local." })
+
+   const mode = String(req.body?.mode || "").trim().toLowerCase()
+   if (!["leader", "meneur", "officer", "officier", "member", "membre", "none", "sans_guilde"].includes(mode)) {
+    return res.status(400).json({ error: "Mode invalide." })
+   }
+
+   const switched = switchLocalGuildRole(session.userId, mode)
+   if (switched?.error) return res.status(400).json({ error: String(switched.error) })
+
+   invalidateGuildCaches([session.userId])
+   const payload = await buildGuildStatePayload(session.userId)
+   return res.json({ ok: true, mode: switched.mode, state: payload })
+  } catch (e) {
+   console.error("[WEB] /api/guild/dev/switch-role:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
  app.get("/api/guild/:id", async (req, res) => {
   try {
    const profile = await computeGuildProfile(req.params.id)
    if (!profile) return res.status(404).json({ error: "Guilde introuvable" })
-   res.json(profile)
+   return res.json(profile)
   } catch (e) {
    console.error("[WEB] /api/guild/:id:", e)
-   res.status(500).json({ error: "Erreur serveur" })
+   return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
  app.get("/api/oauth/status", (req, res) => {
   const session = resolveSession(req)
+  const localAuthAvailable = canUseLocalAuth(req)
+  const localAuthEnabled = Boolean(buildLocalSession(req))
   res.json({
-   enabled: oauthConfigured(),
+   enabled: oauthConfigured() || localAuthEnabled,
    clientId: OAUTH_CLIENT_ID || null,
    connected: Boolean(session),
-   userId: session?.userId || null
+   userId: session?.userId || null,
+   localAuthAvailable,
+   localAuthEnabled,
+   localAuthSession: Boolean(session?.local)
   })
  })
 
@@ -2387,6 +3974,144 @@ app.get("/api/sets", (req, res) => {
   } catch (e) {
    console.error("[WEB] /api/me:", e)
    res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/daily/state", (req, res) => {
+  try {
+   const session = resolveSession(req)
+   if (!session) {
+    return res.json({
+     connected: false,
+     state: {
+      canClaim: false,
+      nextClaimAt: 0,
+      remainingMs: 0,
+      streak: 0,
+      lastDaily: 0
+     }
+    })
+   }
+
+   const user = getUser(session.userId)
+   if (!user) return res.status(404).json({ error: "Joueur introuvable." })
+   return res.json({
+    connected: true,
+    state: buildDailyStatePayload(user)
+   })
+  } catch (e) {
+   console.error("[WEB] /api/daily/state:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.post("/api/daily/claim", async (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const user = getUser(session.userId)
+   if (!user) return res.status(404).json({ error: "Joueur introuvable." })
+
+   if (!canClaimDaily(user)) {
+    return res.status(400).json({
+     error: "Daily déjà récupérée.",
+     state: buildDailyStatePayload(user)
+    })
+   }
+
+   const result = await claimDaily(null, user, session.userId)
+
+   updateActivityStreak(user)
+
+   const streakNow = Math.max(0, Number(result?.streak || user?.daily?.streak || 0))
+   const streakDay = Math.max(1, ((Math.max(1, streakNow) - 1) % 7) + 1)
+   const xpGained = 25 + ((streakDay - 1) * 10)
+   if (!user.progression || typeof user.progression !== "object") {
+    user.progression = { level: 1, xp: 0, totalXp: 0 }
+   }
+   user.progression.xp = Number(user.progression.xp || 0) + xpGained
+   user.progression.totalXp = Number(user.progression.totalXp || 0) + xpGained
+
+   if (!user.stats || typeof user.stats !== "object") user.stats = {}
+   user.stats.maxDailyStreak = Math.max(Number(user.stats.maxDailyStreak || 0), streakNow)
+
+   let bpAddedXP = 0
+   try {
+    const bpResult = await addBattlePassXP(session.userId, "daily_claim")
+    bpAddedXP = Number(bpResult?.addedXP || 0)
+   } catch (_) {}
+
+   const unlocked = [
+    ...achievementCheck(user, "daily"),
+    ...achievementCheck(user, "economy"),
+    ...achievementCheck(user, "progression")
+   ]
+
+   save(session.userId)
+   apiCache.invalidate(`profile:${session.userId}`)
+   apiCache.invalidatePrefix("leaderboard:")
+
+   return res.json({
+    ok: true,
+    result: {
+     reward: result?.reward || null,
+     streak: streakNow,
+     streakBar: String(result?.streakBar || ""),
+     doubleReward: Boolean(result?.doubleReward),
+     doubleDailyChance: Number(result?.doubleDailyChance || 0),
+     bonusPacksGiven: Number(result?.bonusPacksGiven || 0),
+     bonusKamas: Number(result?.bonusKamas || 0),
+     xpGained,
+     bpAddedXP
+    },
+    unlockedAchievements: countUnlockedAchievements(unlocked),
+    state: buildDailyStatePayload(user)
+   })
+  } catch (e) {
+   console.error("[WEB] /api/daily/claim:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+app.post("/api/me/title", (req, res) => {
+ try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const user = getUser(session.userId)
+   if (!user) return res.status(404).json({ error: "Joueur introuvable." })
+
+   const nextTitle = String(req.body?.title || "").trim()
+   if (!nextTitle) return res.status(400).json({ error: "Titre invalide." })
+
+   if (!Array.isArray(user.titles) || user.titles.length <= 0) {
+    user.titles = ["Nouveau"]
+   }
+
+   const hasTitle = user.titles.some((title) => String(title) === nextTitle)
+   if (!hasTitle) {
+    return res.status(400).json({ error: "Tu n'as pas débloqué ce titre." })
+   }
+
+  const previousTitle = String(user.title || "Nouveau")
+  user.title = nextTitle
+  user.stats = user.stats || {}
+  if (previousTitle !== nextTitle) {
+   user.stats.titleChanges = Number(user.stats.titleChanges || 0) + 1
+  }
+  save(session.userId)
+   apiCache.invalidate(`profile:${session.userId}`)
+   apiCache.invalidatePrefix("leaderboard:")
+
+   return res.json({
+    ok: true,
+    title: String(user.title || "Nouveau"),
+    titles: Array.isArray(user.titles) ? user.titles : ["Nouveau"]
+   })
+  } catch (e) {
+   console.error("[WEB] /api/me/title:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
@@ -2435,6 +4160,13 @@ app.get("/api/krosmoshop/state", (req, res) => {
  try {
   const session = resolveSession(req)
   const userId = session?.userId || null
+  if (userId) {
+   const user = getUser(String(userId))
+   if (user) {
+    recordShopView(user, Date.now())
+    save(String(userId))
+   }
+  }
   const payload = buildKrosmoshopStatePayload(userId)
   res.json(payload)
  } catch (e) {
@@ -2933,6 +4665,7 @@ app.post("/api/events/roulette/spin", async (req, res) => {
   updateRouletteStatsFromCommand(user, lot, now)
   await applyRouletteRewardFromCommand({ user: { id: String(session.userId) } }, user, lot)
   await addBattlePassXP(session.userId, "roulette_spin")
+  recordAction(user, "roulette", now)
   const unlocked = achievementCheck(user, "roulette")
 
   save(session.userId)
@@ -2942,8 +4675,8 @@ app.post("/api/events/roulette/spin", async (req, res) => {
   enqueueWebRewardToast(session.userId, {
    type: "event",
    tone: "event",
-   title: "🎡 Roulette d'Écaflip",
-   subtitle: `${String(lot.emoji || "🎯")} ${String(lot.name || "Lot")}`,
+   title: "🎲 Roulette d'Écaflip",
+   subtitle: `${String(lot.emoji || "🎁")} ${String(lot.name || "Lot")}`,
    description: `Rareté: ${String(lot.rarity || "commun")}`,
    rewardText: formatRouletteReward(lot.reward || {}),
    chipLabel: "Gains"
@@ -2954,7 +4687,7 @@ app.post("/api/events/roulette/spin", async (req, res) => {
    lot: {
     id: Number(lot.id || 0),
     name: String(lot.name || "Lot"),
-    emoji: String(lot.emoji || "🎡"),
+    emoji: String(lot.emoji || "🎁"),
     rarity: String(lot.rarity || "commun")
    },
    rewardText: formatRouletteReward(lot.reward || {}),
@@ -2976,7 +4709,7 @@ app.get("/api/events/reward-toasts", (req, res) => {
  try {
   const session = requireSession(req, res)
   if (!session) return
-  const items = popWebRewardToasts(session.userId, WEB_REWARD_TOASTS_MAX_POP)
+  const items = popWebRewardToasts(session.userId, USER_TOASTS_MAX_POP)
   res.json({ ok: true, items })
  } catch (e) {
   console.error("[WEB] /api/events/reward-toasts:", e)
@@ -3152,6 +4885,11 @@ app.post("/api/events/pinata/react", async (req, res) => {
     uniqueEmojis: new Set()
    }
    webPinataState.participants.set(userId, participant)
+   const actor = getUser(userId)
+   if (actor) {
+    recordAction(actor, "pinata", Date.now())
+    save(userId)
+   }
   }
 
   if (participant.uniqueEmojis.has(emoji)) {
@@ -3181,11 +4919,23 @@ app.get("/api/achievements", (req, res) => {
    const session = resolveSession(req)
    const connected = Boolean(session)
    const user = connected ? getUser(session.userId) : null
-   const unlockedSet = new Set((user?.achievements || []).map((id) => String(id)))
+   let unlockedSet = new Set((user?.achievements || []).map((id) => String(id)))
 
    const category = String(req.query.category || "all")
    const safeCategory = ACHIEVEMENT_CATEGORIES.includes(category) ? category : "all"
-   const entries = getAchievementsByCategory(safeCategory)
+   if (connected && user && safeCategory === "secret") {
+    user.stats = user.stats || {}
+    user.stats.viewedSecretAchievements = true
+    achievementCheck(user, "secret")
+    save(session.userId)
+    unlockedSet = new Set((user.achievements || []).map((id) => String(id)))
+   }
+
+   let entries = getAchievementsByCategory(safeCategory)
+   if (safeCategory === "all") {
+    // Les succès secrets verrouillés ne doivent pas fuiter dans la vue globale.
+    entries = entries.filter(([id, ach]) => !Boolean(ach?.secret) || unlockedSet.has(String(id)))
+   }
 
    const items = entries
     .map(([id, ach]) => {
@@ -3195,12 +4945,13 @@ app.get("/api/achievements", (req, res) => {
 
      return {
       id: String(id),
-      trigger: String(ach?.trigger || "other"),
+      trigger: hidden ? "?" : String(ach?.trigger || "other"),
       secret: Boolean(ach?.secret),
+      hidden,
       unlocked,
-      badge: hidden ? "❓" : String(ach?.badge || "🏆"),
-      name: hidden ? "???" : String(ach?.name || "Succès"),
-      description: hidden ? "???" : String(ach?.description || ""),
+      badge: hidden ? "?" : String(ach?.badge || "🏅"),
+      name: hidden ? "?" : String(ach?.name || "Succès"),
+      description: hidden ? "?" : String(ach?.description || ""),
       title: hidden ? "" : String(ach?.title || ""),
       rewardText: hidden ? "" : formatReward(reward),
       reward: hidden ? null : reward
@@ -3213,13 +4964,18 @@ app.get("/api/achievements", (req, res) => {
     )
 
    const unlockedCount = items.filter((x) => x.unlocked).length
+   const categories = getAchievementCategoryStats(unlockedSet)
+   if (categories?.secret) {
+    // On ne divulgue pas le nombre total de secrets non débloqués.
+    categories.secret.total = categories.secret.unlocked
+   }
 
    res.json({
     connected,
     category: safeCategory,
     total: items.length,
     unlocked: unlockedCount,
-    categories: getAchievementCategoryStats(unlockedSet),
+    categories,
     items
    })
   } catch (e) {
@@ -3382,6 +5138,20 @@ app.get("/api/achievements", (req, res) => {
  })
 
  app.get("/auth/discord", (req, res) => {
+  const localAvailable = canUseLocalAuth(req)
+  const localDisabled = hasLocalAuthDisableSignal(req)
+  const localFallback = localAvailable && !localDisabled && (hasLocalAuthSignal(req) || !oauthConfigured())
+ if (localFallback) {
+  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/play/inventory"
+  const localUser = getUser(String(WEB_LOCAL_AUTH_USER_ID))
+  if (localUser) {
+   recordWebLogin(localUser, Date.now())
+   save(String(WEB_LOCAL_AUTH_USER_ID))
+  }
+  res.setHeader("Set-Cookie", `${WEB_LOCAL_AUTH_COOKIE}=1; Path=/; Max-Age=31536000; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`)
+  return res.redirect(returnTo)
+ }
+
   if (!oauthConfigured()) {
    return res.status(503).send("OAuth Discord non configure (DISCORD_WEB_CLIENT_ID/SECRET/REDIRECT_URI).")
   }
@@ -3492,7 +5262,8 @@ app.get("/api/achievements", (req, res) => {
  app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/battlepass", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Battlepass.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
- app.get("/guild/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
+ app.get("/guild/detail/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "GuildDetail.html")))
+ app.get("/guild/:id", (req, res) => res.redirect(`/guild/detail/${encodeURIComponent(String(req.params.id || ""))}`))
  app.get("/achievements", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Achievements.html")))
  app.get("/tutorial", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Tutorial.html")))
  app.get("/about", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "About.html")))
@@ -3520,12 +5291,12 @@ function startWebServer(port) {
  })
 
  const app = createWebApp()
- const parsedPort = Number(port || process.env.PORT || 3000)
- const p = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 3000
+ const parsedPort = Number(port || process.env.PORT || process.env.WEB_PORT || 8080)
+ const p = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : 8080
  if (p !== parsedPort) {
-  webLog.warn("PORT invalide, fallback 3000", {
+  webLog.warn("PORT invalide, fallback 8080", {
    parsedPort: Number.isFinite(parsedPort) ? parsedPort : String(parsedPort),
-   rawPort: port || process.env.PORT || null
+   rawPort: port || process.env.PORT || process.env.WEB_PORT || null
   })
  }
 
@@ -3534,13 +5305,18 @@ function startWebServer(port) {
   webLog.error("Erreur init lifecycle pinata", { err: error })
  })
 
- const server = app.listen(p, "0.0.0.0", () => {
+ const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production"
+ const listenHost = isProd ? "0.0.0.0" : undefined
+ const onListening = () => {
   webLog.info("Web server en ecoute", {
-   host: "0.0.0.0",
+   host: listenHost || "default",
    port: p,
-   healthUrl: `http://0.0.0.0:${p}/health`
+   healthUrl: `http://localhost:${p}/health`
   })
- })
+ }
+ const server = listenHost
+  ? app.listen(p, listenHost, onListening)
+  : app.listen(p, onListening)
  server.on("error", (error) => {
   webLog.fatal("Echec listen web server", { err: error, port: p })
  })

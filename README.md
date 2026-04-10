@@ -18,8 +18,18 @@ Les joueurs peuvent :
 - Créer ou rejoindre une guilde et profiter de bonus collectifs
 - Donner des cartes à d'autres joueurs
 - Progresser jusqu'au niveau 200 et débloquer des bonus permanents
-- Débloquer 469 succès, badges et titres exclusifs
+- Débloquer 579 succès, badges et titres exclusifs
 - Interagir avec le bot via mentions
+
+---
+
+## Version Site (Web)
+
+Le projet inclut aussi une version site complete (Express + front web) :
+
+- Interface locale pour inventaire, cartes, marche, quetes, battle pass, evenements, guildes, profil et classement
+- Simulation de connexion locale pour tester rapidement sans push
+- Les actions site et Discord partagent les memes donnees (utilisateur, inventaire, progression, succes)
 
 ---
 
@@ -137,7 +147,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 | progressionSystem | XP et level-up (cap 200), milestones, bonus XP intégré |
 | playerBonuses | 9 bonus progressifs par niveau du joueur |
 | rankSystem | Rangs basés sur les achievements |
-| achievementRegistry | Agrégateur des 14 modules de succès actifs |
+| achievementRegistry | Agrégateur des 16 modules de succès actifs |
 | achievementEngine | Détection avec lecture dynamique des cartes |
 | achievementCheck | Pipeline de vérification |
 | achievementNotifier | Affichage Discord des succes debloques |
@@ -146,7 +156,7 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 
 ## ✅ Achievements
 
-469 succès automatiques répartis en catégories de progression actives :
+579 succès automatiques répartis en catégories de progression actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop
@@ -781,7 +791,7 @@ La commande **/quests** affiche une interface interactive avec :
 - Succes saisonniers (template de saison) : `systems/seasonService.js` via `buildSeasonAchievementsV3()`
 - Succes globaux Battle Pass : `data/battlepass/global_achievements.json` (genere et maintenu par `seasonService`)
 - Progression et etat de claim par joueur : stocké en SQLite (table `battlepass_progress`)
-- Le jeu compte `469` succes classiques + `81` succes Battle Pass, soit `550` succes au total
+- Le jeu compte `579` succes classiques + `86` succes Battle Pass, soit `665` succes au total
 
 ### ⚡ Ouverture multi-pack /krosmoz
 
@@ -863,7 +873,7 @@ La commande **/quests** affiche une interface interactive avec :
 | /mystats | Statistiques détaillées (6 pages) |
 | /leaderboard | Classements (7 catégories dont guildes) |
 | /titre | Choisir ton titre |
-| /achievements | Voir les 469 succès |
+| /achievements | Voir les 579 succes |
 | /krosmohelp | Aide du bot |
 
 ---
@@ -922,7 +932,7 @@ La commande **/quests** affiche une interface interactive avec :
 
 ## ✅ Achievements
 
-469 succès automatiques répartis en catégories de progression actives :
+579 succès automatiques répartis en catégories de progression actives :
 
 - **Packs** — ouvertures, achats, RNG spéciaux
 - **Raretés** — SSR, Shiny, KrosmoShop

@@ -33,4 +33,14 @@ krosmoFavor:{
  condition:u=>u.titles?.includes("Favori du Krosmoz")
 },
 
+secretViewer:{
+ name:"Tu n'aurais pas du voir ca",
+ badge:"\u{1F576}\uFE0F",
+ description:"Consulter l'onglet des achievements secrets.",
+ title:"Gardien des Ombres",
+ trigger:"secret",
+ secret:true,
+ condition:u=>Boolean(u.stats?.viewedSecretAchievements)
+}
+
 }

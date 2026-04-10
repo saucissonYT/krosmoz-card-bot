@@ -2,6 +2,8 @@ const fs   = require("fs")
 const path = require("path")
 
 const { getUser, save } = require("./userSystem")
+const { enqueueWebRewardToast } = require("./webToastQueue")
+const { recordGuildKick } = require("./achievementProgressTracker")
 
 /* ════════════════════════════════════════════════════════════
    GUILD SYSTEM — systems/guildSystem.js
@@ -129,6 +131,66 @@ const MAX_MEMBERS  = 10
 const CREATE_COST  = 5000
 const RENAME_COST  = 2000
 const MAX_OFFICERS = 3
+
+function toGuildUserId(value) {
+ return String(value || "").trim()
+}
+
+function formatGuildMemberLabel(userId) {
+ const safeUserId = toGuildUserId(userId)
+ if (!safeUserId) return "Un membre"
+
+ const suffix = safeUserId.slice(-4)
+ const user = getUser(safeUserId)
+ const title = String(user?.title || "").trim()
+ if (title && title.toLowerCase() !== "nouveau") {
+  return `${title} (#${suffix})`
+ }
+ return `Joueur #${suffix}`
+}
+
+function notifyGuildUsers(userIds, payload, excludeUserIds = []) {
+ const excluded = new Set((excludeUserIds || []).map((id) => toGuildUserId(id)).filter(Boolean))
+ const seen = new Set()
+
+ for (const userId of userIds || []) {
+  const safeUserId = toGuildUserId(userId)
+  if (!safeUserId || excluded.has(safeUserId) || seen.has(safeUserId)) continue
+  seen.add(safeUserId)
+  try {
+   enqueueWebRewardToast(safeUserId, payload)
+  } catch (_) {}
+ }
+}
+
+function notifyGuildMemberJoined(guild, memberId) {
+ if (!guild) return
+ const memberLabel = formatGuildMemberLabel(memberId)
+ notifyGuildUsers(guild.memberIds || [], {
+  type: "guild",
+  tone: "event",
+  title: "Nouveau membre de guilde",
+  subtitle: `${memberLabel} a rejoint ${String(guild.name || "la guilde")}`,
+  description: `Membres: ${Number(guild.memberIds?.length || 0)}/${MAX_MEMBERS}`,
+  rewardText: "",
+  chipLabel: "Guilde"
+ }, [memberId])
+}
+
+function notifyGuildMemberLeft(guild, memberId, mode = "leave") {
+ if (!guild) return
+ const memberLabel = formatGuildMemberLabel(memberId)
+ const reasonLabel = mode === "kick" ? "a ete exclu de" : "a quitte"
+ notifyGuildUsers(guild.memberIds || [], {
+  type: "guild",
+  tone: "event",
+  title: "Membre parti de la guilde",
+  subtitle: `${memberLabel} ${reasonLabel} ${String(guild.name || "la guilde")}`,
+  description: `Membres: ${Number(guild.memberIds?.length || 0)}/${MAX_MEMBERS}`,
+  rewardText: "",
+  chipLabel: "Guilde"
+ }, [memberId])
+}
 
 /* ================= XP / LEVEL ================= */
 
@@ -298,9 +360,12 @@ function joinGuild(userId, guildId) {
 
  guild.memberIds.push(userId)
  user.guildId = guildId
+ user.stats = user.stats || {}
+ user.stats.guildJoinedAt = Number(user.stats.guildJoinedAt || Date.now())
 
  save(userId)
  saveGuilds()
+ notifyGuildMemberJoined(guild, userId)
 
  return { guild }
 }
@@ -326,6 +391,7 @@ function leaveGuild(userId) {
  delete user.guildId
  save(userId)
  saveGuilds()
+ notifyGuildMemberLeft(guild, userId, "leave")
 
  return { guild }
 }
@@ -356,7 +422,13 @@ function kickMember(guildId, requesterId, targetId) {
  const user = getUser(targetId)
  delete user.guildId
  save(targetId)
+ const requester = getUser(requesterId)
+ if (requester) {
+  recordGuildKick(requester)
+  save(requesterId)
+ }
  saveGuilds()
+ notifyGuildMemberLeft(guild, targetId, "kick")
 
  return { guild }
 }

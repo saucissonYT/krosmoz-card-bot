@@ -5,6 +5,7 @@
 
 const { save } = require("./userSystem")
 const { getCards } = require("./cardRegistry")
+const { recordDailyClaim } = require("./achievementProgressTracker")
 
 /* ---- Bonus helpers ---- */
 function getDailyBonuses(userId, user){
@@ -116,6 +117,7 @@ async function claimDaily(interaction, user, userId){
  user.daily.streak++
 
  user.stats.dailyClaims++
+ recordDailyClaim(user, now)
 
  /* ---- BONUS DE GUILDE + JOUEUR ---- */
 

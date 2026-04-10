@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Profil — Krosmoz Card</title>
+ <title>Profil ? Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👤</text></svg>">
  <link rel="stylesheet" href="/css/style.css">
@@ -19,7 +19,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -29,7 +28,7 @@
     <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
     </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">☰</button>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
    </div>
   </div>
  </nav>
@@ -39,13 +38,13 @@
    <div id="profileContent">
     <div class="loading">
      <div class="spinner"></div>
-     <p>Chargement du profil…</p>
+     <p>Chargement du profil⬦</p>
     </div>
    </div>
 
    <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
+    <p>🎴 <a href="/">Krosmoz Card</a> · krosmozcard.fr</p>
+    <p style="margin-top:8px"><a href="/about">? propos · Contact · Mentions légales</a></p>
    </footer>
   </div>
  </div>
@@ -64,12 +63,16 @@
   return div.innerHTML
  }
 
+ function escapeAttr(str) {
+  return escapeHTML(String(str || "")).replace(/"/g, "&quot;")
+ }
+
  function formatNumber(n) {
   return (n || 0).toLocaleString("fr-FR")
  }
 
  function timeSince(ts) {
-  if (!ts) return "—"
+  if (!ts) return "?"
   const days = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000)
   if (days < 1) return "Aujourd'hui"
   if (days === 1) return "Hier"
@@ -84,8 +87,8 @@
  }
 
  const RARITY_EMOJI = {
-  C: "⚪", U: "🟢", R: "🔵", SR: "🟣",
-  HR: "🔴", UR: "🟡", S: "✨", SSR: "🌈"
+  C: "🟤", U: "🟢", R: "🔵", SR: "🟣",
+  HR: "🔴", UR: "🟡", S: "⚪", SSR: "🌈"
  }
 
  /* -------- Get user ID from URL -------- */
@@ -111,9 +114,9 @@
 
    container.innerHTML = `
     <div class="loading">
-     <p style="color: var(--rarity-HR)">❌ Connexion Discord requise pour voir ton profil.</p>
+     <p style="color: var(--rarity-HR)">⚠️ Connexion Discord requise pour voir ton profil.</p>
      <p style="margin-top:12px"><a href="/auth/discord?returnTo=%2Fprofile">Se connecter</a></p>
-     <p style="margin-top:12px"><a href="/leaderboard">← Retour au classement</a></p>
+     <p style="margin-top:12px"><a href="/leaderboard">? Retour au classement</a></p>
     </div>`
    return
   }
@@ -124,21 +127,28 @@
    if (!res.ok) {
     container.innerHTML = `
      <div class="loading">
-      <p style="color: var(--rarity-HR)">❌ Joueur introuvable</p>
-      <p style="margin-top:12px"><a href="/leaderboard">← Retour au classement</a></p>
+      <p style="color: var(--rarity-HR)">⚠️ Joueur introuvable</p>
+      <p style="margin-top:12px"><a href="/leaderboard">? Retour au classement</a></p>
      </div>`
     return
    }
 
    const p = await res.json()
+   let me = null
+   try {
+    const meRes = await fetch("/api/me", { credentials: "same-origin" })
+    if (meRes.ok) me = await meRes.json()
+   } catch (_) {}
+
+   const isOwner = Boolean(me?.id && String(me.id) === String(userId))
    const name = escapeHTML(p.discord?.displayName || userId)
    const avatar = p.discord?.avatarURL || "https://cdn.discordapp.com/embed/avatars/0.png"
 
-   document.title = `${p.discord?.displayName || "Profil"} — Krosmoz Card`
+   document.title = `${p.discord?.displayName || "Profil"} ? Krosmoz Card`
 
    /* ---- Guild tag ---- */
    const guildTag = p.guild
-    ? `<span class="profile-tag">${p.guild.emoji || "🏰"} <span class="tag-gold">${escapeHTML(p.guild.name)}</span> Niv.${p.guild.level}</span>`
+    ? `<span class="profile-tag">${p.guild.emoji || "🛡️"} <span class="tag-gold">${escapeHTML(p.guild.name)}</span> Niv.${p.guild.level}</span>`
     : `<span class="profile-tag">Pas de guilde</span>`
 
    /* ---- Set progress bars ---- */
@@ -148,7 +158,7 @@
      <div class="set-item">
       <div class="set-header">
        <span class="set-name">${escapeHTML(set.name)}</span>
-       <span class="set-count">${set.owned}/${set.total} — ${set.pct}%</span>
+       <span class="set-count">${set.owned}/${set.total} ? ${set.pct}%</span>
       </div>
       <div class="set-bar">
        <div class="set-bar-fill ${pctClass}" style="width: ${set.pct}%"></div>
@@ -164,6 +174,32 @@
      <div class="rarity-count" style="color: ${RARITY_COLORS[r]}">${formatNumber(p.rarityBreakdown?.[r] || 0)}</div>
     </div>
    `).join("")
+
+   const titles = Array.isArray(p.titles) ? p.titles.map((t) => String(t)) : ["Nouveau"]
+   if (!titles.includes(String(p.title || ""))) titles.push(String(p.title || "Nouveau"))
+
+   const badges = Array.isArray(p.badges) ? p.badges : []
+   const badgesHTML = badges.length
+    ? badges.map((b) => `
+      <span class="profile-badge-chip" title="${escapeAttr(b?.name || "Badge")}">
+       <span class="badge-icon">${escapeHTML(String(b?.badge || "🏅"))}</span>
+       <span class="badge-label">${escapeHTML(String(b?.label || b?.name || "Badge"))}</span>
+      </span>
+     `).join("")
+    : `<span class="profile-badge-empty">Aucun badge débloqué.</span>`
+
+   const titleEditorHTML = isOwner ? `
+    <div class="profile-title-editor">
+     <label for="profileTitleSelect">Titre actif</label>
+     <div class="profile-title-editor-row">
+      <select id="profileTitleSelect" class="input input-select">
+       ${titles.map((t) => `<option value="${escapeAttr(t)}" ${t === p.title ? "selected" : ""}>${escapeHTML(t)}</option>`).join("")}
+      </select>
+      <button id="saveProfileTitleBtn" type="button" class="btn btn-outline">Enregistrer</button>
+     </div>
+     <p id="profileTitleStatus" class="profile-title-status"></p>
+    </div>
+   ` : ""
 
    /* ---- Pity bars ---- */
    const pityHTML = (p.pity || []).map(pity => {
@@ -182,7 +218,7 @@
        <span style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${pity.SSR}/50</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
-       <span style="min-width:55px;font-size:0.8rem;color:var(--text-muted)">✨ S</span>
+       <span style="min-width:55px;font-size:0.8rem;color:var(--text-muted)">? S</span>
        <div class="set-bar" style="flex:1"><div class="set-bar-fill ${sClass}" style="width:${sPct}%"></div></div>
        <span style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;min-width:40px;text-align:right">${pity.S}/30</span>
       </div>
@@ -197,7 +233,7 @@
    /* ---- Render ---- */
    container.innerHTML = `
     <div style="margin-bottom:20px">
-     <a href="/leaderboard" style="font-size:0.9rem; color:var(--text-muted)">← Retour au classement</a>
+     <a href="/leaderboard" style="font-size:0.9rem; color:var(--text-muted)">? Retour au classement</a>
     </div>
 
     <!-- HEADER -->
@@ -219,6 +255,13 @@
         <div class="xp-bar-fill" style="width: ${p.xpPercent}%"></div>
        </div>
       </div>
+      <div class="profile-badges-block">
+       <div class="profile-badges-title">Badges</div>
+       <div class="profile-badges-list">
+        ${badgesHTML}
+       </div>
+      </div>
+      ${titleEditorHTML}
      </div>
     </div>
 
@@ -257,20 +300,20 @@
        <span class="stat-row-value">${formatNumber(p.stats.ssrPulled)}</span>
       </div>
       <div class="stat-row">
-       <span class="stat-row-label">✨ Shiny SSR</span>
+       <span class="stat-row-label">? Shiny SSR</span>
        <span class="stat-row-value">${formatNumber(p.stats.shinySSR)}</span>
       </div>
      </div>
 
      <!-- Activité -->
      <div class="profile-card fade-in stagger-2">
-      <h2>🎮 Activité</h2>
+      <h2>📈 Activité</h2>
       <div class="stat-row">
        <span class="stat-row-label">🔥 Fusion critiques</span>
        <span class="stat-row-value">${formatNumber(p.stats.fusionCrit)}</span>
       </div>
       <div class="stat-row">
-       <span class="stat-row-label">🎪 Event packs</span>
+       <span class="stat-row-label">🎟️ Event packs</span>
        <span class="stat-row-value">${formatNumber(p.stats.eventPacksOpened)}</span>
       </div>
       <div class="stat-row">
@@ -282,7 +325,7 @@
        <span class="stat-row-value">${formatNumber(p.stats.activityStreak)} jours</span>
       </div>
       <div class="stat-row">
-       <span class="stat-row-label">💳 Cartes vendues</span>
+       <span class="stat-row-label">💸 Cartes vendues</span>
        <span class="stat-row-value">${formatNumber(p.stats.cardsSold)}</span>
       </div>
       <div class="stat-row">
@@ -290,7 +333,7 @@
        <span class="stat-row-value">${formatNumber(p.stats.cardsBought)}</span>
       </div>
       <div class="stat-row">
-       <span class="stat-row-label">🕐 Inscrit depuis</span>
+       <span class="stat-row-label">🕒 Inscrit depuis</span>
        <span class="stat-row-value">${timeSince(p.stats.createdAt)}</span>
       </div>
       <div class="stat-row">
@@ -320,7 +363,7 @@
       <div style="margin-top:24px">
        <h2 style="font-family:'Cinzel',serif; font-size:1.1rem; color:var(--gold-light); margin-bottom:12px">🏅 Titres débloqués</h2>
        <div style="display:flex; flex-wrap:wrap; gap:6px">
-        ${(p.titles || []).map(t => `
+        ${titles.map(t => `
          <span style="
           padding: 4px 12px;
           background: ${t === p.title ? 'var(--gold-subtle)' : 'var(--bg-elevated)'};
@@ -339,7 +382,7 @@
     <!-- Pity par set -->
     <div class="profile-grid">
      <div class="profile-card fade-in stagger-4" style="grid-column: 1 / -1">
-      <h2>🎴 Pity par set</h2>
+      <h2>🎯 Pity par set</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
        ${pityHTML || '<p style="color:var(--text-muted)">Aucune donnée pity</p>'}
       </div>
@@ -361,12 +404,48 @@
     }
    })
 
+   const saveTitleBtn = document.getElementById("saveProfileTitleBtn")
+   const titleSelect = document.getElementById("profileTitleSelect")
+   const titleStatus = document.getElementById("profileTitleStatus")
+   if (saveTitleBtn && titleSelect) {
+    const initialTitle = String(p.title || "")
+    const syncTitleButtonState = () => {
+      saveTitleBtn.disabled = String(titleSelect.value || "") === initialTitle
+    }
+    syncTitleButtonState()
+    titleSelect.addEventListener("change", syncTitleButtonState)
+
+    saveTitleBtn.addEventListener("click", async () => {
+     const nextTitle = String(titleSelect.value || "").trim()
+     if (!nextTitle || nextTitle === initialTitle) return
+
+     saveTitleBtn.disabled = true
+     if (titleStatus) titleStatus.textContent = "Mise à jour du titre..."
+
+     try {
+      const updateRes = await fetch("/api/me/title", {
+       method: "POST",
+       credentials: "same-origin",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ title: nextTitle })
+      })
+      const updateData = await updateRes.json().catch(() => ({}))
+      if (!updateRes.ok) throw new Error(updateData?.error || "Impossible de changer le titre.")
+      if (titleStatus) titleStatus.textContent = "Titre mis à jour."
+      await loadProfile()
+     } catch (e) {
+      if (titleStatus) titleStatus.textContent = e?.message || "Erreur serveur."
+      syncTitleButtonState()
+     }
+    })
+   }
+
   } catch (err) {
    console.error("Profile error:", err)
    container.innerHTML = `
     <div class="loading">
      <p style="color: var(--rarity-HR)">Erreur de chargement</p>
-     <p style="margin-top:12px"><a href="/leaderboard">← Retour au classement</a></p>
+     <p style="margin-top:12px"><a href="/leaderboard">? Retour au classement</a></p>
     </div>`
   }
  }

@@ -191,6 +191,10 @@ Tes dons restants aujourd'hui : **${MAX_GIFTS_PER_DAY - user.giftHistory.count -
 
     if(!receiver.stats) receiver.stats = {}
     receiver.stats.giftsReceived = (receiver.stats.giftsReceived || 0) + 1
+    if(!receiver.stats.giftSenders || typeof receiver.stats.giftSenders !== "object") receiver.stats.giftSenders = {}
+    receiver.stats.giftSenders[interaction.user.id] = (receiver.stats.giftSenders[interaction.user.id] || 0) + 1
+    receiver.stats.socialInteractions = (receiver.stats.socialInteractions || 0) + 1
+    freshUser.stats.socialInteractions = (freshUser.stats.socialInteractions || 0) + 1
 
     if(receiver.stats.giftGivenToday === today)
      receiver.stats.giftBothWays = (receiver.stats.giftBothWays || 0) + 1

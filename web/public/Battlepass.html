@@ -16,7 +16,6 @@
     <li><a href="/leaderboard">Classement</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/cards">Cartes</a></li>
-    <li><a href="/guild">Guildes</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -65,11 +64,15 @@
      <article class="battlepass-card">
       <h3>⭐ Ta progression</h3>
       <p id="bpUserState" class="battlepass-strong">Connecte-toi pour voir ton Battlepass.</p>
-      <div class="battlepass-progress-track" aria-hidden="true">
-       <div id="bpProgressBar" class="battlepass-progress-fill" style="width:0%"></div>
+     <div class="battlepass-progress-track" aria-hidden="true">
+      <div id="bpProgressBar" class="battlepass-progress-fill" style="width:0%"></div>
+     </div>
+     <p id="bpProgressNumbers" class="battlepass-muted">0/0 XP</p>
+      <div class="battlepass-progress-actions">
+       <p id="bpClaimable" class="battlepass-highlight">🎁 0 récompense à récupérer</p>
+       <button id="bpPremiumBtn" type="button" class="btn btn-outline battlepass-premium-btn battlepass-premium-inline" disabled>Acheter Premium</button>
       </div>
-      <p id="bpProgressNumbers" class="battlepass-muted">0/0 XP</p>
-      <p id="bpClaimable" class="battlepass-highlight">🎁 0 récompense à récupérer</p>
+      <p id="bpActionHint" class="battlepass-muted battlepass-action-hint"></p>
      </article>
 
     </div>
@@ -78,7 +81,7 @@
      <h2>Récompenses de saison</h2>
      <div class="battlepass-head-actions">
      <p id="bpRewardsMeta" class="battlepass-muted">Connecte-toi pour voir toutes tes récompenses.</p>
-      <button id="bpClaimBtn" type="button" class="btn btn-outline">Tout récupérer</button>
+      <button id="bpClaimBtn" type="button" class="btn btn-outline battlepass-claim-btn">Tout récupérer</button>
       <button id="bpGoCurrentBtn" type="button" class="battlepass-jump-btn" disabled>Aller à mon palier</button>
      </div>
     </div>
@@ -164,6 +167,15 @@ function formatSeasonShortName(value) {
  }
 
  function showToast(msg, isError = false) {
+  if (typeof window.__kcDismissBottomNotifs === "function") {
+   window.__kcDismissBottomNotifs({
+    keepLegacyToast: false,
+    keepProgressToasts: false,
+    keepEventToast: false
+   })
+  } else {
+   for (const existing of document.querySelectorAll(".toast")) existing.remove()
+  }
   const el = document.createElement("div")
   el.className = `toast ${isError ? "toast-error" : ""}`
   el.textContent = msg
@@ -218,7 +230,7 @@ function formatRewardsShort(list) {
 function normalizeUiText(value) {
  const raw = String(value || "")
  if (!raw) return ""
- if (!/[ÃÂâð]/.test(raw)) return raw
+ if (!/[\uFFFD]/.test(raw)) return raw
  try {
   return decodeURIComponent(escape(raw))
  } catch (_) {
@@ -495,7 +507,7 @@ function renderConnected(data) {
   if (premiumBtn) {
    premiumBtn.disabled = Boolean(progress.hasPremium)
    premiumBtn.textContent = progress.hasPremium
-    ? "Premium actif"
+    ? "Déjà acheté"
     : `Acheter Premium (${fmt(season.premiumPrice || 18000)} kamas)`
   }
 
