@@ -28,6 +28,7 @@
  let levelUpAnimationQueue = []
  let levelUpAnimationActive = false
  let levelUpAnimationAutoCloseTimer = null
+ let levelUpAnimationsPaused = false
  const LOCAL_MODE_STORAGE_KEY = "kc_local_mode"
  const LOCAL_MODE_COOKIE_NAME = "kc_local_auth"
  const DAILY_BUTTON_REFRESH_MS = 60000
@@ -140,7 +141,7 @@ function ensureEventToast() {
   <h4 id="globalEventToastTitle">Événement en direct</h4>
   <p id="globalEventToastText"></p>
   <div class="event-live-toast-row">
-   <a class="btn btn-gold" href="/events">Voir l'event</a>
+   <a id="globalEventToastOpen" class="btn btn-gold" href="/events">Voir l'event</a>
   </div>
  `
   document.body.appendChild(toast)
@@ -148,6 +149,12 @@ function ensureEventToast() {
   if (closeBtn) {
    closeBtn.addEventListener("click", () => {
     eventToastDismissedUntil = Date.now() + (15 * 60 * 1000)
+    toast.hidden = true
+   })
+  }
+  const openBtn = toast.querySelector("#globalEventToastOpen")
+  if (openBtn) {
+   openBtn.addEventListener("click", () => {
     toast.hidden = true
    })
   }
@@ -596,8 +603,12 @@ function ensureLevelUpAnimationStyles() {
    position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1;
   }
   .kc-levelup-rays{
-   position:absolute;inset:-22%;
-   background:repeating-conic-gradient(from 0deg, rgba(245,196,84,.15) 0deg 9deg, rgba(245,196,84,0) 9deg 19deg);
+   position:absolute;left:50%;top:50%;
+   width:240vmax;height:240vmax;border-radius:50%;
+   transform:translate(-50%,-50%);
+   background:
+    radial-gradient(circle at center, rgba(245,196,84,.16) 0 56%, rgba(245,196,84,0) 82%),
+    repeating-conic-gradient(from 0deg, rgba(245,196,84,.15) 0deg 9deg, rgba(245,196,84,0) 9deg 19deg);
    opacity:.34;mix-blend-mode:screen;animation:kc-levelup-rays 18s linear infinite;
   }
   .kc-levelup-particles{
@@ -625,8 +636,8 @@ function ensureLevelUpAnimationStyles() {
    to{transform:translateY(0) scale(1);}
   }
   @keyframes kc-levelup-rays{
-   from{transform:rotate(0deg) scale(1);}
-   to{transform:rotate(360deg) scale(1.03);}
+   from{transform:translate(-50%,-50%) rotate(0deg) scale(1);}
+   to{transform:translate(-50%,-50%) rotate(360deg) scale(1.03);}
   }
   @keyframes kc-levelup-particle{
    0%{transform:translate3d(0,0,0) scale(.8);opacity:0;}
@@ -876,6 +887,7 @@ function enqueueLevelUpAnimations(levelRewards = []) {
    milestoneText: String(reward?.milestoneText || "")
   })
  }
+ if (levelUpAnimationsPaused) return
  if (levelUpAnimationActive) return
  levelUpAnimationActive = true
  renderCurrentLevelUpAnimation()
@@ -890,6 +902,17 @@ function stopLevelUpAnimations() {
  root.classList.remove("show")
  root.hidden = true
 }
+
+function setLevelUpAnimationsPaused(paused = true) {
+ levelUpAnimationsPaused = Boolean(paused)
+ if (levelUpAnimationsPaused) return
+ if (levelUpAnimationActive) return
+ if (levelUpAnimationQueue.length <= 0) return
+ levelUpAnimationActive = true
+ renderCurrentLevelUpAnimation()
+}
+
+window.__kcSetLevelUpAnimationsPaused = setLevelUpAnimationsPaused
 
 function spawnPlayerXpToast({
  previous = null,

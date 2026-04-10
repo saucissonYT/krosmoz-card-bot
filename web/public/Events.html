@@ -341,15 +341,18 @@ function renderEventpack(eventState, tickets, connected) {
   }))
  }
 
- function closeEventPackOverlay() {
-  const overlay = document.getElementById("eventPackOpenOverlay")
-  if (!overlay || !overlay.classList.contains("open")) return
+function closeEventPackOverlay() {
+ const overlay = document.getElementById("eventPackOpenOverlay")
+ if (!overlay || !overlay.classList.contains("open")) return
   for (const timer of eventPackTimers) window.clearTimeout(timer)
   eventPackTimers = []
   eventPackMaskResults = false
-  overlay.classList.remove("open", "complete")
-  overlay.setAttribute("aria-hidden", "true")
-  document.body.classList.remove("pack-opening-lock")
+ overlay.classList.remove("open", "complete")
+ overlay.setAttribute("aria-hidden", "true")
+ document.body.classList.remove("pack-opening-lock")
+ if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+  window.__kcSetLevelUpAnimationsPaused(false)
+ }
   const resolver = eventPackRevealResolve
   eventPackRevealResolve = null
   window.setTimeout(() => {
@@ -429,6 +432,9 @@ function completeEventPackReveal() {
  }
 
 function showEventPackOpeningAnimation(payload) {
+ if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+  window.__kcSetLevelUpAnimationsPaused(true)
+ }
   const overlay = ensureEventPackOverlay()
   if (typeof eventPackRevealResolve === "function") {
    const previous = eventPackRevealResolve
@@ -779,4 +785,3 @@ function showEventPackOpeningAnimation(payload) {
  </script>
 </body>
 </html>
-

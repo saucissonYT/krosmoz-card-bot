@@ -1211,6 +1211,9 @@ function closePackOpeningOverlay() {
  overlay.classList.remove("single-pack-six")
  overlay.setAttribute("aria-hidden", "true")
  document.body.classList.remove("pack-opening-lock")
+ if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+  window.__kcSetLevelUpAnimationsPaused(false)
+ }
   const resolver = packRevealResolve
   packRevealResolve = null
   window.setTimeout(() => {
@@ -1246,7 +1249,6 @@ function ensurePackOpeningOverlay() {
      <div id="packOpenSummary" class="pack-open-summary"></div>
      <div class="pack-open-actions">
       <button class="btn btn-outline" type="button" id="packSkipBtn">Skip animation</button>
-      <button class="btn btn-outline" type="button" id="packReplayBtn" style="display:none">Relancer</button>
       <button class="btn btn-gold" type="button" data-pack-close>Continuer</button>
      </div>
     </div>
@@ -1286,14 +1288,9 @@ function completePackOpeningReveal() {
  overlay.querySelectorAll(".pack-reveal-tier").forEach((tier) => tier.classList.add("active"))
  overlay.classList.add("complete")
  const skipBtn = document.getElementById("packSkipBtn")
- const replayBtn = document.getElementById("packReplayBtn")
  if (skipBtn) {
   skipBtn.disabled = true
   skipBtn.style.display = "none"
- }
- if (replayBtn) {
-  replayBtn.disabled = false
-  replayBtn.style.display = ""
  }
 }
 
@@ -1339,6 +1336,9 @@ function buildPackRevealGroups(payload, revealCards) {
 }
 
 function showPackOpeningAnimation(payload) {
+ if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+  window.__kcSetLevelUpAnimationsPaused(true)
+ }
   const overlay = ensurePackOpeningOverlay()
   if (typeof packRevealResolve === "function") {
    const previous = packRevealResolve
@@ -1360,7 +1360,6 @@ function showPackOpeningAnimation(payload) {
  const kamasGain = Number(payload?.totals?.kamasGain || 0)
  const fragmentsGain = Number(payload?.totals?.fragments || 0)
  const skipBtn = document.getElementById("packSkipBtn")
- const replayBtn = document.getElementById("packReplayBtn")
  for (const timer of packRevealTimers) window.clearTimeout(timer)
  packRevealTimers = []
 
@@ -1531,17 +1530,13 @@ function showPackOpeningAnimation(payload) {
    foot.textContent = "Toutes les cartes tirées sont listées dans le recap ci-dessous."
   }
 
-  function showCompleteState() {
-   overlay.classList.add("complete")
-   if (skipBtn) {
-    skipBtn.disabled = true
-    skipBtn.style.display = "none"
-   }
-   if (replayBtn) {
-    replayBtn.disabled = false
-    replayBtn.style.display = ""
-   }
+ function showCompleteState() {
+  overlay.classList.add("complete")
+  if (skipBtn) {
+   skipBtn.disabled = true
+   skipBtn.style.display = "none"
   }
+ }
 
   function runRevealAnimation(animated) {
    for (const timer of packRevealTimers) window.clearTimeout(timer)
@@ -1553,16 +1548,11 @@ function showPackOpeningAnimation(payload) {
     grid.scrollLeft = 0
    } else {
     renderSingleGroup(firstGroupCards)
-   }
-   setFootText()
+  }
+  setFootText()
 
-   if (replayBtn) {
-    replayBtn.disabled = true
-    replayBtn.style.display = "none"
-   }
-
-   if (!animated) {
-    grid.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
+  if (!animated) {
+   grid.querySelectorAll(".pack-reveal-card").forEach((card) => card.classList.add("revealed"))
     grid.querySelectorAll(".pack-reveal-tier").forEach((tier) => tier.classList.add("active"))
     showCompleteState()
     return
@@ -1680,25 +1670,14 @@ function showPackOpeningAnimation(payload) {
   overlay.classList.toggle("multi-open", hasMultiGroups)
   overlay.setAttribute("aria-hidden", "false")
   document.body.classList.add("pack-opening-lock")
-  if (skipBtn) {
-   skipBtn.disabled = false
-   skipBtn.style.display = ""
-   skipBtn.onclick = () => completePackOpeningReveal()
-  }
-  if (replayBtn) {
-   replayBtn.disabled = true
-   replayBtn.style.display = "none"
-   replayBtn.onclick = () => {
-    replayBtn.disabled = true
-    closePackOpeningOverlay()
-    window.setTimeout(() => {
-     handleOpenPacksAction().catch(() => {})
-    }, 180)
-   }
-  }
-  window.requestAnimationFrame(() => {
-   overlay.classList.add("open")
-  })
+ if (skipBtn) {
+  skipBtn.disabled = false
+  skipBtn.style.display = ""
+  skipBtn.onclick = () => completePackOpeningReveal()
+ }
+ window.requestAnimationFrame(() => {
+  overlay.classList.add("open")
+ })
 
   runRevealAnimation(true)
 

@@ -1968,28 +1968,34 @@ body.leaderboard-page .footer {
 }
 
 .event-pack-open-overlay .pack-reveal-front-image {
- padding: 8px 8px 6px;
+ padding: 7px 7px 5px;
 }
 
 .event-pack-open-overlay .pack-reveal-front-image img {
  object-fit: contain;
  object-position: center;
  border-radius: 8px;
- background: linear-gradient(160deg, rgba(18, 25, 58, 0.95), rgba(8, 12, 32, 0.95));
- border: 1px solid rgba(239, 212, 118, 0.24);
- padding: 4px;
- box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+ background: transparent;
+ border: none;
+ padding: 0;
+ box-shadow: none;
 }
 
 .event-pack-open-overlay .pack-reveal-front-meta {
- padding: 6px 7px;
- gap: 2px;
+ padding: 6px 7px 8px;
+ gap: 3px;
+ min-height: 62px;
 }
 
 .event-pack-open-overlay .pack-reveal-front-meta strong {
  line-height: 1.15;
- max-height: 2.3em;
+ max-height: 2.25em;
  overflow: hidden;
+}
+
+.event-pack-open-overlay .pack-reveal-front-meta small {
+ min-height: 20px;
+ gap: 5px;
 }
 
 .event-pack-open-overlay .pack-open-grid.pack-open-grid-six .pack-reveal-card {
