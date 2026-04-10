@@ -3314,8 +3314,25 @@ body.tutorial-page .tutorial-footer-domain {
  gap: 18px;
 }
 
-.tutorial-hero .section-subtitle {
+body.tutorial-page .tutorial-hero .section-title,
+body.tutorial-page .tutorial-hero .section-subtitle {
+ text-align: left;
+}
+
+body.tutorial-page .tutorial-hero .section-title {
+ margin-bottom: 6px;
+ color: #f7f2df;
+}
+
+body.tutorial-page .tutorial-hero .section-subtitle {
  margin-bottom: 0;
+ color: #f0d264;
+ font-weight: 700;
+ text-shadow: 0 2px 8px rgba(6, 9, 22, 0.45);
+}
+
+body.cards-page .notice-strip {
+ color: #f0d264;
 }
 
 .tutorial-panel {
