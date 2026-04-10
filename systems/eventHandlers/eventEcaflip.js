@@ -52,7 +52,7 @@ module.exports = {
    pack,
    meta: {
     ...meta,
-    ux: ["🎲 Chance", "🎰 Jackpot"]
+    ux: ["🎲 Chance", "?? Jackpot"]
    }
   }
  }

@@ -160,13 +160,13 @@ function startEvent(channel, forced=null){
   endTime: Date.now() + EVENT_DURATION_MS
  }
 
- console.log("🎰 EVENT START:", key, "| Tickets:", tickets)
+ console.log("?? EVENT START:", key, "| Tickets:", tickets)
 
  try { require("../web/Server").pushActivity({ kind: "event_start", eventName: event.name }) } catch(_) {}
 
  if(channel){
   channel.send(
-`# 🎰 **${event.name.toUpperCase()}**
+`# ?? **${event.name.toUpperCase()}**
 
 ${event.start}
 

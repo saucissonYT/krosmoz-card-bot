@@ -144,7 +144,7 @@ module.exports = {
    .setDescription(
 `🎴 **${packs.toLocaleString()}** packs simulés
 📦 Set : **${setName}**
-🎰 Pity : **${pityEnabled ? "ON" : "OFF"}**
+?? Pity : **${pityEnabled ? "ON" : "OFF"}**
 🃏 Cartes générées : **${totalCards.toLocaleString()}**
 
 ${dropLines.join("\n")}`

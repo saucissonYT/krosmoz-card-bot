@@ -141,7 +141,7 @@ module.exports = {
  /* 51-60 */
  questQueteurEndurant: { name: "Queteur Endurant", badge: "📜", description: "Compléter 300 quêtes.", title: "Routier des Quêtes", trigger: "event", condition: (u) => n(u, "questClaims") >= 300 },
  questCarnetQuotidien: { name: "Carnet Quotidien", badge: "☀️", description: "Terminer les quotidiennes 20 jours.", title: "Journalier Exemplaire", trigger: "event", condition: (u) => n(u, "dailyQuestPerfectDays") >= 20 },
- eventRouletteMarathon: { name: "Roulette Marathon", badge: "🎰", description: "Jouer 250 fois à la roulette.", title: "Marathonien d'Écaflip", trigger: "roulette", condition: (u) => n(u, "rouletteSpins") >= 250 },
+ eventRouletteMarathon: { name: "Roulette Marathon", badge: "??", description: "Jouer 250 fois à la roulette.", title: "Marathonien d'Écaflip", trigger: "roulette", condition: (u) => n(u, "rouletteSpins") >= 250 },
  eventRebondEcaflip: { name: "Rebond d Ecaflip", badge: "😺", description: "Accumuler roulette + jackpot.", title: "Rebond du Destin", trigger: "roulette", condition: (u) => n(u, "rouletteSpins") >= 50 && n(u, "rouletteJackpot") >= 1 },
  eventChasseurPinatas: { name: "Chasseur de Pinatas", badge: "🎉", description: "Participer à 150 piñatas.", title: "Casseur de Fiesta", trigger: "event", condition: (u) => n(u, "pinataParticipations") >= 150 },
  eventGlobeTrotter: { name: "Globe Trotter Event", badge: "🧭", description: "Participer à 40 events.", title: "Voyageur des Dieux", trigger: "event", condition: (u) => n(u, "eventPacksOpened") >= 40 },

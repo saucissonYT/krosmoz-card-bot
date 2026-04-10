@@ -15,7 +15,7 @@
 module.exports = {
  rouletteSpin1: {
   name: "Premier tour",
-  badge: "🎰",
+  badge: "??",
   description: "Jouer 1 fois a la roulette.",
   title: "Curieux d'Ecaflip",
   trigger: "roulette",

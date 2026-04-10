@@ -277,7 +277,7 @@ ${setLines.join("\n")}
    .setDescription(
 `**Général**
 📦 EventPacks ouverts : **${eventOpened}**
-🎰 Events distincts : **${participated.length}** / 19
+?? Events distincts : **${participated.length}** / 19
 ${bar(participated.length, 19, 12)}
 🎟️ Tickets épuisés : **${s.ticketsFullyUsed || 0}** fois
 🥇 Premier pack d'event : **${s.firstEventPacks || 0}** fois

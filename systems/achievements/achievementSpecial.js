@@ -299,7 +299,7 @@ krosmoz666:{
 
 krosmoz777:{
  name:"Jackpot",
- badge:"🎰",
+ badge:"??",
  description:"Ouvrir 777 packs /krosmoz.",
  title:"Béni des Chiffres",
  trigger:"pack",

@@ -68,7 +68,7 @@ const LOTS = [
  { id: 29, emoji:"📦", name:"Mega lot packs",     rarity:"tresrare",  weight: 2,  reward:{ packs:15, kamas:1000 } },
  { id: 30, emoji:"🌈", name:"SSR du Destin",      rarity:"tresrare",  weight: 1,  reward:{ cardRarity:"SSR" } },
 
- { id: 31, emoji:"🎰", name:"JACKPOT KROSMIQUE !!!", rarity:"jackpot", weight:0.1, reward:{ cardShiny:true, kamas:10000, packs:5 } }
+ { id: 31, emoji:"??", name:"JACKPOT KROSMIQUE !!!", rarity:"jackpot", weight:0.1, reward:{ cardShiny:true, kamas:10000, packs:5 } }
 ]
 
 const RARITY_COLORS = {
@@ -254,7 +254,7 @@ function buildResultEmbed(discordUser, lot, user) {
 
  if (isJackpot) {
   return new EmbedBuilder()
-   .setTitle("🎰 JACKPOT KROSMIQUE 🎰")
+   .setTitle("?? JACKPOT KROSMIQUE ??")
    .setColor("#FFD700")
    .setDescription(
     `## **JE N'Y CROIS PAS. APRES TOUT CE TEMPS.**\n` +
@@ -287,7 +287,7 @@ function buildResultEmbed(discordUser, lot, user) {
 async function sendJackpotAnnounce(interaction) {
  await interaction.channel.send({
   content:
-   `## 🎰 JACKPOT KROSMIQUE 🎰\n` +
+   `## ?? JACKPOT KROSMIQUE ??\n` +
    `**${interaction.user.toString()} VIENT DE DECROCHER LE JACKPOT SECRET` +
    ` DE LA ROULETTE D'ECAFLIP !**\n` +
    `**SSR SHINY + 10 000 KAMAS + 5 PACKS. ECAFLIP EST FURIEUX. ET ADMIRATIF.**`

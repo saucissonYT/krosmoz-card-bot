@@ -86,7 +86,7 @@ module.exports = {
    startEvent(channel)
 
    return interaction.editReply({
-    content:"🎰 Event lancé aléatoirement."
+    content:"?? Event lancé aléatoirement."
    })
   }
 
@@ -148,7 +148,7 @@ module.exports = {
 
    const embed = new EmbedBuilder()
     .setTitle("📊 Event en cours")
-    .setDescription(`🎰 **${event.name}**`)
+    .setDescription(`?? **${event.name}**`)
     .addFields(
      { name:"Effet", value:effect },
      { name:"Temps restant", value:`${minutes} min` },

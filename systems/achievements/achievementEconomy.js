@@ -95,7 +95,7 @@ kamas666:{
 
 lucky777:{
  name:"777 kamas",
- badge:"🎰",
+ badge:"??",
  description:"Posséder exactement 777 kamas.",
  title:"Chance Mystique",
  trigger:"economy",

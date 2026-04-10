@@ -4,7 +4,15 @@
  const navLinks = document.getElementById("navLinks")
  const navbar = document.querySelector(".navbar")
  const heroPlayBtn = document.getElementById("heroPlayBtn")
- let eventToastDismissedUntil = 0
+ const EVENT_TOAST_DISMISS_STORAGE_KEY = "kc_event_toast_dismiss_until"
+ let eventToastDismissedUntil = (() => {
+  try {
+   const raw = Number(window.sessionStorage?.getItem(EVENT_TOAST_DISMISS_STORAGE_KEY) || 0)
+   return Number.isFinite(raw) && raw > 0 ? raw : 0
+  } catch (_) {
+   return 0
+  }
+ })()
  const QUEST_TOAST_POLL_MS = 9000
  const ACHIEVEMENT_TOAST_POLL_MS = 9000
  const EVENT_REWARD_TOAST_POLL_MS = 6000
@@ -43,6 +51,16 @@
   remainingMs: 0,
   streak: 0,
   lastDaily: 0
+ }
+
+ function dismissEventToastFor(ms = 15 * 60 * 1000) {
+  const duration = Math.max(1000, Number(ms || 0))
+  eventToastDismissedUntil = Date.now() + duration
+  try {
+   window.sessionStorage?.setItem(EVENT_TOAST_DISMISS_STORAGE_KEY, String(eventToastDismissedUntil))
+  } catch (_) {}
+  const eventToast = document.getElementById("globalEventToast")
+  if (eventToast) eventToast.hidden = true
  }
 
  function isTruthyFlag(value) {
@@ -148,14 +166,13 @@ function ensureEventToast() {
   const closeBtn = toast.querySelector("#globalEventToastClose")
   if (closeBtn) {
    closeBtn.addEventListener("click", () => {
-    eventToastDismissedUntil = Date.now() + (15 * 60 * 1000)
-    toast.hidden = true
+    dismissEventToastFor(15 * 60 * 1000)
    })
   }
   const openBtn = toast.querySelector("#globalEventToastOpen")
   if (openBtn) {
    openBtn.addEventListener("click", () => {
-    toast.hidden = true
+    dismissEventToastFor(15 * 60 * 1000)
    })
   }
   return toast
@@ -168,15 +185,20 @@ function ensureEventToast() {
   const connected = Boolean(payload?.connected)
   const participatedGodsEvent = Number(payload?.tickets?.used || 0) > 0
   const participatedPinata = Number(payload?.pinata?.my?.totalReactions || 0) > 0
-  const eventActive = Boolean(payload?.event?.active) && !participatedGodsEvent
-  const pinataActive = Boolean(payload?.pinata?.active) && !participatedPinata
-  const rouletteReady = Boolean(payload?.roulette?.canSpin)
+ const eventActive = Boolean(payload?.event?.active) && !participatedGodsEvent
+ const pinataActive = Boolean(payload?.pinata?.active) && !participatedPinata
+ const rouletteReady = Boolean(payload?.roulette?.canSpin)
+ const pagePath = String(window.location.pathname || "").toLowerCase()
 
   if (!connected) {
    toast.hidden = true
    return
   }
   if (!eventActive && !pinataActive && !rouletteReady) {
+   toast.hidden = true
+   return
+  }
+  if (pagePath.startsWith("/events")) {
    toast.hidden = true
    return
   }

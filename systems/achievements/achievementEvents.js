@@ -316,7 +316,7 @@ ssrEventOsamodas:{
 
 ssrEventEcaflip:{
  name:"SSR bénie d'Ecaflip",
- badge:"🎰",
+ badge:"??",
  description:"Obtenir une SSR lors de l'event Ecaflip.",
  title:"Pile ou Face Divin",
  trigger:"event",
@@ -481,7 +481,7 @@ packOsamodas100:{ name:"Seigneur des Bêtes", badge:"🦁", description:"Ouvrir 
 packEcaflip1:{ name:"Joueur Ecaflip", badge:"🎲", description:"Ouvrir 1 pack durant l'event Ecaflip.", title:"Joueur Ecaflip", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=1 },
 packEcaflip10:{ name:"Parieur Ecaflip", badge:"🃏", description:"Ouvrir 10 packs durant l'event Ecaflip.", title:"Parieur Ecaflip", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=10 },
 packEcaflip25:{ name:"Chanceux", badge:"🍀", description:"Ouvrir 25 packs durant l'event Ecaflip.", title:"Chanceux", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=25 },
-packEcaflip50:{ name:"Favori du Destin", badge:"🎰", description:"Ouvrir 50 packs durant l'event Ecaflip.", title:"Favori du Destin", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=50 },
+packEcaflip50:{ name:"Favori du Destin", badge:"??", description:"Ouvrir 50 packs durant l'event Ecaflip.", title:"Favori du Destin", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=50 },
 packEcaflip100:{ name:"Enfant du Destin", badge:"🌟", description:"Ouvrir 100 packs durant l'event Ecaflip.", title:"Enfant du Destin", trigger:"event", condition:u=>(u.stats?.eventPacksByClass?.ecaflip||0)>=100 },
 
 /* ================= PACKS PAR CLASSE — OUGINAK ================= */

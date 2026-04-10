@@ -1,6 +1,9 @@
+const fs = require("fs")
+const path = require("path")
+const sharp = require("sharp")
 const { SlashCommandBuilder } = require("discord.js")
 
-const { data, save } = require("../../systems/dataManager")
+const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { loadSets } = require("../../systems/setSystemFile")
 const { isDev } = require("../../systems/devSystem")
 const { resetRegistry } = require("../../systems/cardRegistry")
@@ -58,6 +61,12 @@ module.exports = {
    return o
   })
 
+  builder.addAttachmentOption(o =>
+   o.setName("image")
+    .setDescription("Nouvelle image de la carte")
+    .setRequired(false)
+  )
+
   return builder
 
  })(),
@@ -66,6 +75,8 @@ module.exports = {
 
   if(!isDev(interaction.user.id))
    return interaction.reply({ content:"⛔ Commande dev.", ephemeral:true })
+
+  await interaction.deferReply({ ephemeral:true })
 
   const rawSets = loadSets()
   const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
@@ -76,11 +87,12 @@ module.exports = {
   const name = interaction.options.getString("nom")
   const rarity = interaction.options.getString("rarete")
   const setId = interaction.options.getString("set")
+  const attachment = interaction.options.getAttachment("image")
 
   const card = cards.find(c => c.id === id)
 
   if(!card)
-   return interaction.reply("Carte introuvable.")
+   return interaction.editReply("❌ Carte introuvable.")
 
   if(name) card.name = name
   if(rarity) card.rarity = rarity
@@ -88,15 +100,64 @@ module.exports = {
   if(setId){
    const setExists = sets.find(s => s.id === setId)
    if(!setExists)
-    return interaction.reply("Set invalide.")
+    return interaction.editReply("❌ Set invalide.")
    card.set = setId
+  }
+
+  /* ── Remplacement image ── */
+
+  if(attachment){
+
+   if(!/\.(png|webp|jpg|jpeg)$/i.test(attachment.name))
+    return interaction.editReply("❌ Format image invalide (png, webp, jpg uniquement).")
+
+   const setFolder = path.join(CARDS_IMAGES_DIR, card.set)
+
+   if(!fs.existsSync(setFolder))
+    fs.mkdirSync(setFolder, { recursive:true })
+
+   /* Supprimer l'ancienne image si elle existe */
+   if(card.image){
+    const oldPath = path.join(setFolder, card.image)
+    if(fs.existsSync(oldPath)){
+     try{ fs.unlinkSync(oldPath) }catch(_){}
+    }
+   }
+
+   /* Télécharger la pièce jointe */
+   const response = await fetch(attachment.url)
+
+   if(!response.ok)
+    return interaction.editReply("❌ Impossible de télécharger l'image.")
+
+   const buffer = Buffer.from(await response.arrayBuffer())
+
+   /* Générer le nouveau nom de fichier */
+   const safeName = (card.name).replace(/\s/g, "_").toLowerCase()
+   const newFile = `${card.id}_${safeName}_${card.rarity}.png`
+   const newPath = path.join(setFolder, newFile)
+
+   try{
+    await sharp(buffer).png().toFile(newPath)
+   }catch(err){
+    return interaction.editReply("❌ Erreur conversion image (sharp).")
+   }
+
+   card.image = newFile
+
   }
 
   data.cards = cards
   save()
   resetRegistry()
 
-  interaction.reply(`✅ Carte modifiée : **${card.name}** (#${card.id})`)
+  const parts = [`✅ Carte modifiée : **${card.name}** (#${card.id})`]
+  if(name) parts.push(`📝 Nom → ${name}`)
+  if(rarity) parts.push(`💎 Rareté → ${rarity}`)
+  if(setId) parts.push(`📦 Set → ${setId}`)
+  if(attachment) parts.push(`🖼️ Image remplacée`)
+
+  await interaction.editReply(parts.join("\n"))
 
  }
 
