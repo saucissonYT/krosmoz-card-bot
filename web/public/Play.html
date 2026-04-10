@@ -247,7 +247,7 @@ function setMode(mode, updateUrl = true) {
   await requireLogin()
 
   const [profileRes, inventoryRes, gameMetaRes] = await Promise.all([
-   fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}`),
+  fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}?track=0`),
    fetchJson("/api/me/inventory"),
    fetchJson("/api/game/meta")
   ])
@@ -2010,8 +2010,10 @@ function formatQuestRewards(reward, scope = "player") {
   if (Number(reward?.guildXp || 0) > 0) parts.push(`⭐ ${fmt(reward.guildXp)} XP guilde`)
  } else {
   if (Number(reward?.kamas || 0) > 0) parts.push(`💰 ${fmt(reward.kamas)}`)
-  if (Number(reward?.xp || 0) > 0) parts.push(`⭐ ${fmt(reward.xp)} XP`)
+  if (Number(reward?.xp || 0) > 0) parts.push(`⭐ ${fmt(reward.xp)} XP joueur`)
   if (Number(reward?.packs || 0) > 0) parts.push(`📦 ${fmt(reward.packs)}`)
+  if (Number(reward?.fragments || 0) > 0) parts.push(`🧩 ${fmt(reward.fragments)}`)
+  if (Number(reward?.bpXp || 0) > 0) parts.push(`🎟️ ${fmt(reward.bpXp)} XP BP`)
 }
 return parts.join(" • ") || "Récompense"
 }
@@ -2062,10 +2064,12 @@ function formatQuestClaimToastReward(scope = "player", claimResult = null) {
  const kamas = Number(claimResult?.totalKamas || 0)
  const xp = Number(claimResult?.totalXp || 0)
  const packs = Number(claimResult?.totalPacks || 0)
+ const fragments = Number(claimResult?.totalFragments || 0)
  const bpXp = Number(claimResult?.totalBpXp || 0)
  if (kamas > 0) parts.push(`💰 +${fmt(kamas)}`)
- if (xp > 0) parts.push(`⭐ +${fmt(xp)} XP`)
+ if (xp > 0) parts.push(`⭐ +${fmt(xp)} XP joueur`)
  if (packs > 0) parts.push(`📦 +${fmt(packs)}`)
+ if (fragments > 0) parts.push(`🧩 +${fmt(fragments)}`)
  if (bpXp > 0) parts.push(`🎟️ +${fmt(bpXp)} XP BP`)
  return parts.join(" • ")
 }
@@ -2329,11 +2333,12 @@ async function handleQuestClaim({ scope = "player", type = "daily", questId = ""
  const kamas = Number(result.data?.result?.totalKamas || 0)
  const xp = Number(result.data?.result?.totalXp || 0)
  const packs = Number(result.data?.result?.totalPacks || 0)
+ const fragments = Number(result.data?.result?.totalFragments || 0)
  const bpXp = Number(result.data?.result?.totalBpXp || 0)
  const bonus = Boolean(result.data?.result?.completionBonus)
   showActionResult(
    "questResultBox",
-   `<p><strong>Quête(s) récupérée(s):</strong> ${fmt(claimed)}</p><p>💰 +${fmt(kamas)} • ⭐ +${fmt(xp)} XP • 📦 +${fmt(packs)} • 🎟️ +${fmt(bpXp)} XP BP</p>${bonus ? "<p>Bonus de complétion récupéré.</p>" : ""}`
+   `<p><strong>Quête(s) récupérée(s):</strong> ${fmt(claimed)}</p><p>💰 +${fmt(kamas)} • ⭐ +${fmt(xp)} XP joueur • 🎟️ +${fmt(bpXp)} XP BP • 📦 +${fmt(packs)} • 🧩 +${fmt(fragments)}</p>${bonus ? "<p>Bonus de complétion récupéré.</p>" : ""}`
   )
 }
 

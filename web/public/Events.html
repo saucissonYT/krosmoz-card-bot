@@ -111,10 +111,11 @@ let rouletteCooldownTimer = null
   return div.innerHTML
  }
 
- function normalizeUiText(value) {
+function normalizeUiText(value) {
   const raw = String(value || "")
   if (!raw) return ""
-  if (!/[\uFFFD]/.test(raw)) return raw
+  const hasMojibake = /(?:Ã.|â.|ð[\u0080-\u00BF]|œ|�)/.test(raw)
+  if (!hasMojibake) return raw
   try {
    return decodeURIComponent(escape(raw))
   } catch (_) {
@@ -778,5 +779,4 @@ function showEventPackOpeningAnimation(payload) {
  </script>
 </body>
 </html>
-
 

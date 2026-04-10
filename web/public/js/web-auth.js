@@ -582,7 +582,7 @@ function ensureLevelUpAnimationStyles() {
  style.id = "kcLevelUpAnimStyle"
  style.textContent = `
   .kc-levelup-overlay{
-   position:fixed;inset:0;z-index:13000;display:grid;place-items:center;
+   position:fixed;inset:0;z-index:20060;display:grid;place-items:center;
    padding:16px;opacity:0;pointer-events:none;transition:opacity .22s ease;
   }
   .kc-levelup-overlay.show{opacity:1;pointer-events:auto;}
@@ -592,6 +592,23 @@ function ensureLevelUpAnimationStyles() {
    background:radial-gradient(circle at center, rgba(255,223,120,.18), rgba(0,0,0,.86));
    backdrop-filter: blur(2px);
   }
+  .kc-levelup-bg{
+   position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1;
+  }
+  .kc-levelup-rays{
+   position:absolute;inset:-22%;
+   background:repeating-conic-gradient(from 0deg, rgba(245,196,84,.15) 0deg 9deg, rgba(245,196,84,0) 9deg 19deg);
+   opacity:.34;mix-blend-mode:screen;animation:kc-levelup-rays 18s linear infinite;
+  }
+  .kc-levelup-particles{
+   position:absolute;inset:0;overflow:hidden;
+  }
+  .kc-levelup-particles span{
+   position:absolute;bottom:-8%;width:4px;height:4px;border-radius:999px;
+   background:rgba(255,228,160,.86);box-shadow:0 0 10px rgba(255,219,135,.7);
+   animation:kc-levelup-particle var(--dur,8s) linear infinite;
+   animation-delay:var(--delay,0s);
+  }
   .kc-levelup-modal{
    position:relative;width:min(820px,96vw);border-radius:12px;
    border:1px solid rgba(246,210,77,.42);
@@ -600,9 +617,21 @@ function ensureLevelUpAnimationStyles() {
    padding:72px 18px 16px;
    transform:translateY(14px) scale(.97);
    animation:kc-levelup-pop .32s ease-out forwards;
+   z-index:3;
+   overflow:visible;
+   font-family:"Jost",sans-serif;
   }
   @keyframes kc-levelup-pop{
    to{transform:translateY(0) scale(1);}
+  }
+  @keyframes kc-levelup-rays{
+   from{transform:rotate(0deg) scale(1);}
+   to{transform:rotate(360deg) scale(1.03);}
+  }
+  @keyframes kc-levelup-particle{
+   0%{transform:translate3d(0,0,0) scale(.8);opacity:0;}
+   14%{opacity:.95;}
+   100%{transform:translate3d(var(--drift, 18px),-108vh,0) scale(1.15);opacity:0;}
   }
   .kc-levelup-ribbon{
    position:absolute;left:50%;top:-72px;transform:translateX(-50%);
@@ -618,7 +647,7 @@ function ensureLevelUpAnimationStyles() {
   }
   .kc-levelup-title{
    margin:0;text-align:center;color:#f8df72;font-size:clamp(1.4rem,2.6vw,1.95rem);
-   letter-spacing:.15em;
+   letter-spacing:.15em;font-family:"Cinzel","Times New Roman",serif;font-weight:800;
   }
   .kc-levelup-rewards{
    margin-top:14px;padding:14px 8px;border-top:1px solid rgba(255,255,255,.22);
@@ -688,6 +717,18 @@ function ensureLevelUpAnimationOverlay() {
  root.hidden = true
  root.innerHTML = `
   <div class="kc-levelup-backdrop" data-kc-levelup-close></div>
+  <div class="kc-levelup-bg" aria-hidden="true">
+   <div class="kc-levelup-rays"></div>
+   <div class="kc-levelup-particles">
+    ${Array.from({ length: 22 }, (_, index) => {
+     const left = ((index * 97) % 100)
+     const delay = -((index * 0.43) % 5.2).toFixed(2)
+     const dur = (7.6 + ((index * 0.59) % 4.7)).toFixed(2)
+     const drift = (((index % 2 === 0 ? 1 : -1) * (12 + ((index * 11) % 26)))).toFixed(0)
+     return `<span style="left:${left}%;--delay:${delay}s;--dur:${dur}s;--drift:${drift}px"></span>`
+    }).join("")}
+   </div>
+  </div>
   <section class="kc-levelup-modal" aria-label="Level up">
    <div class="kc-levelup-ribbon">
     <img src="/assets/ui/ruban%20niveau.png" alt="" aria-hidden="true">
@@ -934,15 +975,18 @@ function formatQuestRewardPreview(reward) {
  if (!reward) return ""
  const parts = []
  if (Number(reward.kamas || 0) > 0) parts.push(`💰 +${Number(reward.kamas || 0).toLocaleString("fr-FR")}`)
- if (Number(reward.xp || 0) > 0) parts.push(`⭐ +${Number(reward.xp || 0).toLocaleString("fr-FR")} XP`)
+ if (Number(reward.xp || 0) > 0) parts.push(`⭐ +${Number(reward.xp || 0).toLocaleString("fr-FR")} XP joueur`)
  if (Number(reward.packs || 0) > 0) parts.push(`📦 +${Number(reward.packs || 0).toLocaleString("fr-FR")}`)
+ if (Number(reward.fragments || 0) > 0) parts.push(`🧩 +${Number(reward.fragments || 0).toLocaleString("fr-FR")}`)
+ if (Number(reward.bpXp || 0) > 0) parts.push(`🎟️ +${Number(reward.bpXp || 0).toLocaleString("fr-FR")} XP BP`)
  return parts.join(" • ")
 }
 
 function normalizeUiText(value) {
  const raw = String(value || "")
  if (!raw) return ""
- if (!/[\uFFFD]/.test(raw)) return raw
+ const hasMojibake = /(?:Ã.|â.|ð[\u0080-\u00BF]|œ|�)/.test(raw)
+ if (!hasMojibake) return raw
  try {
   return decodeURIComponent(escape(raw))
  } catch (_) {
@@ -1036,12 +1080,14 @@ function spawnRewardToast({
  description = "",
  rewardText = "",
  chipLabel = "Gagné",
- tone = "event"
+ tone = "event",
+ size = "normal"
 } = {}) {
  const toast = document.createElement("article")
  const safeTone = String(tone || "event").toLowerCase()
  const toneClass = safeTone === "shop" ? "toast-tone-shop" : "toast-tone-event"
- toast.className = `quest-progress-toast ${toneClass}`
+ const safeSize = String(size || "normal").toLowerCase()
+ toast.className = `quest-progress-toast ${toneClass}${safeSize === "double" ? " toast-size-double" : ""}`
  const titleSafe = normalizeUiText(title).trim() || "Récompense obtenue"
  const subtitleSafe = normalizeUiText(subtitle).trim()
  const descriptionSafe = normalizeUiText(description).trim()
@@ -1364,7 +1410,8 @@ window.__kcRewardToastNotify = function rewardToastNotify(payload = {}) {
   description: String(payload?.description || ""),
   rewardText: String(payload?.rewardText || ""),
   chipLabel: String(payload?.chipLabel || "Gagné"),
-  tone: String(payload?.tone || "event")
+  tone: String(payload?.tone || "event"),
+  size: String(payload?.size || "normal")
  })
 }
 
@@ -1375,7 +1422,8 @@ window.__kcShopToastNotify = function shopToastNotify(payload = {}) {
   description: String(payload?.description || ""),
   rewardText: String(payload?.rewardText || ""),
   chipLabel: String(payload?.chipLabel || "Shop"),
-  tone: "shop"
+  tone: "shop",
+  size: String(payload?.size || "normal")
  })
 }
 

@@ -1,48 +1,41 @@
 const { checkAchievements } = require("./achievementEngine")
 
 /*
- * achievementCheck - wrapper centralisé.
- *
- * FIX v2 : Multi-pass jusqu'à stabilisation.
- *
- * Problème : un achievement donne de l'XP en récompense (via addXP),
- * ce qui peut déclencher un nouvel achievement de niveau/progression.
- * Mais comme on est déjà dans la boucle, il n'est pas détecté.
- * Le joueur ne le voit que quand il fait /balance ou une autre commande.
- *
- * Solution : on relance checkAchievements tant qu'il y a des nouveaux
- * achievements débloqués, avec un max de 5 passes pour éviter les boucles.
- *
- * Vérif systématique :
- * - on vérifie tous les succès à chaque appel (trigger null)
- * - puis on boucle jusqu'à ce que plus rien ne se débloque
+ * Wrapper central: execute only the requested trigger, then run bounded
+ * "progression" cascades so XP rewards can unlock chained level achievements.
  */
-
-function achievementCheck(user, _trigger = "pack") {
-
+function achievementCheck(user, trigger = "pack") {
+ const rawTrigger = String(trigger || "").trim().toLowerCase() || null
+ const triggerAlias = {
+  rarity: "rng",
+  pinata: "event",
+  quests: "event",
+  quest: "event"
+ }
+ const normalizedTrigger = rawTrigger ? (triggerAlias[rawTrigger] || rawTrigger) : null
  const allUnlocked = []
- const MAX_PASSES = 5
+ const seen = new Set()
+ const MAX_PROGRESSION_PASSES = 6
 
- for (let pass = 0; pass < MAX_PASSES; pass++) {
-
-  /* Passe principale : tous les triggers */
-  const unlocked = checkAchievements(user, null)
-
-  /* Passe progression pour les cas level/xp */
-  const progressionUnlocked = checkAchievements(user, "progression")
-  unlocked.push(...progressionUnlocked)
-
-  /* Dédoublonner cette passe */
-  const newIds = [...new Set(unlocked)].filter(id => !allUnlocked.includes(id))
-
-  if (newIds.length === 0) break
-
-  allUnlocked.push(...newIds)
+ const addUnlocked = (ids = []) => {
+  for (const id of ids) {
+   const safeId = String(id || "").trim()
+   if (!safeId || seen.has(safeId)) continue
+   seen.add(safeId)
+   allUnlocked.push(safeId)
+  }
  }
 
- return [...new Set(allUnlocked)]
+ if (normalizedTrigger) addUnlocked(checkAchievements(user, normalizedTrigger))
+ else addUnlocked(checkAchievements(user, null))
+
+ for (let pass = 0; pass < MAX_PROGRESSION_PASSES; pass++) {
+  const before = seen.size
+  addUnlocked(checkAchievements(user, "progression"))
+  if (seen.size === before) break
+ }
+
+ return allUnlocked
 }
 
-module.exports = {
- achievementCheck
-}
+module.exports = { achievementCheck }

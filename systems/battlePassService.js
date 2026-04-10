@@ -946,12 +946,22 @@ async function buyPremium(userId) {
   )
 
   let retroCount = 0
+  const retroTotals = { kamas: 0, packs: 0, xp: 0 }
+  const claimedRewards = []
   const premiumClaimIso = new Date().toISOString()
   for (const reward of retroRewards) {
    try {
-    awardReward(userId, reward)
+    const granted = awardReward(userId, reward)
+    retroTotals.kamas += Number(granted?.kamas || 0)
+    retroTotals.packs += Number(granted?.packs || 0)
+    retroTotals.xp += Number(granted?.xp || 0)
     progress.claimedPremium.push(reward.level)
     setClaimedAt(progress, "premium", reward.level, premiumClaimIso)
+    claimedRewards.push({
+     level: Number(reward.level || 0),
+     text: String(granted?.text || "").trim(),
+     track: "premium"
+    })
     retroCount++
    } catch (err) {
     console.error("[battlepass] retro reward failed:", reward.level, err.message)
@@ -961,7 +971,13 @@ async function buyPremium(userId) {
   checkAndUnlockAchievements(progress, season)
   saveUserProgress(progress)
 
-  return { ok: true, retroCount, price: season.premiumPrice || 18000 }
+  return {
+   ok: true,
+   retroCount,
+   price: season.premiumPrice || 18000,
+   retroTotals,
+   claimedRewards
+  }
  } finally {
   claimLocks.delete(userId)
   releaseFileLock(lockPath)

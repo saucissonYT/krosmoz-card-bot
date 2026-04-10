@@ -230,7 +230,8 @@ function formatRewardsShort(list) {
 function normalizeUiText(value) {
  const raw = String(value || "")
  if (!raw) return ""
- if (!/[\uFFFD]/.test(raw)) return raw
+ const hasMojibake = /(?:Ã.|â.|ð[\u0080-\u00BF]|œ|�)/.test(raw)
+ if (!hasMojibake) return raw
  try {
   return decodeURIComponent(escape(raw))
  } catch (_) {
@@ -260,6 +261,141 @@ function formatClaimedRewardsForToast(result) {
  if (!mapped.length) return ""
  if (mapped.length <= 4) return mapped.join(" • ")
  return `${mapped.slice(0, 4).join(" • ")} • +${mapped.length - 4}`
+}
+
+function getClaimedRewardLines(result) {
+ const items = Array.isArray(result?.claimedRewards) ? result.claimedRewards : []
+ return items
+  .map((entry) => {
+   const rawText = normalizeUiText(entry?.text || "").trim()
+   if (!rawText) return ""
+   const level = Math.max(1, Number(entry?.level || 1))
+   const prefix = String(entry?.track || "").toLowerCase() === "premium" ? "💎" : "🎁"
+   return `Niv.${level} ${prefix} ${rawText}`
+  })
+  .filter(Boolean)
+}
+
+function chunkArray(rows, chunkSize = 4) {
+ const source = Array.isArray(rows) ? rows : []
+ const size = Math.max(1, Number(chunkSize || 4))
+ const chunks = []
+ for (let i = 0; i < source.length; i += size) {
+  chunks.push(source.slice(i, i + size))
+ }
+ return chunks
+}
+
+function notifyDetailedRewardToasts({
+ title = "Récompenses",
+ subtitle = "",
+ chipLabel = "Battle Pass",
+ tone = "event",
+ items = []
+} = {}) {
+ const lines = Array.isArray(items) ? items.filter(Boolean) : []
+ if (!lines.length) return false
+
+ if (typeof window.__kcRewardToastNotify === "function") {
+  const chunks = chunkArray(lines, 4)
+  chunks.forEach((chunk, index) => {
+   const suffix = chunks.length > 1 ? ` (${index + 1}/${chunks.length})` : ""
+   window.__kcRewardToastNotify({
+    title: `${title}${suffix}`,
+    subtitle,
+    description: `${lines.length} récompense(s) au total`,
+    rewardText: chunk.join(" • "),
+    chipLabel,
+    tone,
+    size: "double"
+   })
+  })
+  return true
+ }
+
+ if (typeof window.__kcQuestToastNotify === "function") {
+  window.__kcQuestToastNotify({
+   title,
+   subtitle,
+   description: `${lines.length} récompense(s) au total`,
+   fromPct: 0,
+   toPct: 100,
+   variant: "complete",
+   rewardText: lines.join(" • ")
+  })
+  return true
+ }
+
+ return false
+}
+
+function formatTotalsLine(totals = {}) {
+ const parts = []
+ const kamas = Number(totals?.kamas || 0)
+ const packs = Number(totals?.packs || 0)
+ const xp = Number(totals?.xp || 0)
+ if (kamas > 0) parts.push(`💰 +${fmt(kamas)} kamas`)
+ if (packs > 0) parts.push(`📦 +${fmt(packs)} pack(s)`)
+ if (xp > 0) parts.push(`⭐ +${fmt(xp)} XP`)
+ return parts.join(" • ")
+}
+
+function notifyBattlepassClaimAll(result = {}) {
+ const lines = getClaimedRewardLines(result)
+ const total = Number(result?.total || lines.length || 0)
+ const totalsLine = formatTotalsLine(result?.totals || {})
+
+ const detailShown = notifyDetailedRewardToasts({
+  title: "Battle Pass : tout récupéré",
+  subtitle: `${total} récompense(s) récupérée(s)`,
+  chipLabel: "Battle Pass",
+  tone: "event",
+  items: lines
+ })
+
+ if (totalsLine && typeof window.__kcRewardToastNotify === "function") {
+  window.__kcRewardToastNotify({
+   title: "Récapitulatif global",
+   subtitle: "Total récupéré",
+   rewardText: totalsLine,
+   chipLabel: "Battle Pass",
+   tone: "event"
+  })
+  return
+ }
+
+ if (!detailShown) {
+  const fallback = totalsLine || `${total} récompense(s) récupérée(s).`
+  showToast(fallback)
+ }
+}
+
+function notifyBattlepassPremiumPurchase(result = {}) {
+ const retroCount = Number(result?.retroCount || 0)
+ const lines = getClaimedRewardLines(result)
+ const totalsLine = formatTotalsLine(result?.retroTotals || {})
+
+ const detailShown = notifyDetailedRewardToasts({
+  title: "Premium activé : rétro-récompenses",
+  subtitle: `${retroCount} récompense(s) premium débloquée(s)`,
+  chipLabel: "Premium",
+  tone: "event",
+  items: lines
+ })
+
+ const summaryLine = totalsLine || (retroCount > 0 ? `${retroCount} récompense(s) rétroactives récupérées.` : "Aucune récompense rétroactive.")
+ if (typeof window.__kcRewardToastNotify === "function") {
+  window.__kcRewardToastNotify({
+   title: "Battlepass Premium activé",
+   subtitle: "Achat validé",
+   rewardText: summaryLine,
+   chipLabel: "Premium",
+   tone: "event"
+  })
+  return
+ }
+
+ if (!detailShown) showToast(summaryLine)
 }
 
 function notifyBattlepassLevelClaim(level, result) {
@@ -615,13 +751,13 @@ async function loadBattlepass() {
   renderConnected(meRes.data || {})
  }
 
- async function claimAllRewards() {
+async function claimAllRewards() {
   const r = await api("/api/battlepass/claim", { method: "POST" })
   if (!r.ok) {
    showToast(r.data?.error || "Impossible de réclamer.", true)
    return false
   }
- showToast(`Récompenses récupérées: ${Number(r.data?.result?.total || 0)}`)
+ notifyBattlepassClaimAll(r.data?.result || {})
   await loadBattlepass()
   return true
  }
@@ -661,7 +797,7 @@ async function claimLevelReward(level) {
    if (!ok) return
    const r = await api("/api/battlepass/premium", { method: "POST" })
    if (!r.ok) return showToast(r.data?.error || "Achat premium impossible.", true)
-    showToast("Battlepass Premium activé.")
+   notifyBattlepassPremiumPurchase(r.data?.result || {})
    await loadBattlepass()
   })
  }
@@ -693,4 +829,3 @@ async function claimLevelReward(level) {
  </script>
 </body>
 </html>
-

@@ -175,6 +175,13 @@ const WEB_PINATA_MULTIPLIERS = [
  { min: 21, mult: 2.0 }
 ]
 const WEB_PINATA_SSR_CHANCE_KROSMIQUE = 0.02
+const BATTLEPASS_XP_CONFIG_PATH = path.join(process.cwd(), "config", "battlepassXP.json")
+const DEFAULT_QUEST_BP_XP = {
+ dailyClaim: 80,
+ weeklyClaim: 250,
+ dailyBonus: 120,
+ weeklyBonus: 400
+}
 
 function getNextWebPinataDelayMs() {
  return Math.floor(Math.random() * (WEB_PINATA_MAX_INTERVAL_MS - WEB_PINATA_MIN_INTERVAL_MS + 1)) + WEB_PINATA_MIN_INTERVAL_MS
@@ -490,6 +497,59 @@ function parseIntSafe(value, fallback) {
  return Math.floor(n)
 }
 
+function normalizeUiText(value) {
+ const raw = String(value || "")
+ if (!raw) return ""
+ const hasMojibake = /(?:Ã.|â.|ð[\u0080-\u00BF]|œ|�)/.test(raw)
+ if (!hasMojibake) return raw
+
+ try {
+  const latin1Decoded = Buffer.from(raw, "latin1").toString("utf8")
+  if (latin1Decoded && latin1Decoded !== raw) return latin1Decoded
+ } catch (_) {}
+
+ try {
+  return decodeURIComponent(escape(raw))
+ } catch (_) {
+  return raw
+ }
+}
+
+function normalizeUiEmoji(value, fallback = "🏅") {
+ const normalized = normalizeUiText(value).trim()
+ if (!normalized) return String(fallback || "🏅")
+ return normalized
+}
+
+function shouldTrackProfileView(req) {
+ const value = String(req.query?.track || "").trim().toLowerCase()
+ return value === "1" || value === "true" || value === "yes" || value === "on"
+}
+
+function getBattlePassQuestXpConfig() {
+ return readJSON(BATTLEPASS_XP_CONFIG_PATH, { sources: {} }) || { sources: {} }
+}
+
+function getQuestBattlePassXp(type = "daily") {
+ const safeType = normalizeQuestType(type)
+ const cfg = getBattlePassQuestXpConfig()
+ const source = cfg?.sources || {}
+ if (safeType === "weekly") {
+  return Number(source.quest_weekly_claim || DEFAULT_QUEST_BP_XP.weeklyClaim)
+ }
+ return Number(source.quest_daily_claim || DEFAULT_QUEST_BP_XP.dailyClaim)
+}
+
+function getQuestBonusBattlePassXp(type = "daily") {
+ const safeType = normalizeQuestType(type)
+ const cfg = getBattlePassQuestXpConfig()
+ const source = cfg?.sources || {}
+ if (safeType === "weekly") {
+  return Number(source.quest_weekly_bonus || DEFAULT_QUEST_BP_XP.weeklyBonus)
+ }
+ return Number(source.quest_daily_bonus || DEFAULT_QUEST_BP_XP.dailyBonus)
+}
+
 function countUnlockedAchievements(unlocked) {
  if (!Array.isArray(unlocked) || unlocked.length === 0) return 0
  return new Set(unlocked.map((id) => String(id))).size
@@ -651,6 +711,8 @@ function buildPlayerQuestGroup(user, type) {
  const progress = getAllProgress(user, safeType)
  const summary = buildQuestSummary(progress)
  const bonus = safeType === "weekly" ? WEEKLY_BONUS : DAILY_BONUS
+ const questBpXp = getQuestBattlePassXp(safeType)
+ const bonusBpXp = getQuestBonusBattlePassXp(safeType)
 
  return {
   type: safeType,
@@ -659,7 +721,9 @@ function buildPlayerQuestGroup(user, type) {
   bonus: {
    kamas: Number(bonus?.kamas || 0),
    xp: Number(bonus?.xp || 0),
-   packs: Number(bonus?.packs || 0)
+   packs: Number(bonus?.packs || 0),
+   fragments: Number(bonus?.fragments || 0),
+   bpXp: bonusBpXp
   },
   quests: progress.map((quest) => ({
    id: String(quest.id || ""),
@@ -674,7 +738,9 @@ function buildPlayerQuestGroup(user, type) {
    reward: {
     kamas: Number(quest?.reward?.kamas || 0),
     xp: Number(quest?.reward?.xp || 0),
-    packs: Number(quest?.reward?.packs || 0)
+    packs: Number(quest?.reward?.packs || 0),
+    fragments: Number(quest?.reward?.fragments || 0),
+    bpXp: questBpXp
    }
   }))
  }
@@ -738,7 +804,8 @@ function buildQuestStatePayload(userId) {
  }
 }
 
-function buildPreviewQuestRows(quests = [], scope = "player", memberCount = 6) {
+function buildPreviewQuestRows(quests = [], scope = "player", memberCount = 6, type = "daily") {
+ const safeType = normalizeQuestType(type)
  return quests.map((quest, index) => {
   const baseGoal = scope === "guild"
    ? Number(getScaledGoal(Number(quest?.baseGoal || 1), memberCount) || 1)
@@ -771,21 +838,23 @@ function buildPreviewQuestRows(quests = [], scope = "player", memberCount = 6) {
    claimable: false,
    reward: scope === "guild"
     ? { guildXp: Number(quest?.xp || 0) }
-    : {
-      kamas: Number(quest?.reward?.kamas || 0),
-      xp: Number(quest?.reward?.xp || 0),
-      packs: Number(quest?.reward?.packs || 0)
+   : {
+     kamas: Number(quest?.reward?.kamas || 0),
+     xp: Number(quest?.reward?.xp || 0),
+     packs: Number(quest?.reward?.packs || 0),
+     fragments: Number(quest?.reward?.fragments || 0),
+     bpXp: getQuestBattlePassXp(safeType)
      }
   }
  })
 }
 
 function buildQuestPreviewPayload() {
- const playerDailyRows = buildPreviewQuestRows(getDailyQuests().quests, "player")
- const playerWeeklyRows = buildPreviewQuestRows(getWeeklyQuests().quests, "player")
+ const playerDailyRows = buildPreviewQuestRows(getDailyQuests().quests, "player", 6, "daily")
+ const playerWeeklyRows = buildPreviewQuestRows(getWeeklyQuests().quests, "player", 6, "weekly")
  const guildMemberCount = 6
- const guildDailyRows = buildPreviewQuestRows(getDailyGuildQuests(), "guild", guildMemberCount)
- const guildWeeklyRows = buildPreviewQuestRows(getWeeklyGuildQuests(), "guild", guildMemberCount)
+ const guildDailyRows = buildPreviewQuestRows(getDailyGuildQuests(), "guild", guildMemberCount, "daily")
+ const guildWeeklyRows = buildPreviewQuestRows(getWeeklyGuildQuests(), "guild", guildMemberCount, "weekly")
 
  return {
   connected: false,
@@ -798,22 +867,26 @@ function buildQuestPreviewPayload() {
     type: "daily",
     resetIn: getNextDailyReset(),
     summary: buildQuestSummary(playerDailyRows),
-    bonus: {
-     kamas: Number(DAILY_BONUS?.kamas || 0),
-     xp: Number(DAILY_BONUS?.xp || 0),
-     packs: Number(DAILY_BONUS?.packs || 0)
-    },
+   bonus: {
+    kamas: Number(DAILY_BONUS?.kamas || 0),
+    xp: Number(DAILY_BONUS?.xp || 0),
+    packs: Number(DAILY_BONUS?.packs || 0),
+    fragments: Number(DAILY_BONUS?.fragments || 0),
+    bpXp: getQuestBonusBattlePassXp("daily")
+   },
     quests: playerDailyRows
    },
    weekly: {
     type: "weekly",
     resetIn: getNextWeeklyReset(),
     summary: buildQuestSummary(playerWeeklyRows),
-    bonus: {
-     kamas: Number(WEEKLY_BONUS?.kamas || 0),
-     xp: Number(WEEKLY_BONUS?.xp || 0),
-     packs: Number(WEEKLY_BONUS?.packs || 0)
-    },
+   bonus: {
+    kamas: Number(WEEKLY_BONUS?.kamas || 0),
+    xp: Number(WEEKLY_BONUS?.xp || 0),
+    packs: Number(WEEKLY_BONUS?.packs || 0),
+    fragments: Number(WEEKLY_BONUS?.fragments || 0),
+    bpXp: getQuestBonusBattlePassXp("weekly")
+   },
     quests: playerWeeklyRows
    }
   },
@@ -3404,9 +3477,10 @@ app.post("/api/quests/claim", async (req, res) => {
   let totalKamas = 0
   let totalXp = 0
   let totalPacks = 0
+  let totalFragments = 0
 
   if (questId) {
-   const single = claimQuest(user, questId, type)
+   const single = claimQuest(user, questId, type, { userId: session.userId })
    if (!single?.success) {
     return res.status(400).json({ error: String(single?.error || "Récompense indisponible.") })
    }
@@ -3418,15 +3492,17 @@ app.post("/api/quests/claim", async (req, res) => {
    totalKamas = Number(questReward.kamas || 0)
    totalXp = Number(questReward.xp || 0)
    totalPacks = Number(questReward.packs || 0)
+   totalFragments = Number(questReward.fragments || 0)
 
    if (completionBonus) {
     totalKamas += Number(bonus?.kamas || 0)
     totalXp += Number(bonus?.xp || 0)
     totalPacks += Number(bonus?.packs || 0)
+    totalFragments += Number(single?.bonusGrantedFragments || 0)
    }
    claimResult = single
   } else {
-   const multi = claimAll(user, type)
+   const multi = claimAll(user, type, { userId: session.userId })
    if (Number(multi?.claimedCount || 0) <= 0) {
     return res.status(400).json({ error: "Aucune quête à récupérer." })
    }
@@ -3435,6 +3511,7 @@ app.post("/api/quests/claim", async (req, res) => {
    totalKamas = Number(multi.totalKamas || 0)
    totalXp = Number(multi.totalXp || 0)
    totalPacks = Number(multi.totalPacks || 0)
+   totalFragments = Number(multi.totalFragments || 0)
    claimResult = multi
   }
 
@@ -3451,7 +3528,17 @@ app.post("/api/quests/claim", async (req, res) => {
    totalBpXp += Number(bpBonus?.addedXP || 0)
   }
 
-  const unlocked = achievementCheck(user, "daily")
+  const unlockedSet = new Set()
+  const addUnlocked = (entries = []) => {
+   for (const id of entries) {
+    const safeId = String(id || "").trim()
+    if (!safeId) continue
+    unlockedSet.add(safeId)
+   }
+  }
+  addUnlocked(achievementCheck(user, "daily"))
+  addUnlocked(achievementCheck(user, "event"))
+  const unlocked = [...unlockedSet]
   save(session.userId)
   apiCache.invalidate(`profile:${session.userId}`)
   apiCache.invalidatePrefix("leaderboard:")
@@ -3462,12 +3549,13 @@ app.post("/api/quests/claim", async (req, res) => {
    type,
    result: {
     claimedCount,
-    totalKamas,
-    totalXp,
-    totalPacks,
-    completionBonus,
-    totalBpXp,
-    raw: claimResult
+   totalKamas,
+   totalXp,
+   totalPacks,
+   totalFragments,
+   completionBonus,
+   totalBpXp,
+   raw: claimResult
    },
    unlockedAchievements: countUnlockedAchievements(unlocked),
    state: buildQuestStatePayload(session.userId)
@@ -3551,10 +3639,12 @@ app.get("/api/profile/:id", async (req, res) => {
   const userId = req.params.id
   if (!/^\d{16,22}$/.test(userId)) return res.status(400).json({ error: "ID invalide" })
   const viewerSession = resolveSession(req)
-  if (viewerSession?.userId) {
+  const canTrack = shouldTrackProfileView(req) && String(viewerSession?.userId || "") === String(userId)
+  if (viewerSession?.userId && canTrack) {
    const viewer = getUser(String(viewerSession.userId))
    if (viewer) {
     recordProfileView(viewer)
+    achievementCheck(viewer, "social")
     save(String(viewerSession.userId))
    }
   }
@@ -3669,23 +3759,32 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
- app.post("/api/guild/create", async (req, res) => {
-  try {
-   const session = requireSession(req, res)
-   if (!session) return
+app.post("/api/guild/create", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
 
-   const name = String(req.body?.name || "").trim()
-   const result = createGuild(session.userId, name)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const name = String(req.body?.name || "").trim()
+  const result = createGuild(session.userId, name)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, guild: payload?.guild || null, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/create:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
-  }
- })
+  const actor = getUser(session.userId)
+  const unlocked = actor ? achievementCheck(actor, "guild") : []
+  if (actor) save(session.userId)
+
+  invalidateGuildCaches([session.userId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   guild: payload?.guild || null,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/create:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
  app.post("/api/guild/leave", async (req, res) => {
   try {
@@ -3704,24 +3803,32 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
- app.post("/api/guild/apply", async (req, res) => {
-  try {
-   const session = requireSession(req, res)
-   if (!session) return
+app.post("/api/guild/apply", async (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
 
    const guildId = asGuildId(req.body?.guildId)
    if (!guildId) return res.status(400).json({ error: "Guilde invalide." })
 
-   const result = addGuildApplication(guildId, session.userId)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = addGuildApplication(guildId, session.userId)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/apply:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
-  }
- })
+  const actor = getUser(session.userId)
+  const unlocked = actor ? achievementCheck(actor, "guild") : []
+  if (actor) save(session.userId)
+
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/apply:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
  app.post("/api/guild/application/respond", async (req, res) => {
   try {
@@ -3737,17 +3844,31 @@ app.get("/api/sets", (req, res) => {
    const accept = action === "accept" || action === "accepted" || action === "approve"
    if (!applicantId) return res.status(400).json({ error: "Candidature invalide." })
 
-   const result = respondGuildApplication(guildId, session.userId, applicantId, accept)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = respondGuildApplication(guildId, session.userId, applicantId, accept)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId, applicantId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, action: result.action, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/application/respond:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
-  }
- })
+  const reviewer = getUser(session.userId)
+  const reviewerUnlocked = reviewer ? achievementCheck(reviewer, "guild") : []
+  if (reviewer) save(session.userId)
+
+  const applicant = getUser(applicantId)
+  const applicantUnlocked = (accept && applicant) ? achievementCheck(applicant, "guild") : []
+  if (accept && applicant) save(applicantId)
+
+  invalidateGuildCaches([session.userId, applicantId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   action: result.action,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(reviewerUnlocked),
+   targetUnlockedAchievements: countUnlockedAchievements(applicantUnlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/application/respond:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
  app.post("/api/guild/manage/invite", async (req, res) => {
   try {
@@ -3772,18 +3893,26 @@ app.get("/api/sets", (req, res) => {
     return res.status(400).json({ error: "Tu es déjà dans cette guilde." })
    }
 
-  const result = joinGuild(targetId, guild.id)
-  if (result?.error) return res.status(400).json({ error: String(result.error) })
-  const recruiter = getUser(String(session.userId))
-  if (recruiter) {
-   recordGuildRecruitment(recruiter)
+ const result = joinGuild(targetId, guild.id)
+ if (result?.error) return res.status(400).json({ error: String(result.error) })
+ const recruiter = getUser(String(session.userId))
+ if (recruiter) {
+  recordGuildRecruitment(recruiter)
+   achievementCheck(recruiter, "guild")
    save(String(session.userId))
   }
+  const invited = getUser(targetId)
+  const invitedUnlocked = invited ? achievementCheck(invited, "guild") : []
+  if (invited) save(targetId)
 
   removeGuildApplicationsForUser(targetId)
    invalidateGuildCaches([session.userId, targetId])
    const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
+   return res.json({
+    ok: true,
+    state: payload,
+    targetUnlockedAchievements: countUnlockedAchievements(invitedUnlocked)
+   })
   } catch (e) {
    console.error("[WEB] /api/guild/manage/invite:", e)
    return res.status(500).json({ error: "Erreur serveur" })
@@ -3800,15 +3929,23 @@ app.get("/api/sets", (req, res) => {
    const targetId = asGuildId(req.body?.targetId)
    if (!targetId) return res.status(400).json({ error: "Membre invalide." })
 
-   const result = kickMember(guild.id, session.userId, targetId)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = kickMember(guild.id, session.userId, targetId)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId, targetId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/manage/kick:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
+  const actor = getUser(session.userId)
+  const unlocked = actor ? achievementCheck(actor, "guild") : []
+  if (actor) save(session.userId)
+
+  invalidateGuildCaches([session.userId, targetId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/manage/kick:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
@@ -3821,15 +3958,23 @@ app.get("/api/sets", (req, res) => {
    const targetId = asGuildId(req.body?.targetId)
    if (!targetId) return res.status(400).json({ error: "Membre invalide." })
 
-   const result = promoteOfficer(guild.id, session.userId, targetId)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = promoteOfficer(guild.id, session.userId, targetId)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId, targetId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/manage/promote:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
+  const target = getUser(targetId)
+  const targetUnlocked = target ? achievementCheck(target, "guild") : []
+  if (target) save(targetId)
+
+  invalidateGuildCaches([session.userId, targetId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   state: payload,
+   targetUnlockedAchievements: countUnlockedAchievements(targetUnlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/manage/promote:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
@@ -3863,15 +4008,23 @@ app.get("/api/sets", (req, res) => {
    const targetId = asGuildId(req.body?.targetId)
    if (!targetId) return res.status(400).json({ error: "Membre invalide." })
 
-   const result = transferLeader(guild.id, session.userId, targetId)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = transferLeader(guild.id, session.userId, targetId)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId, targetId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/manage/transfer:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
+  const actor = getUser(session.userId)
+  const unlocked = actor ? achievementCheck(actor, "guild") : []
+  if (actor) save(session.userId)
+
+  invalidateGuildCaches([session.userId, targetId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/manage/transfer:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
@@ -3883,15 +4036,23 @@ app.get("/api/sets", (req, res) => {
    if (!guild) return res.status(400).json({ error: "Tu n'es dans aucune guilde." })
 
    const name = String(req.body?.name || "").trim()
-   const result = renameGuild(guild.id, session.userId, name)
-   if (result?.error) return res.status(400).json({ error: String(result.error) })
+  const result = renameGuild(guild.id, session.userId, name)
+  if (result?.error) return res.status(400).json({ error: String(result.error) })
 
-   invalidateGuildCaches([session.userId])
-   const payload = await buildGuildStatePayload(session.userId)
-   return res.json({ ok: true, state: payload })
-  } catch (e) {
-   console.error("[WEB] /api/guild/manage/rename:", e)
-   return res.status(500).json({ error: "Erreur serveur" })
+  const actor = getUser(session.userId)
+  const unlocked = actor ? achievementCheck(actor, "guild") : []
+  if (actor) save(session.userId)
+
+  invalidateGuildCaches([session.userId])
+  const payload = await buildGuildStatePayload(session.userId)
+  return res.json({
+   ok: true,
+   state: payload,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/guild/manage/rename:", e)
+  return res.status(500).json({ error: "Erreur serveur" })
   }
  })
 
@@ -4926,6 +5087,7 @@ app.get("/api/achievements", (req, res) => {
    if (connected && user && safeCategory === "secret") {
     user.stats = user.stats || {}
     user.stats.viewedSecretAchievements = true
+    user.stats.viewedSecretAchievementsCount = Number(user.stats.viewedSecretAchievementsCount || 0) + 1
     achievementCheck(user, "secret")
     save(session.userId)
     unlockedSet = new Set((user.achievements || []).map((id) => String(id)))
@@ -4942,18 +5104,20 @@ app.get("/api/achievements", (req, res) => {
      const unlocked = unlockedSet.has(String(id))
      const hidden = Boolean(ach?.secret && !unlocked)
      const reward = getAchievementReward(String(id), ach || {})
+     const hintTitle = normalizeUiText(String(ach?.title || ach?.name || "Succès secret")).trim() || "Succès secret"
+     const badge = normalizeUiEmoji(ach?.badge, "🏅")
 
      return {
       id: String(id),
-      trigger: hidden ? "?" : String(ach?.trigger || "other"),
+      trigger: hidden ? "secret" : String(ach?.trigger || "other"),
       secret: Boolean(ach?.secret),
       hidden,
       unlocked,
-      badge: hidden ? "?" : String(ach?.badge || "🏅"),
-      name: hidden ? "?" : String(ach?.name || "Succès"),
-      description: hidden ? "?" : String(ach?.description || ""),
-      title: hidden ? "" : String(ach?.title || ""),
-      rewardText: hidden ? "" : formatReward(reward),
+      badge: hidden ? "🔒" : badge,
+      name: hidden ? hintTitle : normalizeUiText(String(ach?.name || "Succès")),
+      description: hidden ? "Indice: succès secret à découvrir." : normalizeUiText(String(ach?.description || "")),
+      title: hidden ? hintTitle : normalizeUiText(String(ach?.title || "")),
+      rewardText: hidden ? "" : normalizeUiText(formatReward(reward)),
       reward: hidden ? null : reward
      }
     })

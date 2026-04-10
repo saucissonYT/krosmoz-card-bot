@@ -33,14 +33,14 @@ krosmoFavor:{
  condition:u=>u.titles?.includes("Favori du Krosmoz")
 },
 
-secretViewer:{
- name:"Tu n'aurais pas du voir ca",
+secretArchivist:{
+ name:"Archive des Ombres",
  badge:"\u{1F576}\uFE0F",
- description:"Consulter l'onglet des achievements secrets.",
- title:"Gardien des Ombres",
+ description:"Consulter l'onglet des succes secrets 10 fois.",
+ title:"Archiviste des Ombres",
  trigger:"secret",
  secret:true,
- condition:u=>Boolean(u.stats?.viewedSecretAchievements)
+ condition:u=>Number(u?.stats?.viewedSecretAchievementsCount || 0) >= 10
 }
 
 }

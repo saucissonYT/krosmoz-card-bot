@@ -9,6 +9,7 @@
 =============================================== */
 
 const { addXP } = require("./progressionSystem")
+const { rollFragmentForEvent, grantRolledFragment } = require("./fragmentService")
 
 /* ================= QUEST POOLS ================= */
 
@@ -110,8 +111,8 @@ WEEKLY_POOL.push(
 
 /* ================= BONUS COMPLETION ================= */
 
-const DAILY_BONUS  = { kamas:500,  xp:100 }
-const WEEKLY_BONUS = { kamas:5000, xp:500, packs:3 }
+const DAILY_BONUS  = { kamas:700,  xp:120, packs:1, fragments:2 }
+const WEEKLY_BONUS = { kamas:6500, xp:650, packs:5, fragments:8 }
 
 const DAILY_COUNT  = 3
 const WEEKLY_COUNT = 5
@@ -226,6 +227,44 @@ function getStatValue(user, stat){
  return user.stats?.[stat] || 0
 }
 
+function buildQuestReward(quest, type){
+ const base = quest?.reward || {}
+ const goal = Math.max(1, Number(quest?.goal || 1))
+ const safeType = type === "weekly" ? "weekly" : "daily"
+ const packsBase = Math.max(0, Number(base.packs || 0))
+ const fragmentsBase = Math.max(0, Number(base.fragments || 0))
+
+ const packs = Math.max(
+  packsBase,
+  safeType === "weekly" ? 1 : (goal >= 5 ? 1 : 0)
+ )
+ const fragments = Math.max(
+  fragmentsBase,
+  safeType === "weekly" ? 3 : 1
+ )
+
+ return {
+  kamas: Math.max(0, Number(base.kamas || 0)),
+  xp: Math.max(0, Number(base.xp || 0)),
+  packs,
+  fragments
+ }
+}
+
+function grantQuestFragments(userId, amount, source = "quest"){
+ const safeAmount = Math.max(0, Number(amount || 0))
+ if (!safeAmount || !userId) return 0
+
+ let granted = 0
+ for (let i = 0; i < safeAmount; i++) {
+  const rolled = rollFragmentForEvent(1)
+  if (!rolled) continue
+  const fragment = grantRolledFragment(String(userId), rolled, source)
+  if (fragment) granted++
+ }
+ return granted
+}
+
 /* ================= USER QUEST STATE ================= */
 
 function ensureUserQuests(user){
@@ -268,78 +307,111 @@ function getQuestProgress(user, quest, type){
 }
 
 function getAllProgress(user, type){
- const { quests } = type === "daily" ? getDailyQuests() : getWeeklyQuests()
+ const safeType = type === "weekly" ? "weekly" : "daily"
+ const { quests } = safeType === "daily" ? getDailyQuests() : getWeeklyQuests()
  ensureUserQuests(user)
- return quests.map(q => ({ ...q, ...getQuestProgress(user, q, type) }))
+ return quests.map((q) => ({
+  ...q,
+  reward: buildQuestReward(q, safeType),
+  ...getQuestProgress(user, q, safeType)
+ }))
 }
 
 /* ================= CLAIM ================= */
 
-function claimQuest(user, questId, type){
- const { quests } = type === "daily" ? getDailyQuests() : getWeeklyQuests()
+function claimQuest(user, questId, type, options = {}){
+ const safeType = type === "weekly" ? "weekly" : "daily"
+ const { quests } = safeType === "daily" ? getDailyQuests() : getWeeklyQuests()
  const uq = ensureUserQuests(user)
- const data = type === "daily" ? uq.daily : uq.weekly
- const bonus = type === "daily" ? DAILY_BONUS : WEEKLY_BONUS
- const maxCount = type === "daily" ? DAILY_COUNT : WEEKLY_COUNT
+ const data = safeType === "daily" ? uq.daily : uq.weekly
+ const bonus = safeType === "daily" ? DAILY_BONUS : WEEKLY_BONUS
+ const maxCount = safeType === "daily" ? DAILY_COUNT : WEEKLY_COUNT
+ const safeUserId = String(options?.userId || user?.id || "").trim()
 
- const quest = quests.find(q => q.id === questId)
- if(!quest) return { error:"Quête introuvable" }
+ const quest = quests.find((q) => q.id === questId)
+ if(!quest) return { error:"Quete introuvable" }
 
- const progress = getQuestProgress(user, quest, type)
- if(!progress.done) return { error:"Quête pas terminée" }
- if(progress.claimed) return { error:"Déjà récupérée" }
+ const progress = getQuestProgress(user, quest, safeType)
+ if(!progress.done) return { error:"Quete pas terminee" }
+ if(progress.claimed) return { error:"Deja recuperee" }
 
- if(quest.reward.kamas) user.kamas = (user.kamas || 0) + quest.reward.kamas
- if(quest.reward.packs) user.packs = (user.packs || 0) + quest.reward.packs
- if(quest.reward.xp) addXP(user, quest.reward.xp)
+ const questReward = buildQuestReward(quest, safeType)
+
+ if(questReward.kamas) user.kamas = (user.kamas || 0) + questReward.kamas
+ if(questReward.packs) user.packs = (user.packs || 0) + questReward.packs
+ if(questReward.xp) addXP(user, questReward.xp)
+
+ const grantedFragments = grantQuestFragments(safeUserId, questReward.fragments, `quest_${safeType}`)
 
  if(!user.stats || typeof user.stats !== "object") user.stats = {}
  user.stats.questClaims = (user.stats.questClaims || 0) + 1
- if(type === "daily") user.stats.dailyQuestClaims = (user.stats.dailyQuestClaims || 0) + 1
- if(type === "weekly") user.stats.weeklyQuestClaims = (user.stats.weeklyQuestClaims || 0) + 1
+ if(safeType === "daily") user.stats.dailyQuestClaims = (user.stats.dailyQuestClaims || 0) + 1
+ if(safeType === "weekly") user.stats.weeklyQuestClaims = (user.stats.weeklyQuestClaims || 0) + 1
 
  data.claimed.push(questId)
 
  let completionBonus = false
+ let bonusGrantedFragments = 0
 
  if(data.claimed.length >= maxCount){
   if(bonus.kamas) user.kamas = (user.kamas || 0) + bonus.kamas
   if(bonus.packs) user.packs = (user.packs || 0) + bonus.packs
   if(bonus.xp) addXP(user, bonus.xp)
-  if(type === "daily") user.stats.dailyQuestPerfectDays = (user.stats.dailyQuestPerfectDays || 0) + 1
-  if(type === "weekly") user.stats.weeklyQuestPerfectWeeks = (user.stats.weeklyQuestPerfectWeeks || 0) + 1
+  bonusGrantedFragments = grantQuestFragments(safeUserId, Number(bonus.fragments || 0), `quest_${safeType}_bonus`)
+  if(safeType === "daily") user.stats.dailyQuestPerfectDays = (user.stats.dailyQuestPerfectDays || 0) + 1
+  if(safeType === "weekly") user.stats.weeklyQuestPerfectWeeks = (user.stats.weeklyQuestPerfectWeeks || 0) + 1
   completionBonus = true
  }
 
- return { success:true, quest, completionBonus }
+ return {
+  success:true,
+  quest: {
+   ...quest,
+   reward: {
+    ...questReward,
+    fragments: grantedFragments
+   }
+  },
+  grantedFragments,
+  bonusGrantedFragments,
+  completionBonus
+ }
 }
 
-function claimAll(user, type){
- const progress = getAllProgress(user, type)
- const bonus = type === "daily" ? DAILY_BONUS : WEEKLY_BONUS
+function claimAll(user, type, options = {}){
+ const safeType = type === "weekly" ? "weekly" : "daily"
+ const progress = getAllProgress(user, safeType)
+ const bonus = safeType === "daily" ? DAILY_BONUS : WEEKLY_BONUS
 
- let totalKamas = 0, totalPacks = 0, totalXp = 0
- let claimedCount = 0, completionBonus = false
+ let totalKamas = 0
+ let totalPacks = 0
+ let totalXp = 0
+ let totalFragments = 0
+ let claimedCount = 0
+ let completionBonus = false
 
  for(const q of progress){
   if(q.done && !q.claimed){
-   const result = claimQuest(user, q.id, type)
+   const result = claimQuest(user, q.id, safeType, options)
    if(result.success){
+    const grantedReward = result?.quest?.reward || {}
     claimedCount++
-    totalKamas += q.reward.kamas || 0
-    totalPacks += q.reward.packs || 0
-    totalXp += q.reward.xp || 0
+    totalKamas += Number(grantedReward.kamas || 0)
+    totalPacks += Number(grantedReward.packs || 0)
+    totalXp += Number(grantedReward.xp || 0)
+    totalFragments += Number(result?.grantedFragments || 0)
     if(result.completionBonus){
      completionBonus = true
-     totalKamas += bonus.kamas || 0
-     totalPacks += bonus.packs || 0
-     totalXp += bonus.xp || 0
+     totalKamas += Number(bonus.kamas || 0)
+     totalPacks += Number(bonus.packs || 0)
+     totalXp += Number(bonus.xp || 0)
+     totalFragments += Number(result?.bonusGrantedFragments || 0)
     }
    }
   }
  }
 
- return { claimedCount, totalKamas, totalPacks, totalXp, completionBonus }
+ return { claimedCount, totalKamas, totalPacks, totalXp, totalFragments, completionBonus }
 }
 
 /* ================= EXPORTS ================= */

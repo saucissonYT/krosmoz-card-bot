@@ -1958,7 +1958,8 @@ body.leaderboard-page .footer {
  overflow-x: auto;
  overflow-y: hidden;
  min-height: 210px;
- padding-bottom: 6px;
+ padding: 0 10px 6px;
+ scroll-padding-inline: 10px;
 }
 
 .event-pack-open-overlay .pack-reveal-card {
@@ -1967,12 +1968,17 @@ body.leaderboard-page .footer {
 }
 
 .event-pack-open-overlay .pack-reveal-front-image {
- padding: 4px 6px 2px;
+ padding: 8px 8px 6px;
 }
 
 .event-pack-open-overlay .pack-reveal-front-image img {
  object-fit: contain;
- object-position: center 58%;
+ object-position: center;
+ border-radius: 8px;
+ background: linear-gradient(160deg, rgba(18, 25, 58, 0.95), rgba(8, 12, 32, 0.95));
+ border: 1px solid rgba(239, 212, 118, 0.24);
+ padding: 4px;
+ box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .event-pack-open-overlay .pack-reveal-front-meta {
@@ -4149,6 +4155,21 @@ body.krosmoshop-page .kshop-card .chip {
  transition: opacity 0.24s ease, transform 0.24s ease;
 }
 
+.quest-progress-toast.toast-size-double {
+ min-height: 136px;
+ padding-top: 12px;
+ padding-bottom: 12px;
+}
+
+.quest-progress-toast.toast-size-double .quest-toast-head strong {
+ font-size: 0.98rem;
+}
+
+.quest-progress-toast.toast-size-double .quest-toast-reward {
+ font-size: 0.84rem;
+ line-height: 1.45;
+}
+
 .quest-toast-close {
  position: absolute;
  top: 8px;
@@ -4280,6 +4301,84 @@ body.krosmoshop-page .kshop-card .chip {
  color: #ffd8ee;
 }
 
+.toast-tone-xp {
+ border-color: rgba(120, 205, 255, 0.62);
+ background: linear-gradient(165deg, rgba(10, 27, 49, 0.96), rgba(7, 16, 34, 0.98));
+}
+
+.toast-tone-xp .quest-toast-chip {
+ border-color: rgba(123, 216, 255, 0.7);
+ background: rgba(95, 184, 255, 0.2);
+ color: #def2ff;
+}
+
+.toast-tone-xp p {
+ color: #d4e9ff;
+}
+
+.toast-tone-xp .quest-toast-desc {
+ color: #b7cff1;
+}
+
+.toast-tone-xp .quest-toast-bar {
+ border-color: rgba(120, 205, 255, 0.48);
+ background: rgba(8, 22, 40, 0.8);
+}
+
+.toast-tone-xp .quest-toast-bar span {
+ background: linear-gradient(90deg, #67bbff, #8de8ff);
+ box-shadow: 0 0 12px rgba(114, 196, 255, 0.48);
+ transition: width 0.9s cubic-bezier(0.2, 0.85, 0.25, 1);
+}
+
+.xp-progress-toast-levelup {
+ border-color: rgba(255, 221, 135, 0.86);
+ background: linear-gradient(160deg, rgba(52, 34, 10, 0.98), rgba(23, 17, 8, 0.99));
+ box-shadow: 0 16px 34px rgba(12, 8, 2, 0.55), 0 0 22px rgba(255, 210, 104, 0.24);
+ overflow: hidden;
+}
+
+.xp-progress-toast-levelup::after {
+ content: "";
+ position: absolute;
+ inset: -36% -20%;
+ pointer-events: none;
+ background: linear-gradient(120deg, rgba(255, 236, 173, 0), rgba(255, 236, 173, 0.24), rgba(255, 236, 173, 0));
+ transform: translateX(-62%) rotate(8deg);
+ animation: xpToastSweep 1.2s ease-out 1;
+}
+
+.xp-progress-toast-levelup .quest-toast-head strong {
+ color: #fff1bc;
+ font-size: 1.06rem;
+ letter-spacing: 0.05em;
+ text-transform: uppercase;
+ text-shadow: 0 0 14px rgba(255, 218, 119, 0.38);
+ animation: xpLevelPop 0.46s ease-out 1;
+}
+
+.xp-progress-toast-levelup .quest-toast-chip {
+ border-color: rgba(255, 222, 135, 0.86);
+ background: rgba(255, 204, 92, 0.22);
+ color: #fff0c3;
+}
+
+.xp-progress-toast-levelup .quest-toast-bar {
+ border-color: rgba(255, 222, 135, 0.56);
+ background: rgba(40, 28, 8, 0.78);
+}
+
+.xp-progress-toast-levelup .quest-toast-bar span {
+ background: linear-gradient(90deg, #ffd98f, #95d8ff, #ffe8aa);
+ box-shadow: 0 0 14px rgba(255, 217, 143, 0.58);
+ transition: width 1.05s cubic-bezier(0.22, 1, 0.3, 1);
+}
+
+.xp-toast-level-reward {
+ color: #ffe6a8;
+ font-weight: 700;
+}
+
 .quest-toast-head {
  display: flex;
  align-items: center;
@@ -4381,6 +4480,18 @@ body.krosmoshop-page .kshop-card .chip {
  transform: translateY(-1px);
  filter: brightness(1.12);
  box-shadow: 0 6px 14px rgba(215, 176, 85, 0.28);
+}
+
+@keyframes xpToastSweep {
+ 0% { transform: translateX(-62%) rotate(8deg); opacity: 0; }
+ 25% { opacity: 1; }
+ 100% { transform: translateX(66%) rotate(8deg); opacity: 0; }
+}
+
+@keyframes xpLevelPop {
+ 0% { transform: scale(0.9); filter: brightness(1); }
+ 45% { transform: scale(1.08); filter: brightness(1.22); }
+ 100% { transform: scale(1); filter: brightness(1); }
 }
 
 .spinner {

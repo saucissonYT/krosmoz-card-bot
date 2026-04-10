@@ -164,12 +164,11 @@ Le bot utilise une architecture modulaire basée sur des systèmes indépendants
 - **Collection** — cartes totales, uniques, sets, hoarder
 - **Économie** — kamas, daily, balance, inventaire, titres
 - **Social** — profil, leaderboard, mentions du bot
-- **Secrets** — Krosmo-bot, achievements cachés
 - **Events** — 150 achievements (participation, SSR par classe, jackpots)
 - **Piñata** — 17 achievements (participations, SSR, réactions, kamas)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
-- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
 - **Roulette** — 20 achievements (tours, lots rares, jackpots, SSR/shiny, kamas/packs, créneaux horaires, streak)
 
@@ -190,7 +189,7 @@ Chaque achievement est assigné à un tier de difficulté (1-8) qui détermine s
 | 7 | Légendaire | 5 000 | 1 000 | 3 |
 | 8 | Mythique | 10 000 | 2 000 | 5 |
 
-Le tier est **auto-détecté** par le nombre dans l'ID de l'achievement (ex: `pack100` → tier 4), avec des **overrides manuels** (~100) pour les cas spéciaux (RNG, secrets, comportementaux).
+Le tier est **auto-détecté** par le nombre dans l'ID de l'achievement (ex: `pack100` → tier 4), avec des **overrides manuels** (~100) pour les cas spéciaux (RNG et comportementaux).
 
 L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** en chaîne.
 
@@ -940,12 +939,11 @@ La commande **/quests** affiche une interface interactive avec :
 - **Collection** — cartes totales, uniques, sets, hoarder
 - **Économie** — kamas, daily, balance, inventaire, titres
 - **Social** — profil, leaderboard, mentions du bot
-- **Secrets** — Krosmo-bot, achievements cachés
 - **Events** — 150 achievements (participation, SSR par classe, jackpots)
 - **Piñata** — 17 achievements (participations, SSR, réactions, kamas)
 - **Spéciaux** — comportementaux (palindrome, minuit, all C, prestige...)
 - **Dons** — 15 achievements (donnés, reçus, SSR, shiny, streak, mutuels)
-- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur, secrets)
+- **Guildes** — 29 achievements (niveaux, quêtes, vétéran, contributeur)
 - **Fragments** — 8 achievements (premier fragment, collection, doublons, craft, vente)
 - **Roulette** — 20 achievements (tours, lots rares, jackpots, SSR/shiny, kamas/packs, créneaux horaires, streak)
 

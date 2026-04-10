@@ -973,7 +973,7 @@ async function loadSellerData() {
   sortedCards.forEach((c) => {
    const rarity = String(c.rarity || "C")
    const emoji = RARITY_EMOJI[rarity] || "🟤"
-   cardSelect.appendChild(option(c.cardId, `${emoji} ${c.cardName} [${rarity}] ?${c.qty}`))
+  cardSelect.appendChild(option(c.cardId, `${emoji} ${c.cardName} [${rarity}] x${c.qty}`))
   })
   if (!sortedCards.length) cardSelect.appendChild(option("", "Aucune carte vendable"))
 
