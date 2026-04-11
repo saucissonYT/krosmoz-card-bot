@@ -205,7 +205,7 @@
       <p class="kshop-muted">${escapeHtml(ownedLine)}</p>
      </div>
      <div class="kshop-mini-thumb-wrap" aria-hidden="true">
-      <img class="kshop-mini-thumb" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
+      <img class="kshop-mini-thumb" data-card-preview="1" data-card-preview-name="${escapeHtml(cardName)}" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
      </div>
     </div>
    </article>
@@ -368,4 +368,3 @@
  </script>
 </body>
 </html>
-

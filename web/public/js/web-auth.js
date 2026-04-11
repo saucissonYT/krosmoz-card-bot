@@ -52,6 +52,7 @@
   streak: 0,
   lastDaily: 0
  }
+ const CARD_PREVIEW_SELECTOR = "img[data-card-preview='1']"
 
  function dismissEventToastFor(ms = 15 * 60 * 1000) {
   const duration = Math.max(1000, Number(ms || 0))
@@ -62,6 +63,99 @@
   const eventToast = document.getElementById("globalEventToast")
   if (eventToast) eventToast.hidden = true
  }
+
+ function ensureCardPreviewStyle() {
+  if (document.getElementById("kcCardPreviewStyle")) return
+  const style = document.createElement("style")
+  style.id = "kcCardPreviewStyle"
+  style.textContent = `
+   img[data-card-preview="1"]{cursor:zoom-in;}
+   .kc-card-preview-overlay{
+    position:fixed;inset:0;z-index:22000;display:grid;place-items:center;
+    padding:24px;opacity:0;pointer-events:none;transition:opacity .2s ease;
+   }
+   .kc-card-preview-overlay.show{opacity:1;pointer-events:auto;}
+   .kc-card-preview-overlay[hidden]{display:none;}
+   .kc-card-preview-backdrop{
+    position:absolute;inset:0;background:rgba(3,6,16,.86);backdrop-filter:blur(2px);
+   }
+   .kc-card-preview-dialog{
+    position:relative;z-index:1;width:min(92vw,560px);max-height:min(90vh,880px);
+    border-radius:16px;border:1px solid rgba(238,206,104,.42);
+    background:linear-gradient(180deg, rgba(9,14,34,.98), rgba(5,9,24,.98));
+    box-shadow:0 24px 56px rgba(0,0,0,.54);
+    padding:14px;
+   }
+   .kc-card-preview-dialog img{
+    display:block;width:100%;height:auto;max-height:min(78vh,760px);object-fit:contain;
+    border-radius:12px;user-select:none;-webkit-user-drag:none;
+   }
+   .kc-card-preview-close{
+    position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.22);background:rgba(5,8,20,.86);color:#fff;
+    font-size:1.2rem;line-height:1;cursor:pointer;
+   }
+  `
+  document.head.appendChild(style)
+ }
+
+ function ensureCardPreviewOverlay() {
+  let overlay = document.getElementById("kcCardPreviewOverlay")
+  if (overlay) return overlay
+  ensureCardPreviewStyle()
+  overlay = document.createElement("aside")
+  overlay.id = "kcCardPreviewOverlay"
+  overlay.className = "kc-card-preview-overlay"
+  overlay.hidden = true
+  overlay.innerHTML = `
+   <div class="kc-card-preview-backdrop" data-kc-card-preview-close></div>
+   <section class="kc-card-preview-dialog" role="dialog" aria-modal="true" aria-label="Aperçu carte">
+    <button type="button" class="kc-card-preview-close" data-kc-card-preview-close aria-label="Fermer">&times;</button>
+    <img id="kcCardPreviewImage" src="" alt="Carte agrandie">
+   </section>
+  `
+  document.body.appendChild(overlay)
+  overlay.querySelectorAll("[data-kc-card-preview-close]").forEach((node) => {
+   node.addEventListener("click", () => {
+    overlay.classList.remove("show")
+    window.setTimeout(() => { overlay.hidden = true }, 200)
+   })
+  })
+  document.addEventListener("keydown", (event) => {
+   if (event.key !== "Escape") return
+   if (overlay.hidden) return
+   overlay.classList.remove("show")
+   window.setTimeout(() => { overlay.hidden = true }, 200)
+  })
+  return overlay
+ }
+
+ function openCardPreviewFromImage(imageEl) {
+  const safeImage = imageEl instanceof HTMLImageElement ? imageEl : null
+  if (!safeImage) return
+  const src = String(safeImage.dataset.cardPreviewSrc || safeImage.currentSrc || safeImage.src || "").trim()
+  if (!src) return
+  const overlay = ensureCardPreviewOverlay()
+  const preview = overlay.querySelector("#kcCardPreviewImage")
+  if (!(preview instanceof HTMLImageElement)) return
+  preview.src = src
+  const alt = String(safeImage.dataset.cardPreviewName || safeImage.alt || "Carte agrandie").trim()
+  preview.alt = alt || "Carte agrandie"
+  overlay.hidden = false
+  requestAnimationFrame(() => overlay.classList.add("show"))
+ }
+
+ function setupCardPreviewInteractions() {
+  if (window.__kcCardPreviewBound) return
+  window.__kcCardPreviewBound = true
+  document.addEventListener("click", (event) => {
+   const target = event.target instanceof Element ? event.target.closest(CARD_PREVIEW_SELECTOR) : null
+   if (!(target instanceof HTMLImageElement)) return
+   event.preventDefault()
+   openCardPreviewFromImage(target)
+  })
+ }
+ setupCardPreviewInteractions()
 
  function isTruthyFlag(value) {
   const raw = String(value || "").trim().toLowerCase()
