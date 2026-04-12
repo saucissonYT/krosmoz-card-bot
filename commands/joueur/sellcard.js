@@ -18,6 +18,7 @@ const { getCardsById }                                      = require("../../sys
 const { getUser, save }                                     = require("../../systems/userSystem")
 const { achievementCheck }                                  = require("../../systems/achievementCheck")
 const { notifyAchievements }                                = require("../../systems/achievementNotifier")
+const { isSecretCard }                                      = require("../../systems/secretCard")
 
 module.exports = {
 
@@ -42,9 +43,10 @@ module.exports = {
   const bonusPct       = getSellBonusPercent(sellMultiplier)
   const options        = []
 
-  for (const id in user.cards) {
+ for (const id in user.cards) {
    const card = cardsById[id]
    if (!card) continue
+   if (isSecretCard(card)) continue
 
    const owned = user.cards[id]
    const price = computeSellPrice(SELL_PRICE[card.rarity] || 1, sellMultiplier)
@@ -87,9 +89,12 @@ module.exports = {
   const id        = interaction.values[0]
   const card      = cardsById[id]
 
-  if (!card) {
-   return interaction.update({ content: "❌ Carte introuvable.", components: [] })
-  }
+ if (!card) {
+  return interaction.update({ content: "❌ Carte introuvable.", components: [] })
+ }
+ if (isSecretCard(card)) {
+  return interaction.update({ content: "❌ La carte SECRET ne peut pas etre vendue.", components: [] })
+ }
 
   if (!user.cards || !user.cards[id]) {
    return interaction.update({ content: "❌ Tu ne possèdes plus cette carte.", components: [] })

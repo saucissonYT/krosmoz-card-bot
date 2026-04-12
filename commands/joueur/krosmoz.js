@@ -26,6 +26,7 @@ const {
  splitSetsByUnlock
 } = require("../../systems/setUnlockSystem")
 const cooldownDev = require("../dev/cooldown")
+const { isSecretCard } = require("../../systems/secretCard")
 
 const RARITY_ORDER  = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const MAX_BATCH     = 25
@@ -328,12 +329,13 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
  /* ── Meilleures cartes & nouvelles ──────────────────────────────────────── */
 
  const aggregated = aggregateCards(results)
- const best       = aggregated[0]?.card || null
+ const visibleAggregated = aggregated.filter(({ card }) => !isSecretCard(card))
+ const best       = visibleAggregated[0]?.card || null
 
  const newCardIds = new Set()
  for (const result of results) {
   for (const card of result.pack || []) {
-   if (!cardsSnapshot[card.id]) newCardIds.add(String(card.id))
+   if (!cardsSnapshot[card.id] && !isSecretCard(card)) newCardIds.add(String(card.id))
   }
  }
 
@@ -347,7 +349,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  /* ── Construction des lignes ─────────────────────────────────────────────── */
 
- const lines = aggregated.map(({ card, qty }) => {
+ const lines = visibleAggregated.map(({ card, qty }) => {
   const emoji  = RARITY_EMOJI[card.rarity] || ""
   const shiny  = card.shiny ? " ✨ SHINY" : ""
   const qtyStr = qty > 1 ? ` x${qty}` : ""
@@ -452,7 +454,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
    .map((id) => {
     for (const r of results) {
      for (const c of r.pack || []) {
-      if (String(c.id) === id) return `🔎 **${c.name}**`
+      if (String(c.id) === id && !isSecretCard(c)) return `🔎 **${c.name}**`
      }
     }
     return null

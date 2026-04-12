@@ -24,6 +24,7 @@ const { getUser, save }              = require("../../systems/userSystem")
 const { achievementCheck }           = require("../../systems/achievementCheck")
 const { notifyAchievements }         = require("../../systems/achievementNotifier")
 const { recordTradeAccepted }        = require("../../systems/achievementProgressTracker")
+const { isSecretCard }               = require("../../systems/secretCard")
 
 /* ─── State en mémoire ───────────────────────────────────────── */
 
@@ -145,6 +146,7 @@ module.exports = {
    if (qty > 0) {
     const card = cards.find(c => String(c.id) === String(id))
     if (!card) continue
+    if (isSecretCard(card)) continue
     options.push({
      label: `${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
      value: String(card.id)
@@ -197,6 +199,14 @@ module.exports = {
   if (type === "give") {
 
    trade.giveCard = interaction.values[0]
+   const selectedGiveCard = cards.find(c => String(c.id) === String(trade.giveCard))
+   if (!selectedGiveCard || isSecretCard(selectedGiveCard)) {
+    cleanupTrade(tradeId, trade)
+    return interaction.update({
+     content: "❌ Les cartes SECRET ne sont pas echangeables.",
+     components: []
+    })
+   }
 
    const options = []
 
@@ -205,6 +215,7 @@ module.exports = {
     if (qty > 0) {
      const card = cards.find(c => String(c.id) === String(id))
      if (!card) continue
+     if (isSecretCard(card)) continue
      options.push({
       label: `${card.name} • ${card.rarity} ${RARITY_EMOJI[card.rarity]} • x${qty}`,
       value: String(card.id)
@@ -237,6 +248,13 @@ module.exports = {
 
    const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
    const wantCard = cards.find(c => String(c.id) === String(trade.wantCard))
+   if (!giveCard || !wantCard || isSecretCard(giveCard) || isSecretCard(wantCard)) {
+    cleanupTrade(tradeId, trade)
+    return interaction.update({
+     content: "❌ Les cartes SECRET ne sont pas echangeables.",
+     components: []
+    })
+   }
 
    const embed = new EmbedBuilder()
     .setTitle("🔄 Proposition d'échange")
@@ -285,6 +303,15 @@ module.exports = {
 
   /* ── Trade avec le bot (easter egg) ── */
   if (action === "accept" && trade.to === interaction.client.user.id) {
+   const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
+   if (!giveCard || isSecretCard(giveCard)) {
+    cleanupTrade(tradeId, trade)
+    return interaction.update({
+     content: "❌ Les cartes SECRET ne sont pas echangeables.",
+     embeds: [],
+     components: []
+    })
+   }
 
    from.cards[trade.giveCard]--
    if (from.cards[trade.giveCard] <= 0) delete from.cards[trade.giveCard]
@@ -336,6 +363,16 @@ module.exports = {
 
   /* ── Accept : échange effectif ── */
   if (action === "accept") {
+   const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
+   const wantCard = cards.find(c => String(c.id) === String(trade.wantCard))
+   if (!giveCard || !wantCard || isSecretCard(giveCard) || isSecretCard(wantCard)) {
+    cleanupTrade(tradeId, trade)
+    return interaction.update({
+     content: "❌ Les cartes SECRET ne sont pas echangeables.",
+     embeds: [],
+     components: []
+    })
+   }
 
    if (!from.cards[trade.giveCard] || !to.cards[trade.wantCard]) {
     cleanupTrade(tradeId, trade)

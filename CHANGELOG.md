@@ -13,7 +13,7 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 - **`/fusion` — Refonte UX interactive**
   - Nouveau flow en 3 étapes via select menus et boutons (plus d'options slash fixes)
-  - Étape 1 — Select menu des sets : chaque option affiche les fusions complètes disponibles par rareté (`⚪×3 · 🟢×1`) ou `❌ Aucune fusion disponible`
+  - Étape 1 — Select menu des sets : chaque option affiche les fusions complètes disponibles par rareté (`🌸×3 · 🟢×1`) ou `❌ Aucune fusion disponible`
   - Étape 2 — Select menu des raretés : uniquement les raretés avec ≥1 fusion possible, avec coût et dups dispo en description
   - Étape 3 — Embed de confirmation : rareté cible, coût, fusions possibles, chances avec bonus → bouton Fusionner
   - Navigation retour à tout moment (← Retour aux sets / ← Retour aux raretés)

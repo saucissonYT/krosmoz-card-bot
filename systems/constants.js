@@ -13,8 +13,8 @@
 =============================================== */
 
 const RARITY_EMOJI = {
- C:"⚪", U:"🟢", R:"🔵", SR:"🟣",
- HR:"🔴", UR:"🟡", S:"✨", SSR:"🌈"
+ C:"🌸", U:"🟢", R:"🔵", SR:"🟣",
+ HR:"🔴", UR:"🟡", S:"✨", SSR:"🌈", SECRET:"🕵️"
 }
 
 const RARITY_ORDER = ["C","U","R","SR","HR","UR","S","SSR"]
@@ -66,7 +66,8 @@ const RARITY_COLOR = {
  HR:"#e74c3c",
  UR:"#f1c40f",
  S:"#ecf0f1",
- SSR:"#ffcc00"
+ SSR:"#ffcc00",
+ SECRET:"#8e44ad"
 }
 
 /* ---- Prix d'un pack ---- */

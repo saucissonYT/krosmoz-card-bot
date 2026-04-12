@@ -228,7 +228,7 @@ L'XP des succès passe par `addXP()` et peut donc déclencher des **level-ups** 
 
 | Rareté | Emoji | Prix vente (bot) | Prix market | Prix KrosmoShop |
 |--------|-------|-----------------|-------------|-----------------|
-| C | ⚪ | 3 | 8 | — |
+| C | 🌸 | 3 | 8 | — |
 | U | 🟢 | 8 | 20 | — |
 | R | 🔵 | 20 | 50 | — |
 | SR | 🟣 | 50 | 120 | 300 |
@@ -688,7 +688,7 @@ La Roulette d'Ecaflip est une récompense passive disponible une fois par heure,
 
 | Rareté | Lots | Exemple |
 |--------|------|---------|
-| ⬜ Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, **200 XP** |
+| 🌸 Commun | 1–10 | 150 à 1 250 kamas, 1–2 packs, **200 XP** |
 | 🟩 Peu commun | 11–20 | 1 500 à 2 500 kamas, 3–5 packs, **500–1 000 XP**, fragments |
 | 🟦 Rare | 21–26 | 5 000–7 500 kamas **+400–600 XP**, 8–10 packs, carte HR garantie |
 | 🟥 Très rare | 27–30 | 15 000 kamas **+1 500 XP**, 15 packs, carte UR/SSR garantie |

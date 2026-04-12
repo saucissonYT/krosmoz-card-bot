@@ -80,7 +80,7 @@ const RARITY_COLORS = {
 }
 
 const RARITY_LABELS = {
- commun:    "⬜ Commun",
+ commun:    "🌸 Commun",
  peucommun: "🟩 Peu commun",
  rare:      "🟦 Rare",
  tresrare:  "🟥 Tres rare",

@@ -24,6 +24,7 @@ const {
  getCardCraftProgress,
  buildProgressBar
 } = require("../../systems/fragmentService")
+const { isSecretCard } = require("../../systems/secretCard")
 
 function sleep(ms){
  return new Promise(r => setTimeout(r, ms))
@@ -274,7 +275,7 @@ module.exports = {
     /* Nouvelles découvertes même pour Sram */
     if(discoveredIds.size > 0){
      const lines = pack
-      .filter(c => c?.id && discoveredIds.has(String(c.id)))
+      .filter(c => c?.id && discoveredIds.has(String(c.id)) && !isSecretCard(c))
       .map(c => `🔎 **${c.name}**`)
      if(lines.length){
       await interaction.followUp({
@@ -303,6 +304,7 @@ module.exports = {
 
     /* Au-delà de DISPLAY_LIMIT, on skip l'affichage animé */
     if(revealed.length >= DISPLAY_LIMIT) continue
+    if(isSecretCard(card)) continue
 
     let line = `${RARITY_EMOJI[card.rarity] || "❓"} **${card.name}** \`${card.rarity}\``
 
@@ -363,7 +365,7 @@ module.exports = {
    if(hiddenCount > 0){
     const hiddenNew = pack
      .slice(DISPLAY_LIMIT)
-     .filter(c => c?.id && discoveredIds.has(String(c.id)))
+     .filter(c => c?.id && discoveredIds.has(String(c.id)) && !isSecretCard(c))
      .length
 
     hiddenText = hiddenNew > 0
@@ -467,7 +469,7 @@ ${buildProgressBar(progress)} ${progress.ownedCount}/5`
 
    if(discoveredIds.size > 0){
     const lines = pack
-     .filter(c => c?.id && discoveredIds.has(String(c.id)))
+     .filter(c => c?.id && discoveredIds.has(String(c.id)) && !isSecretCard(c))
      .map(c => `🔎 **${c.name}**`)
     if(lines.length){
      await interaction.followUp({

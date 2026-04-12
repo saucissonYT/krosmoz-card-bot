@@ -1,6 +1,7 @@
 const { data } = require("./dataManager")
 const { getUser, save: saveUserData } = require("./userSystem")
 const { getCardsById } = require("./cardRegistry")
+const { isSecretCard, getSecretCardById } = require("./secretCard")
 const {
  recordMarketListing,
  recordMarketBuy,
@@ -70,6 +71,17 @@ function persistUsers(...userIds) {
  }
 }
 
+function getCardForListing(cardId) {
+ const cardsById = getCardsById()
+ return cardsById[String(cardId)] || getSecretCardById(cardId)
+}
+
+function isSecretListing(listing) {
+ if (getListingType(listing) !== "card") return false
+ const card = getCardForListing(listing.card)
+ return isSecretCard(card)
+}
+
 function addListing(sellerId, cardId, price) {
  const market = data.market
  const seller = getUser(sellerId)
@@ -77,6 +89,8 @@ function addListing(sellerId, cardId, price) {
  if (!sellerId || !cardId || !price) return { error: "Parametres invalides" }
  if (!seller) return { error: "Utilisateur introuvable" }
  if (!seller.cards || !seller.cards[cardId] || seller.cards[cardId] <= 0) return { error: "Tu ne possedes pas cette carte" }
+ const listedCard = getCardForListing(cardId)
+ if (isSecretCard(listedCard)) return { error: "La carte SECRET ne peut pas etre vendue au market." }
 
  const priceError = validatePrice(price)
  if (priceError) return { error: priceError }
@@ -168,6 +182,7 @@ function buyCard(buyerId, listingId) {
  const listing = data.market.find((entry) => entry.id === listingId)
  if (!listing) return { error: "Annonce introuvable" }
  if (listing.seller === buyerId) return { error: "Tu ne peux pas acheter ta propre annonce" }
+ if (isSecretListing(listing)) return { error: "Les cartes SECRET ne sont pas echangeables au market." }
 
  const seller = getUser(listing.seller)
  const buyer = getUser(buyerId)
@@ -253,7 +268,7 @@ function removeListing(userId, listingId) {
 }
 
 function getMarket() {
- return data.market || []
+ return (data.market || []).filter((entry) => !isSecretListing(entry))
 }
 
 function getUserListings(userId) {

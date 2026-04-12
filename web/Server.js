@@ -38,6 +38,7 @@ const { ensureCurrentSeason, getSeasonTemplate } = require("../systems/seasonSer
 const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../systems/sellHelper")
 const { sortSetsByDisplayOrder } = require("../systems/setOrder")
 const { openPack } = require("../systems/packEngine")
+const { isSecretCard, getSecretCardById } = require("../systems/secretCard")
 const {
  craftFromFragments,
  rollFragmentForEvent,
@@ -1605,7 +1606,7 @@ function ensureMarketListingsForSeller(sellerId, targetCount, cardsById, sellerO
  const sellableCards = Object.entries(user.cards)
   .filter(([, qty]) => Number(qty || 0) > 1)
   .map(([cardId, qty]) => {
-   const card = cardsById.get(String(cardId))
+   const card = cardsById.get(String(cardId)) || getSecretCardById(cardId)
    return {
     cardId: String(cardId),
     qty: Number(qty || 0),
@@ -2445,7 +2446,7 @@ async function computeMarket(query) {
  const maxPrice = Number(query.maxPrice)
 
  let items = (market || []).map((entry) => {
-  const card = cardsById.get(String(entry.card))
+  const card = cardsById.get(String(entry.card)) || getSecretCardById(entry.card)
   const itemType = entry.type || "card"
   const setId = card?.set || "unknown"
 
@@ -2471,6 +2472,7 @@ async function computeMarket(query) {
  })
 
  items = items.filter((item) => {
+  if (String(item.rarity || "").toUpperCase() === "SECRET") return false
   if (type !== "all" && item.type !== type) return false
   if (rarity && item.rarity !== rarity) return false
   if (set && normalizeText(item.set) !== set) return false
@@ -2545,7 +2547,7 @@ async function computeGuildProfile(guildId) {
   const totalCards = Object.values(user.cards || {}).reduce((a, b) => a + b, 0)
   let ssrOwned = 0
   for (const [cardId, qty] of Object.entries(user.cards || {})) {
-   const card = cardsById.get(String(cardId))
+   const card = cardsById.get(String(cardId)) || getSecretCardById(cardId)
    if (card?.rarity === "SSR") ssrOwned += qty
   }
 
@@ -3027,10 +3029,11 @@ function buildInventoryPayload(userId) {
 
  const cardItems = Object.entries(user.cards || {})
   .map(([cardId, qty]) => {
-   const card = cardsById.get(String(cardId))
+   const card = cardsById.get(String(cardId)) || getSecretCardById(cardId)
    const setId = card?.set || "unknown"
    const rarity = String(card?.rarity || "C").toUpperCase()
-   const baseSellPrice = Number(SELL_PRICE[rarity] || 1)
+   const isSecret = isSecretCard(card)
+   const baseSellPrice = isSecret ? 0 : Number(SELL_PRICE[rarity] || 1)
    return {
     cardId: String(cardId),
     qty: Number(qty || 0),
@@ -3041,7 +3044,7 @@ function buildInventoryPayload(userId) {
     imageUrl: card?.image && card?.set
      ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
      : null,
-    sellPrice: computeSellPrice(baseSellPrice, sellMultiplier),
+    sellPrice: isSecret ? 0 : computeSellPrice(baseSellPrice, sellMultiplier),
     sellBonusPercent
    }
   })
@@ -4423,8 +4426,9 @@ app.post("/api/game/sell-card", (req, res) => {
 
   const user = getUser(session.userId)
   const cards = getCards()
-  const card = cards.find((row) => String(row.id) === cardId)
+  const card = cards.find((row) => String(row.id) === cardId) || getSecretCardById(cardId)
   if (!card) return res.status(404).json({ error: "Carte introuvable." })
+  if (isSecretCard(card)) return res.status(400).json({ error: "La carte SECRET ne peut pas etre vendue." })
 
   const qtyBefore = Number(user.cards?.[cardId] || 0)
   if (qtyBefore <= 0) return res.status(400).json({ error: "Tu ne possedes plus cette carte." })
@@ -4518,6 +4522,7 @@ app.post("/api/game/open-packs", async (req, res) => {
    }
 
    for (const card of (result?.pack || [])) {
+    if (isSecretCard(card)) continue
     const cardId = String(card?.id || "")
     const rarity = String(card?.rarity || "C")
     rarityCount[rarity] = Number(rarityCount[rarity] || 0) + 1
@@ -4978,7 +4983,7 @@ app.post("/api/events/eventpack/open", async (req, res) => {
    }
   }
 
-  const cardsPayload = pack.map((card, index) => ({
+  const cardsPayload = pack.filter((card) => !isSecretCard(card)).map((card, index) => ({
    key: `${card.id}-${index}`,
    cardId: String(card.id),
    cardName: String(card.name || `Carte ${card.id}`),

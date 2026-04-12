@@ -12,6 +12,7 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { notifyAchievements } = require("../../systems/achievementNotifier")
 const { getUserGuild } = require("../../systems/guildSystem")
 const { RARITY_EMOJI } = require("../../systems/constants")
+const { isSecretCard } = require("../../systems/secretCard")
 
 const MAX_GIFTS_PER_DAY = 3
 
@@ -55,6 +56,8 @@ module.exports = {
 
   if(!card)
    return interaction.editReply("❌ Carte introuvable.")
+  if(isSecretCard(card))
+   return interaction.editReply("❌ La carte SECRET ne peut pas etre donnee.")
 
   const user = getUser(interaction.user.id)
   const receiver = getUser(target.id)
@@ -136,9 +139,15 @@ Tes dons restants aujourd'hui : **${MAX_GIFTS_PER_DAY - user.giftHistory.count -
     /* Re-vérifier que le joueur possède toujours la carte */
     const freshUser = getUser(interaction.user.id)
 
-    if(!freshUser.cards?.[cardId] || freshUser.cards[cardId] < 1){
+   if(!freshUser.cards?.[cardId] || freshUser.cards[cardId] < 1){
      return i.update({
       embeds:[new EmbedBuilder().setTitle("❌ Tu ne possèdes plus cette carte.").setColor("#e74c3c")],
+      components:[]
+     })
+    }
+    if(isSecretCard(card)){
+     return i.update({
+      embeds:[new EmbedBuilder().setTitle("❌ La carte SECRET ne peut pas etre donnee.").setColor("#e74c3c")],
       components:[]
      })
     }

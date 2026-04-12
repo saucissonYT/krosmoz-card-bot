@@ -1,4 +1,5 @@
 const { data } = require("./dataManager")
+const { ensureSecretCard } = require("./secretCard")
 
 let registry = null
 
@@ -6,7 +7,7 @@ let registry = null
 
 function buildRegistry(){
 
- const cards = data.cards || []
+ const cards = ensureSecretCard(data.cards || [])
 
  const cardsById = Object.fromEntries(
   cards.map(c => [String(c.id), c])

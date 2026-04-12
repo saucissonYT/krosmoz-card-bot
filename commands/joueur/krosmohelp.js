@@ -216,7 +216,7 @@ Vérifie ta progression ✅/❌ pour chaque carte.
 Autocomplétion triée : cartes craftables en premier.
 Chaque craft débloque un titre et donne +500 XP Battle Pass.
 
-**Raretés :** ⚪C → 🟢U → 🔵R → 🟣SR → 🔴HR → 🟡UR → ✨S → 🌈SSR
+**Raretés :** 🌸C → 🟢U → 🔵R → 🟣SR → 🔴HR → 🟡UR → ✨S → 🌈SSR
 **SSR Shiny :** 0.5% de chance sur une SSR — cosmétique rare.
 **Fragments :** tombent dans les packs, 5/5 = SSR garantie via /craft`
     )
@@ -477,7 +477,7 @@ Utilise le bouton **Rafraîchir** pour voir la progression actuelle.`
 Disponible dans les salons dédiés uniquement.
 
 **31 lots pondérés :**
-⬜ **Commun** (lots 1–10) : 150 à 1 250 kamas, 1–2 packs, 100 XP
+🌸 **Commun** (lots 1–10) : 150 à 1 250 kamas, 1–2 packs, 100 XP
 🟩 **Peu commun** (lots 11–20) : 1 500 à 2 500 kamas, 3–5 packs, fragments
 🟦 **Rare** (lots 21–26) : 5 000–7 500 kamas, 8–10 packs, carte HR garantie
 🟥 **Très rare** (lots 27–30) : 15 000 kamas, 15 packs, carte UR ou SSR garantie

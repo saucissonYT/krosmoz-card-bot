@@ -958,12 +958,14 @@ async function loadSellerData() {
   const listingRes = await api("/api/me/listings")
   if (!invRes.ok || !listingRes.ok) return
 
-  const inventory = invRes.data || { cards: [], fragments: [] }
-  const myListings = (listingRes.data?.items || [])
+ const inventory = invRes.data || { cards: [], fragments: [] }
+ const myListings = (listingRes.data?.items || [])
 
   const cardSelect = document.getElementById("sellCardSelect")
   cardSelect.innerHTML = ""
-  const sortedCards = [...(inventory.cards || [])].sort((a, b) => {
+  const sortedCards = [...(inventory.cards || [])]
+   .filter((c) => String(c.rarity || "").toUpperCase() !== "SECRET")
+   .sort((a, b) => {
    const ar = RARITY_ORDER.indexOf(String(a.rarity || ""))
    const br = RARITY_ORDER.indexOf(String(b.rarity || ""))
    if (ar !== br) return ar - br

@@ -1,5 +1,6 @@
 const { getCards, getCardsBySet } = require("./cardRegistry")
 const handlers = require("./eventHandlerRegistry")
+const { injectSecretDrop } = require("./secretCard")
 
 /* ================================================
    EVENT PACK ENGINE — v2
@@ -173,7 +174,8 @@ function generateEventPack(user, event){
 
  if(!handler){
   const safePack = event.allowMultiSSR ? basePack : limitSSR(basePack)
-  return { pack: safePack, meta: {} }
+  const injected = injectSecretDrop(safePack, getCards())
+  return { pack: injected.pack, meta: {} }
  }
 
  let handlerResult = {}
@@ -208,8 +210,9 @@ function generateEventPack(user, event){
   console.warn(`⚠️ [${event.key}] ${ssrCount} SSR après limitSSR — correction forcée`)
   pack = limitSSR(pack)
  }
+  const injected = injectSecretDrop(pack, getCards())
 
- return { pack, meta }
+  return { pack: injected.pack, meta }
 }
 
 module.exports = {

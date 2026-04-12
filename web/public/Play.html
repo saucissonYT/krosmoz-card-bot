@@ -318,8 +318,9 @@ function renderInventoryGrid() {
    ? `Fragment ${Number(item.fragmentNumber || 0)}/5 • x${fmt(qty)}`
    : `Possedees: x${fmt(qty)}`
   const sellPrice = Number(item.sellPrice || 0)
+  const canSell = isCard && Number.isFinite(sellPrice) && sellPrice > 0
   const miniThumbSrc = String(item.imageUrl || "/assets/ui/pack-back-normal.png")
-  const sellAction = isCard
+  const sellAction = canSell
    ? `
       <div class="action-row play-card-actions">
        <button
@@ -452,7 +453,7 @@ function getNextRarityFromMeta(rarity) {
 function getRarityEmoji(rarity) {
  const token = String(rarity || "").toUpperCase()
  const map = {
-  C: "⚪",
+  C: "🌸",
   U: "🟢",
   R: "🔵",
   SR: "🟣",

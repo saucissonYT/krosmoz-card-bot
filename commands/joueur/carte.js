@@ -14,6 +14,7 @@ const {
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { getCardsById } = require("../../systems/cardRegistry")
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
+const { isSecretCard } = require("../../systems/secretCard")
 
 const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
@@ -113,19 +114,26 @@ module.exports = {
    embed.setFooter({ text: "Image manquante" })
   }
 
-  const row = new ActionRowBuilder().addComponents(
+  const isSecret = isSecretCard(card)
+  const row = isSecret
+   ? new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+     .setCustomId(`secret_locked_${card.id}`)
+     .setLabel("🔒 Carte SECRET non echangeable")
+     .setStyle(ButtonStyle.Secondary)
+     .setDisabled(true)
+   )
+   : new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+     .setCustomId(`sell_${card.id}`)
+     .setLabel("💰 Vendre")
+     .setStyle(ButtonStyle.Danger),
 
-   new ButtonBuilder()
-    .setCustomId(`sell_${card.id}`)
-    .setLabel("💰 Vendre")
-    .setStyle(ButtonStyle.Danger),
-
-   new ButtonBuilder()
-    .setCustomId(`market_${card.id}`)
-    .setLabel("🛒 Mettre au market")
-    .setStyle(ButtonStyle.Primary)
-
-  )
+    new ButtonBuilder()
+     .setCustomId(`market_${card.id}`)
+     .setLabel("🛒 Mettre au market")
+     .setStyle(ButtonStyle.Primary)
+   )
 
   const msg = await interaction.reply({
    embeds: [embed],
@@ -150,7 +158,9 @@ module.exports = {
     if (!user.cards[cid])
      return i.reply({ content: "❌ Tu ne possèdes plus cette carte.", flags: 64 })
 
-    const soldCard = cardsById[cid]
+   const soldCard = cardsById[cid]
+   if (isSecretCard(soldCard))
+    return i.reply({ content: "❌ La carte SECRET ne peut pas etre vendue.", flags: 64 })
 
     /* FIX : utilise SELL_PRICE (prix vente au bot) au lieu du prix market */
     const price = SELL_PRICE[soldCard.rarity] || 1
@@ -177,8 +187,11 @@ module.exports = {
 
     const cid = i.customId.split("_")[1]
 
-    if (!user.cards[cid])
-     return i.reply({ content: "❌ Tu ne possèdes plus cette carte.", flags: 64 })
+   if (!user.cards[cid])
+    return i.reply({ content: "❌ Tu ne possèdes plus cette carte.", flags: 64 })
+   const marketCard = cardsById[cid]
+   if (isSecretCard(marketCard))
+    return i.reply({ content: "❌ La carte SECRET ne peut pas etre mise au market.", flags: 64 })
 
     const modal = new ModalBuilder()
      .setCustomId(`marketmodal_${cid}`)
@@ -224,10 +237,17 @@ module.exports = {
    })
 
   const user = getUser(interaction.user.id)
+  const cardsById = getCardsById()
+  const modalCard = cardsById[cid]
 
   if (!user.cards[cid])
    return interaction.reply({
     content: "❌ Tu ne possèdes plus cette carte.",
+    flags: 64
+   })
+  if (isSecretCard(modalCard))
+   return interaction.reply({
+    content: "❌ La carte SECRET ne peut pas etre mise au market.",
     flags: 64
    })
 

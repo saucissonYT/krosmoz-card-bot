@@ -3,6 +3,7 @@ const { getCards, getCardsBySet } = require("./cardRegistry")
 const { rewardKamas } = require("./economy")
 const { addXP } = require("./progressionSystem")
 const { recordAction } = require("./achievementProgressTracker")
+const { injectSecretDrop } = require("./secretCard")
 
 const rarityOrder=["C","U","R","SR","HR","UR","S","SSR"]
 
@@ -189,6 +190,12 @@ function openPack(user, setId, userId, options = {}){
     pack.push(setCards[Math.floor(Math.random() * setCards.length)])
    }
   }
+ }
+
+ /* ---- DROP SECRET : 0.001% par pack ---- */
+ {
+  const injected = injectSecretDrop(pack, getCards())
+  pack = injected.pack
  }
 
  const discovered=[]

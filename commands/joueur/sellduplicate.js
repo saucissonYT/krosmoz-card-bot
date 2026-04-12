@@ -15,6 +15,7 @@ const { getCardsById }                                      = require("../../sys
 const { getUser, save }                                     = require("../../systems/userSystem")
 const { achievementCheck }                                  = require("../../systems/achievementCheck")
 const { notifyAchievements }                                = require("../../systems/achievementNotifier")
+const { isSecretCard }                                      = require("../../systems/secretCard")
 
 module.exports = {
 
@@ -49,6 +50,7 @@ module.exports = {
   for (const id in user.cards) {
    const card = cardsById[id]
    if (!card) continue
+   if (isSecretCard(card)) continue
 
    /* On ne vend pas les UR et SSR automatiquement */
    if (card.rarity === "UR" || card.rarity === "SSR") continue

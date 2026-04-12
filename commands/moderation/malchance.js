@@ -65,7 +65,7 @@ module.exports = {
         .setColor(0x2C3E50)
         .setDescription(
           `La chance de **${target.username}** (<@${target.id}>) a été retirée.\n\n` +
-          `⚪ Il ne tirera **que des cartes C** dans tous ses packs jusqu'à désactivation.`
+          `🌸 Il ne tirera **que des cartes C** dans tous ses packs jusqu'à désactivation.`
         )
         .addFields(
           { name: "Par",     value: `<@${interaction.user.id}>`, inline: true },

@@ -206,7 +206,7 @@ ${setLines.join("\n")}
 **Records**
 🌙 Packs à minuit : **${s.packAtMidnight || 0}**
 📆 SSR un lundi : **${s.ssrOnMonday || 0}**
-⚪ Packs tout C : **${s.allCPack || 0}**
+🌸 Packs tout C : **${s.allCPack || 0}**
 🟢 Packs tout U : **${s.allUPack || 0}**
 🪞 Palindromes : **${s.palindromeReached || 0}**`
    )
