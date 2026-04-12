@@ -53,6 +53,8 @@
   lastDaily: 0
  }
  const CARD_PREVIEW_SELECTOR = "img[data-card-preview='1']"
+ let cardPreviewImages = []
+ let cardPreviewIndex = -1
 
  function dismissEventToastFor(ms = 15 * 60 * 1000) {
   const duration = Math.max(1000, Number(ms || 0))
@@ -64,6 +66,20 @@
   if (eventToast) eventToast.hidden = true
  }
 
+ function getCardPreviewSrc(imageEl) {
+  const safeImage = imageEl instanceof HTMLImageElement ? imageEl : null
+  if (!safeImage) return ""
+  return String(safeImage.dataset.cardPreviewSrc || safeImage.currentSrc || safeImage.src || "").trim()
+ }
+
+ function refreshCardPreviewImages() {
+  const list = Array.from(document.querySelectorAll(CARD_PREVIEW_SELECTOR))
+   .filter((node) => node instanceof HTMLImageElement)
+   .filter((node) => getCardPreviewSrc(node))
+  cardPreviewImages = list
+  if (!cardPreviewImages.length) cardPreviewIndex = -1
+ }
+
  function ensureCardPreviewStyle() {
   if (document.getElementById("kcCardPreviewStyle")) return
   const style = document.createElement("style")
@@ -71,7 +87,9 @@
   style.textContent = `
    img[data-card-preview="1"]{cursor:zoom-in;}
    .kc-card-preview-overlay{
-    position:fixed;inset:0;z-index:22000;display:grid;place-items:center;
+    position:fixed;inset:0;z-index:22000;display:grid;
+    grid-template-columns:minmax(44px,72px) 1fr minmax(44px,72px);
+    align-items:center;justify-items:center;
     padding:24px;opacity:0;pointer-events:none;transition:opacity .2s ease;
    }
    .kc-card-preview-overlay.show{opacity:1;pointer-events:auto;}
@@ -79,24 +97,79 @@
    .kc-card-preview-backdrop{
     position:absolute;inset:0;background:rgba(3,6,16,.86);backdrop-filter:blur(2px);
    }
-   .kc-card-preview-dialog{
-    position:relative;z-index:1;width:min(92vw,560px);max-height:min(90vh,880px);
-    border-radius:16px;border:1px solid rgba(238,206,104,.42);
-    background:linear-gradient(180deg, rgba(9,14,34,.98), rgba(5,9,24,.98));
-    box-shadow:0 24px 56px rgba(0,0,0,.54);
-    padding:14px;
+   .kc-card-preview-stage{
+    position:relative;z-index:1;width:100%;height:100%;
+    display:grid;place-items:center;pointer-events:none;
    }
-   .kc-card-preview-dialog img{
-    display:block;width:100%;height:auto;max-height:min(78vh,760px);object-fit:contain;
-    border-radius:12px;user-select:none;-webkit-user-drag:none;
+   .kc-card-preview-image{
+    display:block;max-width:min(94vw,860px);max-height:min(90vh,980px);
+    width:auto;height:auto;object-fit:contain;
+    user-select:none;-webkit-user-drag:none;cursor:zoom-out;pointer-events:auto;
+    filter:drop-shadow(0 28px 48px rgba(0,0,0,.58));
    }
-   .kc-card-preview-close{
-    position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:999px;
-    border:1px solid rgba(255,255,255,.22);background:rgba(5,8,20,.86);color:#fff;
-    font-size:1.2rem;line-height:1;cursor:pointer;
+   .kc-card-preview-nav{
+    z-index:2;width:40px;height:40px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.3);background:rgba(5,8,20,.74);color:#fff;
+    font-size:1.25rem;line-height:1;cursor:pointer;
+    display:grid;place-items:center;
+    transition:transform .12s ease, background .12s ease, border-color .12s ease;
+   }
+   .kc-card-preview-nav:hover{
+    transform:scale(1.06);background:rgba(12,20,48,.9);border-color:rgba(255,255,255,.52);
+   }
+   .kc-card-preview-nav:disabled{
+    opacity:.35;cursor:default;transform:none;
+   }
+   .kc-card-preview-nav.prev{justify-self:start;}
+   .kc-card-preview-nav.next{justify-self:end;}
+   @media (max-width:700px){
+    .kc-card-preview-overlay{
+     grid-template-columns:44px 1fr 44px;
+     padding:14px;
+    }
+    .kc-card-preview-nav{
+     width:34px;height:34px;font-size:1rem;
+    }
    }
   `
   document.head.appendChild(style)
+ }
+
+ function closeCardPreview(overlay) {
+  const target = overlay || document.getElementById("kcCardPreviewOverlay")
+  if (!target) return
+  target.classList.remove("show")
+  window.setTimeout(() => { target.hidden = true }, 200)
+ }
+
+ function syncCardPreviewContent(overlay) {
+  const target = overlay || document.getElementById("kcCardPreviewOverlay")
+  if (!target) return
+  const preview = target.querySelector("#kcCardPreviewImage")
+  const prevBtn = target.querySelector("[data-kc-card-preview-prev]")
+  const nextBtn = target.querySelector("[data-kc-card-preview-next]")
+  if (!(preview instanceof HTMLImageElement)) return
+  if (!cardPreviewImages.length || cardPreviewIndex < 0 || cardPreviewIndex >= cardPreviewImages.length) return
+  const current = cardPreviewImages[cardPreviewIndex]
+  const src = getCardPreviewSrc(current)
+  if (!src) return
+  preview.src = src
+  const alt = String(current.dataset.cardPreviewName || current.alt || "Carte agrandie").trim()
+  preview.alt = alt || "Carte agrandie"
+  const disableNav = cardPreviewImages.length <= 1
+  if (prevBtn instanceof HTMLButtonElement) prevBtn.disabled = disableNav
+  if (nextBtn instanceof HTMLButtonElement) nextBtn.disabled = disableNav
+ }
+
+ function moveCardPreview(step = 1) {
+  const overlay = document.getElementById("kcCardPreviewOverlay")
+  if (!overlay || overlay.hidden) return
+  if (!cardPreviewImages.length || cardPreviewIndex < 0) return
+  if (cardPreviewImages.length === 1) return
+  const len = cardPreviewImages.length
+  const delta = Number(step) >= 0 ? 1 : -1
+  cardPreviewIndex = (cardPreviewIndex + delta + len) % len
+  syncCardPreviewContent(overlay)
  }
 
  function ensureCardPreviewOverlay() {
@@ -109,23 +182,45 @@
   overlay.hidden = true
   overlay.innerHTML = `
    <div class="kc-card-preview-backdrop" data-kc-card-preview-close></div>
-   <section class="kc-card-preview-dialog" role="dialog" aria-modal="true" aria-label="Aperçu carte">
-    <button type="button" class="kc-card-preview-close" data-kc-card-preview-close aria-label="Fermer">&times;</button>
-    <img id="kcCardPreviewImage" src="" alt="Carte agrandie">
+   <button type="button" class="kc-card-preview-nav prev" data-kc-card-preview-prev aria-label="Carte precedente">&lt;</button>
+   <section class="kc-card-preview-stage" role="dialog" aria-modal="true" aria-label="Aperçu carte">
+    <img id="kcCardPreviewImage" class="kc-card-preview-image" src="" alt="Carte agrandie" data-kc-card-preview-close>
    </section>
+   <button type="button" class="kc-card-preview-nav next" data-kc-card-preview-next aria-label="Carte suivante">&gt;</button>
   `
   document.body.appendChild(overlay)
   overlay.querySelectorAll("[data-kc-card-preview-close]").forEach((node) => {
-   node.addEventListener("click", () => {
-    overlay.classList.remove("show")
-    window.setTimeout(() => { overlay.hidden = true }, 200)
+   node.addEventListener("click", () => closeCardPreview(overlay))
+  })
+  overlay.querySelectorAll("[data-kc-card-preview-prev]").forEach((node) => {
+   node.addEventListener("click", (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    moveCardPreview(-1)
+   })
+  })
+  overlay.querySelectorAll("[data-kc-card-preview-next]").forEach((node) => {
+   node.addEventListener("click", (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    moveCardPreview(1)
    })
   })
   document.addEventListener("keydown", (event) => {
-   if (event.key !== "Escape") return
    if (overlay.hidden) return
-   overlay.classList.remove("show")
-   window.setTimeout(() => { overlay.hidden = true }, 200)
+   if (event.key === "Escape") {
+    closeCardPreview(overlay)
+    return
+   }
+   if (event.key === "ArrowLeft") {
+    event.preventDefault()
+    moveCardPreview(-1)
+    return
+   }
+   if (event.key === "ArrowRight") {
+    event.preventDefault()
+    moveCardPreview(1)
+   }
   })
   return overlay
  }
@@ -133,14 +228,16 @@
  function openCardPreviewFromImage(imageEl) {
   const safeImage = imageEl instanceof HTMLImageElement ? imageEl : null
   if (!safeImage) return
-  const src = String(safeImage.dataset.cardPreviewSrc || safeImage.currentSrc || safeImage.src || "").trim()
+  const src = getCardPreviewSrc(safeImage)
   if (!src) return
+  refreshCardPreviewImages()
+  cardPreviewIndex = cardPreviewImages.indexOf(safeImage)
+  if (cardPreviewIndex < 0) {
+   cardPreviewImages.unshift(safeImage)
+   cardPreviewIndex = 0
+  }
   const overlay = ensureCardPreviewOverlay()
-  const preview = overlay.querySelector("#kcCardPreviewImage")
-  if (!(preview instanceof HTMLImageElement)) return
-  preview.src = src
-  const alt = String(safeImage.dataset.cardPreviewName || safeImage.alt || "Carte agrandie").trim()
-  preview.alt = alt || "Carte agrandie"
+  syncCardPreviewContent(overlay)
   overlay.hidden = false
   requestAnimationFrame(() => overlay.classList.add("show"))
  }
