@@ -671,6 +671,31 @@
    border-bottom: 1px solid rgba(152, 201, 255, 0.26);
   }
 
+  .packs-open-selector {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 6px;
+   padding: 10px 16px 0;
+  }
+
+  .packs-open-selector button {
+   min-height: 30px;
+   border-radius: 999px;
+   border: 1px solid rgba(161, 205, 255, 0.38);
+   background: rgba(11, 28, 78, 0.65);
+   color: #e4f2ff;
+   font-size: 0.82rem;
+   font-weight: 700;
+   padding: 0 10px;
+   cursor: pointer;
+  }
+
+  .packs-open-selector button.active {
+   border-color: rgba(246, 219, 124, 0.78);
+   background: linear-gradient(180deg, rgba(255, 225, 115, 0.92), rgba(240, 179, 54, 0.9));
+   color: #27324f;
+  }
+
   .packs-open-grid {
    padding: 14px 16px;
    overflow: auto;
@@ -777,6 +802,29 @@
    font-size: 1.1rem;
    font-weight: 800;
    cursor: pointer;
+  }
+
+  .packs-open-actions {
+   display: inline-flex;
+   align-items: center;
+   gap: 8px;
+  }
+
+  .packs-open-skip-btn {
+   min-height: 46px;
+   border-radius: 10px;
+   border: 1px solid rgba(158, 203, 255, 0.44);
+   background: rgba(12, 30, 80, 0.78);
+   color: #e5f3ff;
+   font-size: 0.95rem;
+   font-weight: 800;
+   padding: 0 14px;
+   cursor: pointer;
+  }
+
+  .packs-open-skip-btn:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
   }
 
   .packs-rate-modal-overlay {
@@ -1910,13 +1958,17 @@
   <section class="packs-open-dialog" role="dialog" aria-modal="true" aria-labelledby="packsOpenTitle">
    <header class="packs-open-head">
     <h3 id="packsOpenTitle">Ouverture de packs</h3>
-    <button class="packs-open-close" type="button" data-close-pack-open aria-label="Fermer">×</button>
+    <button class="packs-open-close" type="button" data-close-pack-open aria-label="Fermer">&times;</button>
    </header>
    <p id="packsOpenMeta" class="packs-open-meta"></p>
+   <div id="packsOpenSelector" class="packs-open-selector" hidden></div>
    <div id="packsOpenGrid" class="packs-open-grid"></div>
    <footer class="packs-open-foot">
     <p id="packsOpenSummary" class="packs-open-summary"></p>
-    <button id="packsOpenCloseMain" class="packs-open-close-main" type="button" data-close-pack-open>Fermer</button>
+    <div class="packs-open-actions">
+     <button id="packsOpenSkipBtn" class="packs-open-skip-btn" type="button">Skip</button>
+     <button id="packsOpenCloseMain" class="packs-open-close-main" type="button" data-close-pack-open>Fermer</button>
+    </div>
    </footer>
   </section>
  </aside>
@@ -2222,7 +2274,10 @@
   }
   const packOpenState = {
    open: false,
-   timers: []
+   done: false,
+   timers: [],
+   resolve: null,
+   cards: []
   }
 
   const cardPreviewState = {
@@ -2247,8 +2302,10 @@
    packsOpenOverlay: document.getElementById("packsOpenOverlay"),
    packsOpenTitle: document.getElementById("packsOpenTitle"),
    packsOpenMeta: document.getElementById("packsOpenMeta"),
+   packsOpenSelector: document.getElementById("packsOpenSelector"),
    packsOpenGrid: document.getElementById("packsOpenGrid"),
    packsOpenSummary: document.getElementById("packsOpenSummary"),
+   packsOpenSkipBtn: document.getElementById("packsOpenSkipBtn"),
    packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
    focusFigure: document.getElementById("packsFocusFigure"),
@@ -2835,14 +2892,31 @@
    return expanded
   }
 
+  function completePackOpeningReveal() {
+   if (!packOpenState.open) return
+   clearPackOpenTimers()
+   packOpenState.done = true
+   el.packsOpenGrid.querySelectorAll(".packs-open-card").forEach((card) => {
+    card.classList.add("revealed")
+   })
+   if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
+  }
+
   function closePackOpeningOverlay() {
    if (!packOpenState.open && el.packsOpenOverlay.hidden) return
    clearPackOpenTimers()
    packOpenState.open = false
+   packOpenState.done = false
+   packOpenState.cards = []
    el.packsOpenOverlay.classList.remove("show")
    syncModalBodyLock()
    window.setTimeout(() => {
     el.packsOpenOverlay.hidden = true
+    if (el.packsOpenGrid) el.packsOpenGrid.innerHTML = ""
+    if (el.packsOpenSelector) {
+     el.packsOpenSelector.hidden = true
+     el.packsOpenSelector.innerHTML = ""
+    }
     syncModalBodyLock()
    }, 140)
    const resolver = packOpenState.resolve
@@ -2852,28 +2926,55 @@
    }
   }
 
-  function showPackOpeningAnimation(payload) {
-   const revealCards = getRevealCards(payload)
-   if (!revealCards.length) return Promise.resolve()
+  function buildPackRevealGroups(payload, revealCards) {
+   const groups = []
+   const pulls = Array.isArray(payload?.pulls) ? payload.pulls : []
+   let cursor = 0
+   if (pulls.length) {
+    pulls.forEach((pull, idx) => {
+     const expected = pull?.luckyPack ? 6 : 5
+     const slice = revealCards.slice(cursor, cursor + expected)
+     cursor += expected
+     if (!slice.length) return
+     groups.push({
+      index: idx + 1,
+      lucky: Boolean(pull?.luckyPack),
+      cards: slice
+     })
+    })
+   }
+   while (cursor < revealCards.length) {
+    const slice = revealCards.slice(cursor, cursor + 5)
+    if (!slice.length) break
+    groups.push({
+     index: groups.length + 1,
+     lucky: slice.length === 6,
+     cards: slice
+    })
+    cursor += 5
+   }
+   if (!groups.length) {
+    groups.push({
+     index: 1,
+     lucky: revealCards.length === 6,
+     cards: revealCards.slice()
+    })
+   }
+   return groups
+  }
 
-   clearPackOpenTimers()
-   packOpenState.open = true
-   const setName = sanitizeText(String(setCatalog[String(payload?.setId || activeSetId)]?.name || getActiveSetName()))
-   const quantity = Math.max(1, Number(payload?.quantity || 1))
-   const totalCards = revealCards.length
-   const newCount = revealCards.filter((row) => Boolean(row?.isNew)).length
-   const shinyCount = revealCards.filter((row) => Boolean(row?.shiny)).length
-   el.packsOpenTitle.textContent = `Ouverture ${setName}`
-   el.packsOpenMeta.textContent = `x${quantity} pack(s) - ${totalCards} carte(s)`
-   el.packsOpenSummary.textContent = "Révélation en cours..."
-   el.packsOpenGrid.innerHTML = revealCards.map((row) => {
+  function renderPackOpenCards(cards = []) {
+   const maxVisualCards = 80
+   const visibleCards = cards.slice(0, maxVisualCards)
+   const hiddenCount = Math.max(0, cards.length - visibleCards.length)
+   el.packsOpenGrid.innerHTML = visibleCards.map((row) => {
     const rarity = String(row?.rarity || "C").toUpperCase()
     const rarityClass = sanitizeText(`rarity-${rarity.toLowerCase()}`)
     const name = sanitizeText(String(row?.cardName || "Carte"))
     const image = sanitizeText(String(row?.image || "/assets/ui/ssr.png"))
     const back = sanitizeText(getPackBackImageByRarity(rarity))
-    const shiny = row?.shiny ? " ✦" : ""
-    const isNew = row?.isNew ? " • Nouveau" : ""
+    const shiny = row?.shiny ? " *" : ""
+    const isNew = row?.isNew ? " - Nouveau" : ""
     return `
      <article class="packs-open-card ${rarityClass}">
       <div class="packs-open-card-inner">
@@ -2888,6 +2989,54 @@
      </article>
     `
    }).join("")
+   if (hiddenCount > 0) {
+    const note = document.createElement("p")
+    note.className = "packs-rate-state"
+    note.textContent = `+${hiddenCount} cartes supplementaires non affichees ici pour garder l'animation fluide.`
+    el.packsOpenGrid.appendChild(note)
+   }
+  }
+
+  function showPackOpeningAnimation(payload) {
+   const revealCards = getRevealCards(payload)
+   if (!revealCards.length) return Promise.resolve()
+   clearPackOpenTimers()
+   packOpenState.open = true
+   packOpenState.done = false
+   packOpenState.cards = revealCards.slice()
+   const setName = sanitizeText(String(setCatalog[String(payload?.setId || activeSetId)]?.name || getActiveSetName()))
+   const quantity = Math.max(1, Number(payload?.quantity || 1))
+   const totalCards = revealCards.length
+   const newCount = revealCards.filter((row) => Boolean(row?.isNew)).length
+   const shinyCount = revealCards.filter((row) => Boolean(row?.shiny)).length
+   const rarityCount = payload?.totals?.rarityCount && typeof payload.totals.rarityCount === "object"
+    ? payload.totals.rarityCount
+    : {}
+   const pityCounters = payload?.pity?.counters || {}
+   const pitySsr = Math.max(0, Number(pityCounters?.SSR || 0))
+   el.packsOpenTitle.textContent = `Ouverture ${setName}`
+   el.packsOpenMeta.textContent = `x${quantity} pack(s) - ${totalCards} carte(s) - +${formatInt(Number(payload?.totals?.kamasGain || 0))} kamas`
+   const groups = buildPackRevealGroups(payload, revealCards)
+   const hasGroups = groups.length > 1
+   if (el.packsOpenSelector) {
+    if (hasGroups) {
+     el.packsOpenSelector.hidden = false
+     el.packsOpenSelector.innerHTML = groups.map((group, idx) => `
+      <button type="button" class="${idx === 0 ? "active" : ""}" data-pack-open-group="${idx}">
+       Pack ${group.index}${group.lucky ? " Lucky" : ""}
+      </button>
+     `).join("")
+    } else {
+     el.packsOpenSelector.hidden = true
+     el.packsOpenSelector.innerHTML = ""
+    }
+   }
+   renderPackOpenCards(groups[0]?.cards || revealCards)
+   const rarityHeadline = ["SSR", "S", "UR"]
+    .map((r) => `${r}:${formatInt(Number(rarityCount?.[r] || 0))}`)
+    .join(" | ")
+   el.packsOpenSummary.textContent = `Revelation en cours... ${rarityHeadline} | NEW:${formatInt(newCount)} | Shiny:${formatInt(shinyCount)} | Pity SSR:${String(pitySsr).padStart(2, "0")}/50`
+   if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = false
 
    el.packsOpenOverlay.hidden = false
    requestAnimationFrame(() => {
@@ -2896,17 +3045,35 @@
    })
 
    const cards = [...el.packsOpenGrid.querySelectorAll(".packs-open-card")]
-   const stepDelay = cards.length > 90 ? 16 : cards.length > 50 ? 22 : 30
-   cards.forEach((card, index) => {
+   const stepDelay = cards.length > 70 ? 12 : cards.length > 40 ? 18 : 28
+   cards.forEach((card, idx) => {
     const timer = window.setTimeout(() => {
      card.classList.add("revealed")
-    }, index * stepDelay)
+    }, idx * stepDelay)
     packOpenState.timers.push(timer)
    })
    const doneTimer = window.setTimeout(() => {
-    el.packsOpenSummary.textContent = `${totalCards} cartes - ${newCount} nouvelle(s) - ${shinyCount} shiny`
-   }, cards.length * stepDelay + 360)
+    packOpenState.done = true
+    if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
+    el.packsOpenSummary.textContent = `${totalCards} cartes | ${rarityHeadline} | NEW:${formatInt(newCount)} | Shiny:${formatInt(shinyCount)} | Pity SSR:${String(pitySsr).padStart(2, "0")}/50`
+   }, cards.length * stepDelay + 320)
    packOpenState.timers.push(doneTimer)
+
+   if (el.packsOpenSelector && hasGroups) {
+    el.packsOpenSelector.querySelectorAll("[data-pack-open-group]").forEach((btn) => {
+     btn.addEventListener("click", () => {
+      const idx = Math.max(0, Math.min(groups.length - 1, Number(btn.getAttribute("data-pack-open-group"))))
+      el.packsOpenSelector.querySelectorAll("button").forEach((node) => node.classList.remove("active"))
+      btn.classList.add("active")
+      renderPackOpenCards(groups[idx]?.cards || [])
+      if (packOpenState.done) {
+       el.packsOpenGrid.querySelectorAll(".packs-open-card").forEach((card) => card.classList.add("revealed"))
+      } else {
+       completePackOpeningReveal()
+      }
+     })
+    })
+   }
 
    return new Promise((resolve) => {
     packOpenState.resolve = resolve
@@ -3303,6 +3470,7 @@
   el.packsOpenOverlay.querySelectorAll("[data-close-pack-open]").forEach((node) => {
    node.addEventListener("click", closePackOpeningOverlay)
   })
+  el.packsOpenSkipBtn.addEventListener("click", completePackOpeningReveal)
   el.cardPreviewOverlay.querySelectorAll("[data-close-card-preview]").forEach((node) => {
    node.addEventListener("click", closeRateCardPreview)
   })
