@@ -89,7 +89,9 @@ module.exports = {
   const setId = interaction.options.getString("set")
   const attachment = interaction.options.getAttachment("image")
 
-  const card = cards.find(c => c.id === id)
+  const cardId = String(id)
+  const matches = cards.filter(c => String(c.id) === cardId)
+  const card = matches[matches.length - 1]
 
   if(!card)
    return interaction.editReply("❌ Carte introuvable.")
@@ -152,6 +154,8 @@ module.exports = {
   resetRegistry()
 
   const parts = [`✅ Carte modifiée : **${card.name}** (#${card.id})`]
+  if(matches.length > 1)
+   parts.push(`⚠️ Attention : ${matches.length} cartes partagent l'ID #${card.id}. La dernière occurrence a été modifiée (même comportement que /carte).`)
   if(name) parts.push(`📝 Nom → ${name}`)
   if(rarity) parts.push(`💎 Rareté → ${rarity}`)
   if(setId) parts.push(`📦 Set → ${setId}`)
