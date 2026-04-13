@@ -277,6 +277,11 @@ function ensureEconomy(user) {
  return user
 }
 
+function ensureRecruitHistory(user) {
+ if (!Array.isArray(user.recruitHistory)) user.recruitHistory = []
+ return user
+}
+
 /**
  * Garantit la présence du tableau achievements et des titres.
  * @param {Object} user
@@ -533,6 +538,7 @@ function getUser(id) {
    titles:      ["Nouveau"],
    title:       "Nouveau",
    progression: { level: 1, xp: 0, totalXp: 0 },
+   recruitHistory: [],
    stats: {
     cardsSold: 0, cardsBought: 0,
     ssrPulled: 0, shinySSR: 0, ssrStreak: 0,
@@ -573,6 +579,7 @@ function getUser(id) {
  ensureKrosmoShop(user)
  ensureShinyCards(user)
  ensureFragments(user)
+ ensureRecruitHistory(user)
  ensureStats(user, now)
 
  if (!user.pity) user.pity = {}

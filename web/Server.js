@@ -183,6 +183,8 @@ const DEFAULT_QUEST_BP_XP = {
  dailyBonus: 120,
  weeklyBonus: 400
 }
+const RECRUIT_HISTORY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+const RECRUIT_HISTORY_MAX_ITEMS = 1500
 
 function getNextWebPinataDelayMs() {
  return Math.floor(Math.random() * (WEB_PINATA_MAX_INTERVAL_MS - WEB_PINATA_MIN_INTERVAL_MS + 1)) + WEB_PINATA_MIN_INTERVAL_MS
@@ -1243,6 +1245,131 @@ function getCardSetNameMap(sets) {
   map.set(String(set.id), set.name || set.id)
  }
  return map
+}
+
+function formatUtcTimestamp(ts) {
+ const date = new Date(Number(ts || 0))
+ if (!Number.isFinite(date.getTime())) return ""
+ const pad = (n) => String(n).padStart(2, "0")
+ return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+}
+
+function normalizeRecruitHistoryEntry(raw, now = Date.now()) {
+ if (!raw || typeof raw !== "object") return null
+ const ts = Number(raw.ts || raw.acquiredAtTs || raw.timestamp || 0)
+ if (!Number.isFinite(ts) || ts <= 0) return null
+ if ((now - ts) > RECRUIT_HISTORY_WINDOW_MS) return null
+
+ const setId = String(raw.setId || "").trim().toLowerCase()
+ const setName = String(raw.setName || raw.setId || "Inconnu")
+ const rarity = String(raw.rarity || "C").toUpperCase()
+ const itemName = String(raw.itemName || raw.cardName || "Carte inconnue")
+ const recruitmentName = String(raw.recruitmentName || setName || "Set")
+ const qty = Math.max(1, Number(raw.qty || 1))
+ const imageUrl = raw.imageUrl ? String(raw.imageUrl) : null
+
+ return {
+  ts,
+  setId,
+  setName,
+  rarity,
+  itemName,
+  recruitmentName,
+  qty,
+  imageUrl
+ }
+}
+
+function ensureRecruitHistory(user, now = Date.now()) {
+ const source = Array.isArray(user?.recruitHistory) ? user.recruitHistory : []
+ const normalized = []
+ for (const row of source) {
+  const entry = normalizeRecruitHistoryEntry(row, now)
+  if (entry) normalized.push(entry)
+ }
+ normalized.sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
+ if (normalized.length > RECRUIT_HISTORY_MAX_ITEMS) {
+  normalized.length = RECRUIT_HISTORY_MAX_ITEMS
+ }
+
+ let changed = !Array.isArray(user?.recruitHistory) || normalized.length !== source.length
+ if (!changed) {
+  for (let i = 0; i < normalized.length; i++) {
+   const left = normalized[i]
+   const right = source[i] || {}
+   if (
+    Number(left.ts || 0) !== Number(right.ts || right.acquiredAtTs || right.timestamp || 0) ||
+    String(left.setId || "") !== String(right.setId || "").toLowerCase() ||
+    String(left.setName || "") !== String(right.setName || right.setId || "Inconnu") ||
+    String(left.rarity || "") !== String(right.rarity || "C").toUpperCase() ||
+    String(left.itemName || "") !== String(right.itemName || right.cardName || "Carte inconnue") ||
+    String(left.recruitmentName || "") !== String(right.recruitmentName || right.setName || "Set") ||
+    Number(left.qty || 1) !== Math.max(1, Number(right.qty || 1)) ||
+    String(left.imageUrl || "") !== String(right.imageUrl || "")
+   ) {
+    changed = true
+    break
+   }
+  }
+ }
+
+ if (changed && user && typeof user === "object") {
+  user.recruitHistory = normalized
+ }
+ return { list: normalized, changed }
+}
+
+function appendRecruitHistoryEntries(user, entries = []) {
+ if (!user || typeof user !== "object") return 0
+ const now = Date.now()
+ const seed = ensureRecruitHistory(user, now).list
+ const list = [...seed]
+ let added = 0
+
+ for (const raw of (Array.isArray(entries) ? entries : [])) {
+  const entry = normalizeRecruitHistoryEntry({ ...raw, ts: now }, now)
+  if (!entry) continue
+  list.unshift(entry)
+  added += 1
+ }
+
+ if (!added) return 0
+
+ const pruned = list
+  .filter((row) => (now - Number(row.ts || 0)) <= RECRUIT_HISTORY_WINDOW_MS)
+  .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
+  .slice(0, RECRUIT_HISTORY_MAX_ITEMS)
+
+ user.recruitHistory = pruned
+ return added
+}
+
+function buildRecruitHistoryPayload(user, options = {}) {
+ const now = Date.now()
+ const setFilter = String(options?.setId || "").trim().toLowerCase()
+ const page = Math.max(1, Number(options?.page || 1))
+ const limit = Math.max(1, Number(options?.limit || 10))
+
+ const { list, changed } = ensureRecruitHistory(user, now)
+ const filtered = setFilter ? list.filter((row) => String(row.setId || "") === setFilter) : list
+ const total = filtered.length
+ const pages = Math.max(1, Math.ceil(total / limit))
+ const safePage = Math.max(1, Math.min(pages, page))
+ const offset = (safePage - 1) * limit
+ const items = filtered.slice(offset, offset + limit).map((row) => ({
+  ...row,
+  acquiredAtTs: Number(row.ts || 0),
+  acquiredAt: formatUtcTimestamp(row.ts)
+ }))
+
+ return {
+  changed,
+  total,
+  page: safePage,
+  pages,
+  limit,
+  items
+ }
 }
 
 function parseCookies(req) {
@@ -4307,15 +4434,62 @@ app.get("/api/game/meta", (req, res) => {
    rarity,
    cost: Number(FUSION_COST[rarity] || 0)
   }))
+  const pityBySet = Object.fromEntries((sets || []).map((set) => {
+   const setId = String(set.id)
+   const p = user.pity?.[setId] || {}
+   const ur = Number(p?.UR || 0)
+   const s = Number(p?.S || 0)
+   const ssr = Number(p?.SSR || 0)
+   return [setId, {
+    UR: ur,
+    S: s,
+    SSR: ssr,
+    toGuaranteed: {
+     UR: Math.max(0, 10 - ur),
+     S: Math.max(0, 30 - s),
+     SSR: Math.max(0, 50 - ssr)
+    }
+   }]
+  }))
 
   res.json({
    packPrice: Number(PACK_PRICE || 0),
    packStock: Number(user.packs || 0),
+   kamas: Number(user.kamas || 0),
    unlockedSets,
-   fusion
+   fusion,
+   pityBySet
   })
  } catch (e) {
   console.error("[WEB] /api/game/meta:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.get("/api/game/recruit-history", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const user = getUser(session.userId)
+  const { page, limit } = parsePagination(req, 10, 100)
+  const setId = String(req.query?.setId || req.query?.set || "").trim().toLowerCase()
+  const payload = buildRecruitHistoryPayload(user, { setId, page, limit })
+
+  if (payload.changed) save(session.userId)
+
+  res.json({
+   ok: true,
+   windowDays: 7,
+   setId: setId || null,
+   total: payload.total,
+   page: payload.page,
+   pages: payload.pages,
+   limit: payload.limit,
+   items: payload.items
+  })
+ } catch (e) {
+  console.error("[WEB] /api/game/recruit-history:", e)
   res.status(500).json({ error: "Erreur serveur" })
  }
 })
@@ -4487,6 +4661,8 @@ app.post("/api/game/open-packs", async (req, res) => {
   const user = getUser(session.userId)
   const cards = getCards()
   const sets = getSets()
+  const setNames = getCardSetNameMap(sets)
+  const activeSetName = String(setNames.get(setId) || setId)
   const validSetIds = new Set((sets || []).map((set) => String(set.id)))
   if (!validSetIds.has(setId)) return res.status(400).json({ error: "Set invalide." })
   if (!isSetUnlocked(user, setId, cards)) return res.status(400).json({ error: "Set verrouille pour ce profil." })
@@ -4563,6 +4739,15 @@ app.post("/api/game/open-packs", async (req, res) => {
   }
 
   await addBattlePassXP(session.userId, "pack_open")
+  appendRecruitHistoryEntries(user, [...grouped.values()].map((row) => ({
+   setId,
+   setName: activeSetName,
+   itemName: String(row.cardName || `Carte ${row.cardId}`),
+   recruitmentName: activeSetName,
+   rarity: String(row.rarity || "C"),
+   qty: Math.max(1, Number(row.qty || 1)),
+   imageUrl: row.image ? String(row.image) : null
+  })))
   const unlocked = [
    ...achievementCheck(user, "pack"),
    ...achievementCheck(user, "rng"),
@@ -4894,6 +5079,7 @@ app.post("/api/events/eventpack/open", async (req, res) => {
   }
 
   const user = getUser(session.userId)
+  const setNames = getCardSetNameMap(getSets())
   if (!user.stats) user.stats = {}
   if (!user.cards) user.cards = {}
 
@@ -4953,6 +5139,28 @@ app.post("/api/events/eventpack/open", async (req, res) => {
   }
   if (event.key === "enutrof" && meta?.jackpot) user.stats.jackpotEnutrof = Number(user.stats.jackpotEnutrof || 0) + 1
   if (event.key === "feca" && reward?.jackpotMessage) user.stats.jackpotFeca = Number(user.stats.jackpotFeca || 0) + 1
+
+  const groupedHistory = new Map()
+  for (const card of pack) {
+   if (!card?.id || isSecretCard(card)) continue
+   const cardSetId = String(card?.set || "")
+   const key = `${card.id}:${card.shiny ? 1 : 0}`
+   if (!groupedHistory.has(key)) {
+    groupedHistory.set(key, {
+     setId: cardSetId,
+     setName: String(setNames.get(cardSetId) || cardSetId || event?.name || "Event"),
+     itemName: String(card?.name || `Carte ${card.id}`),
+     recruitmentName: String(event?.name || "Event Pack"),
+     rarity: String(card?.rarity || "C"),
+     qty: 0,
+     imageUrl: card?.image && card?.set
+      ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+      : null
+    })
+   }
+   groupedHistory.get(key).qty += 1
+  }
+  appendRecruitHistoryEntries(user, [...groupedHistory.values()])
 
   const unlocked = [
    ...achievementCheck(user, "event"),
@@ -5418,17 +5626,19 @@ app.get("/api/achievements", (req, res) => {
   if (!session) return
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
- app.get("/play/:tab", (req, res) => {
-  if (String(req.params.tab || "").toLowerCase() === "quests") {
-   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
-  }
-  const session = requireSessionPage(req, res)
-  if (!session) return
- return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
- })
- app.get("/krosmoshop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))
- app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
- app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
+app.get("/play/:tab", (req, res) => {
+ if (String(req.params.tab || "").toLowerCase() === "quests") {
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ }
+ const session = requireSessionPage(req, res)
+ if (!session) return
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+})
+app.get("/krosmoshop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))
+app.get("/packs", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Packs.html")))
+app.get("/packs-test", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Packs.html")))
+app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
+app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/battlepass", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Battlepass.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))
  app.get("/guild/detail/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "GuildDetail.html")))

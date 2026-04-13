@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Packs Test - Krosmoz Card</title>
+ <meta name="theme-color" content="#173b9c">
+ <link rel="stylesheet" href="/css/style.css">
+ <style>
+  html,
+  body {
+   width: 100%;
+   height: 100%;
+   overflow: hidden;
+  }
+
+  :root {
+   --pack-blue-1: #040d34;
+   --pack-blue-2: #0d3d95;
+   --pack-blue-3: #3ec6ff;
+   --pack-gold: #f3d770;
+   --pack-card-bg: rgba(7, 18, 57, 0.68);
+   --packs-bg-image: url("/assets/ui/fond%20pack%20incarnam.png");
+   --packs-bg-size: cover;
+   --packs-bg-position: center;
+   --packs-center-bottom: -198px;
+   --packs-center-width: min(86vw, 1160px);
+   --packs-center-bottom-1180: -168px;
+   --packs-center-width-1180: min(82vw, 980px);
+   --packs-center-width-mobile: min(88vw, 540px);
+  }
+
+  body.packs-page {
+   min-height: 100vh;
+   margin: 0;
+   color: #f8fbff;
+   font-family: "Jost", sans-serif;
+   background:
+    linear-gradient(160deg, rgba(2, 8, 32, 0.34), rgba(4, 18, 60, 0.46)),
+    var(--packs-bg-image) var(--packs-bg-position) / var(--packs-bg-size) no-repeat fixed;
+  }
+
+  .packs-shell {
+   position: relative;
+   min-height: 100vh;
+   overflow: hidden;
+   padding: clamp(14px, 2vw, 24px);
+  }
+
+  .packs-shell::before {
+   content: "";
+   position: absolute;
+   inset: 0;
+   background-image:
+    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.35) 1px, transparent 1.5px),
+    radial-gradient(circle at 80% 28%, rgba(255, 255, 255, 0.28) 1px, transparent 1.5px),
+    radial-gradient(circle at 62% 66%, rgba(255, 255, 255, 0.24) 1px, transparent 1.5px);
+   background-size: 140px 140px, 210px 210px, 170px 170px;
+   pointer-events: none;
+   opacity: 0.35;
+  }
+
+  .packs-topbar {
+   position: relative;
+   z-index: 4;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 16px;
+   margin-bottom: clamp(8px, 1.5vw, 14px);
+  }
+
+  .packs-top-left {
+   display: inline-flex;
+   align-items: center;
+   gap: 14px;
+   font-size: clamp(1.2rem, 2.6vw, 2.05rem);
+   font-weight: 700;
+   letter-spacing: 0.02em;
+  }
+
+  .packs-back-btn,
+  .packs-help-btn {
+   width: 42px;
+   height: 42px;
+   border-radius: 999px;
+   border: 1px solid rgba(165, 206, 255, 0.6);
+   background: rgba(9, 26, 74, 0.74);
+   color: #d9ecff;
+   display: grid;
+   place-items: center;
+   font-size: 1.1rem;
+  }
+
+  .packs-help-btn {
+   display: none;
+  }
+
+  .packs-top-right {
+   display: flex;
+   align-items: center;
+   gap: 10px;
+  }
+
+  .packs-resource {
+   display: inline-flex;
+   align-items: center;
+   gap: 9px;
+   min-height: 56px;
+   border-radius: 12px;
+   background: rgba(7, 22, 68, 0.75);
+   border: 1px solid rgba(148, 200, 255, 0.45);
+   padding: 0 12px 0 9px;
+   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  .packs-resource img {
+   width: 38px;
+   height: 38px;
+   object-fit: contain;
+   filter: drop-shadow(0 3px 9px rgba(0, 0, 0, 0.35));
+  }
+
+  .packs-resource strong {
+   font-size: clamp(1.05rem, 1.85vw, 1.55rem);
+   font-weight: 700;
+   color: #eaf6ff;
+  }
+
+  .packs-resource.packs-resource-packs {
+   gap: 8px;
+   padding-right: 6px;
+  }
+
+  .packs-resource-buy-btn {
+   width: 38px;
+   height: 38px;
+   border-radius: 999px;
+   border: 2px solid rgba(196, 214, 238, 0.95);
+   background: linear-gradient(180deg, rgba(241, 246, 255, 0.98), rgba(214, 226, 245, 0.94));
+   color: #2f3f63;
+   font-size: 1.75rem;
+   line-height: 1;
+   font-weight: 700;
+   display: grid;
+   place-items: center;
+   cursor: pointer;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 4px 10px rgba(0, 0, 0, 0.28);
+   transition: transform 0.12s ease, filter 0.12s ease;
+   padding: 0;
+  }
+
+  .packs-resource-buy-btn:hover {
+   transform: translateY(-1px) scale(1.03);
+   filter: brightness(1.04);
+  }
+
+  .packs-resource-buy-btn:active {
+   transform: translateY(0) scale(0.98);
+  }
+
+  .packs-main {
+   position: relative;
+   z-index: 3;
+   min-height: calc(100vh - 110px);
+   border-radius: 0;
+   border: none;
+   background: transparent;
+   box-shadow: none;
+   overflow: visible;
+  }
+
+  .packs-title {
+   margin: 18px clamp(18px, 2.5vw, 34px) 0;
+  }
+
+  .packs-title h1 {
+   margin: 0;
+   font-family: "Cinzel", serif;
+   font-size: clamp(2rem, 4.6vw, 4.2rem);
+   line-height: 1.05;
+   color: #ffe978;
+   text-shadow: 0 6px 28px rgba(9, 14, 42, 0.55);
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+  }
+
+  .packs-title p {
+   margin: 10px 0 0;
+   max-width: 780px;
+   font-size: clamp(1rem, 1.65vw, 1.75rem);
+   font-weight: 600;
+   color: #dbe9ff;
+   text-shadow: 0 2px 14px rgba(5, 12, 42, 0.5);
+   display: none;
+  }
+
+  .packs-planet-wrap {
+   position: absolute;
+   inset: 80px 0 140px;
+   display: grid;
+   place-items: center;
+   pointer-events: none;
+   opacity: 0;
+  }
+
+  .packs-ring {
+   position: absolute;
+   border-radius: 50%;
+   border: 2px solid rgba(196, 225, 255, 0.46);
+   filter: drop-shadow(0 0 14px rgba(152, 230, 255, 0.25));
+  }
+
+  .packs-ring.r1 { width: min(84vw, 900px); aspect-ratio: 1; }
+  .packs-ring.r2 { width: min(72vw, 760px); aspect-ratio: 1; border-color: rgba(180, 223, 255, 0.38); }
+  .packs-ring.r3 { width: min(58vw, 620px); aspect-ratio: 1; border-color: rgba(166, 218, 255, 0.32); }
+
+  .packs-planet {
+   width: min(44vw, 520px);
+   aspect-ratio: 1;
+   border-radius: 50%;
+   background:
+    radial-gradient(circle at 35% 30%, rgba(214, 255, 195, 0.92), rgba(98, 220, 144, 0.74) 42%, rgba(27, 109, 83, 0.85) 70%, rgba(8, 57, 88, 0.95)),
+    radial-gradient(circle at 75% 65%, rgba(255, 232, 150, 0.55), rgba(255, 232, 150, 0) 44%);
+   box-shadow:
+    inset -12px -24px 40px rgba(0, 0, 0, 0.22),
+    0 0 54px rgba(87, 192, 255, 0.44);
+  }
+
+  .packs-side-right {
+   position: absolute;
+   top: 155px;
+   right: clamp(12px, 1.8vw, 26px);
+   z-index: 5;
+   display: grid;
+   gap: 14px;
+  }
+
+  .packs-side-rate-btn {
+   min-width: 186px;
+   min-height: 48px;
+   border-radius: 999px;
+   border: 1px solid rgba(188, 220, 255, 0.72);
+   background: linear-gradient(180deg, rgba(234, 246, 255, 0.92), rgba(201, 226, 251, 0.9));
+   color: #2a3f68;
+   font-size: 1.05rem;
+   font-weight: 800;
+   cursor: pointer;
+   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .packs-side-history-btn {
+   min-width: 186px;
+   min-height: 48px;
+   border-radius: 999px;
+   border: 1px solid rgba(172, 215, 255, 0.64);
+   background: linear-gradient(180deg, rgba(38, 80, 161, 0.92), rgba(22, 49, 106, 0.96));
+   color: #e8f4ff;
+   font-size: 1.02rem;
+   font-weight: 800;
+   cursor: pointer;
+   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .packs-focus-character {
+   position: absolute;
+   left: 50%;
+   bottom: var(--packs-center-bottom);
+   transform: translateX(-50%);
+   z-index: 4;
+   pointer-events: auto;
+  }
+
+  .packs-focus-character img {
+   width: var(--packs-center-width);
+   height: auto;
+   object-fit: contain;
+   filter:
+    drop-shadow(0 0 10px rgba(255, 255, 255, 0.18))
+    drop-shadow(0 10px 20px rgba(0, 0, 0, 0.34))
+    drop-shadow(0 22px 34px rgba(0, 0, 0, 0.36));
+   transition: filter 0.2s ease, transform 0.2s ease;
+  }
+
+  .packs-focus-character:hover img {
+   filter:
+    drop-shadow(0 0 18px rgba(167, 236, 255, 0.6))
+    drop-shadow(0 0 34px rgba(91, 171, 255, 0.5))
+    drop-shadow(0 12px 24px rgba(0, 0, 0, 0.36))
+    drop-shadow(0 26px 38px rgba(0, 0, 0, 0.38));
+   transform: scale(1.015);
+  }
+
+  .packs-focus-badge {
+   position: absolute;
+   left: calc(50% + 160px);
+   bottom: 92px;
+   transform: none;
+   z-index: 5;
+   border-radius: 999px;
+   border: 1px solid rgba(191, 221, 255, 0.48);
+   background: linear-gradient(180deg, rgba(14, 39, 99, 0.9), rgba(7, 20, 63, 0.92));
+   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+   padding: 10px 18px 10px 12px;
+   display: inline-flex;
+   align-items: center;
+   gap: 12px;
+   color: #ffffff;
+   font-size: clamp(1.1rem, 1.6vw, 1.45rem);
+   font-weight: 800;
+   text-transform: uppercase;
+   letter-spacing: 0.03em;
+  }
+
+  .packs-focus-badge img {
+   height: 38px;
+   width: auto;
+   object-fit: contain;
+   filter: drop-shadow(0 4px 10px rgba(255, 70, 70, 0.45));
+  }
+
+  .packs-set-slider {
+   position: absolute;
+   left: 0;
+   bottom: 0;
+   z-index: 10;
+   width: min(58vw, 780px);
+   border-radius: 0 12px 0 0;
+   border: 1px solid rgba(140, 194, 255, 0.38);
+   background: linear-gradient(180deg, rgba(10, 30, 84, 0.74), rgba(5, 16, 52, 0.8));
+   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+   padding: 10px 10px 8px;
+  }
+
+  .packs-set-slider-track {
+   display: flex;
+   gap: 12px;
+   overflow-x: auto;
+   scroll-snap-type: x mandatory;
+   padding-bottom: 2px;
+   cursor: grab;
+   user-select: none;
+   touch-action: none;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+  }
+
+  .packs-set-slider-track.is-dragging {
+   cursor: grabbing;
+  }
+
+  .packs-set-slider-track::-webkit-scrollbar {
+   display: none;
+  }
+
+  .packs-set-card {
+   width: 232px;
+   min-width: 232px;
+   height: 102px;
+   border-radius: 10px;
+   border: 1px solid rgba(150, 204, 255, 0.45);
+   background-size: cover;
+   background-position: center;
+   box-shadow: inset 0 -44px 64px rgba(3, 10, 35, 0.8);
+   scroll-snap-align: start;
+   display: flex;
+   align-items: flex-end;
+   justify-content: space-between;
+   padding: 9px 10px;
+   cursor: pointer;
+   transition: transform 0.14s ease, border-color 0.14s ease;
+  }
+
+  .packs-set-card:hover {
+   transform: translateY(-2px);
+  }
+
+  .packs-set-card.locked {
+   border-color: rgba(168, 186, 218, 0.52);
+   box-shadow: inset 0 -44px 64px rgba(3, 10, 35, 0.86);
+   filter: saturate(0.42) brightness(0.82);
+  }
+
+  .packs-set-card.locked .packs-set-card-tag {
+   color: #ffc8b3;
+  }
+
+  .packs-set-card:disabled,
+  .packs-set-card.locked {
+   cursor: not-allowed;
+  }
+
+  .packs-set-card:disabled:hover,
+  .packs-set-card.locked:hover {
+   transform: none;
+  }
+
+  .packs-set-card.active {
+   border-color: rgba(255, 228, 118, 0.94);
+   box-shadow: inset 0 -46px 68px rgba(3, 10, 35, 0.84), 0 0 0 2px rgba(255, 228, 118, 0.42);
+  }
+
+  .packs-set-card-name {
+   color: #ffffff;
+   font-size: 1rem;
+   font-weight: 800;
+   letter-spacing: 0.03em;
+   text-transform: uppercase;
+   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.48);
+  }
+
+  .packs-set-card-tag {
+   color: #9ee2ff;
+   font-size: 0.74rem;
+   font-weight: 700;
+   letter-spacing: 0.07em;
+   text-transform: uppercase;
+  }
+
+  .packs-footer {
+   position: absolute;
+   right: clamp(16px, 2.4vw, 30px);
+   bottom: 14px;
+   z-index: 6;
+   background: transparent;
+   padding: 0;
+   display: flex;
+   align-items: center;
+   justify-content: flex-end;
+   gap: 0;
+   border-top: none;
+  }
+
+  .packs-draw-controls {
+   display: inline-flex;
+   align-items: center;
+   gap: 10px;
+  }
+
+  .packs-ticket-chip {
+   min-width: 96px;
+   justify-content: center;
+   color: #ffe97a;
+   font-size: 1.25rem;
+   font-weight: 800;
+  }
+
+  .packs-draw-btn {
+   border-radius: 14px;
+   border: 1px solid rgba(180, 220, 255, 0.6);
+   min-height: 64px;
+   min-width: 170px;
+   padding: 8px 18px;
+   color: #ecf7ff;
+   font-weight: 800;
+   font-size: clamp(1.12rem, 1.6vw, 1.5rem);
+   cursor: pointer;
+   background: linear-gradient(180deg, #75aef0, #487ac1);
+   box-shadow: 0 10px 18px rgba(10, 24, 63, 0.35);
+  }
+
+  .packs-draw-btn.advanced {
+   min-width: 248px;
+   border-color: rgba(255, 227, 138, 0.74);
+   color: #26324f;
+   background: linear-gradient(180deg, #ffd95f, #f2b738);
+  }
+
+  .packs-draw-btn:disabled {
+   filter: grayscale(0.35);
+   opacity: 0.58;
+   cursor: not-allowed;
+  }
+
+  .packs-status {
+   position: absolute;
+   left: clamp(16px, 2vw, 28px);
+   transform: none;
+   top: 100px;
+   z-index: 8;
+   border-radius: 14px;
+   border: 1px solid rgba(165, 215, 255, 0.5);
+   background: linear-gradient(180deg, rgba(12, 38, 95, 0.86), rgba(8, 20, 63, 0.9));
+   padding: 14px 16px;
+   color: #dff2ff;
+   width: min(42vw, 500px);
+   min-height: 0;
+   backdrop-filter: blur(4px);
+   box-shadow: 0 10px 24px rgba(3, 8, 28, 0.38);
+  }
+
+  .packs-pity-title {
+   margin: 0 0 12px;
+   font-size: 1.08rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   color: #f7df9a;
+   text-align: left;
+  }
+
+  .packs-pity-grid {
+   display: grid;
+   grid-template-columns: 1fr;
+   gap: 12px;
+  }
+
+  .packs-pity-slot {
+   border-radius: 10px;
+   border: 1px solid rgba(172, 218, 255, 0.38);
+   background: rgba(14, 42, 102, 0.58);
+   padding: 13px 14px 13px;
+  }
+
+  .packs-pity-slot-head {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 8px;
+  }
+
+  .packs-pity-slot-label {
+   font-size: 1rem;
+   font-weight: 700;
+   color: #d7ecff;
+   letter-spacing: 0.06em;
+  }
+
+  .packs-pity-slot-value {
+   font-size: 1.32rem;
+   font-weight: 800;
+   color: #ffd966;
+  }
+
+  .packs-pity-slot-track {
+   margin-top: 10px;
+   height: 14px;
+   border-radius: 999px;
+   background: rgba(190, 220, 255, 0.22);
+   overflow: hidden;
+  }
+
+  .packs-pity-slot-fill {
+   display: block;
+   height: 100%;
+   width: 0%;
+   border-radius: inherit;
+   background: linear-gradient(90deg, #67d4ff, #9af49f);
+   transition: width 0.25s ease;
+  }
+
+  body.packs-modal-open {
+   overflow: hidden;
+  }
+
+  .packs-rate-modal-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 80;
+   display: grid;
+   place-items: center;
+   padding: 20px;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.18s ease;
+  }
+
+  .packs-rate-modal-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .packs-rate-modal-overlay[hidden] {
+   display: none;
+  }
+
+  .packs-rate-modal-backdrop {
+   position: absolute;
+   inset: 0;
+   background: rgba(4, 11, 37, 0.82);
+   backdrop-filter: blur(4px);
+  }
+
+  .packs-rate-modal {
+   position: relative;
+   z-index: 1;
+   width: min(1120px, 94vw);
+   max-height: min(88vh, 860px);
+   border-radius: 18px;
+   border: 1px solid rgba(160, 201, 255, 0.48);
+   background:
+    linear-gradient(180deg, rgba(18, 31, 82, 0.94), rgba(10, 20, 60, 0.96)),
+    var(--packs-bg-image) var(--packs-bg-position) / var(--packs-bg-size) no-repeat;
+   box-shadow: 0 24px 52px rgba(0, 0, 0, 0.42);
+   overflow: hidden;
+   display: grid;
+   grid-template-rows: auto 1fr auto;
+  }
+
+  .packs-rate-head {
+   display: grid;
+   grid-template-columns: auto 1fr auto;
+   align-items: center;
+   gap: 12px;
+   padding: 14px 20px 12px;
+   border-bottom: 1px solid rgba(162, 205, 255, 0.32);
+   background: rgba(10, 23, 67, 0.55);
+  }
+
+  .packs-rate-head-badge {
+   border-radius: 999px;
+   border: 1px solid rgba(198, 222, 255, 0.7);
+   color: #deecff;
+   background: rgba(255, 255, 255, 0.12);
+   padding: 7px 12px;
+   font-size: 0.98rem;
+   font-weight: 700;
+   display: inline-flex;
+   align-items: center;
+   gap: 7px;
+  }
+
+  .packs-rate-head h2 {
+   margin: 0;
+   text-align: center;
+   font-size: clamp(1.25rem, 2.2vw, 2.05rem);
+   font-family: "Cinzel", serif;
+   font-weight: 700;
+   color: #eaf4ff;
+   letter-spacing: 0.01em;
+  }
+
+  .packs-rate-close {
+   width: 42px;
+   height: 42px;
+   border-radius: 999px;
+   border: 1px solid rgba(198, 220, 255, 0.45);
+   background: rgba(4, 16, 48, 0.62);
+   color: #ecf6ff;
+   font-size: 1.7rem;
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .packs-rate-body {
+   overflow: auto;
+   padding: 14px 18px 18px;
+  }
+
+  .packs-rate-title {
+   margin: 0;
+   text-align: center;
+   color: #d7eaff;
+   font-size: clamp(1.1rem, 1.6vw, 1.55rem);
+   font-weight: 700;
+   letter-spacing: 0.01em;
+  }
+
+  .packs-rate-summary {
+   margin-top: 12px;
+   border-radius: 12px;
+   border: 1px solid rgba(154, 204, 255, 0.38);
+   background: rgba(8, 26, 76, 0.62);
+   padding: 12px 14px;
+   color: #d8e9ff;
+   font-size: 1.1rem;
+   font-weight: 700;
+  }
+
+  .packs-rate-summary .label {
+   color: #ffe082;
+  }
+
+  .packs-rate-summary .value {
+   color: #6ed0ff;
+   font-size: 1.55rem;
+   margin-left: 8px;
+  }
+
+  .packs-rate-grid {
+   margin-top: 12px;
+   display: grid;
+   grid-template-columns: 1fr 1fr;
+   gap: 10px;
+  }
+
+  .packs-rate-state {
+   grid-column: 1 / -1;
+   border-radius: 12px;
+   border: 1px solid rgba(143, 193, 255, 0.35);
+   background: rgba(9, 24, 64, 0.7);
+   color: #deecff;
+   padding: 16px;
+   font-weight: 700;
+   text-align: center;
+  }
+
+  .packs-rate-row {
+   display: grid;
+   grid-template-columns: 92px 1fr auto;
+   align-items: center;
+   gap: 14px;
+   border-radius: 12px;
+   border: 1px solid rgba(143, 193, 255, 0.35);
+   background: rgba(6, 20, 64, 0.65);
+   padding: 10px 12px;
+  }
+
+  .packs-rate-row img {
+   width: 88px;
+   height: 88px;
+   object-fit: contain;
+   border-radius: 10px;
+   background: rgba(5, 15, 45, 0.45);
+   border: 1px solid rgba(182, 214, 255, 0.28);
+  }
+
+  .packs-rate-card-name {
+   margin: 0;
+   color: #eaf5ff;
+   font-size: clamp(1.05rem, 1.4vw, 1.55rem);
+   font-weight: 700;
+   line-height: 1.15;
+  }
+
+  .packs-rate-card-tag {
+   margin: 4px 0 0;
+   color: #ffdd72;
+   font-size: 0.9rem;
+   font-weight: 700;
+   letter-spacing: 0.05em;
+  }
+
+  .packs-rate-value {
+   color: #ffffff;
+   font-size: clamp(1.1rem, 1.85vw, 1.9rem);
+   font-weight: 800;
+   white-space: nowrap;
+  }
+
+  .packs-rate-note {
+   margin: 14px 0 0;
+   color: #d6e7ff;
+   font-size: 1rem;
+   font-weight: 600;
+   text-align: center;
+   border-top: 1px solid rgba(158, 201, 255, 0.25);
+   padding-top: 12px;
+  }
+
+  .packs-rate-foot {
+   border-top: 1px solid rgba(160, 203, 255, 0.28);
+   padding: 14px;
+   display: flex;
+   justify-content: center;
+   background: rgba(8, 20, 57, 0.68);
+  }
+
+  .packs-rate-close-main {
+   min-width: 220px;
+   min-height: 56px;
+   border-radius: 12px;
+   border: 1px solid rgba(251, 219, 116, 0.78);
+   color: #28344f;
+   font-size: 1.95rem;
+   font-weight: 800;
+   background: linear-gradient(180deg, #ffdf6b, #f3b736);
+   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+   cursor: pointer;
+  }
+
+  .packs-history-modal-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 82;
+   display: grid;
+   place-items: center;
+   padding: 16px;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.18s ease;
+  }
+
+  .packs-history-modal-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .packs-history-modal-overlay[hidden] {
+   display: none;
+  }
+
+  .packs-history-modal-backdrop {
+   position: absolute;
+   inset: 0;
+   background: rgba(5, 13, 40, 0.86);
+   backdrop-filter: blur(4px);
+  }
+
+  .packs-history-modal {
+   position: relative;
+   z-index: 1;
+   width: min(1240px, 96vw);
+   max-height: min(90vh, 900px);
+   border-radius: 16px;
+   border: 1px solid rgba(154, 204, 255, 0.45);
+   background:
+    linear-gradient(180deg, rgba(19, 33, 84, 0.96), rgba(8, 19, 58, 0.97)),
+    var(--packs-bg-image) var(--packs-bg-position) / var(--packs-bg-size) no-repeat;
+   box-shadow: 0 24px 54px rgba(0, 0, 0, 0.45);
+   overflow: hidden;
+   display: grid;
+   grid-template-rows: auto auto 1fr auto;
+  }
+
+  .packs-history-head {
+   display: grid;
+   grid-template-columns: 1fr auto;
+   align-items: center;
+   gap: 12px;
+   padding: 14px 20px 12px;
+   border-bottom: 1px solid rgba(159, 205, 255, 0.32);
+   background: rgba(9, 20, 58, 0.6);
+  }
+
+  .packs-history-head h2 {
+   margin: 0;
+   font-family: "Cinzel", serif;
+   font-weight: 700;
+   font-size: clamp(1.3rem, 2.1vw, 2rem);
+   text-align: center;
+   color: #e8f2ff;
+  }
+
+  .packs-history-close {
+   width: 42px;
+   height: 42px;
+   border-radius: 999px;
+   border: 1px solid rgba(186, 216, 255, 0.44);
+   background: rgba(6, 17, 50, 0.66);
+   color: #ecf4ff;
+   font-size: 1.7rem;
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .packs-history-meta {
+   margin: 12px 16px 0;
+   border-radius: 10px;
+   border: 1px solid rgba(156, 205, 255, 0.34);
+   background: rgba(8, 26, 73, 0.62);
+   display: grid;
+   grid-template-columns: 230px 1fr;
+   overflow: hidden;
+  }
+
+  .packs-history-meta .label {
+   padding: 10px 14px;
+   color: #a9c7ea;
+   font-size: 1.45rem;
+   font-weight: 700;
+   background: rgba(15, 34, 90, 0.72);
+   border-right: 1px solid rgba(151, 193, 255, 0.28);
+   line-height: 1.02;
+  }
+
+  .packs-history-meta .set {
+   padding: 8px 16px;
+   color: #f7d97e;
+   font-size: clamp(1.12rem, 1.85vw, 1.62rem);
+   font-weight: 700;
+   display: inline-flex;
+   align-items: center;
+  }
+
+  .packs-history-info {
+   margin: 12px 16px 0;
+   border-radius: 10px;
+   border: 1px solid rgba(148, 202, 255, 0.36);
+   background: rgba(7, 21, 62, 0.68);
+   padding: 12px 14px;
+   color: #d5e7ff;
+   font-size: clamp(1rem, 1.5vw, 1.28rem);
+   font-weight: 600;
+   line-height: 1.25;
+  }
+
+  .packs-history-body {
+   margin: 12px 16px 0;
+   border-radius: 10px;
+   border: 1px solid rgba(152, 201, 255, 0.34);
+   background: rgba(5, 18, 56, 0.54);
+   overflow: auto;
+  }
+
+  .packs-history-table {
+   width: 100%;
+   border-collapse: collapse;
+   min-width: 940px;
+  }
+
+  .packs-history-table thead th {
+   position: sticky;
+   top: 0;
+   z-index: 1;
+   background: rgba(30, 53, 110, 0.96);
+   border-bottom: 1px solid rgba(153, 199, 255, 0.34);
+   color: #bbd4f0;
+   font-size: 1.03rem;
+   font-weight: 700;
+   text-align: center;
+   padding: 10px 8px;
+  }
+
+  .packs-history-table tbody td {
+   border-bottom: 1px solid rgba(142, 184, 240, 0.2);
+   border-right: 1px solid rgba(126, 163, 219, 0.16);
+   padding: 8px 10px;
+   color: #f2f7ff;
+   font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+   font-weight: 600;
+   line-height: 1.04;
+   text-align: center;
+  }
+
+  .packs-history-table tbody tr td:first-child {
+   color: #d8e8ff;
+   font-weight: 700;
+  }
+
+  .packs-history-table tbody tr td:last-child {
+   border-right: none;
+  }
+
+  .packs-history-tier-cell {
+   width: 56px;
+   font-weight: 900;
+   letter-spacing: 0.03em;
+  }
+
+  .packs-history-row.rarity-r td {
+   background: rgba(53, 71, 99, 0.42);
+  }
+
+  .packs-history-row.rarity-sr td {
+   background: linear-gradient(90deg, rgba(96, 39, 147, 0.76), rgba(69, 35, 127, 0.52));
+  }
+
+  .packs-history-row.rarity-ssr td {
+   background: linear-gradient(90deg, rgba(164, 64, 32, 0.72), rgba(124, 48, 31, 0.54));
+  }
+
+  .packs-history-row.empty td {
+   background: rgba(37, 56, 90, 0.44);
+   color: #bfd5f3;
+   font-style: italic;
+   text-align: center;
+   padding: 18px 10px;
+  }
+
+  .packs-history-foot {
+   border-top: 1px solid rgba(149, 196, 255, 0.28);
+   background: rgba(8, 19, 55, 0.74);
+   padding: 12px 16px 14px;
+   display: grid;
+   grid-template-columns: 1fr auto;
+   align-items: center;
+   gap: 12px;
+  }
+
+  .packs-history-pager {
+   display: inline-flex;
+   align-items: center;
+   gap: 10px;
+   justify-self: center;
+  }
+
+  .packs-history-page-btn {
+   min-width: 90px;
+   min-height: 46px;
+   border-radius: 10px;
+   border: 1px solid rgba(147, 196, 255, 0.5);
+   background: linear-gradient(180deg, rgba(46, 91, 176, 0.92), rgba(26, 56, 122, 0.96));
+   color: #edf6ff;
+   font-size: 1.35rem;
+   font-weight: 900;
+   cursor: pointer;
+  }
+
+  .packs-history-page-btn:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+  }
+
+  .packs-history-page-value {
+   min-width: 96px;
+   text-align: center;
+   color: #89c7ff;
+   font-size: 1.55rem;
+   font-weight: 800;
+  }
+
+  .packs-history-close-main {
+   min-width: 180px;
+   min-height: 48px;
+   border-radius: 10px;
+   border: 1px solid rgba(248, 219, 123, 0.72);
+   background: linear-gradient(180deg, #ffdf73, #f4be44);
+   color: #25324d;
+   font-size: 1.2rem;
+   font-weight: 800;
+   cursor: pointer;
+   justify-self: end;
+  }
+
+  .packs-buy-modal-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 84;
+   display: grid;
+   place-items: center;
+   padding: 16px;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.18s ease;
+  }
+
+  .packs-buy-modal-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .packs-buy-modal-overlay[hidden] {
+   display: none;
+  }
+
+  .packs-buy-modal-backdrop {
+   position: absolute;
+   inset: 0;
+   background: rgba(5, 13, 40, 0.86);
+   backdrop-filter: blur(4px);
+  }
+
+  .packs-buy-modal {
+   position: relative;
+   z-index: 1;
+   width: min(840px, 94vw);
+   border-radius: 14px;
+   border: 1px solid rgba(148, 205, 255, 0.62);
+   background:
+    linear-gradient(180deg, rgba(14, 31, 86, 0.95), rgba(8, 18, 58, 0.95)),
+    var(--packs-bg-image) var(--packs-bg-position) / var(--packs-bg-size) no-repeat;
+   box-shadow: 0 26px 56px rgba(0, 0, 0, 0.45);
+   overflow: hidden;
+  }
+
+  .packs-buy-head {
+   display: grid;
+   grid-template-columns: 1fr auto;
+   align-items: center;
+   gap: 12px;
+   padding: 16px 20px 14px;
+   border-bottom: 1px solid rgba(146, 202, 255, 0.32);
+  }
+
+  .packs-buy-head h2 {
+   margin: 0;
+   text-align: center;
+   font-size: clamp(1.55rem, 2.2vw, 2.3rem);
+   color: #eaf5ff;
+   font-weight: 800;
+   letter-spacing: 0.02em;
+  }
+
+  .packs-buy-close {
+   width: 44px;
+   height: 44px;
+   border-radius: 999px;
+   border: 1px solid rgba(180, 220, 255, 0.52);
+   background: rgba(8, 20, 60, 0.72);
+   color: #eef6ff;
+   font-size: 1.9rem;
+   line-height: 1;
+   display: grid;
+   place-items: center;
+   cursor: pointer;
+  }
+
+  .packs-buy-body {
+   padding: 18px 24px 20px;
+  }
+
+  .packs-buy-subtitle {
+   margin: 0 0 14px;
+   text-align: center;
+   color: #e6f3ff;
+   font-size: clamp(1.25rem, 1.8vw, 1.8rem);
+   font-weight: 700;
+  }
+
+  .packs-buy-preview {
+   border-radius: 12px;
+   border: 1px solid rgba(141, 196, 255, 0.34);
+   background: rgba(10, 22, 62, 0.74);
+   padding: 18px 16px;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   gap: 16px;
+  }
+
+  .packs-buy-item {
+   width: 170px;
+   min-height: 156px;
+   border-radius: 10px;
+   border: 1px solid rgba(145, 196, 255, 0.34);
+   background: rgba(8, 22, 62, 0.72);
+   display: grid;
+   justify-items: center;
+   align-content: center;
+   gap: 8px;
+   padding: 12px;
+  }
+
+  .packs-buy-item img {
+   width: 88px;
+   height: 88px;
+   object-fit: contain;
+   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  }
+
+  .packs-buy-item strong {
+   color: #eef7ff;
+   font-size: 2rem;
+   font-weight: 800;
+   line-height: 1;
+  }
+
+  .packs-buy-arrow {
+   color: #e9f3ff;
+   font-size: 3.2rem;
+   line-height: 1;
+   font-weight: 700;
+   margin-top: -8px;
+  }
+
+  .packs-buy-count-label {
+   margin: 16px 0 8px;
+   text-align: center;
+   color: #dcedff;
+   font-size: 1.1rem;
+   font-weight: 700;
+  }
+
+  .packs-buy-qty-row {
+   display: grid;
+   grid-template-columns: auto auto minmax(120px, 1fr) auto auto;
+   gap: 10px;
+   align-items: center;
+   max-width: 520px;
+   margin: 0 auto;
+  }
+
+  .packs-buy-qty-btn {
+   min-width: 82px;
+   min-height: 54px;
+   border-radius: 10px;
+   border: 1px solid rgba(151, 197, 255, 0.4);
+   background: rgba(11, 29, 80, 0.65);
+   color: #e9f4ff;
+   font-size: 2rem;
+   font-weight: 700;
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .packs-buy-qty-btn.small {
+   min-width: 62px;
+  }
+
+  .packs-buy-qty-btn:disabled {
+   opacity: 0.42;
+   cursor: not-allowed;
+  }
+
+  .packs-buy-qty-value {
+   min-height: 54px;
+   border-radius: 999px;
+   border: 1px solid rgba(141, 196, 255, 0.36);
+   background: rgba(14, 36, 92, 0.8);
+   display: grid;
+   place-items: center;
+   color: #ffe58a;
+   font-size: 2rem;
+   font-weight: 800;
+  }
+
+  .packs-buy-balance {
+   margin-top: 16px;
+   border-radius: 999px;
+   border: 1px solid rgba(146, 198, 255, 0.3);
+   background: rgba(13, 31, 84, 0.72);
+   display: grid;
+   grid-template-columns: auto 1fr auto auto auto;
+   align-items: center;
+   gap: 10px;
+   padding: 9px 14px;
+  }
+
+  .packs-buy-balance img {
+   width: 34px;
+   height: 34px;
+   object-fit: contain;
+  }
+
+  .packs-buy-balance .label {
+   color: #deeeff;
+   font-size: 1rem;
+   font-weight: 700;
+  }
+
+  .packs-buy-balance .values {
+   color: #ffffff;
+   font-size: 1.95rem;
+   font-weight: 800;
+   line-height: 1;
+  }
+
+  .packs-buy-balance .arrow {
+   color: #cfe6ff;
+   font-size: 1.5rem;
+   font-weight: 700;
+   line-height: 1;
+  }
+
+  .packs-buy-error {
+   min-height: 24px;
+   margin: 10px 0 0;
+   text-align: center;
+   color: #ffc8bf;
+   font-size: 0.98rem;
+   font-weight: 700;
+  }
+
+  .packs-buy-submit {
+   margin: 10px auto 0;
+   width: min(500px, 100%);
+   min-height: 64px;
+   border-radius: 12px;
+   border: 1px solid rgba(250, 220, 122, 0.78);
+   background: linear-gradient(180deg, #ffe677, #f1c63f);
+   color: #27324c;
+   display: grid;
+   grid-template-columns: auto auto 1fr;
+   align-items: center;
+   gap: 10px;
+   font-size: 2rem;
+   font-weight: 800;
+   padding: 0 14px;
+   cursor: pointer;
+   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+  }
+
+  .packs-buy-submit:disabled {
+   opacity: 0.58;
+   cursor: not-allowed;
+  }
+
+  .packs-buy-submit img {
+   width: 36px;
+   height: 36px;
+   object-fit: contain;
+  }
+
+  .packs-buy-submit .cost {
+   color: #1f396e;
+   min-width: 74px;
+   text-align: left;
+  }
+
+  .packs-buy-submit .label {
+   text-align: center;
+  }
+
+  @media (max-width: 1180px) {
+   .packs-draw-btn.advanced { min-width: 205px; }
+   .packs-focus-character { bottom: var(--packs-center-bottom-1180); }
+   .packs-focus-character img { width: var(--packs-center-width-1180); }
+   .packs-focus-badge { left: calc(50% + 130px); bottom: 88px; }
+   .packs-status { width: min(42vw, 440px); }
+   .packs-set-slider { width: min(64vw, 720px); }
+  }
+
+  @media (max-width: 900px) {
+   .packs-buy-modal {
+    width: min(96vw, 760px);
+   }
+   .packs-buy-body {
+    padding: 14px 14px 16px;
+   }
+   .packs-buy-preview {
+    gap: 10px;
+    padding: 12px 8px;
+   }
+   .packs-buy-item {
+    width: 128px;
+    min-height: 126px;
+   }
+   .packs-buy-item img {
+    width: 72px;
+    height: 72px;
+   }
+   .packs-buy-item strong {
+    font-size: 1.65rem;
+   }
+   .packs-buy-arrow {
+    font-size: 2.2rem;
+   }
+   .packs-buy-qty-row {
+    grid-template-columns: auto auto 1fr auto auto;
+    gap: 6px;
+   }
+   .packs-buy-qty-btn {
+    min-width: 66px;
+    min-height: 48px;
+    font-size: 1.75rem;
+   }
+   .packs-buy-qty-btn.small {
+    min-width: 54px;
+   }
+   .packs-buy-qty-value {
+    min-height: 48px;
+    font-size: 1.7rem;
+   }
+   .packs-buy-balance .values {
+    font-size: 1.45rem;
+   }
+   .packs-buy-submit {
+    min-height: 58px;
+    font-size: 1.65rem;
+   }
+   .packs-top-right {
+    gap: 8px;
+   }
+   .packs-resource {
+    min-height: 50px;
+    padding: 0 10px 0 8px;
+   }
+   .packs-resource img {
+    width: 34px;
+    height: 34px;
+   }
+   .packs-resource-buy-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 1.45rem;
+   }
+   .packs-main { min-height: auto; padding-bottom: 220px; }
+   .packs-side-right { display: none; }
+   .packs-planet-wrap { inset: 140px 0 190px; }
+   .packs-focus-character {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+   }
+   .packs-focus-character img {
+    width: var(--packs-center-width-mobile);
+   }
+   .packs-focus-badge {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    margin: 10px auto 0;
+    width: fit-content;
+   }
+   .packs-footer {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+   }
+   .packs-draw-controls {
+    width: auto;
+    justify-content: center;
+   }
+   .packs-draw-btn,
+   .packs-draw-btn.advanced {
+    flex: 1;
+    min-width: 0;
+    min-height: 58px;
+   }
+   .packs-status {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    margin: 14px auto 0;
+    width: min(94vw, 620px);
+    min-height: 0;
+   }
+   .packs-set-slider {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    width: min(94vw, 720px);
+    margin: 12px auto 0;
+    border-radius: 12px;
+   }
+   .packs-set-card {
+    width: 190px;
+    min-width: 190px;
+    height: 88px;
+   }
+   .packs-rate-modal {
+    width: min(94vw, 760px);
+    max-height: min(90vh, 840px);
+   }
+   .packs-rate-grid {
+    grid-template-columns: 1fr;
+   }
+   .packs-rate-row {
+    grid-template-columns: 70px 1fr auto;
+    gap: 10px;
+    padding: 8px 10px;
+   }
+   .packs-rate-row img {
+    width: 66px;
+    height: 66px;
+   }
+   .packs-rate-head {
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+   }
+   .packs-rate-head h2 {
+    grid-column: 1 / -1;
+    order: 3;
+    text-align: left;
+    font-size: 1.2rem;
+   }
+   .packs-rate-head-badge {
+    font-size: 0.9rem;
+   }
+   .packs-history-modal {
+    width: min(96vw, 860px);
+    max-height: min(92vh, 880px);
+   }
+   .packs-history-meta {
+    grid-template-columns: 1fr;
+   }
+   .packs-history-meta .label {
+    border-right: none;
+    border-bottom: 1px solid rgba(151, 193, 255, 0.28);
+   }
+   .packs-history-foot {
+    grid-template-columns: 1fr;
+   }
+   .packs-history-pager {
+    justify-self: stretch;
+    justify-content: center;
+   }
+   .packs-history-close-main {
+    justify-self: center;
+   }
+  }
+ </style>
+</head>
+<body class="packs-page">
+ <main class="packs-shell">
+  <header class="packs-topbar">
+   <div class="packs-top-left">
+   <button id="packsBackBtn" class="packs-back-btn" type="button" aria-label="Retour">&lt;</button>
+   <span>packs</span>
+   <button class="packs-help-btn" type="button" aria-label="Aide">?</button>
+   </div>
+  <div class="packs-top-right">
+   <div class="packs-resource">
+    <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+    <strong id="packsKamasValue">2,465</strong>
+   </div>
+   <div class="packs-resource packs-resource-packs">
+    <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Packs">
+    <strong>x<span id="packsCountValue">12</span></strong>
+    <button id="packsBuyBtn" class="packs-resource-buy-btn" type="button" aria-label="Acheter des packs" title="Acheter des packs">+</button>
+   </div>
+  </div>
+ </header>
+
+  <section class="packs-main">
+   <div class="packs-title">
+    <h1 id="packsMainSetTitle">Incarnam</h1>
+   </div>
+
+   <div class="packs-planet-wrap" aria-hidden="true">
+    <span class="packs-ring r1"></span>
+    <span class="packs-ring r2"></span>
+    <span class="packs-ring r3"></span>
+    <span class="packs-planet"></span>
+   </div>
+
+   <aside class="packs-side-right">
+   <div>
+     <button id="openRateInfoBtn" class="packs-side-rate-btn" type="button" aria-label="Infos sur le taux">
+      % Infos sur le taux
+     </button>
+    </div>
+    <button id="openRecruitHistoryBtn" class="packs-side-history-btn" type="button" aria-label="Historique de recrutements">
+     Historique de recrutements
+    </button>
+   </aside>
+
+   <figure id="packsFocusFigure" class="packs-focus-character" aria-label="Centre Incarnam">
+    <img id="packsFocusImage" src="/assets/ui/centre%20incarnam.png" alt="Centre Incarnam">
+   </figure>
+   <div class="packs-focus-badge" aria-label="Rarete SSR Gromulet">
+    <img src="/assets/ui/ssr.png" alt="SSR">
+    <span id="packsFocusName">gromulet</span>
+   </div>
+
+   <div class="packs-status" id="packsStatusText">
+    <p class="packs-pity-title">Pity du set</p>
+   <div class="packs-pity-grid">
+    <div class="packs-pity-slot">
+      <div class="packs-pity-slot-head">
+       <span class="packs-pity-slot-label">UR</span>
+       <strong id="packsSetPityUrValue" class="packs-pity-slot-value">04/10</strong>
+      </div>
+      <div class="packs-pity-slot-track"><span id="packsSetPityUrBar" class="packs-pity-slot-fill"></span></div>
+     </div>
+     <div class="packs-pity-slot">
+      <div class="packs-pity-slot-head">
+       <span class="packs-pity-slot-label">S</span>
+       <strong id="packsSetPitySValue" class="packs-pity-slot-value">12/30</strong>
+      </div>
+      <div class="packs-pity-slot-track"><span id="packsSetPitySBar" class="packs-pity-slot-fill"></span></div>
+     </div>
+     <div class="packs-pity-slot">
+      <div class="packs-pity-slot-head">
+       <span class="packs-pity-slot-label">SSR</span>
+       <strong id="packsSetPitySsrValue" class="packs-pity-slot-value">09/50</strong>
+      </div>
+      <div class="packs-pity-slot-track"><span id="packsSetPitySsrBar" class="packs-pity-slot-fill"></span></div>
+     </div>
+    </div>
+   </div>
+
+   <section class="packs-set-slider" aria-label="Sets disponibles">
+    <div id="packsSetSliderTrack" class="packs-set-slider-track"></div>
+   </section>
+
+   <footer class="packs-footer">
+   <div class="packs-draw-controls">
+      <button id="packsDraw1Btn" class="packs-draw-btn" type="button">Tirage x1</button>
+      <button id="packsDraw10Btn" class="packs-draw-btn advanced" type="button">x10 Tirages Consecutifs</button>
+      <button id="packsDraw25Btn" class="packs-draw-btn advanced" type="button">x25 Tirages Consecutifs</button>
+    </div>
+   </footer>
+  </section>
+ </main>
+
+ <aside id="packsRateModal" class="packs-rate-modal-overlay" hidden>
+  <div class="packs-rate-modal-backdrop" data-close-rate-modal></div>
+  <section class="packs-rate-modal" role="dialog" aria-modal="true" aria-labelledby="packsRateSetTitle">
+   <header class="packs-rate-head">
+    <span class="packs-rate-head-badge">% Infos sur le taux</span>
+    <h2 id="packsRateSetTitle">Set de test</h2>
+    <button class="packs-rate-close" type="button" data-close-rate-modal aria-label="Fermer">&times;</button>
+   </header>
+   <div class="packs-rate-body">
+    <p class="packs-rate-title">Details du taux</p>
+    <div class="packs-rate-summary">
+     <span class="label">SSR</span>
+     <span id="packsRateEffectiveValue" class="value">1.2%</span>
+     <span>taux effectif de drop</span>
+    </div>
+    <div id="packsRateGrid" class="packs-rate-grid"></div>
+    <p class="packs-rate-note">
+     Le taux affiche est donne a titre indicatif de test local.
+    </p>
+   </div>
+   <footer class="packs-rate-foot">
+    <button class="packs-rate-close-main" type="button" data-close-rate-modal>Fermer</button>
+   </footer>
+  </section>
+ </aside>
+
+ <aside id="packsHistoryModal" class="packs-history-modal-overlay" hidden>
+  <div class="packs-history-modal-backdrop" data-close-history-modal></div>
+  <section class="packs-history-modal" role="dialog" aria-modal="true" aria-labelledby="packsHistorySetTitle">
+   <header class="packs-history-head">
+    <h2>Historique de recrutements</h2>
+    <button class="packs-history-close" type="button" data-close-history-modal aria-label="Fermer">&times;</button>
+   </header>
+   <div class="packs-history-meta">
+    <span class="label">Set</span>
+    <strong id="packsHistorySetTitle" class="set">Set de test</strong>
+   </div>
+   <p class="packs-history-info">
+    L'historique de recrutements couvre uniquement les 7 derniers jours. L'actualisation des donnees peut prendre un court instant.
+   </p>
+   <div class="packs-history-body">
+    <table class="packs-history-table">
+     <thead>
+      <tr>
+       <th>Set</th>
+       <th>*</th>
+       <th>Nom de l'objet</th>
+       <th>Nom du recrutement</th>
+       <th>Heure d'acquisition (UTC+0)</th>
+      </tr>
+     </thead>
+     <tbody id="packsHistoryRows"></tbody>
+    </table>
+   </div>
+   <footer class="packs-history-foot">
+    <div class="packs-history-pager">
+     <button id="packsHistoryPrevBtn" class="packs-history-page-btn" type="button" aria-label="Page precedente">&lt;</button>
+     <strong id="packsHistoryPageValue" class="packs-history-page-value">1</strong>
+     <button id="packsHistoryNextBtn" class="packs-history-page-btn" type="button" aria-label="Page suivante">&gt;</button>
+    </div>
+    <button class="packs-history-close-main" type="button" data-close-history-modal>Fermer</button>
+   </footer>
+ </section>
+</aside>
+
+<aside id="packsBuyModal" class="packs-buy-modal-overlay" hidden>
+ <div class="packs-buy-modal-backdrop" data-close-buy-modal></div>
+ <section class="packs-buy-modal" role="dialog" aria-modal="true" aria-labelledby="packsBuyTitle">
+  <header class="packs-buy-head">
+   <h2 id="packsBuyTitle">Acheter un pack</h2>
+   <button class="packs-buy-close" type="button" data-close-buy-modal aria-label="Fermer">&times;</button>
+  </header>
+  <div class="packs-buy-body">
+   <p class="packs-buy-subtitle">Achetez l'objet suivant :</p>
+   <div class="packs-buy-preview">
+    <article class="packs-buy-item">
+     <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+     <strong id="packsBuyCostPreview">2500</strong>
+    </article>
+    <span class="packs-buy-arrow">&rsaquo;</span>
+    <article class="packs-buy-item">
+     <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Pack">
+     <strong id="packsBuyPackPreview">x1</strong>
+    </article>
+   </div>
+
+   <p class="packs-buy-count-label">Nombre d'achats</p>
+   <div class="packs-buy-qty-row">
+    <button id="packsBuyMinus10Btn" class="packs-buy-qty-btn" type="button">-10</button>
+    <button id="packsBuyMinus1Btn" class="packs-buy-qty-btn small" type="button">−</button>
+    <strong id="packsBuyQtyValue" class="packs-buy-qty-value">1</strong>
+    <button id="packsBuyPlus1Btn" class="packs-buy-qty-btn small" type="button">+</button>
+    <button id="packsBuyPlus10Btn" class="packs-buy-qty-btn" type="button">+10</button>
+   </div>
+
+   <div class="packs-buy-balance">
+    <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+    <span class="label">Possede</span>
+    <strong id="packsBuyBalanceBefore" class="values">0</strong>
+    <span class="arrow">&rsaquo;</span>
+    <strong id="packsBuyBalanceAfter" class="values">0</strong>
+   </div>
+   <p id="packsBuyError" class="packs-buy-error"></p>
+
+   <button id="packsBuySubmitBtn" class="packs-buy-submit" type="button">
+    <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+    <span id="packsBuyTotalCost" class="cost">2500</span>
+    <span class="label">Acheter</span>
+   </button>
+  </div>
+ </section>
+</aside>
+
+ <script>
+  const setCatalog = {
+   incarnam: {
+    id: "incarnam",
+    name: "Incarnam",
+    backgroundImage: "/assets/ui/fond%20pack%20incarnam.png",
+    sliderImage: "/assets/ui/fond%20pack%20incarnam.png",
+    centerImage: "/assets/ui/centre%20incarnam.png",
+    focusName: "gromulet",
+    effectiveSSR: 1.2,
+    ssrCards: [
+     { name: "Mimi", rate: 0.6, image: "/assets/ui/mimi_incarnam_SSR.png" },
+     { name: "Gromulet", rate: 0.6, image: "/assets/ui/gromulet_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 4, s: 12, ssr: 9 }
+   },
+   astrub: {
+    id: "astrub",
+    name: "Astrub",
+    backgroundImage: "/assets/ui/fond%20pack%20astrub.png",
+    sliderImage: "/assets/ui/fond%20pack%20astrub.png",
+    centerImage: "/assets/ui/centre%20astrub.png",
+    centerBottom: "-178px",
+    centerBottom1180: "-148px",
+    centerWidth: "min(99vw, 1334px)",
+    centerWidth1180: "min(94.3vw, 1127px)",
+    centerWidthMobile: "min(101.2vw, 621px)",
+    focusName: "bouftou royal",
+    effectiveSSR: 1.05,
+    ssrCards: [
+     { name: "Gromulet", rate: 0.58, image: "/assets/ui/gromulet_incarnam_SSR.png" },
+     { name: "Mimi", rate: 0.47, image: "/assets/ui/mimi_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 2, s: 8, ssr: 16 }
+   },
+   amakna: {
+    id: "amakna",
+    name: "Amakna",
+    backgroundImage: "/assets/ui/fond%20pack%20amakna.png",
+    sliderImage: "/assets/ui/fond%20pack%20amakna.png",
+    centerImage: "/assets/ui/centre%20amakna.png",
+    centerWidth: "min(123.84vw, 1670px)",
+    centerWidth1180: "min(118.08vw, 1411px)",
+    centerWidthMobile: "min(126.72vw, 778px)",
+    focusName: "khan karkass",
+    effectiveSSR: 1.1,
+    ssrCards: [
+     { name: "Gromulet", rate: 0.56, image: "/assets/ui/gromulet_incarnam_SSR.png" },
+     { name: "Mimi", rate: 0.54, image: "/assets/ui/mimi_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 3, s: 10, ssr: 19 }
+   },
+   sufokia: {
+    id: "sufokia",
+    name: "Sufokia",
+    backgroundImage: "/assets/ui/fond%20pack%20sufokia.png",
+    sliderImage: "/assets/ui/fond%20pack%20sufokia.png",
+    centerImage: "/assets/ui/centre%20sufokia.png",
+    centerBottom: "-210px",
+    centerWidth: "min(198vw, 2880px)",
+    centerBottom1180: "-190px",
+    centerWidth1180: "min(180vw, 2520px)",
+    centerWidthMobile: "min(186vw, 1584px)",
+    focusName: "cire momore",
+    effectiveSSR: 1.15,
+    ssrCards: [
+     { name: "Mimi", rate: 0.52, image: "/assets/ui/mimi_incarnam_SSR.png" },
+     { name: "Gromulet", rate: 0.63, image: "/assets/ui/gromulet_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 5, s: 14, ssr: 22 }
+   },
+   kelba: {
+    id: "kelba",
+    name: "Kelba",
+    backgroundImage: "/assets/ui/fond%20pack%20kelba.png",
+    sliderImage: "/assets/ui/fond%20pack%20kelba.png",
+    centerImage: "/assets/ui/centre%20kelba.png",
+    centerBottom: "-98px",
+    centerBottom1180: "-68px",
+    focusName: "excarnus",
+    effectiveSSR: 1.08,
+    ssrCards: [
+     { name: "Gromulet", rate: 0.55, image: "/assets/ui/gromulet_incarnam_SSR.png" },
+     { name: "Mimi", rate: 0.53, image: "/assets/ui/mimi_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 3, s: 11, ssr: 17 }
+   },
+   katrepat: {
+    id: "katrepat",
+    name: "Katrepat",
+    backgroundImage: "/assets/ui/fond%20pack%20katrepat.png",
+    sliderImage: "/assets/ui/fond%20pack%20katrepat.png",
+    centerImage: "/assets/ui/centre%20katrepat.png",
+    centerBottom: "-135px",
+    centerBottom1180: "-115px",
+    focusName: "vampyro",
+    effectiveSSR: 1.13,
+    ssrCards: [
+     { name: "Mimi", rate: 0.57, image: "/assets/ui/mimi_incarnam_SSR.png" },
+     { name: "Gromulet", rate: 0.56, image: "/assets/ui/gromulet_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 4, s: 13, ssr: 20 }
+   },
+   sberg: {
+    id: "sberg",
+    name: "Sberg",
+    backgroundImage: "/assets/ui/fond%20pack%20sberg.png",
+    sliderImage: "/assets/ui/fond%20pack%20sberg.png",
+    centerImage: "/assets/ui/centre%20sberg.png",
+    centerBottom: "14px",
+    centerBottom1180: "28px",
+    focusName: "corbeau noir",
+    effectiveSSR: 1.18,
+    ssrCards: [
+     { name: "Gromulet", rate: 0.6, image: "/assets/ui/gromulet_incarnam_SSR.png" },
+     { name: "Mimi", rate: 0.58, image: "/assets/ui/mimi_incarnam_SSR.png" }
+    ],
+    pityStart: { ur: 5, s: 15, ssr: 24 }
+   }
+  }
+
+ let activeSetId = "incarnam"
+  const LOCKED_SET_SLIDER_IMAGE = "/assets/ui/set%20non%20deblock.png"
+  const sliderDragState = {
+   active: false,
+   moved: false,
+   startX: 0,
+   startScrollLeft: 0,
+   ignoreClickUntil: 0
+  }
+
+  const packsState = {
+   kamas: 2465,
+   packs: 12,
+   drawBusy: false,
+   unlockedSetIds: new Set(Object.keys(setCatalog)),
+   pityBySet: Object.fromEntries(
+    Object.entries(setCatalog).map(([setId, setData]) => [setId, { ...setData.pityStart }])
+   )
+  }
+
+  const rateCardsCacheBySet = Object.create(null)
+  const rateCardsRequestBySet = Object.create(null)
+  const rateInfo = {
+   setId: activeSetId,
+   setName: setCatalog[activeSetId].name,
+   effectiveSSR: 0,
+   ssrCards: [],
+   loading: false,
+   error: ""
+  }
+
+  const setPityCaps = {
+   ur: 10,
+   s: 30,
+   ssr: 50
+  }
+
+  const historyState = {
+   page: 1,
+   pageSize: 10,
+   pages: 1,
+   total: 0,
+   rows: [],
+   loading: false,
+   error: "",
+   source: "api"
+  }
+
+  const buyMenuState = {
+   packPrice: 2500,
+   quantity: 1,
+   busy: false,
+   error: ""
+  }
+
+  const HISTORY_WINDOW_DAYS = 7
+  const HISTORY_WINDOW_MS = HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  const localHistoryRows = []
+
+  const el = {
+   backBtn: document.getElementById("packsBackBtn"),
+   kamasTop: document.getElementById("packsKamasValue"),
+   packsTop: document.getElementById("packsCountValue"),
+   buyPacksBtn: document.getElementById("packsBuyBtn"),
+   draw1: document.getElementById("packsDraw1Btn"),
+   draw10: document.getElementById("packsDraw10Btn"),
+   draw25: document.getElementById("packsDraw25Btn"),
+   mainSetTitle: document.getElementById("packsMainSetTitle"),
+   focusFigure: document.getElementById("packsFocusFigure"),
+   focusImage: document.getElementById("packsFocusImage"),
+   focusName: document.getElementById("packsFocusName"),
+   openRateInfoBtn: document.getElementById("openRateInfoBtn"),
+   openRecruitHistoryBtn: document.getElementById("openRecruitHistoryBtn"),
+   setSliderTrack: document.getElementById("packsSetSliderTrack"),
+   rateModal: document.getElementById("packsRateModal"),
+   rateSetTitle: document.getElementById("packsRateSetTitle"),
+   rateEffectiveValue: document.getElementById("packsRateEffectiveValue"),
+   rateGrid: document.getElementById("packsRateGrid"),
+   historyModal: document.getElementById("packsHistoryModal"),
+   historySetTitle: document.getElementById("packsHistorySetTitle"),
+   historyRows: document.getElementById("packsHistoryRows"),
+   historyPrevBtn: document.getElementById("packsHistoryPrevBtn"),
+   historyNextBtn: document.getElementById("packsHistoryNextBtn"),
+   historyPageValue: document.getElementById("packsHistoryPageValue"),
+   buyModal: document.getElementById("packsBuyModal"),
+   buyQtyValue: document.getElementById("packsBuyQtyValue"),
+   buyCostPreview: document.getElementById("packsBuyCostPreview"),
+   buyPackPreview: document.getElementById("packsBuyPackPreview"),
+   buyBalanceBefore: document.getElementById("packsBuyBalanceBefore"),
+   buyBalanceAfter: document.getElementById("packsBuyBalanceAfter"),
+   buyError: document.getElementById("packsBuyError"),
+   buyTotalCost: document.getElementById("packsBuyTotalCost"),
+   buySubmitBtn: document.getElementById("packsBuySubmitBtn"),
+   buyMinus10Btn: document.getElementById("packsBuyMinus10Btn"),
+   buyMinus1Btn: document.getElementById("packsBuyMinus1Btn"),
+   buyPlus1Btn: document.getElementById("packsBuyPlus1Btn"),
+   buyPlus10Btn: document.getElementById("packsBuyPlus10Btn"),
+   pityUrValue: document.getElementById("packsSetPityUrValue"),
+   pitySValue: document.getElementById("packsSetPitySValue"),
+   pitySsrValue: document.getElementById("packsSetPitySsrValue"),
+   pityUrBar: document.getElementById("packsSetPityUrBar"),
+   pitySBar: document.getElementById("packsSetPitySBar"),
+   pitySsrBar: document.getElementById("packsSetPitySsrBar")
+  }
+
+  function getActiveSet() {
+   return setCatalog[activeSetId]
+  }
+
+  function normalizeSetId(value) {
+   return String(value || "").trim().toLowerCase()
+  }
+
+  function normalizePityCounters(raw) {
+   const ur = Math.max(0, Math.min(setPityCaps.ur, Number(raw?.UR ?? raw?.ur ?? 0)))
+   const s = Math.max(0, Math.min(setPityCaps.s, Number(raw?.S ?? raw?.s ?? 0)))
+   const ssr = Math.max(0, Math.min(setPityCaps.ssr, Number(raw?.SSR ?? raw?.ssr ?? 0)))
+   return { ur, s, ssr }
+  }
+
+  function applyPityBySetPayload(rawPityBySet) {
+   if (!rawPityBySet || typeof rawPityBySet !== "object") return
+   for (const [rawSetId, rawCounters] of Object.entries(rawPityBySet)) {
+    const setId = normalizeSetId(rawSetId)
+    if (!setCatalog[setId]) continue
+    packsState.pityBySet[setId] = normalizePityCounters(rawCounters)
+   }
+  }
+
+  function isSetUnlockedForPlayer(setId) {
+   return packsState.unlockedSetIds instanceof Set
+    ? packsState.unlockedSetIds.has(String(setId))
+    : true
+  }
+
+  async function loadUnlockedSetsFromMeta() {
+   try {
+    const response = await fetch("/api/game/meta", { credentials: "same-origin" })
+    if (!response.ok) return
+    const payload = await response.json()
+    if (Number.isFinite(Number(payload?.packPrice)) && Number(payload.packPrice) > 0) {
+     buyMenuState.packPrice = Math.round(Number(payload.packPrice))
+    }
+    if (Number.isFinite(Number(payload?.packStock)) && Number(payload.packStock) >= 0) {
+     packsState.packs = Math.floor(Number(payload.packStock))
+    }
+    if (Number.isFinite(Number(payload?.kamas)) && Number(payload.kamas) >= 0) {
+     packsState.kamas = Math.floor(Number(payload.kamas))
+    }
+    applyPityBySetPayload(payload?.pityBySet)
+    const unlocked = Array.isArray(payload?.unlockedSets) ? payload.unlockedSets : []
+    const ids = new Set(unlocked.map((set) => normalizeSetId(set?.id)).filter(Boolean))
+    if (ids.size) {
+     packsState.unlockedSetIds = ids
+     const firstUnlocked = Object.keys(setCatalog).find((setId) => ids.has(setId))
+     if (!isSetUnlockedForPlayer(activeSetId) && firstUnlocked) {
+      switchActiveSet(firstUnlocked)
+      return
+     }
+    }
+
+    renderSetSlider()
+    updateUI()
+  } catch (error) {
+   console.warn("[PACKS] Impossible de charger les sets debloques:", error)
+   }
+  }
+
+  function getActivePity() {
+   if (!packsState.pityBySet[activeSetId]) {
+    packsState.pityBySet[activeSetId] = { ur: 0, s: 0, ssr: 0 }
+   }
+   return packsState.pityBySet[activeSetId]
+  }
+
+  function formatInt(value) {
+   return Number(value || 0).toLocaleString("fr-FR")
+  }
+
+  function clampBuyQuantity(value) {
+   return Math.max(1, Math.min(999, Math.floor(Number(value || 1))))
+  }
+
+  function getBuyTotalCost() {
+   return Math.max(0, Number(buyMenuState.packPrice || 0)) * Math.max(1, Number(buyMenuState.quantity || 1))
+  }
+
+  function getBuyBalanceAfter() {
+   return Number(packsState.kamas || 0) - getBuyTotalCost()
+  }
+
+  function setBuyQuantity(nextValue) {
+   buyMenuState.quantity = clampBuyQuantity(nextValue)
+   renderBuyModal()
+  }
+
+  function formatRate(value) {
+   const n = Number(value || 0)
+   if (!Number.isFinite(n)) return "0%"
+   if (n >= 1) return `${n.toFixed(1)}%`
+   if (n >= 0.1) return `${n.toFixed(2)}%`
+   return `${n.toFixed(4)}%`
+  }
+
+  function getSSRSoftPityRate(pityValue) {
+   const pity = Math.max(0, Number(pityValue || 0))
+   if (pity < 20) return 0.0005
+   if (pity < 30) return 0.001
+   if (pity < 35) return 0.003
+   if (pity < 40) return 0.005
+   if (pity < 43) return 0.01
+   if (pity < 46) return 0.02
+   if (pity < 49) return 0.05
+   return 0.05
+  }
+
+  function getSSoftPityRate(pityValue) {
+   const pity = Math.max(0, Number(pityValue || 0))
+   if (pity < 15) return 0.0015
+   if (pity < 20) return 0.003
+   if (pity < 25) return 0.006
+   if (pity < 28) return 0.012
+   if (pity < 29) return 0.03
+   return 0.03
+  }
+
+  function getFallbackSSRCardsForSet(setId) {
+   const source = Array.isArray(setCatalog[setId]?.ssrCards) ? setCatalog[setId].ssrCards : []
+   return source.map((card, index) => ({
+    id: `local-${setId}-${index}`,
+    name: String(card?.name || `SSR ${index + 1}`),
+    image: card?.image || card?.imageUrl || ""
+   }))
+  }
+
+  function buildSSRRateRows(setId, effectiveSSRPercent) {
+   const sourceCards = rateCardsCacheBySet[setId] || getFallbackSSRCardsForSet(setId)
+   if (!sourceCards.length) return []
+   const perCardRate = effectiveSSRPercent / sourceCards.length
+   return sourceCards.map((card) => ({
+    id: card.id || "",
+    name: String(card.name || "Carte SSR"),
+    image: card.image || "/assets/ui/ssr.png",
+    rate: perCardRate
+   }))
+  }
+
+  function getEffectiveSSRRatePercentForSet(setId) {
+   const pityState = packsState.pityBySet[setId] || { ssr: 0 }
+   const pitySsr = Math.max(0, Number(pityState.ssr || 0))
+   if (pitySsr >= setPityCaps.ssr - 1) return 100
+   return getSSRSoftPityRate(pitySsr) * 100
+  }
+
+  function refreshRateInfoForSet(setId) {
+   const setData = setCatalog[setId]
+   if (!setData) return
+   const effectiveSSR = getEffectiveSSRRatePercentForSet(setId)
+   rateInfo.setId = setId
+   rateInfo.setName = setData.name
+   rateInfo.effectiveSSR = effectiveSSR
+   rateInfo.ssrCards = buildSSRRateRows(setId, effectiveSSR)
+  }
+
+  async function fetchSSRCardsForSet(setId) {
+   let page = 1
+   let pages = 1
+   const cards = []
+
+   while (page <= pages) {
+    const response = await fetch(`/api/cards?set=${encodeURIComponent(setId)}&rarity=SSR&sort=name&order=asc&page=${page}&limit=100`, {
+     credentials: "same-origin"
+    })
+    if (!response.ok) {
+     throw new Error(`HTTP ${response.status}`)
+    }
+    const payload = await response.json()
+    const items = Array.isArray(payload?.items) ? payload.items : []
+    cards.push(...items)
+    pages = Math.max(1, Number(payload?.pages || 1))
+    page += 1
+   }
+
+   const seenIds = new Set()
+   return cards
+    .filter((card) => String(card?.rarity || "").toUpperCase() === "SSR")
+    .filter((card) => {
+     const id = String(card?.id || "")
+     if (!id) return true
+     if (seenIds.has(id)) return false
+     seenIds.add(id)
+     return true
+    })
+    .map((card, index) => ({
+     id: String(card?.id || `${setId}-ssr-${index}`),
+     name: String(card?.name || `Carte SSR ${index + 1}`),
+     image: String(card?.imageUrl || "")
+    }))
+  }
+
+  async function ensureSSRRateDataForSet(setId, options = {}) {
+   const force = Boolean(options?.force)
+   if (!setCatalog[setId]) return
+   if (!force && rateCardsCacheBySet[setId]) return
+   if (!force && rateCardsRequestBySet[setId]) {
+    await rateCardsRequestBySet[setId]
+    return
+   }
+
+   const loadPromise = (async () => {
+    const requestedSetId = setId
+    if (requestedSetId === activeSetId) {
+     rateInfo.loading = true
+     rateInfo.error = ""
+     if (!el.rateModal.hidden) renderRateModal()
+    }
+
+    try {
+     const fetchedCards = await fetchSSRCardsForSet(requestedSetId)
+     if (fetchedCards.length) {
+      rateCardsCacheBySet[requestedSetId] = fetchedCards
+     } else if (!rateCardsCacheBySet[requestedSetId]) {
+      rateCardsCacheBySet[requestedSetId] = getFallbackSSRCardsForSet(requestedSetId)
+      if (requestedSetId === activeSetId) {
+       rateInfo.error = "Aucune carte SSR recuperee via l'API pour ce set."
+      }
+     }
+    } catch (error) {
+     console.error("[PACKS] Echec chargement SSR:", error)
+     if (!rateCardsCacheBySet[requestedSetId]) {
+      rateCardsCacheBySet[requestedSetId] = getFallbackSSRCardsForSet(requestedSetId)
+     }
+     if (requestedSetId === activeSetId) {
+      rateInfo.error = "Impossible de recuperer les SSR en direct. Affichage local de secours."
+     }
+    } finally {
+     if (requestedSetId === activeSetId) {
+      rateInfo.loading = false
+      refreshRateInfoForSet(requestedSetId)
+      if (!el.rateModal.hidden) renderRateModal()
+     }
+    }
+   })()
+
+   rateCardsRequestBySet[setId] = loadPromise
+   try {
+    await loadPromise
+   } finally {
+    if (rateCardsRequestBySet[setId] === loadPromise) {
+     delete rateCardsRequestBySet[setId]
+    }
+   }
+  }
+
+  function formatUtcNow() {
+   const date = new Date()
+   const pad = (n) => String(n).padStart(2, "0")
+   return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+  }
+
+  function formatUtcFromTimestamp(timestamp) {
+   const date = new Date(Number(timestamp || 0))
+   if (!Number.isFinite(date.getTime())) return formatUtcNow()
+   const pad = (n) => String(n).padStart(2, "0")
+   return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+  }
+
+  function parseUtcDateStringToTs(value) {
+   const raw = String(value || "").trim()
+   const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/)
+   if (!match) return 0
+   const [, dd, mm, yyyy, hh, min, ss] = match
+   return Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss))
+  }
+
+  function normalizeHistoryRow(raw, fallbackSetId = "") {
+   const setId = String(raw?.setId || fallbackSetId || "").trim().toLowerCase()
+   const setName = String(raw?.setName || setCatalog[setId]?.name || raw?.set || "Inconnu")
+   const rarity = String(raw?.rarity || "R").toUpperCase()
+   const qty = Math.max(1, Number(raw?.qty || 1))
+   const acquiredAtTs = Number(raw?.acquiredAtTs || raw?.ts || parseUtcDateStringToTs(raw?.acquiredAt))
+   if (!Number.isFinite(acquiredAtTs) || acquiredAtTs <= 0) return null
+   if ((Date.now() - acquiredAtTs) > HISTORY_WINDOW_MS) return null
+
+   return {
+    setId,
+    setName,
+    rarity,
+    qty,
+    itemName: String(raw?.itemName || raw?.cardName || "Carte inconnue"),
+    recruitmentName: String(raw?.recruitmentName || setName || "Set"),
+    acquiredAtTs,
+    acquiredAt: String(raw?.acquiredAt || formatUtcFromTimestamp(acquiredAtTs))
+   }
+  }
+
+  function pruneLocalHistory() {
+   const minTs = Date.now() - HISTORY_WINDOW_MS
+   for (let i = localHistoryRows.length - 1; i >= 0; i--) {
+    if (Number(localHistoryRows[i]?.acquiredAtTs || 0) < minTs) {
+     localHistoryRows.splice(i, 1)
+    }
+   }
+  }
+
+  function sanitizeText(value) {
+   return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;")
+    .replaceAll("'", "&#39;")
+  }
+
+  function getActiveSetName() {
+   return getActiveSet().name
+  }
+
+  function formatPityValue(value, cap) {
+   return `${String(value).padStart(2, "0")}/${cap}`
+  }
+
+  function updateSetPityDisplay() {
+   const activeSet = getActiveSet()
+   const activePity = getActivePity()
+   el.mainSetTitle.textContent = activeSet.name
+   el.focusName.textContent = activeSet.focusName
+   el.focusImage.src = activeSet.centerImage || "/assets/ui/centre%20incarnam.png"
+   el.focusImage.alt = `Centre ${activeSet.name}`
+   el.focusFigure.setAttribute("aria-label", `Centre ${activeSet.name}`)
+   el.pityUrValue.textContent = formatPityValue(activePity.ur, setPityCaps.ur)
+   el.pitySValue.textContent = formatPityValue(activePity.s, setPityCaps.s)
+   el.pitySsrValue.textContent = formatPityValue(activePity.ssr, setPityCaps.ssr)
+   el.pityUrBar.style.width = `${(activePity.ur / setPityCaps.ur) * 100}%`
+   el.pitySBar.style.width = `${(activePity.s / setPityCaps.s) * 100}%`
+   el.pitySsrBar.style.width = `${(activePity.ssr / setPityCaps.ssr) * 100}%`
+  }
+
+  function renderSetSlider() {
+   const sets = Object.values(setCatalog)
+   el.setSliderTrack.innerHTML = sets.map((setData) => {
+    const unlocked = isSetUnlockedForPlayer(setData.id)
+    const sliderImage = unlocked ? setData.sliderImage : LOCKED_SET_SLIDER_IMAGE
+    const isActive = unlocked && setData.id === activeSetId
+    return `
+    <button class="packs-set-card ${isActive ? "active" : ""} ${unlocked ? "" : "locked"}" type="button" data-set-id="${setData.id}" style="background-image: linear-gradient(180deg, rgba(12,26,70,0.22), rgba(7,16,48,0.72)), url('${sliderImage}')"
+      ${unlocked ? "" : 'disabled aria-disabled="true"'}>
+     <span class="packs-set-card-name">${setData.name}</span>
+     <span class="packs-set-card-tag">${unlocked ? "Disponible" : "Non debloque"}</span>
+    </button>
+   `
+   }).join("")
+   el.setSliderTrack.querySelectorAll("[data-set-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+     if (button.disabled) return
+     if (Date.now() < sliderDragState.ignoreClickUntil) return
+     const setId = button.getAttribute("data-set-id")
+     switchActiveSet(setId)
+    })
+   })
+  }
+
+  function setupSetSliderDrag() {
+   const track = el.setSliderTrack
+   if (!track) return
+
+   const finishDrag = () => {
+    if (!sliderDragState.active) return
+    sliderDragState.active = false
+    if (sliderDragState.moved) {
+     sliderDragState.ignoreClickUntil = Date.now() + 220
+    }
+    sliderDragState.moved = false
+    track.classList.remove("is-dragging")
+   }
+
+   track.addEventListener("mousedown", (event) => {
+    if (event.button !== 0) return
+    sliderDragState.active = true
+    sliderDragState.moved = false
+    sliderDragState.startX = event.clientX
+    sliderDragState.startScrollLeft = track.scrollLeft
+    track.classList.add("is-dragging")
+    event.preventDefault()
+   })
+
+   window.addEventListener("mousemove", (event) => {
+    if (!sliderDragState.active) return
+    const deltaX = event.clientX - sliderDragState.startX
+    if (Math.abs(deltaX) > 4) sliderDragState.moved = true
+    track.scrollLeft = sliderDragState.startScrollLeft - deltaX
+    event.preventDefault()
+   })
+
+   window.addEventListener("mouseup", finishDrag)
+   window.addEventListener("mouseleave", finishDrag)
+  }
+
+  function switchActiveSet(setId) {
+   if (!setCatalog[setId]) return
+   if (!isSetUnlockedForPlayer(setId)) return
+   activeSetId = setId
+   const activeSet = getActiveSet()
+   rateInfo.error = ""
+   refreshRateInfoForSet(setId)
+   document.documentElement.style.setProperty("--packs-bg-image", `url("${activeSet.backgroundImage}")`)
+   document.documentElement.style.setProperty("--packs-bg-size", activeSet.backgroundSize || "cover")
+   document.documentElement.style.setProperty("--packs-bg-position", activeSet.backgroundPosition || "center")
+   document.documentElement.style.setProperty("--packs-center-bottom", activeSet.centerBottom || "-198px")
+   document.documentElement.style.setProperty("--packs-center-width", activeSet.centerWidth || "min(86vw, 1160px)")
+   document.documentElement.style.setProperty("--packs-center-bottom-1180", activeSet.centerBottom1180 || "-168px")
+   document.documentElement.style.setProperty("--packs-center-width-1180", activeSet.centerWidth1180 || "min(82vw, 980px)")
+   document.documentElement.style.setProperty("--packs-center-width-mobile", activeSet.centerWidthMobile || "min(88vw, 540px)")
+   renderSetSlider()
+   if (!el.rateModal.hidden) {
+    renderRateModal()
+   }
+   if (!el.historyModal.hidden) {
+    historyState.page = 1
+    void loadHistoryPageForActiveSet()
+   }
+   void ensureSSRRateDataForSet(setId)
+   updateUI()
+  }
+
+  function getLocalHistoryRowsForActiveSet() {
+   pruneLocalHistory()
+   return localHistoryRows
+    .filter((row) => String(row?.setId || "") === activeSetId)
+    .sort((a, b) => Number(b?.acquiredAtTs || 0) - Number(a?.acquiredAtTs || 0))
+  }
+
+  async function loadHistoryPageForActiveSet() {
+   const requestedSetId = activeSetId
+   historyState.loading = true
+   historyState.error = ""
+   renderHistoryModal()
+
+   try {
+    const response = await fetch(`/api/game/recruit-history?setId=${encodeURIComponent(requestedSetId)}&page=${historyState.page}&limit=${historyState.pageSize}`, {
+     credentials: "same-origin"
+    })
+    if (!response.ok) {
+     throw new Error(`HTTP ${response.status}`)
+    }
+
+    const payload = await response.json()
+    if (requestedSetId !== activeSetId) return
+
+    const items = Array.isArray(payload?.items) ? payload.items : []
+    historyState.rows = items
+     .map((row) => normalizeHistoryRow(row, requestedSetId))
+     .filter(Boolean)
+    historyState.total = Math.max(0, Number(payload?.total || historyState.rows.length))
+    historyState.pages = Math.max(1, Number(payload?.pages || 1))
+    historyState.page = Math.max(1, Math.min(historyState.pages, Number(payload?.page || historyState.page)))
+    historyState.source = "api"
+    historyState.error = ""
+   } catch (error) {
+    console.error("[PACKS] Echec chargement historique recrutements:", error)
+    if (requestedSetId !== activeSetId) return
+
+    const localRows = getLocalHistoryRowsForActiveSet()
+    const pages = Math.max(1, Math.ceil(localRows.length / historyState.pageSize))
+    historyState.page = Math.max(1, Math.min(pages, historyState.page))
+    const start = (historyState.page - 1) * historyState.pageSize
+    historyState.rows = localRows.slice(start, start + historyState.pageSize)
+    historyState.total = localRows.length
+    historyState.pages = pages
+    historyState.source = "local"
+    historyState.error = "Mode local: affichage des tirages de test de cette session."
+   } finally {
+    if (requestedSetId === activeSetId) {
+     historyState.loading = false
+     renderHistoryModal()
+    }
+   }
+  }
+
+  function getHistoryRowClass(rarity) {
+   const normalized = String(rarity || "").toLowerCase()
+   if (normalized === "ssr") return "rarity-ssr"
+   if (normalized === "sr") return "rarity-sr"
+   return "rarity-r"
+  }
+
+  function syncModalBodyLock() {
+   const hasOpenModal =
+    el.rateModal.classList.contains("show") ||
+    el.historyModal.classList.contains("show") ||
+    el.buyModal.classList.contains("show")
+   document.body.classList.toggle("packs-modal-open", hasOpenModal)
+  }
+
+  function renderBuyModal() {
+   const qty = clampBuyQuantity(buyMenuState.quantity)
+   buyMenuState.quantity = qty
+   const totalCost = getBuyTotalCost()
+   const balanceBefore = Math.max(0, Number(packsState.kamas || 0))
+   const balanceAfter = balanceBefore - totalCost
+   const hasEnough = balanceAfter >= 0
+   const busy = Boolean(buyMenuState.busy)
+
+   el.buyQtyValue.textContent = String(qty)
+   el.buyCostPreview.textContent = formatInt(totalCost)
+   el.buyPackPreview.textContent = `x${qty}`
+   el.buyBalanceBefore.textContent = formatInt(balanceBefore)
+   el.buyBalanceAfter.textContent = formatInt(Math.max(0, balanceAfter))
+   el.buyTotalCost.textContent = formatInt(totalCost)
+   if (!busy) {
+    if (!hasEnough) {
+     buyMenuState.error = `Kamas insuffisants (${formatInt(totalCost)} requis).`
+    } else if (buyMenuState.error.startsWith("Kamas insuffisants")) {
+     buyMenuState.error = ""
+    }
+   }
+   el.buyError.textContent = buyMenuState.error
+
+   el.buyMinus10Btn.disabled = busy || qty <= 1
+   el.buyMinus1Btn.disabled = busy || qty <= 1
+   el.buyPlus1Btn.disabled = busy || qty >= 999
+   el.buyPlus10Btn.disabled = busy || qty >= 999
+   el.buySubmitBtn.disabled = busy || !hasEnough || totalCost <= 0
+   el.buySubmitBtn.querySelector(".label").textContent = busy ? "Achat..." : "Acheter"
+  }
+
+  function renderRateModal() {
+   el.rateSetTitle.textContent = rateInfo.setName
+   el.rateEffectiveValue.textContent = formatRate(rateInfo.effectiveSSR)
+   if (rateInfo.loading && !rateInfo.ssrCards.length) {
+    el.rateGrid.innerHTML = `<p class="packs-rate-state">Chargement des SSR du set...</p>`
+    return
+   }
+
+   if (!rateInfo.ssrCards.length) {
+    const stateText = rateInfo.error || "Aucune carte SSR disponible sur ce set."
+    el.rateGrid.innerHTML = `<p class="packs-rate-state">${sanitizeText(stateText)}</p>`
+    return
+   }
+
+   el.rateGrid.innerHTML = rateInfo.ssrCards.map((card) => {
+    const safeName = sanitizeText(card.name)
+    const safeImage = sanitizeText(card.image || "/assets/ui/ssr.png")
+    return `
+    <article class="packs-rate-row">
+     <img src="${safeImage}" alt="${safeName}" loading="lazy">
+     <div>
+      <p class="packs-rate-card-tag">SSR</p>
+      <p class="packs-rate-card-name">${safeName}</p>
+     </div>
+     <strong class="packs-rate-value">${formatRate(card.rate)}</strong>
+    </article>
+   `
+   }).join("")
+  }
+
+  function renderHistoryModal() {
+   const activeSetName = getActiveSetName()
+   const pageRows = Array.isArray(historyState.rows) ? historyState.rows : []
+   const pageCount = Math.max(1, Number(historyState.pages || 1))
+   const safePage = Math.max(1, Math.min(pageCount, Number(historyState.page || 1)))
+   historyState.page = safePage
+
+   el.historySetTitle.textContent = activeSetName
+   if (historyState.loading) {
+    el.historyRows.innerHTML = `<tr class="packs-history-row empty"><td colspan="5">Chargement de l'historique...</td></tr>`
+   } else if (pageRows.length > 0) {
+    el.historyRows.innerHTML = pageRows.map((row) => `
+      <tr class="packs-history-row ${getHistoryRowClass(row.rarity)}">
+       <td>${sanitizeText(row.setName)}</td>
+       <td class="packs-history-tier-cell">${sanitizeText(row.rarity)}</td>
+       <td>${sanitizeText(row.itemName)}${Number(row.qty || 1) > 1 ? ` x${Number(row.qty || 1)}` : ""}</td>
+       <td>${sanitizeText(row.recruitmentName)}</td>
+       <td>${sanitizeText(row.acquiredAt || formatUtcFromTimestamp(row.acquiredAtTs))}</td>
+      </tr>
+     `).join("")
+   } else {
+    const emptyText = historyState.error || "Aucun recrutement trouve sur ce set sur les 7 derniers jours."
+    el.historyRows.innerHTML = `<tr class="packs-history-row empty"><td colspan="5">${sanitizeText(emptyText)}</td></tr>`
+   }
+
+   el.historyPageValue.textContent = `${safePage} / ${pageCount}`
+   el.historyPrevBtn.disabled = historyState.loading || safePage <= 1
+   el.historyNextBtn.disabled = historyState.loading || safePage >= pageCount
+  }
+
+  function closeRateModal() {
+   if (el.rateModal.hidden) return
+   el.rateModal.classList.remove("show")
+   syncModalBodyLock()
+   window.setTimeout(() => {
+    el.rateModal.hidden = true
+    syncModalBodyLock()
+   }, 180)
+  }
+
+  function openRateModal() {
+   closeHistoryModal()
+   closeBuyModal()
+   refreshRateInfoForSet(activeSetId)
+   renderRateModal()
+   el.rateModal.hidden = false
+   requestAnimationFrame(() => {
+    el.rateModal.classList.add("show")
+    syncModalBodyLock()
+   })
+   void ensureSSRRateDataForSet(activeSetId)
+  }
+
+  function closeHistoryModal() {
+   if (el.historyModal.hidden) return
+   el.historyModal.classList.remove("show")
+   syncModalBodyLock()
+   window.setTimeout(() => {
+    el.historyModal.hidden = true
+    syncModalBodyLock()
+   }, 180)
+  }
+
+  function openHistoryModal() {
+   closeRateModal()
+   closeBuyModal()
+   historyState.page = 1
+   historyState.rows = []
+   historyState.pages = 1
+   historyState.total = 0
+   historyState.error = ""
+   historyState.source = "api"
+   historyState.loading = true
+   renderHistoryModal()
+   el.historyModal.hidden = false
+   requestAnimationFrame(() => {
+    el.historyModal.classList.add("show")
+    syncModalBodyLock()
+   })
+   void loadHistoryPageForActiveSet()
+  }
+
+  function closeBuyModal() {
+   if (el.buyModal.hidden) return
+   el.buyModal.classList.remove("show")
+   syncModalBodyLock()
+   window.setTimeout(() => {
+    el.buyModal.hidden = true
+    syncModalBodyLock()
+   }, 180)
+  }
+
+  function pushHistoryEntries(entries, sourceSetId = activeSetId) {
+   const now = Date.now()
+   const safeSetId = normalizeSetId(sourceSetId) || activeSetId
+   const safeSetName = String(setCatalog[safeSetId]?.name || getActiveSetName())
+   for (const row of (Array.isArray(entries) ? entries : [])) {
+    localHistoryRows.unshift({
+     setId: safeSetId,
+     setName: safeSetName,
+     rarity: String(row?.rarity || "R").toUpperCase(),
+     itemName: String(row?.cardName || row?.itemName || "Carte inconnue"),
+     recruitmentName: safeSetName,
+     qty: Math.max(1, Number(row?.qty || 1)),
+     acquiredAtTs: now,
+     acquiredAt: formatUtcFromTimestamp(now)
+    })
+   }
+   pruneLocalHistory()
+
+   if (!el.historyModal.hidden && historyState.source !== "api") {
+    void loadHistoryPageForActiveSet()
+   }
+  }
+
+  function syncOpenPacksPayload(payload, sourceSetId = activeSetId) {
+   if (Number.isFinite(Number(payload?.kamas)) && Number(payload.kamas) >= 0) {
+    packsState.kamas = Math.floor(Number(payload.kamas))
+   }
+   if (Number.isFinite(Number(payload?.packStock)) && Number(payload.packStock) >= 0) {
+    packsState.packs = Math.floor(Number(payload.packStock))
+   }
+   const setId = normalizeSetId(payload?.setId || sourceSetId)
+   if (setCatalog[setId] && payload?.pity?.counters) {
+    packsState.pityBySet[setId] = normalizePityCounters(payload.pity.counters)
+   }
+  }
+
+  function updateUI() {
+   el.kamasTop.textContent = formatInt(packsState.kamas)
+   el.packsTop.textContent = String(packsState.packs)
+   el.draw1.disabled = packsState.drawBusy || packsState.packs < 1
+   el.draw10.disabled = packsState.drawBusy || packsState.packs < 10
+   el.draw25.disabled = packsState.drawBusy || packsState.packs < 25
+   updateSetPityDisplay()
+   refreshRateInfoForSet(activeSetId)
+   if (!el.rateModal.hidden) renderRateModal()
+   if (!el.buyModal.hidden) renderBuyModal()
+  }
+
+  function openBuyPacksMenu() {
+   closeRateModal()
+   closeHistoryModal()
+   buyMenuState.quantity = 1
+   buyMenuState.error = ""
+   buyMenuState.busy = false
+   renderBuyModal()
+   el.buyModal.hidden = false
+   requestAnimationFrame(() => {
+    el.buyModal.classList.add("show")
+    syncModalBodyLock()
+   })
+  }
+
+  async function submitBuyPacks() {
+   if (buyMenuState.busy) return
+   const quantity = clampBuyQuantity(buyMenuState.quantity)
+   const totalCost = getBuyTotalCost()
+   if (totalCost <= 0) return
+   if (Number(packsState.kamas || 0) < totalCost) {
+    buyMenuState.error = `Kamas insuffisants (${formatInt(totalCost)} requis).`
+    renderBuyModal()
+    return
+   }
+
+   buyMenuState.busy = true
+   buyMenuState.error = ""
+   renderBuyModal()
+
+   try {
+    const response = await fetch("/api/game/buy-packs", {
+     method: "POST",
+     credentials: "same-origin",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ quantity })
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.ok) {
+     throw new Error(String(payload?.error || `HTTP ${response.status}`))
+    }
+
+    packsState.kamas = Number(payload?.kamas ?? packsState.kamas)
+    packsState.packs = Number(payload?.packStock ?? packsState.packs)
+    buyMenuState.quantity = 1
+    buyMenuState.error = ""
+    updateUI()
+    closeBuyModal()
+   } catch (error) {
+    buyMenuState.error = String(error?.message || "Impossible d'acheter des packs.")
+   } finally {
+    buyMenuState.busy = false
+    if (!el.buyModal.hidden) renderBuyModal()
+   }
+  }
+
+  async function drawMany(count) {
+   const quantity = Math.max(1, Math.min(25, Math.floor(Number(count || 1))))
+   if (packsState.drawBusy) return
+   if (packsState.packs < quantity) return
+
+   packsState.drawBusy = true
+   updateUI()
+   try {
+    const requestSetId = activeSetId
+    const response = await fetch("/api/game/open-packs", {
+     method: "POST",
+     credentials: "same-origin",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ quantity, setId: requestSetId })
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.ok) {
+     throw new Error(String(payload?.error || `HTTP ${response.status}`))
+    }
+
+    syncOpenPacksPayload(payload, requestSetId)
+    pushHistoryEntries(payload?.cards || [], requestSetId)
+    if (!el.historyModal.hidden) {
+     void loadHistoryPageForActiveSet()
+    }
+   } catch (error) {
+    console.error("[PACKS] Tirage impossible:", error)
+   } finally {
+    packsState.drawBusy = false
+    updateUI()
+   }
+  }
+
+  el.draw1.addEventListener("click", () => { void drawMany(1) })
+  el.draw10.addEventListener("click", () => { void drawMany(10) })
+  el.draw25.addEventListener("click", () => { void drawMany(25) })
+  el.backBtn.addEventListener("click", () => {
+   window.location.href = "/"
+  })
+  el.buyPacksBtn.addEventListener("click", openBuyPacksMenu)
+  el.openRateInfoBtn.addEventListener("click", openRateModal)
+  el.openRecruitHistoryBtn.addEventListener("click", openHistoryModal)
+
+  el.rateModal.querySelectorAll("[data-close-rate-modal]").forEach((node) => {
+   node.addEventListener("click", closeRateModal)
+  })
+  el.historyModal.querySelectorAll("[data-close-history-modal]").forEach((node) => {
+   node.addEventListener("click", closeHistoryModal)
+  })
+  el.buyModal.querySelectorAll("[data-close-buy-modal]").forEach((node) => {
+   node.addEventListener("click", closeBuyModal)
+  })
+
+  el.buyMinus10Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity - 10))
+  el.buyMinus1Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity - 1))
+  el.buyPlus1Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity + 1))
+  el.buyPlus10Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity + 10))
+  el.buySubmitBtn.addEventListener("click", () => {
+   void submitBuyPacks()
+  })
+
+  el.historyPrevBtn.addEventListener("click", () => {
+   historyState.page -= 1
+   void loadHistoryPageForActiveSet()
+  })
+  el.historyNextBtn.addEventListener("click", () => {
+   historyState.page += 1
+   void loadHistoryPageForActiveSet()
+  })
+
+  document.addEventListener("keydown", (event) => {
+   if (event.key !== "Escape") return
+   closeRateModal()
+   closeHistoryModal()
+   closeBuyModal()
+  })
+
+  setupSetSliderDrag()
+  renderSetSlider()
+  switchActiveSet(activeSetId)
+  void loadUnlockedSetsFromMeta()
+ </script>
+</body>
+</html>
