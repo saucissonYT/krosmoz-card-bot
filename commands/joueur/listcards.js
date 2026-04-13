@@ -16,10 +16,14 @@ const {
  SlashCommandBuilder,
  EmbedBuilder
 } = require("discord.js")
+const path = require("path")
 
-const { getCards }                    = require("../../systems/cardRegistry")
+const { getBasePath }                 = require("../../systems/paths")
+const { readJsonSafe }                = require("../../systems/fileUtils")
 const { getUser }                     = require("../../systems/userSystem")
 const { RARITY_EMOJI, RARITY_ORDER } = require("../../systems/constants")
+
+const CARDS_PATH = path.join(getBasePath(), "cards.json")
 
 /**
  * Mapping rareté → poids numérique pour le tri décroissant.
@@ -44,15 +48,21 @@ module.exports = {
   */
  async execute(interaction) {
 
-  const cards     = getCards()
+  try {
+   if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply({ flags: 64 })
+   }
+  } catch (err) {
+   if (err?.code === 10062 || err?.code === 40060) return
+   throw err
+  }
+
+  const cards     = readJsonSafe(CARDS_PATH, [])
   const user      = getUser(interaction.user.id)
   const inventory = user.cards || {}
 
-  if (cards.length === 0)
-   return interaction.reply({
-    content: "❌ Aucune carte disponible.",
-    flags: 64
-   })
+  if (!Array.isArray(cards) || cards.length === 0)
+   return interaction.editReply("❌ Aucune carte disponible.")
 
   /* ---------- SETS ---------- */
 
@@ -80,10 +90,9 @@ module.exports = {
    )
    .setColor(0xF1C40F)
 
-  await interaction.reply({
+  await interaction.editReply({
    embeds: [setsEmbed],
    components: [menuRow],
-   flags: 64
   })
 
   const msg = await interaction.fetchReply()

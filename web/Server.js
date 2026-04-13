@@ -298,6 +298,7 @@ const WEB_LOCAL_AUTH_COOKIE = "kc_local_auth"
 const WEB_LOCAL_AUTH_FORCE = String(process.env.WEB_LOCAL_AUTH || "").trim().toLowerCase()
 const WEB_LOCAL_AUTH_USER_ID = String(process.env.WEB_LOCAL_AUTH_USER_ID || "999999999999999999").trim() || "999999999999999999"
 const WEB_LOCAL_DEMO_WORLD = String(process.env.WEB_LOCAL_DEMO_WORLD || "1").trim().toLowerCase()
+const WEB_BOOTSTRAP_CARDS_FROM_IMAGES = String(process.env.WEB_BOOTSTRAP_CARDS_FROM_IMAGES || "0").trim().toLowerCase()
 const WEB_LOCAL_DEMO_SEED_VERSION = 5
 const WEB_LOCAL_DEMO_BOT_COUNT = 34
 const WEB_LOCAL_DEMO_ID_BASE = 980000000000000000n
@@ -398,17 +399,7 @@ function buildLocalCardsFromImages() {
     const cardId = String(parsedId)
     if (byId.has(cardId)) continue
     const sourceSetId = String(setHint || "katrepat").toLowerCase()
-    const setId = String(playableSets[Math.abs(parsedId) % playableSets.length] || "katrepat")
-    if (setId !== sourceSetId) {
-     try {
-      const targetDir = path.join(CARD_IMAGES_RUNTIME_DIR, setId)
-      const targetPath = path.join(targetDir, entry.name)
-      if (!fs.existsSync(targetPath)) {
-       fs.mkdirSync(targetDir, { recursive: true })
-       fs.copyFileSync(fullPath, targetPath)
-      }
-     } catch (_) {}
-    }
+    const setId = sourceSetId || String(playableSets[Math.abs(parsedId) % playableSets.length] || "katrepat")
     const cardName = normalizeDemoCardName(parts.join(" "))
 
     byId.set(cardId, {
@@ -431,6 +422,8 @@ function buildLocalCardsFromImages() {
 function bootstrapCardsFromImagesIfNeeded() {
  if (_localCardsBootstrapTried) return
  _localCardsBootstrapTried = true
+
+ if (!isTruthyFlag(WEB_BOOTSTRAP_CARDS_FROM_IMAGES)) return
 
  const existingCards = readJSON(CARDS_PATH, [])
  if (Array.isArray(existingCards) && existingCards.length > 0) return

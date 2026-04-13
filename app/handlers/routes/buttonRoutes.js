@@ -76,6 +76,14 @@ async function routeButtonInteraction(interaction, client) {
  }
 
  /*
+  * list_next / list_prev / list_back sont gérés par le collector
+  * de listcards.js. On évite le warn parasite ici.
+  */
+ if (id === "list_next" || id === "list_prev" || id === "list_back") {
+  return false
+ }
+
+ /*
   * NE PAS router krosmoz_qty_* ni krosmoz_back ici — retour silencieux.
   *
   * Ces boutons sont gérés par le collector interne dans krosmoz.js

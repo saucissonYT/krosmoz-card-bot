@@ -38,7 +38,15 @@ async function routeSelectInteraction(interaction, client) {
   * "Interaction Failed" — c'est acceptable et préférable à un double
   * acknowledge qui crasherait les sessions actives.
   */
- if (id === "fusion_set" || id === "fusion_rarity") {
+  if (id === "fusion_set" || id === "fusion_rarity") {
+  return false
+ }
+
+ /*
+  * listcards_select est géré par le collector interne dans listcards.js.
+  * Si le collector est actif, on laisse passer silencieusement.
+  */
+ if (id === "listcards_select") {
   return false
  }
 
