@@ -1696,7 +1696,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    <div class="navbar-subnav-inner">
      <ul class="navbar-subnav-links">
       <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
-      <li><a href="/play/packs" data-play-mode="packs">Packs</a></li>
+      <li><a href="/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
       <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
       <li><a href="/play/quests" data-play-mode="quests">Quêtes</a></li>
@@ -1949,7 +1949,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    playLi = document.createElement("li")
    playLi.id = "globalPlayNavItem"
    const a = document.createElement("a")
-   a.href = "/play/packs"
+   a.href = "/packs"
    a.textContent = "Mon Jeu"
    playLi.appendChild(a)
    navLinks.appendChild(playLi)

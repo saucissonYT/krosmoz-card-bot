@@ -93,13 +93,13 @@ if (__initialPlayTab === "fusion") {
 
  <script src="/js/web-auth.js"></script>
  <script>
- const MODE_PATH = {
-  inventory: "/play/inventory",
-  packs: "/play/packs",
-  fusion: "/play/fusion",
-  craft: "/play/craft",
-  quests: "/play/quests"
- }
+const MODE_PATH = {
+ inventory: "/play/inventory",
+  packs: "/packs",
+ fusion: "/play/fusion",
+ craft: "/play/craft",
+ quests: "/play/quests"
+}
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const state = {
@@ -183,6 +183,12 @@ const FUSION_MAX_CYCLES = 25
  }
 
 function setMode(mode, updateUrl = true) {
+  if (mode === "packs") {
+   if (window.location.pathname !== "/packs") {
+    window.location.href = "/packs"
+   }
+   return
+  }
   state.mode = mode
   state.selected = null
   const isForgeMode = mode === "fusion" || mode === "craft"
@@ -2642,6 +2648,11 @@ async function handleCraftAction() {
   document.addEventListener("click", (event) => {
    const link = event.target.closest("[data-play-mode]")
    if (!link) return
+   if (String(link.dataset.playMode || "") === "packs") {
+    event.preventDefault()
+    window.location.href = "/packs"
+    return
+   }
    event.preventDefault()
    setMode(link.dataset.playMode)
   })
