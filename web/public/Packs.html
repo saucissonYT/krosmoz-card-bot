@@ -437,6 +437,12 @@
    gap: 10px;
   }
 
+  .packs-draw-stack {
+   display: grid;
+   gap: 8px;
+   justify-items: end;
+  }
+
   .packs-ticket-chip {
    min-width: 96px;
    justify-content: center;
@@ -470,6 +476,31 @@
    filter: grayscale(0.35);
    opacity: 0.58;
    cursor: not-allowed;
+  }
+
+  .packs-draw-notice {
+   min-height: 24px;
+   padding: 3px 10px;
+   border-radius: 999px;
+   border: 1px solid rgba(175, 217, 255, 0.46);
+   background: rgba(7, 22, 63, 0.72);
+   color: #dff0ff;
+   font-size: 0.88rem;
+   font-weight: 700;
+   letter-spacing: 0.02em;
+   text-align: right;
+   opacity: 0;
+   transition: opacity 0.16s ease;
+  }
+
+  .packs-draw-notice.show {
+   opacity: 1;
+  }
+
+  .packs-draw-notice.error {
+   border-color: rgba(255, 160, 160, 0.62);
+   color: #ffd6d6;
+   background: rgba(83, 19, 39, 0.72);
   }
 
   .packs-status {
@@ -700,19 +731,30 @@
    grid-template-columns: 92px 1fr auto;
    align-items: center;
    gap: 14px;
-   border-radius: 12px;
-   border: 1px solid rgba(143, 193, 255, 0.35);
-   background: rgba(6, 20, 64, 0.65);
-   padding: 10px 12px;
+   border-radius: 0;
+   border: none;
+   border-bottom: 1px solid rgba(143, 193, 255, 0.2);
+   background: transparent;
+   padding: 8px 6px;
+  }
+
+  .packs-rate-card-trigger {
+   border: none;
+   background: transparent;
+   padding: 0;
+   margin: 0;
+   cursor: zoom-in;
   }
 
   .packs-rate-row img {
    width: 88px;
    height: 88px;
    object-fit: contain;
-   border-radius: 10px;
-   background: rgba(5, 15, 45, 0.45);
-   border: 1px solid rgba(182, 214, 255, 0.28);
+   border-radius: 0;
+   background: transparent;
+   border: none;
+   user-select: none;
+   -webkit-user-drag: none;
   }
 
   .packs-rate-card-name {
@@ -746,6 +788,85 @@
    text-align: center;
    border-top: 1px solid rgba(158, 201, 255, 0.25);
    padding-top: 12px;
+  }
+
+  .packs-card-preview-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 96;
+   display: grid;
+   grid-template-columns: minmax(42px, 7vw) 1fr minmax(42px, 7vw);
+   align-items: center;
+   padding: clamp(16px, 2.8vw, 30px);
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.16s ease;
+  }
+
+  .packs-card-preview-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .packs-card-preview-overlay[hidden] {
+   display: none;
+  }
+
+  .packs-card-preview-backdrop {
+   position: absolute;
+   inset: 0;
+   background: rgba(3, 10, 34, 0.82);
+   backdrop-filter: blur(4px);
+  }
+
+  .packs-card-preview-stage {
+   position: relative;
+   z-index: 1;
+   display: grid;
+   place-items: center;
+   min-height: min(76vh, 900px);
+  }
+
+  .packs-card-preview-image {
+   max-width: min(92vw, 780px);
+   max-height: min(88vh, 1040px);
+   width: auto;
+   height: auto;
+   object-fit: contain;
+   border: none;
+   border-radius: 0;
+   background: transparent;
+   user-select: none;
+   -webkit-user-drag: none;
+   cursor: zoom-out;
+   filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.62));
+  }
+
+  .packs-card-preview-nav {
+   position: relative;
+   z-index: 1;
+   width: clamp(40px, 4.6vw, 62px);
+   height: clamp(40px, 4.6vw, 62px);
+   border-radius: 999px;
+   border: 1px solid rgba(173, 213, 255, 0.54);
+   background: rgba(9, 26, 73, 0.84);
+   color: #eaf6ff;
+   font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .packs-card-preview-nav:disabled {
+   opacity: 0.45;
+   cursor: not-allowed;
+  }
+
+  .packs-card-preview-nav.prev {
+   justify-self: start;
+  }
+
+  .packs-card-preview-nav.next {
+   justify-self: end;
   }
 
   .packs-rate-foot {
@@ -1387,6 +1508,10 @@
     width: auto;
     justify-content: center;
    }
+   .packs-draw-stack {
+    width: 100%;
+    justify-items: center;
+   }
    .packs-draw-btn,
    .packs-draw-btn.advanced {
     flex: 1;
@@ -1464,6 +1589,15 @@
    }
    .packs-history-close-main {
     justify-self: center;
+   }
+   .packs-card-preview-overlay {
+    grid-template-columns: 40px 1fr 40px;
+    padding: 14px;
+   }
+   .packs-card-preview-nav {
+    width: 40px;
+    height: 40px;
+    font-size: 1.35rem;
    }
   }
  </style>
@@ -1552,10 +1686,13 @@
    </section>
 
    <footer class="packs-footer">
-   <div class="packs-draw-controls">
+    <div class="packs-draw-stack">
+     <div class="packs-draw-controls">
       <button id="packsDraw1Btn" class="packs-draw-btn" type="button">Tirage x1</button>
       <button id="packsDraw10Btn" class="packs-draw-btn advanced" type="button">x10 Tirages Consecutifs</button>
       <button id="packsDraw25Btn" class="packs-draw-btn advanced" type="button">x25</button>
+     </div>
+     <p id="packsDrawNotice" class="packs-draw-notice" aria-live="polite"></p>
     </div>
    </footer>
   </section>
@@ -1577,14 +1714,20 @@
      <span>taux effectif de drop</span>
     </div>
     <div id="packsRateGrid" class="packs-rate-grid"></div>
-    <p class="packs-rate-note">
-     Le taux affiche est donne a titre indicatif de test local.
-    </p>
    </div>
    <footer class="packs-rate-foot">
     <button class="packs-rate-close-main" type="button" data-close-rate-modal>Fermer</button>
    </footer>
   </section>
+ </aside>
+
+ <aside id="packsCardPreviewOverlay" class="packs-card-preview-overlay" hidden>
+  <div class="packs-card-preview-backdrop" data-close-card-preview></div>
+  <button id="packsCardPreviewPrev" class="packs-card-preview-nav prev" type="button" aria-label="Carte precedente">&lt;</button>
+  <section class="packs-card-preview-stage" role="dialog" aria-modal="true" aria-label="Apercu carte">
+   <img id="packsCardPreviewImage" class="packs-card-preview-image" src="" alt="Carte agrandie" data-close-card-preview>
+  </section>
+  <button id="packsCardPreviewNext" class="packs-card-preview-nav next" type="button" aria-label="Carte suivante">&gt;</button>
  </aside>
 
  <aside id="packsHistoryModal" class="packs-history-modal-overlay" hidden>
@@ -1850,9 +1993,15 @@
    error: ""
   }
 
+  const cardPreviewState = {
+   list: [],
+   index: 0
+  }
+
   const HISTORY_WINDOW_DAYS = 7
   const HISTORY_WINDOW_MS = HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000
   const localHistoryRows = []
+  let drawNoticeTimer = null
 
   const el = {
    backBtn: document.getElementById("packsBackBtn"),
@@ -1862,6 +2011,7 @@
    draw1: document.getElementById("packsDraw1Btn"),
    draw10: document.getElementById("packsDraw10Btn"),
    draw25: document.getElementById("packsDraw25Btn"),
+   drawNotice: document.getElementById("packsDrawNotice"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
    focusFigure: document.getElementById("packsFocusFigure"),
    focusImage: document.getElementById("packsFocusImage"),
@@ -1892,6 +2042,10 @@
    buyMinus1Btn: document.getElementById("packsBuyMinus1Btn"),
    buyPlus1Btn: document.getElementById("packsBuyPlus1Btn"),
    buyPlus10Btn: document.getElementById("packsBuyPlus10Btn"),
+   cardPreviewOverlay: document.getElementById("packsCardPreviewOverlay"),
+   cardPreviewImage: document.getElementById("packsCardPreviewImage"),
+   cardPreviewPrev: document.getElementById("packsCardPreviewPrev"),
+   cardPreviewNext: document.getElementById("packsCardPreviewNext"),
    pityUrValue: document.getElementById("packsSetPityUrValue"),
    pitySValue: document.getElementById("packsSetPitySValue"),
    pitySsrValue: document.getElementById("packsSetPitySsrValue"),
@@ -1972,6 +2126,26 @@
 
   function formatInt(value) {
    return Number(value || 0).toLocaleString("fr-FR")
+  }
+
+  function showDrawNotice(message, isError = false) {
+   if (!el.drawNotice) return
+   const text = String(message || "").trim()
+   if (drawNoticeTimer) {
+    clearTimeout(drawNoticeTimer)
+    drawNoticeTimer = null
+   }
+   if (!text) {
+    el.drawNotice.textContent = ""
+    el.drawNotice.classList.remove("show", "error")
+    return
+   }
+   el.drawNotice.textContent = text
+   el.drawNotice.classList.toggle("error", Boolean(isError))
+   el.drawNotice.classList.add("show")
+   drawNoticeTimer = window.setTimeout(() => {
+    el.drawNotice.classList.remove("show")
+   }, 3000)
   }
 
   function clampBuyQuantity(value) {
@@ -2385,8 +2559,53 @@
    const hasOpenModal =
     el.rateModal.classList.contains("show") ||
     el.historyModal.classList.contains("show") ||
-    el.buyModal.classList.contains("show")
+    el.buyModal.classList.contains("show") ||
+    el.cardPreviewOverlay.classList.contains("show")
    document.body.classList.toggle("packs-modal-open", hasOpenModal)
+  }
+
+  function renderRateCardPreview() {
+   const total = cardPreviewState.list.length
+   if (!total) {
+    closeRateCardPreview()
+    return
+   }
+   const safeIndex = Math.max(0, Math.min(total - 1, Number(cardPreviewState.index || 0)))
+   cardPreviewState.index = safeIndex
+   const entry = cardPreviewState.list[safeIndex] || {}
+   el.cardPreviewImage.src = String(entry.image || "/assets/ui/ssr.png")
+   el.cardPreviewImage.alt = `Carte ${String(entry.name || "SSR")}`
+   el.cardPreviewPrev.disabled = total <= 1
+   el.cardPreviewNext.disabled = total <= 1
+  }
+
+  function openRateCardPreview(index = 0) {
+   if (!Array.isArray(cardPreviewState.list) || !cardPreviewState.list.length) return
+   cardPreviewState.index = Math.max(0, Math.min(cardPreviewState.list.length - 1, Number(index || 0)))
+   renderRateCardPreview()
+   el.cardPreviewOverlay.hidden = false
+   requestAnimationFrame(() => {
+    el.cardPreviewOverlay.classList.add("show")
+    syncModalBodyLock()
+   })
+  }
+
+  function closeRateCardPreview() {
+   if (el.cardPreviewOverlay.hidden) return
+   el.cardPreviewOverlay.classList.remove("show")
+   syncModalBodyLock()
+   window.setTimeout(() => {
+    el.cardPreviewOverlay.hidden = true
+    syncModalBodyLock()
+   }, 150)
+  }
+
+  function shiftRateCardPreview(delta = 1) {
+   const total = cardPreviewState.list.length
+   if (total <= 1) return
+   const nextIndex = (Number(cardPreviewState.index || 0) + Number(delta || 0) + total) % total
+   cardPreviewState.index = nextIndex
+   renderRateCardPreview()
   }
 
   function renderBuyModal() {
@@ -2424,6 +2643,15 @@
   function renderRateModal() {
    el.rateSetTitle.textContent = rateInfo.setName
    el.rateEffectiveValue.textContent = formatRate(rateInfo.effectiveSSR)
+   cardPreviewState.list = Array.isArray(rateInfo.ssrCards)
+    ? rateInfo.ssrCards.map((card) => ({
+      image: String(card?.image || ""),
+      name: String(card?.name || "Carte SSR")
+     }))
+    : []
+   if (cardPreviewState.index >= cardPreviewState.list.length) {
+    cardPreviewState.index = 0
+   }
    if (rateInfo.loading && !rateInfo.ssrCards.length) {
     el.rateGrid.innerHTML = `<p class="packs-rate-state">Chargement des SSR du set...</p>`
     return
@@ -2435,12 +2663,14 @@
     return
    }
 
-   el.rateGrid.innerHTML = rateInfo.ssrCards.map((card) => {
+   el.rateGrid.innerHTML = rateInfo.ssrCards.map((card, index) => {
     const safeName = sanitizeText(card.name)
     const safeImage = sanitizeText(card.image || "/assets/ui/ssr.png")
     return `
     <article class="packs-rate-row">
-     <img src="${safeImage}" alt="${safeName}" loading="lazy">
+     <button class="packs-rate-card-trigger" type="button" data-rate-card-index="${index}" aria-label="Apercu ${safeName}">
+      <img src="${safeImage}" alt="${safeName}" loading="lazy">
+     </button>
      <div>
       <p class="packs-rate-card-tag">SSR</p>
       <p class="packs-rate-card-name">${safeName}</p>
@@ -2449,6 +2679,12 @@
     </article>
    `
    }).join("")
+   el.rateGrid.querySelectorAll("[data-rate-card-index]").forEach((node) => {
+    node.addEventListener("click", () => {
+     const idx = Number(node.getAttribute("data-rate-card-index"))
+     openRateCardPreview(idx)
+    })
+   })
   }
 
   function renderHistoryModal() {
@@ -2482,6 +2718,7 @@
   }
 
   function closeRateModal() {
+   closeRateCardPreview()
    if (el.rateModal.hidden) return
    el.rateModal.classList.remove("show")
    syncModalBodyLock()
@@ -2582,9 +2819,9 @@
   function updateUI() {
    el.kamasTop.textContent = formatInt(packsState.kamas)
    el.packsTop.textContent = String(packsState.packs)
-   el.draw1.disabled = packsState.drawBusy || packsState.packs < 1
-   el.draw10.disabled = packsState.drawBusy || packsState.packs < 10
-   el.draw25.disabled = packsState.drawBusy || packsState.packs < 25
+   el.draw1.disabled = packsState.drawBusy
+   el.draw10.disabled = packsState.drawBusy
+   el.draw25.disabled = packsState.drawBusy
    updateSetPityDisplay()
    refreshRateInfoForSet(activeSetId)
    if (!el.rateModal.hidden) renderRateModal()
@@ -2648,10 +2885,17 @@
 
   async function drawMany(count) {
    const quantity = Math.max(1, Math.min(25, Math.floor(Number(count || 1))))
-   if (packsState.drawBusy) return
-   if (packsState.packs < quantity) return
+   if (packsState.drawBusy) {
+    showDrawNotice("Ouverture deja en cours...")
+    return
+   }
+   if (packsState.packs < quantity) {
+    showDrawNotice(`Packs insuffisants pour x${quantity}.`, true)
+    return
+   }
 
    packsState.drawBusy = true
+   showDrawNotice(`Ouverture x${quantity} en cours...`)
    updateUI()
    try {
     const requestSetId = activeSetId
@@ -2668,11 +2912,15 @@
 
     syncOpenPacksPayload(payload, requestSetId)
     pushHistoryEntries(payload?.cards || [], requestSetId)
+    const totalCards = Math.max(0, Number(payload?.revealCards?.length || 0))
+    const kamasGain = Math.max(0, Number(payload?.totals?.kamasGain || 0))
+    showDrawNotice(`Ouverture x${quantity} reussie - ${totalCards} cartes - +${formatInt(kamasGain)} kamas`)
     if (!el.historyModal.hidden) {
      void loadHistoryPageForActiveSet()
     }
    } catch (error) {
     console.error("[PACKS] Tirage impossible:", error)
+    showDrawNotice(String(error?.message || "Tirage impossible."), true)
    } finally {
     packsState.drawBusy = false
     updateUI()
@@ -2698,6 +2946,11 @@
   el.buyModal.querySelectorAll("[data-close-buy-modal]").forEach((node) => {
    node.addEventListener("click", closeBuyModal)
   })
+  el.cardPreviewOverlay.querySelectorAll("[data-close-card-preview]").forEach((node) => {
+   node.addEventListener("click", closeRateCardPreview)
+  })
+  el.cardPreviewPrev.addEventListener("click", () => shiftRateCardPreview(-1))
+  el.cardPreviewNext.addEventListener("click", () => shiftRateCardPreview(1))
 
   el.buyMinus10Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity - 10))
   el.buyMinus1Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity - 1))
@@ -2717,10 +2970,25 @@
   })
 
   document.addEventListener("keydown", (event) => {
-   if (event.key !== "Escape") return
-   closeRateModal()
-   closeHistoryModal()
-   closeBuyModal()
+   if (event.key === "Escape") {
+    if (!el.cardPreviewOverlay.hidden) {
+     closeRateCardPreview()
+     return
+    }
+    closeRateModal()
+    closeHistoryModal()
+    closeBuyModal()
+    return
+   }
+   if (!el.cardPreviewOverlay.hidden && event.key === "ArrowLeft") {
+    event.preventDefault()
+    shiftRateCardPreview(-1)
+    return
+   }
+   if (!el.cardPreviewOverlay.hidden && event.key === "ArrowRight") {
+    event.preventDefault()
+    shiftRateCardPreview(1)
+   }
   })
 
   setupSetSliderDrag()
