@@ -5627,7 +5627,13 @@ app.get("/api/achievements", (req, res) => {
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
 app.get("/play/:tab", (req, res) => {
- if (String(req.params.tab || "").toLowerCase() === "quests") {
+ const tab = String(req.params.tab || "").toLowerCase()
+ if (tab === "packs") {
+  const session = requireSessionPage(req, res)
+  if (!session) return
+  return res.sendFile(path.join(PUBLIC_DIR, "Packs.html"))
+ }
+ if (tab === "quests") {
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  }
  const session = requireSessionPage(req, res)
