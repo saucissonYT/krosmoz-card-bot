@@ -2027,7 +2027,7 @@
        <th>*</th>
        <th>Nom de l'objet</th>
        <th>Nom du recrutement</th>
-       <th>Heure d'acquisition (UTC+0)</th>
+       <th>Heure d'acquisition (UTC+2)</th>
       </tr>
      </thead>
      <tbody id="packsHistoryRows"></tbody>
@@ -2287,6 +2287,7 @@
 
   const HISTORY_WINDOW_DAYS = 7
   const HISTORY_WINDOW_MS = HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  const HISTORY_UTC_OFFSET_HOURS = 2
   const localHistoryRows = []
   let drawNoticeTimer = null
 
@@ -2619,13 +2620,13 @@
   }
 
   function formatUtcNow() {
-   const date = new Date()
+   const date = new Date(Date.now() + (HISTORY_UTC_OFFSET_HOURS * 60 * 60 * 1000))
    const pad = (n) => String(n).padStart(2, "0")
    return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
   }
 
   function formatUtcFromTimestamp(timestamp) {
-   const date = new Date(Number(timestamp || 0))
+   const date = new Date(Number(timestamp || 0) + (HISTORY_UTC_OFFSET_HOURS * 60 * 60 * 1000))
    if (!Number.isFinite(date.getTime())) return formatUtcNow()
    const pad = (n) => String(n).padStart(2, "0")
    return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
@@ -2636,7 +2637,7 @@
    const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/)
    if (!match) return 0
    const [, dd, mm, yyyy, hh, min, ss] = match
-   return Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss))
+   return Date.UTC(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss)) - (HISTORY_UTC_OFFSET_HOURS * 60 * 60 * 1000)
   }
 
   function normalizeHistoryRow(raw, fallbackSetId = "") {

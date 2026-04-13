@@ -185,6 +185,7 @@ const DEFAULT_QUEST_BP_XP = {
 }
 const RECRUIT_HISTORY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 const RECRUIT_HISTORY_MAX_ITEMS = 1500
+const RECRUIT_HISTORY_UTC_OFFSET_HOURS = 2
 
 function getNextWebPinataDelayMs() {
  return Math.floor(Math.random() * (WEB_PINATA_MAX_INTERVAL_MS - WEB_PINATA_MIN_INTERVAL_MS + 1)) + WEB_PINATA_MIN_INTERVAL_MS
@@ -1250,8 +1251,9 @@ function getCardSetNameMap(sets) {
 function formatUtcTimestamp(ts) {
  const date = new Date(Number(ts || 0))
  if (!Number.isFinite(date.getTime())) return ""
+ const shifted = new Date(date.getTime() + (RECRUIT_HISTORY_UTC_OFFSET_HOURS * 60 * 60 * 1000))
  const pad = (n) => String(n).padStart(2, "0")
- return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+ return `${pad(shifted.getUTCDate())}/${pad(shifted.getUTCMonth() + 1)}/${shifted.getUTCFullYear()} ${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}`
 }
 
 function normalizeRecruitHistoryEntry(raw, now = Date.now()) {
@@ -4481,6 +4483,7 @@ app.get("/api/game/recruit-history", (req, res) => {
   res.json({
    ok: true,
    windowDays: 7,
+   timezone: "UTC+2",
    setId: setId || null,
    total: payload.total,
    page: payload.page,
