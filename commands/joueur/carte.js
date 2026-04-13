@@ -12,7 +12,7 @@ const {
 } = require("discord.js")
 
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
-const { getCardsById } = require("../../systems/cardRegistry")
+const { getCards, getCardsById } = require("../../systems/cardRegistry")
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { isSecretCard } = require("../../systems/secretCard")
 
@@ -44,6 +44,16 @@ module.exports = {
 
  async execute(interaction) {
 
+  try {
+   if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply()
+   }
+  } catch (err) {
+   if (err?.code === 10062 || err?.code === 40060) return
+   throw err
+  }
+
+  const allCards = getCards()
   const cardsById = getCardsById()
   const cards = Object.values(cardsById)
 
@@ -55,7 +65,29 @@ module.exports = {
   let card
 
   if (id) {
-   card = cardsById[id]
+   const matches = allCards.filter(c => String(c.id) === String(id))
+
+   if (!matches.length) {
+    return interaction.editReply("❌ Carte introuvable.")
+   }
+
+   if (matches.length > 1) {
+    const preview = matches
+     .slice(0, 5)
+     .map((c) => `- ${c.name} (${c.rarity}, set:${c.set})`)
+     .join("\n")
+
+    return interaction.editReply(
+`❌ ID dupliqué détecté (#${id}).
+${matches.length} cartes partagent cet ID.
+Impossible d'afficher une carte unique.
+
+Conflits:
+${preview}`
+    )
+   }
+
+   card = matches[0]
   }
 
   else if (name) {
@@ -67,13 +99,25 @@ module.exports = {
   }
 
   else
-   return interaction.reply({
-    content: "❌ Tu dois préciser `nom` ou `id`.",
-    flags: 64
-   })
+   return interaction.editReply("❌ Tu dois préciser `nom` ou `id`.")
 
   if (!card)
-   return interaction.reply("❌ Carte introuvable.")
+   return interaction.editReply("❌ Carte introuvable.")
+
+  const sameIdCards = allCards.filter(c => String(c.id) === String(card.id))
+  if (sameIdCards.length > 1) {
+   const preview = sameIdCards
+    .slice(0, 5)
+    .map((c) => `- ${c.name} (${c.rarity}, set:${c.set})`)
+    .join("\n")
+
+   return interaction.editReply(
+`❌ ID dupliqué détecté (#${card.id}).
+${sameIdCards.length} cartes partagent cet ID.
+Conflits:
+${preview}`
+   )
+  }
 
   const count = user.cards?.[card.id] || 0
 
@@ -135,12 +179,12 @@ module.exports = {
      .setStyle(ButtonStyle.Primary)
    )
 
-  const msg = await interaction.reply({
+  await interaction.editReply({
    embeds: [embed],
    components: [row],
-   files: files,
-   fetchReply: true
+   files: files
   })
+  const msg = await interaction.fetchReply()
 
   const collector = msg.createMessageComponentCollector({ time: 60000 })
 

@@ -74,7 +74,7 @@ module.exports = {
  async execute(interaction){
 
   if(!isDev(interaction.user.id))
-   return interaction.reply({ content:"⛔ Commande dev.", ephemeral:true })
+   return interaction.reply({ content:"⛔ Commande dev.", flags:64 })
 
   let canReply = true
 
@@ -85,7 +85,7 @@ module.exports = {
     if(interaction.deferred || interaction.replied)
      await interaction.editReply(content)
     else
-     await interaction.reply({ content, ephemeral:true })
+     await interaction.reply({ content, flags:64 })
    }catch(err){
     if(err?.code === 10062 || err?.code === 40060){
      canReply = false
@@ -97,7 +97,7 @@ module.exports = {
 
   try{
    if(!interaction.deferred && !interaction.replied)
-    await interaction.deferReply({ ephemeral:true })
+    await interaction.deferReply({ flags:64 })
   }catch(err){
    if(err?.code === 10062 || err?.code === 40060)
     canReply = false
@@ -119,13 +119,27 @@ module.exports = {
   const cardId = String(id)
   const cardsById = getCardsById()
   const matches = cards.filter(c => String(c.id) === cardId)
-  const cardFromRegistry = cardsById[cardId]
-  const card = matches.includes(cardFromRegistry)
-   ? cardFromRegistry
-   : matches[matches.length - 1]
 
-  if(!card)
+  if(matches.length === 0)
    return reply("❌ Carte introuvable.")
+
+  if(matches.length > 1){
+   const preview = matches
+    .slice(0, 5)
+    .map((c) => `- ${c.name} (${c.rarity}, set:${c.set})`)
+    .join("\n")
+
+   return reply(
+`❌ ID dupliqué détecté (#${cardId}).
+${matches.length} cartes partagent cet ID.
+Édition annulée pour éviter de modifier la mauvaise carte.
+
+Conflits:
+${preview}`
+   )
+  }
+
+  const card = cardsById[cardId] || matches[0]
 
   if(name) card.name = name
   if(rarity) card.rarity = rarity
@@ -179,8 +193,6 @@ module.exports = {
   resetRegistry()
 
   const parts = [`✅ Carte modifiée : **${card.name}** (#${card.id})`]
-  if(matches.length > 1)
-   parts.push(`⚠️ Attention : ${matches.length} cartes partagent l'ID #${card.id}. La dernière occurrence a été modifiée (même comportement que /carte).`)
   if(name) parts.push(`📝 Nom → ${name}`)
   if(rarity) parts.push(`💎 Rareté → ${rarity}`)
   if(setId) parts.push(`📦 Set → ${setId}`)
