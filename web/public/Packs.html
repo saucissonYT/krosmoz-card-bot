@@ -294,7 +294,7 @@
   .packs-focus-badge {
    position: absolute;
    left: calc(50% + 160px);
-   bottom: 112px;
+   bottom: 136px;
    transform: none;
    z-index: 5;
    border-radius: 999px;
@@ -589,6 +589,194 @@
 
   body.packs-modal-open {
    overflow: hidden;
+  }
+
+  .packs-open-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 88;
+   display: grid;
+   place-items: center;
+   padding: 18px;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.18s ease;
+  }
+
+  .packs-open-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .packs-open-overlay[hidden] {
+   display: none;
+  }
+
+  .packs-open-backdrop {
+   position: absolute;
+   inset: 0;
+   background: rgba(4, 10, 34, 0.84);
+   backdrop-filter: blur(4px);
+  }
+
+  .packs-open-dialog {
+   position: relative;
+   z-index: 1;
+   width: min(1240px, 96vw);
+   max-height: min(90vh, 980px);
+   border-radius: 16px;
+   border: 1px solid rgba(162, 208, 255, 0.54);
+   background: linear-gradient(180deg, rgba(13, 32, 88, 0.95), rgba(8, 20, 58, 0.96));
+   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+   display: grid;
+   grid-template-rows: auto auto 1fr auto;
+   overflow: hidden;
+  }
+
+  .packs-open-head {
+   display: grid;
+   grid-template-columns: 1fr auto;
+   align-items: center;
+   gap: 12px;
+   padding: 14px 18px 10px;
+   border-bottom: 1px solid rgba(156, 203, 255, 0.34);
+  }
+
+  .packs-open-head h3 {
+   margin: 0;
+   color: #eaf6ff;
+   font-family: "Cinzel", serif;
+   font-size: clamp(1.35rem, 2.1vw, 2rem);
+   letter-spacing: 0.02em;
+  }
+
+  .packs-open-close {
+   width: 40px;
+   height: 40px;
+   border-radius: 999px;
+   border: 1px solid rgba(188, 223, 255, 0.52);
+   background: rgba(9, 24, 66, 0.7);
+   color: #ecf6ff;
+   font-size: 1.5rem;
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .packs-open-meta {
+   margin: 0;
+   padding: 8px 18px 10px;
+   color: #d7ebff;
+   font-size: 1.05rem;
+   font-weight: 700;
+   border-bottom: 1px solid rgba(152, 201, 255, 0.26);
+  }
+
+  .packs-open-grid {
+   padding: 14px 16px;
+   overflow: auto;
+   display: grid;
+   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+   gap: 10px;
+   align-content: start;
+  }
+
+  .packs-open-card {
+   position: relative;
+   aspect-ratio: 0.72 / 1;
+   border-radius: 10px;
+   perspective: 900px;
+  }
+
+  .packs-open-card-inner {
+   position: absolute;
+   inset: 0;
+   transform-style: preserve-3d;
+   transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .packs-open-card.revealed .packs-open-card-inner {
+   transform: rotateY(180deg);
+  }
+
+  .packs-open-face {
+   position: absolute;
+   inset: 0;
+   border-radius: 10px;
+   overflow: hidden;
+   backface-visibility: hidden;
+   border: 1px solid rgba(175, 216, 255, 0.35);
+   background: rgba(9, 23, 64, 0.68);
+   display: grid;
+   place-items: center;
+  }
+
+  .packs-open-face img {
+   width: 100%;
+   height: 100%;
+   object-fit: cover;
+   user-select: none;
+   -webkit-user-drag: none;
+  }
+
+  .packs-open-front {
+   transform: rotateY(180deg);
+   grid-template-rows: 1fr auto;
+  }
+
+  .packs-open-front-meta {
+   width: 100%;
+   padding: 6px 7px;
+   background: linear-gradient(180deg, rgba(5, 14, 44, 0.08), rgba(4, 10, 30, 0.82));
+   color: #f3f9ff;
+   font-size: 0.74rem;
+   font-weight: 700;
+   line-height: 1.25;
+   text-transform: uppercase;
+   letter-spacing: 0.03em;
+   text-align: left;
+  }
+
+  .packs-open-front-meta .name {
+   display: block;
+   font-size: 0.8rem;
+   text-transform: none;
+   letter-spacing: 0;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+  }
+
+  .packs-open-card.rarity-ssr .packs-open-face,
+  .packs-open-card.rarity-s .packs-open-face {
+   box-shadow: 0 0 0 1px rgba(255, 224, 138, 0.55), 0 0 16px rgba(255, 194, 84, 0.32);
+  }
+
+  .packs-open-foot {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 12px;
+   padding: 12px 16px 14px;
+   border-top: 1px solid rgba(151, 200, 255, 0.28);
+   background: rgba(7, 18, 53, 0.74);
+  }
+
+  .packs-open-summary {
+   color: #d8ecff;
+   font-size: 1rem;
+   font-weight: 700;
+  }
+
+  .packs-open-close-main {
+   min-width: 180px;
+   min-height: 48px;
+   border-radius: 10px;
+   border: 1px solid rgba(244, 216, 122, 0.74);
+   background: linear-gradient(180deg, #ffe06d, #f3bf44);
+   color: #273352;
+   font-size: 1.1rem;
+   font-weight: 800;
+   cursor: pointer;
   }
 
   .packs-rate-modal-overlay {
@@ -1410,11 +1598,11 @@
    text-align: center;
   }
 
- @media (max-width: 1180px) {
+  @media (max-width: 1180px) {
    .packs-draw-btn.advanced { min-width: 205px; }
    .packs-focus-character { bottom: var(--packs-center-bottom-1180); }
    .packs-focus-character img { width: var(--packs-center-width-1180); }
-   .packs-focus-badge { left: calc(50% + 130px); bottom: 104px; }
+   .packs-focus-badge { left: calc(50% + 130px); bottom: 124px; }
    #packsDraw25Btn { min-width: 102px; flex-basis: 102px; }
    .packs-status { width: min(42vw, 440px); }
    .packs-set-slider { width: min(64vw, 720px); }
@@ -1555,6 +1743,13 @@
    .packs-rate-modal {
     width: min(94vw, 760px);
     max-height: min(90vh, 840px);
+   }
+   .packs-open-dialog {
+    width: min(96vw, 860px);
+   }
+   .packs-open-grid {
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 8px;
    }
    .packs-rate-grid {
     grid-template-columns: 1fr;
@@ -1709,6 +1904,22 @@
    </footer>
   </section>
  </main>
+
+ <aside id="packsOpenOverlay" class="packs-open-overlay" hidden>
+  <div class="packs-open-backdrop" data-close-pack-open></div>
+  <section class="packs-open-dialog" role="dialog" aria-modal="true" aria-labelledby="packsOpenTitle">
+   <header class="packs-open-head">
+    <h3 id="packsOpenTitle">Ouverture de packs</h3>
+    <button class="packs-open-close" type="button" data-close-pack-open aria-label="Fermer">×</button>
+   </header>
+   <p id="packsOpenMeta" class="packs-open-meta"></p>
+   <div id="packsOpenGrid" class="packs-open-grid"></div>
+   <footer class="packs-open-foot">
+    <p id="packsOpenSummary" class="packs-open-summary"></p>
+    <button id="packsOpenCloseMain" class="packs-open-close-main" type="button" data-close-pack-open>Fermer</button>
+   </footer>
+  </section>
+ </aside>
 
  <aside id="packsRateModal" class="packs-rate-modal-overlay" hidden>
   <div class="packs-rate-modal-backdrop" data-close-rate-modal></div>
@@ -1951,6 +2162,11 @@
   }
 
  let activeSetId = "incarnam"
+  const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
+  const PACK_BACK_IMAGE_BY_RARITY = {
+   S: "/assets/ui/pack-back-s.png",
+   SSR: "/assets/ui/pack-back-ssr.png"
+  }
   const LOCKED_SET_SLIDER_IMAGE = "/assets/ui/set%20non%20deblock.png"
   const sliderDragState = {
    active: false,
@@ -2004,6 +2220,10 @@
    busy: false,
    error: ""
   }
+  const packOpenState = {
+   open: false,
+   timers: []
+  }
 
   const cardPreviewState = {
    list: [],
@@ -2024,6 +2244,12 @@
    draw10: document.getElementById("packsDraw10Btn"),
    draw25: document.getElementById("packsDraw25Btn"),
    drawNotice: document.getElementById("packsDrawNotice"),
+   packsOpenOverlay: document.getElementById("packsOpenOverlay"),
+   packsOpenTitle: document.getElementById("packsOpenTitle"),
+   packsOpenMeta: document.getElementById("packsOpenMeta"),
+   packsOpenGrid: document.getElementById("packsOpenGrid"),
+   packsOpenSummary: document.getElementById("packsOpenSummary"),
+   packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
    focusFigure: document.getElementById("packsFocusFigure"),
    focusImage: document.getElementById("packsFocusImage"),
@@ -2569,11 +2795,122 @@
 
   function syncModalBodyLock() {
    const hasOpenModal =
+    el.packsOpenOverlay.classList.contains("show") ||
     el.rateModal.classList.contains("show") ||
     el.historyModal.classList.contains("show") ||
     el.buyModal.classList.contains("show") ||
     el.cardPreviewOverlay.classList.contains("show")
    document.body.classList.toggle("packs-modal-open", hasOpenModal)
+  }
+
+  function clearPackOpenTimers() {
+   for (const timer of packOpenState.timers) {
+    window.clearTimeout(timer)
+   }
+   packOpenState.timers = []
+  }
+
+  function getPackBackImageByRarity(rarity) {
+   const key = String(rarity || "").toUpperCase()
+   return PACK_BACK_IMAGE_BY_RARITY[key] || PACK_BACK_IMAGE_DEFAULT
+  }
+
+  function getRevealCards(payload) {
+   if (Array.isArray(payload?.revealCards) && payload.revealCards.length) {
+    return payload.revealCards.slice()
+   }
+   const expanded = []
+   for (const row of (Array.isArray(payload?.cards) ? payload.cards : [])) {
+    const qty = Math.max(1, Number(row?.qty || 1))
+    for (let i = 0; i < qty; i++) {
+      expanded.push({
+       cardName: row?.cardName || row?.itemName || "Carte",
+       rarity: row?.rarity || "C",
+       image: row?.image || null,
+       shiny: Boolean(row?.shiny),
+       isNew: Boolean(row?.isNew)
+      })
+    }
+   }
+   return expanded
+  }
+
+  function closePackOpeningOverlay() {
+   if (!packOpenState.open && el.packsOpenOverlay.hidden) return
+   clearPackOpenTimers()
+   packOpenState.open = false
+   el.packsOpenOverlay.classList.remove("show")
+   syncModalBodyLock()
+   window.setTimeout(() => {
+    el.packsOpenOverlay.hidden = true
+    syncModalBodyLock()
+   }, 140)
+   const resolver = packOpenState.resolve
+   packOpenState.resolve = null
+   if (typeof resolver === "function") {
+    resolver()
+   }
+  }
+
+  function showPackOpeningAnimation(payload) {
+   const revealCards = getRevealCards(payload)
+   if (!revealCards.length) return Promise.resolve()
+
+   clearPackOpenTimers()
+   packOpenState.open = true
+   const setName = sanitizeText(String(setCatalog[String(payload?.setId || activeSetId)]?.name || getActiveSetName()))
+   const quantity = Math.max(1, Number(payload?.quantity || 1))
+   const totalCards = revealCards.length
+   const newCount = revealCards.filter((row) => Boolean(row?.isNew)).length
+   const shinyCount = revealCards.filter((row) => Boolean(row?.shiny)).length
+   el.packsOpenTitle.textContent = `Ouverture ${setName}`
+   el.packsOpenMeta.textContent = `x${quantity} pack(s) - ${totalCards} carte(s)`
+   el.packsOpenSummary.textContent = "Révélation en cours..."
+   el.packsOpenGrid.innerHTML = revealCards.map((row) => {
+    const rarity = String(row?.rarity || "C").toUpperCase()
+    const rarityClass = sanitizeText(`rarity-${rarity.toLowerCase()}`)
+    const name = sanitizeText(String(row?.cardName || "Carte"))
+    const image = sanitizeText(String(row?.image || "/assets/ui/ssr.png"))
+    const back = sanitizeText(getPackBackImageByRarity(rarity))
+    const shiny = row?.shiny ? " ✦" : ""
+    const isNew = row?.isNew ? " • Nouveau" : ""
+    return `
+     <article class="packs-open-card ${rarityClass}">
+      <div class="packs-open-card-inner">
+       <div class="packs-open-face packs-open-back">
+        <img src="${back}" alt="Dos ${rarity}">
+       </div>
+       <div class="packs-open-face packs-open-front">
+        <img src="${image}" alt="${name}" loading="lazy">
+        <div class="packs-open-front-meta">${sanitizeText(rarity)}${sanitizeText(shiny)}<span class="name">${name}${sanitizeText(isNew)}</span></div>
+       </div>
+      </div>
+     </article>
+    `
+   }).join("")
+
+   el.packsOpenOverlay.hidden = false
+   requestAnimationFrame(() => {
+    el.packsOpenOverlay.classList.add("show")
+    syncModalBodyLock()
+   })
+
+   const cards = [...el.packsOpenGrid.querySelectorAll(".packs-open-card")]
+   const stepDelay = cards.length > 90 ? 16 : cards.length > 50 ? 22 : 30
+   cards.forEach((card, index) => {
+    const timer = window.setTimeout(() => {
+     card.classList.add("revealed")
+    }, index * stepDelay)
+    packOpenState.timers.push(timer)
+   })
+   const doneTimer = window.setTimeout(() => {
+    el.packsOpenSummary.textContent = `${totalCards} cartes - ${newCount} nouvelle(s) - ${shinyCount} shiny`
+   }, cards.length * stepDelay + 360)
+   packOpenState.timers.push(doneTimer)
+
+   return new Promise((resolve) => {
+    packOpenState.resolve = resolve
+   })
   }
 
   function renderRateCardPreview() {
@@ -2924,8 +3261,13 @@
 
     syncOpenPacksPayload(payload, requestSetId)
     pushHistoryEntries(payload?.cards || [], requestSetId)
-    const totalCards = Math.max(0, Number(payload?.revealCards?.length || 0))
+    const totalCards = Array.isArray(payload?.revealCards) && payload.revealCards.length
+     ? payload.revealCards.length
+     : (Array.isArray(payload?.cards)
+      ? payload.cards.reduce((sum, row) => sum + Math.max(1, Number(row?.qty || 1)), 0)
+      : 0)
     const kamasGain = Math.max(0, Number(payload?.totals?.kamasGain || 0))
+    await showPackOpeningAnimation(payload)
     showDrawNotice(`Ouverture x${quantity} reussie - ${totalCards} cartes - +${formatInt(kamasGain)} kamas`)
     if (!el.historyModal.hidden) {
      void loadHistoryPageForActiveSet()
@@ -2958,6 +3300,9 @@
   el.buyModal.querySelectorAll("[data-close-buy-modal]").forEach((node) => {
    node.addEventListener("click", closeBuyModal)
   })
+  el.packsOpenOverlay.querySelectorAll("[data-close-pack-open]").forEach((node) => {
+   node.addEventListener("click", closePackOpeningOverlay)
+  })
   el.cardPreviewOverlay.querySelectorAll("[data-close-card-preview]").forEach((node) => {
    node.addEventListener("click", closeRateCardPreview)
   })
@@ -2983,6 +3328,10 @@
 
   document.addEventListener("keydown", (event) => {
    if (event.key === "Escape") {
+    if (!el.packsOpenOverlay.hidden) {
+     closePackOpeningOverlay()
+     return
+    }
     if (!el.cardPreviewOverlay.hidden) {
      closeRateCardPreview()
      return
