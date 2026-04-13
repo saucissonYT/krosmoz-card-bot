@@ -6,7 +6,7 @@ const { SlashCommandBuilder } = require("discord.js")
 const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { loadSets } = require("../../systems/setSystemFile")
 const { isDev } = require("../../systems/devSystem")
-const { resetRegistry, getCardsById } = require("../../systems/cardRegistry")
+const { resetRegistry } = require("../../systems/cardRegistry")
 const { getBasePath } = require("../../systems/paths")
 const { readJsonSafe } = require("../../systems/fileUtils")
 
@@ -126,7 +126,6 @@ module.exports = {
   const attachment = interaction.options.getAttachment("image")
 
   const cardId = String(id)
-  const cardsById = getCardsById()
   const matches = cards.filter(c => String(c.id) === cardId)
 
   if(matches.length === 0)
@@ -148,7 +147,7 @@ ${preview}`
    )
   }
 
-  const card = cardsById[cardId] || matches[0]
+  const card = matches[0]
 
   if(name) card.name = name
   if(rarity) card.rarity = rarity

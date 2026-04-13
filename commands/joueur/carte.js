@@ -22,6 +22,16 @@ const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
 const CARDS_PATH = path.join(getBasePath(), "cards.json")
 
+function loadCardsFromDisk() {
+ const cards = readJsonSafe(CARDS_PATH, [])
+ return Array.isArray(cards) ? cards : []
+}
+
+function getCardsByIdFromDisk() {
+ const cards = loadCardsFromDisk()
+ return Object.fromEntries(cards.map((c) => [String(c.id), c]))
+}
+
 /* ═══════════════════════════════════════════════════════════════
    /carte — Afficher une carte avec options vendre / market
    
@@ -56,10 +66,11 @@ module.exports = {
    throw err
   }
 
-  const cards = readJsonSafe(CARDS_PATH, [])
+  const cards = loadCardsFromDisk()
   if (!Array.isArray(cards) || !cards.length) {
    return interaction.editReply("❌ Aucune carte disponible (cards.json vide ou invalide).")
   }
+  const allCards = cards
   const cardsById = Object.fromEntries(cards.map((c) => [String(c.id), c]))
 
   const user = getUser(interaction.user.id)
@@ -286,7 +297,7 @@ ${preview}`
    })
 
   const user = getUser(interaction.user.id)
-  const cardsById = getCardsById()
+  const cardsById = getCardsByIdFromDisk()
   const modalCard = cardsById[cid]
 
   if (!user.cards[cid])
