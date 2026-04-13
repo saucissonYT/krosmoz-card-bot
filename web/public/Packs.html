@@ -294,7 +294,7 @@
   .packs-focus-badge {
    position: absolute;
    left: calc(50% + 160px);
-   bottom: 92px;
+   bottom: 112px;
    transform: none;
    z-index: 5;
    border-radius: 999px;
@@ -470,6 +470,13 @@
    border-color: rgba(255, 227, 138, 0.74);
    color: #26324f;
    background: linear-gradient(180deg, #ffd95f, #f2b738);
+  }
+
+  #packsDraw25Btn {
+   min-width: 124px;
+   flex: 0 0 124px;
+   padding-left: 12px;
+   padding-right: 12px;
   }
 
   .packs-draw-btn:disabled {
@@ -1403,11 +1410,12 @@
    text-align: center;
   }
 
-  @media (max-width: 1180px) {
+ @media (max-width: 1180px) {
    .packs-draw-btn.advanced { min-width: 205px; }
    .packs-focus-character { bottom: var(--packs-center-bottom-1180); }
    .packs-focus-character img { width: var(--packs-center-width-1180); }
-   .packs-focus-badge { left: calc(50% + 130px); bottom: 88px; }
+   .packs-focus-badge { left: calc(50% + 130px); bottom: 104px; }
+   #packsDraw25Btn { min-width: 102px; flex-basis: 102px; }
    .packs-status { width: min(42vw, 440px); }
    .packs-set-slider { width: min(64vw, 720px); }
   }
@@ -1517,6 +1525,10 @@
     flex: 1;
     min-width: 0;
     min-height: 58px;
+   }
+   #packsDraw25Btn {
+    flex: 0 0 72px;
+    min-width: 72px;
    }
    .packs-status {
     position: relative;
