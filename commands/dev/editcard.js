@@ -7,6 +7,10 @@ const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { loadSets } = require("../../systems/setSystemFile")
 const { isDev } = require("../../systems/devSystem")
 const { resetRegistry, getCardsById } = require("../../systems/cardRegistry")
+const { getBasePath } = require("../../systems/paths")
+const { readJsonSafe } = require("../../systems/fileUtils")
+
+const CARDS_PATH = path.join(getBasePath(), "cards.json")
 
 module.exports = {
 
@@ -108,7 +112,12 @@ module.exports = {
   const rawSets = loadSets()
   const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
 
-  const cards = data.cards || []
+  const cardsFromDisk = readJsonSafe(CARDS_PATH, null)
+  if(!Array.isArray(cardsFromDisk))
+   return reply(`❌ Source cards invalide: ${CARDS_PATH}`)
+
+  const cards = cardsFromDisk
+  data.cards = cards
 
   const id = interaction.options.getInteger("id")
   const name = interaction.options.getString("nom")
@@ -191,6 +200,30 @@ ${preview}`
   data.cards = cards
   save()
   resetRegistry()
+
+  const persistedCards = readJsonSafe(CARDS_PATH, null)
+  const persistedMatches = Array.isArray(persistedCards)
+   ? persistedCards.filter(c => String(c.id) === cardId)
+   : []
+
+  const persisted = persistedMatches[0] || null
+  const persistedOk = Boolean(
+   persisted &&
+   String(persisted.name || "") === String(card.name || "") &&
+   String(persisted.rarity || "") === String(card.rarity || "") &&
+   String(persisted.set || "") === String(card.set || "") &&
+   String(persisted.image || "") === String(card.image || "")
+  )
+
+  if(!persistedOk){
+   return reply(
+`❌ Modification appliquée en mémoire mais non confirmée sur disque.
+Source attendue: ${CARDS_PATH}
+ID: #${cardId}
+
+Vérifie les logs DATA pour "Erreur sauvegarde DataManager".`
+   )
+  }
 
   const parts = [`✅ Carte modifiée : **${card.name}** (#${card.id})`]
   if(name) parts.push(`📝 Nom → ${name}`)

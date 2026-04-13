@@ -1,4 +1,5 @@
 const fs = require("fs")
+const path = require("path")
 
 const {
  SlashCommandBuilder,
@@ -12,12 +13,14 @@ const {
 } = require("discord.js")
 
 const { CARDS_IMAGES_DIR } = require("../../systems/dataManager")
-const { getCards, getCardsById } = require("../../systems/cardRegistry")
+const { getBasePath } = require("../../systems/paths")
+const { readJsonSafe } = require("../../systems/fileUtils")
 const { RARITY_EMOJI, SELL_PRICE } = require("../../systems/constants")
 const { isSecretCard } = require("../../systems/secretCard")
 
 const { addListing } = require("../../systems/market")
 const { getUser, save } = require("../../systems/userSystem")
+const CARDS_PATH = path.join(getBasePath(), "cards.json")
 
 /* ═══════════════════════════════════════════════════════════════
    /carte — Afficher une carte avec options vendre / market
@@ -53,9 +56,11 @@ module.exports = {
    throw err
   }
 
-  const allCards = getCards()
-  const cardsById = getCardsById()
-  const cards = Object.values(cardsById)
+  const cards = readJsonSafe(CARDS_PATH, [])
+  if (!Array.isArray(cards) || !cards.length) {
+   return interaction.editReply("❌ Aucune carte disponible (cards.json vide ou invalide).")
+  }
+  const cardsById = Object.fromEntries(cards.map((c) => [String(c.id), c]))
 
   const user = getUser(interaction.user.id)
 
