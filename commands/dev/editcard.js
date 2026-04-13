@@ -6,7 +6,7 @@ const { SlashCommandBuilder } = require("discord.js")
 const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { loadSets } = require("../../systems/setSystemFile")
 const { isDev } = require("../../systems/devSystem")
-const { resetRegistry } = require("../../systems/cardRegistry")
+const { resetRegistry, getCardsById } = require("../../systems/cardRegistry")
 
 module.exports = {
 
@@ -76,7 +76,34 @@ module.exports = {
   if(!isDev(interaction.user.id))
    return interaction.reply({ content:"⛔ Commande dev.", ephemeral:true })
 
-  await interaction.deferReply({ ephemeral:true })
+  let canReply = true
+
+  const reply = async (content) => {
+   if(!canReply) return
+
+   try{
+    if(interaction.deferred || interaction.replied)
+     await interaction.editReply(content)
+    else
+     await interaction.reply({ content, ephemeral:true })
+   }catch(err){
+    if(err?.code === 10062 || err?.code === 40060){
+     canReply = false
+     return
+    }
+    throw err
+   }
+  }
+
+  try{
+   if(!interaction.deferred && !interaction.replied)
+    await interaction.deferReply({ ephemeral:true })
+  }catch(err){
+   if(err?.code === 10062 || err?.code === 40060)
+    canReply = false
+   else
+    throw err
+  }
 
   const rawSets = loadSets()
   const sets = Array.isArray(rawSets) ? rawSets : rawSets?.sets || []
@@ -90,11 +117,15 @@ module.exports = {
   const attachment = interaction.options.getAttachment("image")
 
   const cardId = String(id)
+  const cardsById = getCardsById()
   const matches = cards.filter(c => String(c.id) === cardId)
-  const card = matches[matches.length - 1]
+  const cardFromRegistry = cardsById[cardId]
+  const card = matches.includes(cardFromRegistry)
+   ? cardFromRegistry
+   : matches[matches.length - 1]
 
   if(!card)
-   return interaction.editReply("❌ Carte introuvable.")
+   return reply("❌ Carte introuvable.")
 
   if(name) card.name = name
   if(rarity) card.rarity = rarity
@@ -102,51 +133,45 @@ module.exports = {
   if(setId){
    const setExists = sets.find(s => s.id === setId)
    if(!setExists)
-    return interaction.editReply("❌ Set invalide.")
+    return reply("❌ Set invalide.")
    card.set = setId
   }
-
-  /* ── Remplacement image ── */
 
   if(attachment){
 
    if(!/\.(png|webp|jpg|jpeg)$/i.test(attachment.name))
-    return interaction.editReply("❌ Format image invalide (png, webp, jpg uniquement).")
+    return reply("❌ Format image invalide (png, webp, jpg uniquement).")
 
    const setFolder = path.join(CARDS_IMAGES_DIR, card.set)
 
    if(!fs.existsSync(setFolder))
     fs.mkdirSync(setFolder, { recursive:true })
 
-   /* Supprimer l'ancienne image si elle existe */
    if(card.image){
     const oldPath = path.join(setFolder, card.image)
     if(fs.existsSync(oldPath)){
-     try{ fs.unlinkSync(oldPath) }catch(_){}
+     try{ fs.unlinkSync(oldPath) }catch(_){ }
     }
    }
 
-   /* Télécharger la pièce jointe */
    const response = await fetch(attachment.url)
 
    if(!response.ok)
-    return interaction.editReply("❌ Impossible de télécharger l'image.")
+    return reply("❌ Impossible de télécharger l'image.")
 
    const buffer = Buffer.from(await response.arrayBuffer())
 
-   /* Générer le nouveau nom de fichier */
-   const safeName = (card.name).replace(/\s/g, "_").toLowerCase()
+   const safeName = String(card.name || "carte").replace(/\s/g, "_").toLowerCase()
    const newFile = `${card.id}_${safeName}_${card.rarity}.png`
    const newPath = path.join(setFolder, newFile)
 
    try{
     await sharp(buffer).png().toFile(newPath)
-   }catch(err){
-    return interaction.editReply("❌ Erreur conversion image (sharp).")
+   }catch(_err){
+    return reply("❌ Erreur conversion image (sharp).")
    }
 
    card.image = newFile
-
   }
 
   data.cards = cards
@@ -159,9 +184,9 @@ module.exports = {
   if(name) parts.push(`📝 Nom → ${name}`)
   if(rarity) parts.push(`💎 Rareté → ${rarity}`)
   if(setId) parts.push(`📦 Set → ${setId}`)
-  if(attachment) parts.push(`🖼️ Image remplacée`)
+  if(attachment) parts.push("🖼️ Image remplacée")
 
-  await interaction.editReply(parts.join("\n"))
+  await reply(parts.join("\n"))
 
  }
 
