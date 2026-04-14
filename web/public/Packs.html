@@ -3427,18 +3427,17 @@
   el.packsOpenCloseMain.disabled = hasNext ? false : !packOpenState.done
  }
 
- function handlePackOpenPrimaryAction() {
-  if (!packOpenState.open) return
-  if (hasPackOpenNextGroup()) {
-    if (packOpenState.transitioningNext) return
-    if (!packOpenState.done) {
-     completePackOpeningReveal()
-    }
+function handlePackOpenPrimaryAction() {
+ if (!packOpenState.open) return
+ if (hasPackOpenNextGroup()) {
+   if (packOpenState.transitioningNext) return
+   const nextIndex = Number(packOpenState.activeGroupIndex || 0) + 1
+   if (!packOpenState.done) {
+    completePackOpeningReveal()
     packOpenState.transitioningNext = true
     updatePackOpenPrimaryAction()
     if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
     closeRateCardPreview()
-    const nextIndex = Number(packOpenState.activeGroupIndex || 0) + 1
     queuePackOpenTimer(() => {
      if (!packOpenState.open) return
      packOpenState.transitioningNext = false
@@ -3446,9 +3445,13 @@
     }, 2000)
     return
    }
-  if (!packOpenState.done) return
-  closePackOpeningOverlay()
- }
+   closeRateCardPreview()
+   animatePackOpenGroup(nextIndex)
+   return
+  }
+ if (!packOpenState.done) return
+ closePackOpeningOverlay()
+}
 
   function updatePackOpenSummary(groupIndex, options = {}) {
    const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []

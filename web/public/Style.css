@@ -5367,6 +5367,7 @@ body.achievements-page .ach-claim-popup[hidden] {
 
 body.achievements-page .ach-claim-popup.show {
  opacity: 1;
+ pointer-events: auto;
 }
 
 body.achievements-page .ach-claim-popup-backdrop {
