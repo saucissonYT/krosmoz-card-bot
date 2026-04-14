@@ -9,6 +9,49 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-14 -> 2026-04-14) - Achievements claim flow (web + Discord)
+
+### Added
+
+- **Service central de claim des succes** (`systems/achievementClaimService.js`)
+  - Mise en file des recompenses de succes en attente par joueur (`pendingAchievementClaims`, `pendingAchievementRewards`)
+  - API utilitaires pour lire les succes en attente par id/categorie
+  - Claim global avec aggregation des gains (kamas, packs, cartes, fragments, xp, titres, badges)
+  - Support des level-up rewards pendant le claim (totaux fusionnes dans le recap)
+
+- **Commande Discord `/achievementclaim`** (`commands/joueur/achievementclaim.js`)
+  - Recuperation de toutes les recompenses en attente
+  - Embed recap des gains agreges
+  - Re-check des succes apres claim pour gerer les cascades (ex: progression)
+
+- **Endpoint web de claim** (`web/Server.js`)
+  - `POST /api/achievements/claim` pour recuperer les recompenses en attente depuis la page achievements
+  - Retour JSON complet: `claimedCount`, `claimedIds`, `totals`, `baseTotals`, `levelUpTotals`, `levelUps`, `newlyUnlocked`, `pending`
+
+### Changed
+
+- **Moteur de succes: recompenses differees** (`systems/achievementEngine.js`)
+  - Debloquer un succes ne donne plus les gains instantanement
+  - Les recompenses sont mises en attente pour claim manuel (web ou Discord)
+
+- **API achievements enrichie** (`web/Server.js`)
+  - `GET /api/achievements` expose maintenant `pending` global, `categories[*].pending` et `items[*].pendingClaim`
+  - Exposition de la progression par succes (`progressCurrent`, `progressGoal`, `progressPercent`) pour l'affichage "En cours X/Y"
+
+- **UI achievements web** (`web/public/Achievements.html`, `web/public/Style.css`)
+  - Bouton `Tout recuperer` connecte au vrai claim serveur
+  - Popup centree animee affichant les gains agreges avec les assets `gain ... level up`
+  - Indicateur `flamme notif` sur les categories avec recompenses en attente
+  - Liste detail avec etat `A recuperer` et progression visible dans chaque succes
+
+- **Notifier Discord des succes** (`systems/achievementNotifier.js`)
+  - Message explicite dans la notification: utiliser `/achievementclaim` pour valider/recuperer les gains
+  - Texte de recompenses reformule en "en attente"
+
+- **Stats user et tests** (`systems/userSystem.js`, `tests/achievement.test.js`)
+  - Nouvelles stats: `achievementCardsEarned`, `achievementClaims`
+  - Tests achievement adaptes au nouveau modele de recompense differee
+
 ### Updates (2026-04-10 -> 2026-04-10) - Site web local, UX, guildes
 
 ### Added

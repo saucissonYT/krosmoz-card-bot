@@ -1,16 +1,9 @@
-/* ═══════════════════════════════════════════════
-   TESTS — systems/achievementEngine.js
-   Couvre : checkAchievements, déblocage, doublons,
-            récompenses, titres
-═══════════════════════════════════════════════ */
+﻿const assert = require("assert")
 
-const assert = require("assert")
-
-/* ── Mock data ── */
 const dataManager = require("../systems/dataManager")
 const mockCards = []
 let cardId = 1
-for (const rarity of ["C","U","R","SR","HR","UR","S","SSR"]) {
+for (const rarity of ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]) {
  for (let i = 0; i < 10; i++) {
   mockCards.push({ id: cardId++, name: `card_${rarity}_${i}`, set: "incarnam", rarity })
  }
@@ -21,6 +14,7 @@ resetRegistry()
 
 const { checkAchievements } = require("../systems/achievementEngine")
 const achievementRegistry = require("../systems/achievementRegistry")
+const { ensureAchievementClaimState } = require("../systems/achievementClaimService")
 
 let passed = 0
 let failed = 0
@@ -50,95 +44,76 @@ function makeUser(overrides = {}) {
  }
 }
 
-console.log("\n══════ TESTS achievementEngine.js ══════\n")
+console.log("\n====== TESTS achievementEngine.js ======\n")
 
-/* ── Retourne un tableau ── */
-
-test("checkAchievements retourne un tableau", () => {
+test("checkAchievements returns array", () => {
  const user = makeUser()
  const result = checkAchievements(user, null)
- assert.ok(Array.isArray(result), "résultat est un tableau")
+ assert.ok(Array.isArray(result), "result should be an array")
 })
 
-/* ── Pas de doublon ── */
-
-test("un achievement ne se débloque pas deux fois", () => {
+test("achievement is not unlocked twice", () => {
  const user = makeUser({ kamas: 2000 })
  const first = checkAchievements(user, null)
  const second = checkAchievements(user, null)
 
- /* Vérifier qu'aucun ID n'apparaît dans les deux résultats */
  for (const id of first) {
-  assert.ok(!second.includes(id), `${id} ne doit pas se débloquer deux fois`)
+  assert.ok(!second.includes(id), `${id} must not unlock twice`)
  }
 })
 
-/* ── Achievements kamas ── */
-
-test("achievement kamas1000 se débloque à 1000 kamas", () => {
+test("kamas1000 unlocks at 1000 kamas", () => {
  const user = makeUser({ kamas: 1000 })
  const unlocked = checkAchievements(user, null)
- assert.ok(unlocked.includes("kamas1000"), "kamas1000 débloqué")
+ assert.ok(unlocked.includes("kamas1000"), "kamas1000 unlocked")
 })
 
-test("achievement kamas1000 ne se débloque pas à 999 kamas", () => {
+test("kamas1000 does not unlock at 999 kamas", () => {
  const user = makeUser({ kamas: 999 })
  const unlocked = checkAchievements(user, null)
- assert.ok(!unlocked.includes("kamas1000"), "kamas1000 non débloqué à 999")
+ assert.ok(!unlocked.includes("kamas1000"), "kamas1000 not unlocked at 999")
 })
 
-/* ── Titres ── */
-
-test("un achievement avec titre ajoute le titre au user", () => {
+test("achievement reward waits for claim", () => {
  const user = makeUser({ kamas: 1000 })
  checkAchievements(user, null)
- /* kamas1000 donne le titre "Petit Marchand" */
- assert.ok(user.titles.includes("Petit Marchand"), "titre ajouté")
+ const claimState = ensureAchievementClaimState(user)
+ assert.ok(claimState.pendingIds.includes("kamas1000"), "kamas1000 should be pending")
+ assert.ok(!user.titles.includes("Petit Marchand"), "title should not be granted before claim")
 })
 
-/* ── Achievements stockés ── */
-
-test("les achievements débloqués sont dans user.achievements", () => {
+test("unlocked achievements are in user.achievements", () => {
  const user = makeUser({ kamas: 10000 })
  checkAchievements(user, null)
- assert.ok(user.achievements.includes("kamas1000"), "kamas1000 dans achievements")
- assert.ok(user.achievements.includes("kamas10000"), "kamas10000 dans achievements")
+ assert.ok(user.achievements.includes("kamas1000"), "kamas1000 in achievements")
+ assert.ok(user.achievements.includes("kamas10000"), "kamas10000 in achievements")
 })
 
-/* ── user.stats initialisé ── */
-
-test("checkAchievements initialise user.stats si absent", () => {
+test("checkAchievements initializes user.stats when missing", () => {
  const user = { kamas: 0 }
  checkAchievements(user, null)
- assert.ok(user.stats, "stats créé")
- assert.ok(user.achievements, "achievements créé")
+ assert.ok(user.stats, "stats created")
+ assert.ok(user.achievements, "achievements created")
 })
 
-/* ── Secret achievement 666 ── */
-
-test("achievement secret 666 kamas se débloque", () => {
+test("secret achievement 666 kamas unlocks", () => {
  const user = makeUser({ kamas: 666 })
  const unlocked = checkAchievements(user, null)
- assert.ok(unlocked.includes("kamas666"), "kamas666 débloqué")
+ assert.ok(unlocked.includes("kamas666"), "kamas666 unlocked")
 })
 
-/* ── Résultats ── */
-
-
-/* -------- Succ?s "X secrets" : uniquement via des succ?s secrets -------- */
-
-test("les succ?s 'X secrets' ne se valident pas avec des succ?s non-secrets", () => {
+test("secret counters do not unlock from non-secret achievements", () => {
  const nonSecretIds = Object.keys(achievementRegistry).filter((id) => !achievementRegistry[id]?.secret)
  const user = makeUser({
   achievements: nonSecretIds.slice(0, 200),
   title: "Nouveau"
  })
  const unlocked = checkAchievements(user, null)
- assert.ok(!unlocked.includes("secretMurmure"), "secretMurmure ne doit pas se d?bloquer via des succ?s non-secrets")
- assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze ne doit pas se d?bloquer via des succ?s non-secrets")
+ assert.ok(!unlocked.includes("secretMurmure"), "secretMurmure should not unlock")
+ assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze should not unlock")
 })
 
-test("secretMurmure se valide avec 3 succ?s secrets r?els", () => {
+test("secretMurmure unlocks with 3 real secret achievements", () => {
  const secretIds = Object.keys(achievementRegistry).filter(
   (id) => achievementRegistry[id]?.secret && id !== "secretMurmure" && id !== "secretEnigmeDouze"
  )
@@ -147,11 +122,11 @@ test("secretMurmure se valide avec 3 succ?s secrets r?els", () => {
   title: "Nouveau"
  })
  const unlocked = checkAchievements(user, null)
- assert.ok(unlocked.includes("secretMurmure"), "secretMurmure doit se d?bloquer avec 3 succ?s secrets")
- assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze ne doit pas se d?bloquer avec 3 secrets")
+ assert.ok(unlocked.includes("secretMurmure"), "secretMurmure should unlock")
+ assert.ok(!unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze should stay locked")
 })
 
-test("secretEnigmeDouze se valide avec 12 succ?s secrets r?els", () => {
+test("secretEnigmeDouze unlocks with 12 real secret achievements", () => {
  const secretIds = Object.keys(achievementRegistry).filter(
   (id) => achievementRegistry[id]?.secret && id !== "secretEnigmeDouze"
  )
@@ -160,8 +135,8 @@ test("secretEnigmeDouze se valide avec 12 succ?s secrets r?els", () => {
   title: "Nouveau"
  })
  const unlocked = checkAchievements(user, null)
- assert.ok(unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze doit se d?bloquer avec 12 succ?s secrets")
+ assert.ok(unlocked.includes("secretEnigmeDouze"), "secretEnigmeDouze should unlock")
 })
 
-console.log(`\n══════ Résultats : ${passed} passed, ${failed} failed ══════\n`)
+console.log(`\n====== Results: ${passed} passed, ${failed} failed ======\n`)
 process.exit(failed > 0 ? 1 : 0)

@@ -1,78 +1,47 @@
-const { EmbedBuilder } = require("discord.js")
+﻿const { EmbedBuilder } = require("discord.js")
 const achievements = require("./achievementRegistry")
 const { getAchievementReward, formatReward } = require("./achievementRewards")
+const { ensureAchievementClaimState } = require("./achievementClaimService")
 
-/* ===============================================
-   ACHIEVEMENT NOTIFIER
-   
-   Affiche les succès débloqués avec leurs récompenses.
-   
-   MODIFIÉ : utilise désormais des embeds au lieu de
-   messages texte bruts pour un affichage plus riche.
-   Affiche les récompenses (kamas, XP, packs) obtenues.
-   
-   Lit user._lastAchievementRewards si disponible pour
-   récupérer les rewards exactes (avec bonus secret etc).
-   Sinon, recalcule via getAchievementReward().
-=============================================== */
-
-async function notifyWithSender(sendFn, list, user){
-
- for(const id of list){
-
-  const a = achievements[id]
-
-  if(!a) continue
-
-  /* Récupérer la reward exacte depuis le cache user ou recalculer */
-  let reward
-
-  if(user && user._lastAchievementRewards && user._lastAchievementRewards[id]){
-   reward = user._lastAchievementRewards[id]
-  } else {
-   reward = getAchievementReward(id, a)
-  }
-
-  const rewardText = formatReward(reward)
-
-  /* Construire l'embed */
-  const embed = new EmbedBuilder()
-   .setTitle("🏆 Succès débloqué !")
-   .setColor("#f1c40f")
-
-  let desc = `${a.badge} **${a.name}**`
-
-  if(a.description)
-   desc += `\n📝 ${a.description}`
-
-  if(a.title)
-   desc += `\n🎖️ Titre obtenu : **${a.title}**`
-
-  if(rewardText)
-   desc += `\n\n🎁 **Récompenses :**\n${rewardText}`
-
-  embed.setDescription(desc)
-
-  if(a.secret)
-   embed.setFooter({ text:"🔒 Succès secret !" })
-
-  await sendFn(embed)
-
- }
-
- /* Nettoyer le cache de rewards après notification */
- if(user && user._lastAchievementRewards){
-  delete user._lastAchievementRewards
- }
-
+function getPendingRewardForAchievement(user, achievementId, achievementDef) {
+ if (!user) return getAchievementReward(achievementId, achievementDef)
+ const { pendingRewards } = ensureAchievementClaimState(user)
+ return pendingRewards?.[achievementId] || getAchievementReward(achievementId, achievementDef)
 }
 
-async function notifyAchievements(interaction, list, user){
+async function notifyWithSender(sendFn, list, user) {
+ for (const id of list) {
+  const achievement = achievements[id]
+  if (!achievement) continue
+
+  const reward = getPendingRewardForAchievement(user, id, achievement)
+  const rewardText = formatReward(reward)
+
+  const embed = new EmbedBuilder()
+   .setTitle("Succes debloque")
+   .setColor("#f1c40f")
+
+  let desc = `${achievement.badge} **${achievement.name}**`
+  if (achievement.description) desc += `\nDescription: ${achievement.description}`
+  if (achievement.title) desc += `\nTitre a recuperer: **${achievement.title}**`
+  if (rewardText) desc += `\n\n**Recompenses en attente**\n${rewardText}`
+  desc += "\n\nPour valider ce succes et recevoir les gains, fais **/achievementclaim** (ou claim depuis la page web des achievements)."
+  embed.setDescription(desc)
+
+  if (achievement.secret) {
+   embed.setFooter({ text: "Succes secret" })
+  }
+
+  await sendFn(embed)
+ }
+}
+
+async function notifyAchievements(interaction, list, user) {
  return notifyWithSender(
   async (embed) => {
    await interaction.followUp({
-    embeds:[embed],
-    flags:64
+    embeds: [embed],
+    flags: 64
    })
   },
   list,
@@ -80,10 +49,10 @@ async function notifyAchievements(interaction, list, user){
  )
 }
 
-async function notifyAchievementsMessage(message, list, user){
+async function notifyAchievementsMessage(message, list, user) {
  return notifyWithSender(
   async (embed) => {
-   await message.reply({ embeds:[embed] })
+   await message.reply({ embeds: [embed] })
   },
   list,
   user

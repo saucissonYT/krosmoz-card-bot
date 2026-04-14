@@ -141,6 +141,8 @@ const STAT_DEFAULTS = {
  achievementKamasEarned: 0,
  achievementXpEarned:    0,
  achievementPacksEarned: 0,
+ achievementCardsEarned: 0,
+ achievementClaims:      0,
 
  /* ── Gift stats ── */
  giftsGiven:       0,

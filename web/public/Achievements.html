@@ -4,201 +4,564 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Achievements - Krosmoz Card</title>
- <meta name="theme-color" content="#c9a84c">
+ <meta name="theme-color" content="#2e5d99">
  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="achievements-page">
- <nav class="navbar scrolled">
-  <div class="navbar-inner">
-   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
-   <ul class="navbar-links" id="navLinks">
-    <li><a href="/">Accueil</a></li>
-    <li><a href="/leaderboard">Classement</a></li>
-    <li><a href="/tutorial">Tutoriel</a></li>
-    <li><a href="/cards">Cartes</a></li>
-   </ul>
-   <div class="navbar-right">
-    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
-    <a class="discord-mini" href="https://discord.gg/W7UmsfCW" target="_blank" rel="noopener" aria-label="Discord">
-     <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2h0C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z"/></svg>
-    </a>
-    <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
-     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-    </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
-   </div>
-  </div>
- </nav>
-
  <div class="page">
   <div class="container">
-   <section class="achievements-shell">
-    <header class="achievements-hero fade-in">
-     <h1 class="section-title">🏆 Achievements</h1>
-     <p class="section-subtitle">Tri global ou par catégorie, avec suivi de complétion si connecté.</p>
+   <section class="achievements-hub">
+    <header class="achievements-topbar fade-in">
+     <div class="achievements-top-left">
+      <a href="/play/quests" class="achievements-top-btn" aria-label="Retour">&#x2039;</a>
+      <span class="achievements-top-title">achievements</span>
+     </div>
+     <div class="achievements-top-right">
+      <div class="achievements-resource" aria-label="Kamas">
+       <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+       <strong id="achievementsKamasValue">--</strong>
+      </div>
+     </div>
     </header>
 
-    <div class="toolbar fade-in stagger-2">
-     <select id="categorySelect" class="input input-select"></select>
-     <button id="completionToggle" class="btn btn-outline" disabled>Complétion: OFF</button>
-     <button id="refreshBtn" class="btn btn-outline">Actualiser</button>
-    </div>
-
-    <div id="achMeta" class="result-meta"></div>
-    <div id="achGrid" class="catalog-grid achievements-grid"></div>
+    <div id="achHubGrid" class="achievements-hub-grid fade-in stagger-1"></div>
    </section>
-
-   <footer class="footer">
-    <p>🎴 <a href="/">Krosmoz Card</a> - krosmozcard.fr</p>
-    <p style="margin-top:8px"><a href="/about">? propos · Contact · Mentions légales</a></p>
-   </footer>
   </div>
  </div>
 
- <script src="/js/web-auth.js"></script>
- <script>
- document.getElementById("navToggle").addEventListener("click", () => {
-  document.getElementById("navLinks").classList.toggle("open")
- })
+ <aside id="achModal" class="ach-modal" hidden>
+  <div class="ach-modal-backdrop" data-ach-close-modal></div>
+  <section class="ach-modal-shell" role="dialog" aria-modal="true" aria-labelledby="achModalTitle">
+   <header class="ach-modal-head">
+    <div class="ach-modal-head-left">
+     <button id="achModalBackBtn" class="ach-modal-back-btn" type="button" aria-label="Retour">&lt;</button>
+     <h2 id="achModalTitle">achievements</h2>
+    </div>
+   </header>
+   <div class="ach-modal-body">
+    <aside id="achModalSidebar" class="ach-modal-sidebar">
+     <div id="achModalIconRail" class="ach-modal-icon-rail"></div>
+    </aside>
+    <section class="ach-modal-main">
+     <header class="ach-modal-main-head">
+      <h3 id="achModalCategoryTitle">Categorie</h3>
+      <strong id="achModalCategoryCount">0/0</strong>
+     </header>
+     <div id="achModalList" class="ach-modal-list"></div>
+     <div class="ach-modal-actions">
+      <button id="achClaimAllBtn" class="ach-claim-all-btn" type="button">Tout récupérer</button>
+     </div>
+    </section>
+   </div>
+ </section>
+ </aside>
 
- const CATEGORIES = [
-  { id: "all", label: "Global (tous)" },
-  { id: "pack", label: "Packs" },
-  { id: "rng", label: "RNG" },
-  { id: "collection", label: "Collection" },
-  { id: "economy", label: "?conomie" },
-  { id: "fusion", label: "Fusion" },
-  { id: "fragment", label: "Fragments" },
-  { id: "roulette", label: "Roulette" },
-  { id: "daily", label: "Daily" },
-  { id: "social", label: "Social" },
-  { id: "inventory", label: "Inventaire" },
-  { id: "krosmoshop", label: "KrosmoShop" },
-  { id: "event", label: "Events" },
-  { id: "guild", label: "Guildes" },
-  { id: "gift", label: "Dons" },
-  { id: "progression", label: "Progression" },
-  { id: "secret", label: "Secrets" }
+ <aside id="achClaimPopup" class="ach-claim-popup" hidden>
+  <div class="ach-claim-popup-backdrop"></div>
+  <section class="ach-claim-popup-card">
+   <h3>Récompenses récupérées</h3>
+   <div id="achClaimPopupList" class="ach-claim-popup-list"></div>
+  </section>
+ </aside>
+
+ <script>
+ const CATEGORY_TILES = [
+  { id: "collection", label: "COLLECTION", icon: "achievement collection icone.png" },
+  { id: "daily", label: "DAILY", icon: "achievement daily icone.png" },
+  { id: "gift", label: "DON", icon: "achievement don icone.png" },
+  { id: "economy", label: "ECONOMIE", icon: "achievement économie icone.png" },
+  { id: "event", label: "EVENTS", icon: "achievement events icone.png" },
+  { id: "fragment", label: "FRAGMENT", icon: "achievement fragment icone.png" },
+  { id: "fusion", label: "FUSION", icon: "achievement fusion icone.png" },
+  { id: "guild", label: "GUILDE", icon: "achievement guilde icone.png" },
+  { id: "krosmoshop", label: "KROSMOSHOP", icon: "achievement krosmoshop icone.png" },
+  { id: "pack", label: "PACK", icon: "achievement pack icone.png" },
+  { id: "rng", label: "RNG", icon: "achievement rng icone.png" },
+  { id: "roulette", label: "ROULETTE", icon: "achievement roulette icone.png" },
+  { id: "social", label: "SOCIAL", icon: "achievement social icone.png" },
+  { id: "secret", label: "SECRETS", icon: "achievement secrets icone.png" }
  ]
+ const CATEGORY_BY_ID = Object.fromEntries(CATEGORY_TILES.map((tile) => [tile.id, tile]))
+const REWARD_ICON = {
+  kamas: "/assets/ui/gain%20kamas%20level%20up.png",
+  packs: "/assets/ui/gain%20packs%20level%20up.png",
+  title: "/assets/ui/gain%20titre%20level%20up.png",
+  badge: "/assets/ui/gain%20badge%20level%20up.png",
+  card: "/assets/ui/gain%20carte%20level%20up.png",
+  flame: "/assets/ui/flamme%20notif.png",
+  xp: "/assets/ui/gain%20badge%20level%20up.png",
+  fallback: "/assets/ui/gain%20carte%20level%20up.png"
+ }
 
  const state = {
-  category: "all",
   connected: false,
-  completionOnly: false,
-  items: [],
-  categoryStats: {}
+  categories: {},
+  modalCache: {}
  }
 
- function getLoginUrl() {
-  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
-  return `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
+const modalState = {
+  open: false,
+  activeCategory: null,
+  requestToken: 0
+ }
+ const modalRailDragState = {
+  active: false,
+  moved: false,
+  startY: 0,
+  startScrollTop: 0,
+  ignoreClickUntil: 0
  }
 
- function esc(str) {
-  const d = document.createElement("div")
-  d.textContent = String(str || "")
-  return d.innerHTML
+ const ui = {
+  grid: document.getElementById("achHubGrid"),
+ modal: document.getElementById("achModal"),
+  modalSidebar: document.getElementById("achModalSidebar"),
+  modalRail: document.getElementById("achModalIconRail"),
+  modalList: document.getElementById("achModalList"),
+  modalCategoryTitle: document.getElementById("achModalCategoryTitle"),
+  modalCategoryCount: document.getElementById("achModalCategoryCount"),
+  modalBackBtn: document.getElementById("achModalBackBtn"),
+  claimAllBtn: document.getElementById("achClaimAllBtn"),
+  claimPopup: document.getElementById("achClaimPopup"),
+  claimPopupList: document.getElementById("achClaimPopupList")
  }
 
- function categoryLabel(category) {
-  const stat = state.categoryStats?.[category.id]
-  if (!stat) return category.label
-  return `${category.label} (${stat.unlocked}/${stat.total})`
+ function esc(value) {
+  return String(value ?? "")
+   .replaceAll("&", "&amp;")
+   .replaceAll("<", "&lt;")
+   .replaceAll(">", "&gt;")
+   .replaceAll('"', "&quot;")
+   .replaceAll("'", "&#39;")
  }
 
- function renderCategorySelect() {
-  const sel = document.getElementById("categorySelect")
-  sel.innerHTML = CATEGORIES.map((c) => `<option value="${c.id}">${categoryLabel(c)}</option>`).join("")
-  sel.value = state.category
+ function toNumber(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
  }
 
- function initCategorySelect() {
-  const sel = document.getElementById("categorySelect")
-  renderCategorySelect()
-  sel.addEventListener("change", () => {
-   state.category = sel.value
-   loadAchievements()
-  })
+function formatInt(value) {
+ return Math.max(0, Number(value || 0)).toLocaleString("fr-FR")
+}
+
+function toProgressInt(value, fallback = 0) {
+ const n = Number(value)
+ if (!Number.isFinite(n)) return Math.max(0, Number(fallback || 0))
+ return Math.max(0, Math.floor(n))
+}
+
+ function setTopKamas(value) {
+  const el = document.getElementById("achievementsKamasValue")
+  if (!el) return
+  const kamas = Number(value)
+  el.textContent = Number.isFinite(kamas) && kamas >= 0 ? formatInt(kamas) : "--"
  }
 
- function initCompletionToggle() {
-  const btn = document.getElementById("completionToggle")
-  btn.textContent = "Complétion: OFF"
-  btn.disabled = false
-  if (!state.connected) {
-   btn.textContent = "Complétion (connexion Discord requise)"
-   btn.onclick = () => { window.location.href = getLoginUrl() }
-   return
+ function toIconUrl(filename) {
+  return `/assets/ui/${encodeURIComponent(String(filename || ""))}`
+ }
+
+ function getCategoryLabel(categoryId) {
+  return CATEGORY_BY_ID?.[categoryId]?.label || String(categoryId || "").toUpperCase()
+ }
+
+function getStat(categoryId) {
+  const raw = state.categories?.[categoryId] || {}
+  const unlocked = Math.max(0, toNumber(raw.unlocked))
+  const total = Math.max(unlocked, toNumber(raw.total))
+  const percent = total > 0 ? Math.max(0, Math.min(100, Math.round((unlocked / total) * 100))) : 0
+  const pending = Math.max(0, toNumber(raw.pending))
+  return { unlocked, total, percent, pending }
+ }
+
+ function rewardParts(item) {
+  const reward = item?.reward || {}
+  const parts = []
+
+  if (toNumber(reward.kamas) > 0) {
+   parts.push({
+    icon: REWARD_ICON.kamas,
+    label: `${formatInt(reward.kamas)} kamas`
+   })
   }
-  btn.onclick = null
-  btn.onclick = () => {
-   state.completionOnly = !state.completionOnly
-   btn.textContent = `Complétion: ${state.completionOnly ? "ON" : "OFF"}`
-   renderAchievements()
+  if (toNumber(reward.xp) > 0) {
+   parts.push({
+    icon: REWARD_ICON.xp,
+    label: `${formatInt(reward.xp)} XP`
+   })
   }
+  if (toNumber(reward.packs) > 0) {
+   parts.push({
+    icon: REWARD_ICON.packs,
+    label: `${formatInt(reward.packs)} pack${toNumber(reward.packs) > 1 ? "s" : ""}`
+   })
+  }
+
+  const text = String(item?.rewardText || "").trim()
+  if (text) {
+   const chunks = text.split(/[·,]/).map((v) => v.trim()).filter(Boolean)
+   for (const chunk of chunks) {
+    const low = chunk.toLowerCase()
+    let icon = REWARD_ICON.fallback
+    if (low.includes("kama")) icon = REWARD_ICON.kamas
+    else if (low.includes("pack")) icon = REWARD_ICON.packs
+    else if (low.includes("titre")) icon = REWARD_ICON.title
+    else if (low.includes("badge") || low.includes("xp")) icon = REWARD_ICON.badge
+    else if (low.includes("carte")) icon = REWARD_ICON.card
+    parts.push({ icon, label: chunk })
+   }
+  }
+  if (parts.length > 0) return parts
+  return [{ icon: REWARD_ICON.fallback, label: "Récompense cachée" }]
  }
 
- function achievementCard(item) {
-  return `
-   <article class="catalog-card achievement-card ${item.unlocked ? "achievement-done" : "achievement-pending"} ${item.secret && !item.unlocked ? "achievement-hidden" : ""}">
-    <div class="catalog-card-head">
-     <span class="chip">${esc(item.trigger)}</span>
-     <span class="chip chip-rarity">${item.unlocked ? "Validé" : "? faire"}</span>
-    </div>
-    <h3>${esc(item.badge)} ${esc(item.name)}</h3>
-    <p>${esc(item.description || "")}</p>
-   </article>
+ function renderRewardBadges(item) {
+  return rewardParts(item).map((part) => `
+   <div class="ach-modal-reward-chip">
+    <img src="${esc(part.icon)}" alt="">
+    <span>${esc(part.label)}</span>
+   </div>
+  `).join("")
+ }
+
+ function renderGrid() {
+  ui.grid.innerHTML = CATEGORY_TILES.map((tile, index) => {
+   const stat = getStat(tile.id)
+   const flame = stat.pending > 0
+    ? `<img src="${esc(REWARD_ICON.flame)}" alt="Récompenses disponibles" class="ach-notif-flame">`
+    : ""
+   return `
+    <article class="achievements-hub-card" data-ach-open-category="${tile.id}" role="button" tabindex="0" style="animation-delay:${(index * 0.03).toFixed(2)}s">
+     <img src="${toIconUrl(tile.icon)}" alt="${tile.label}" class="achievements-hub-icon" loading="lazy" draggable="false">
+     ${flame}
+     <h3>${esc(tile.label)}</h3>
+     <p class="achievements-hub-count">${stat.unlocked}/${stat.total || 0}</p>
+     <div class="achievements-hub-bar" aria-hidden="true">
+      <span style="width:${stat.percent}%"></span>
+     </div>
+    </article>
+   `
+  }).join("")
+
+ }
+
+ function renderModalRail() {
+  const activeId = String(modalState.activeCategory || "")
+  ui.modalRail.innerHTML = CATEGORY_TILES.map((tile) => {
+   const stat = getStat(tile.id)
+   const flame = stat.pending > 0
+    ? `<img src="${esc(REWARD_ICON.flame)}" alt="Récompenses disponibles" class="ach-notif-flame">`
+    : ""
+   return `
+   <button type="button" class="ach-modal-icon-btn ${activeId === tile.id ? "active" : ""}" data-ach-modal-category="${tile.id}" aria-label="${esc(tile.label)}" title="${esc(tile.label)}">
+    <img src="${toIconUrl(tile.icon)}" alt="${esc(tile.label)}" draggable="false">
+    ${flame}
+   </button>
   `
+  }).join("")
  }
 
- function renderAchievements() {
-  const grid = document.getElementById("achGrid")
-  const meta = document.getElementById("achMeta")
-
-  const visible = state.completionOnly
-   ? state.items.filter((x) => x.unlocked)
-   : state.items
-
-  const unlocked = state.items.filter((x) => x.unlocked).length
-  meta.textContent = `${unlocked}/${state.items.length} succès validés${state.completionOnly ? " (filtre complétion ON)" : ""}`
-
-  if (!visible.length) {
-   grid.innerHTML = `<div class="loading"><p>Aucun succès à afficher.</p></div>`
+function renderModalList(items = []) {
+  if (!Array.isArray(items) || items.length <= 0) {
+   ui.modalList.innerHTML = `<p class="ach-modal-empty">Aucun succès dans cette catégorie.</p>`
    return
   }
 
-  grid.innerHTML = visible.map(achievementCard).join("")
+ ui.modalList.innerHTML = items.map((item) => {
+   const done = Boolean(item?.unlocked)
+   const goal = Math.max(1, toProgressInt(item?.progressGoal, 1))
+   let current = toProgressInt(item?.progressCurrent, 0)
+   if (done) current = goal
+   const progress = goal > 0 ? Math.max(0, Math.min(100, Math.round((current / goal) * 100))) : (done ? 100 : 0)
+   const ratio = `${current}/${goal}`
+   const description = String(item?.description || item?.title || "")
+   const claimable = Boolean(item?.pendingClaim)
+   const stateText = claimable ? "À récupérer" : (done ? "Terminé" : `En cours ${ratio}`)
+   return `
+   <article class="ach-modal-task ${done ? "done" : "pending"}">
+     <div class="ach-modal-task-body">
+      <div class="ach-modal-task-head">
+       <h4><span class="ach-modal-task-badge">${esc(item?.badge || "🏅")}</span>${esc(item?.name || "Succès")}</h4>
+       <span class="ach-modal-task-ratio">${ratio}</span>
+      </div>
+      <p class="ach-modal-task-desc">${esc(description)}</p>
+      <div class="ach-modal-task-progress"><span style="width:${progress}%"></span></div>
+      <span class="ach-modal-task-state">${esc(stateText)}</span>
+     </div>
+     <div class="ach-modal-task-rewards">${renderRewardBadges(item)}</div>
+    </article>
+   `
+  }).join("")
+}
+
+ function popupEntriesFromTotals(totals = {}) {
+  const rows = []
+  const packs = toProgressInt(totals?.packs, 0)
+  const kamas = toProgressInt(totals?.kamas, 0)
+  const cards = toProgressInt(totals?.cards, 0)
+  const xp = toProgressInt(totals?.xp, 0)
+
+  if (packs > 0) rows.push({ icon: REWARD_ICON.packs, label: `${formatInt(packs)} pack${packs > 1 ? "s" : ""}` })
+  if (kamas > 0) rows.push({ icon: REWARD_ICON.kamas, label: `${formatInt(kamas)} kamas` })
+  if (cards > 0) rows.push({ icon: REWARD_ICON.card, label: `${formatInt(cards)} carte${cards > 1 ? "s" : ""}` })
+  if (xp > 0) rows.push({ icon: REWARD_ICON.xp, label: `${formatInt(xp)} XP` })
+
+  return rows
  }
 
- async function loadAchievements() {
-  const grid = document.getElementById("achGrid")
-  grid.innerHTML = `<div class="loading"><div class="spinner"></div><p>Chargement des achievements...</p></div>`
+ function showClaimPopup(totals = {}) {
+  if (!ui.claimPopup || !ui.claimPopupList) return
+  const rows = popupEntriesFromTotals(totals)
+  if (rows.length <= 0) {
+   ui.claimPopupList.innerHTML = `<p class="ach-claim-empty">Aucune récompense en attente.</p>`
+  } else {
+   ui.claimPopupList.innerHTML = rows.map((row, index) => `
+    <article class="ach-claim-row" style="animation-delay:${(index * 0.08).toFixed(2)}s">
+     <img src="${esc(row.icon)}" alt="">
+     <strong>${esc(row.label)}</strong>
+    </article>
+   `).join("")
+  }
 
+  ui.claimPopup.hidden = false
+  requestAnimationFrame(() => ui.claimPopup.classList.add("show"))
+  window.setTimeout(() => {
+   ui.claimPopup.classList.remove("show")
+   window.setTimeout(() => {
+    if (!ui.claimPopup.classList.contains("show")) ui.claimPopup.hidden = true
+   }, 220)
+  }, 2200)
+ }
+
+ async function refreshAchievementsView(keepModalCategory = null) {
+  await loadAchievementsHub()
+  if (modalState.open && keepModalCategory) {
+   state.modalCache = {}
+   await setModalCategory(keepModalCategory)
+  }
+ }
+
+ async function claimAllAchievements() {
+  if (!ui.claimAllBtn) return
+  ui.claimAllBtn.disabled = true
+  const original = ui.claimAllBtn.textContent
+  ui.claimAllBtn.textContent = "Récupération..."
   try {
-   const statusRes = await fetch("/api/oauth/status", { credentials: "same-origin" })
-   const status = await statusRes.json()
-   state.connected = Boolean(status?.connected)
+   const res = await fetch("/api/achievements/claim", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({})
+   })
+   if (!res.ok) throw new Error("claim")
+   const data = await res.json()
+   showClaimPopup(data?.totals || {})
+   if (Number.isFinite(Number(data?.kamas))) {
+    setTopKamas(Number(data.kamas))
+   }
+   await refreshAchievementsView(modalState.activeCategory || null)
+  } catch (_) {
+   showClaimPopup({})
+  } finally {
+   ui.claimAllBtn.disabled = false
+   ui.claimAllBtn.textContent = original
+  }
+ }
+
+ async function setModalCategory(categoryId) {
+  const safeId = CATEGORY_BY_ID?.[categoryId] ? categoryId : CATEGORY_TILES[0].id
+  modalState.activeCategory = safeId
+  renderModalRail()
+
+  const stat = getStat(safeId)
+  ui.modalCategoryTitle.textContent = getCategoryLabel(safeId)
+  ui.modalCategoryCount.textContent = `${stat.unlocked}/${stat.total || 0}`
+
+  const cached = state.modalCache?.[safeId]
+  if (Array.isArray(cached)) {
+   renderModalList(cached)
+   return
+  }
+
+  ui.modalList.innerHTML = `<p class="ach-modal-empty">Chargement des succès...</p>`
+  const token = ++modalState.requestToken
+  try {
+   const res = await fetch(`/api/achievements?category=${encodeURIComponent(safeId)}`, { credentials: "same-origin" })
+   if (!res.ok) throw new Error("api")
+   const data = await res.json()
+   if (token !== modalState.requestToken) return
+   state.modalCache[safeId] = Array.isArray(data?.items) ? data.items : []
+   if (data?.categories) {
+    state.categories = data.categories
+    renderGrid()
+    renderModalRail()
+    const nextStat = getStat(safeId)
+    ui.modalCategoryCount.textContent = `${nextStat.unlocked}/${nextStat.total || 0}`
+   }
+   renderModalList(state.modalCache[safeId])
+  } catch (_) {
+   if (token !== modalState.requestToken) return
+   ui.modalList.innerHTML = `<p class="ach-modal-empty">Impossible de charger les succès.</p>`
+  }
+ }
+
+ function closeModal() {
+  if (!modalState.open) return
+  modalState.open = false
+  ui.modal.classList.remove("show")
+  document.body.classList.remove("ach-modal-open")
+  window.setTimeout(() => {
+   if (!modalState.open) ui.modal.hidden = true
+  }, 140)
+ }
+
+ function openModal(categoryId) {
+  const safeId = CATEGORY_BY_ID?.[categoryId] ? categoryId : CATEGORY_TILES[0].id
+  modalState.open = true
+  ui.modal.hidden = false
+  requestAnimationFrame(() => ui.modal.classList.add("show"))
+  document.body.classList.add("ach-modal-open")
+  setModalCategory(safeId)
+ }
+
+ function bindDragScroll(scrollElement, wheelTarget, dragTarget) {
+  if (!scrollElement || scrollElement.dataset.dragBound === "1") return
+  scrollElement.dataset.dragBound = "1"
+
+  const target = dragTarget || scrollElement
+
+  const finishDrag = () => {
+   if (!modalRailDragState.active) return
+   modalRailDragState.active = false
+   if (modalRailDragState.moved) {
+    modalRailDragState.ignoreClickUntil = Date.now() + 220
+   }
+   modalRailDragState.moved = false
+   scrollElement.classList.remove("is-dragging")
+  }
+
+  target.addEventListener("mousedown", (event) => {
+   if (event.button !== 0) return
+   modalRailDragState.active = true
+   modalRailDragState.moved = false
+   modalRailDragState.startY = event.clientY
+   modalRailDragState.startScrollTop = scrollElement.scrollTop
+   scrollElement.classList.add("is-dragging")
+   event.preventDefault()
+  })
+
+  window.addEventListener("mousemove", (event) => {
+   if (!modalRailDragState.active) return
+   const deltaY = event.clientY - modalRailDragState.startY
+   if (Math.abs(deltaY) > 4) modalRailDragState.moved = true
+   scrollElement.scrollTop = modalRailDragState.startScrollTop + deltaY
+   event.preventDefault()
+  }, { passive: false })
+
+  window.addEventListener("mouseup", finishDrag)
+  window.addEventListener("mouseleave", finishDrag)
+  window.addEventListener("blur", finishDrag)
+
+  const onWheel = (event) => {
+   event.preventDefault()
+   scrollElement.scrollTop += event.deltaY
+  }
+  scrollElement.addEventListener("wheel", onWheel, { passive: false })
+  if (wheelTarget && wheelTarget !== scrollElement) {
+   wheelTarget.addEventListener("wheel", onWheel, { passive: false })
+  }
+
+  target.addEventListener("touchstart", (event) => {
+   const touch = event.touches?.[0]
+   if (!touch) return
+   modalRailDragState.active = true
+   modalRailDragState.moved = false
+   modalRailDragState.startY = touch.clientY
+   modalRailDragState.startScrollTop = scrollElement.scrollTop
+   scrollElement.classList.add("is-dragging")
+  }, { passive: true })
+
+  window.addEventListener("touchmove", (event) => {
+   if (!modalRailDragState.active) return
+   const touch = event.touches?.[0]
+   if (!touch) return
+   const deltaY = touch.clientY - modalRailDragState.startY
+   if (Math.abs(deltaY) > 4) modalRailDragState.moved = true
+   scrollElement.scrollTop = modalRailDragState.startScrollTop + deltaY
+  }, { passive: true })
+  window.addEventListener("touchend", finishDrag, { passive: true })
+  window.addEventListener("touchcancel", finishDrag, { passive: true })
+ }
+
+ function bindEvents() {
+  ui.grid.addEventListener("click", (event) => {
+   const trigger = event.target?.closest?.("[data-ach-open-category]")
+   if (!trigger) return
+   const categoryId = String(trigger.getAttribute("data-ach-open-category") || "")
+   openModal(categoryId)
+  })
+
+  ui.grid.addEventListener("keydown", (event) => {
+   if (event.key !== "Enter" && event.key !== " ") return
+   const trigger = event.target?.closest?.("[data-ach-open-category]")
+   if (!trigger) return
+   event.preventDefault()
+   const categoryId = String(trigger.getAttribute("data-ach-open-category") || "")
+   openModal(categoryId)
+  })
+
+  ui.modal.addEventListener("click", (event) => {
+   const closeTrigger = event.target?.closest?.("[data-ach-close-modal]")
+   if (closeTrigger) {
+    closeModal()
+    return
+   }
+   const categoryTrigger = event.target?.closest?.("[data-ach-modal-category]")
+   if (!categoryTrigger) return
+   if (Date.now() < Number(modalRailDragState.ignoreClickUntil || 0)) return
+   const categoryId = String(categoryTrigger.getAttribute("data-ach-modal-category") || "")
+   setModalCategory(categoryId)
+  })
+
+  ui.modalBackBtn.addEventListener("click", closeModal)
+  ui.claimAllBtn.addEventListener("click", claimAllAchievements)
+
+  window.addEventListener("keydown", (event) => {
+   if (event.key === "Escape") closeModal()
+  })
+
+  bindDragScroll(ui.modalRail, ui.modalSidebar, ui.modalSidebar)
+ }
+
+ async function loadAchievementsHub() {
+  setTopKamas(null)
+  try {
+   const res = await fetch("/api/achievements?category=all", { credentials: "same-origin" })
+   if (!res.ok) throw new Error("api")
+
+   const data = await res.json()
+   state.connected = Boolean(data?.connected)
+   state.categories = data?.categories || {}
+
+   renderGrid()
   } catch (_) {
    state.connected = false
+   state.categories = {}
+   renderGrid()
   }
-  initCompletionToggle()
 
   try {
-   const res = await fetch(`/api/achievements?category=${encodeURIComponent(state.category)}`, { credentials: "same-origin" })
-   const data = await res.json()
-   state.items = data.items || []
-   state.categoryStats = data.categories || {}
-   renderCategorySelect()
-   renderAchievements()
+   const meRes = await fetch("/api/me", { credentials: "same-origin" })
+   if (!meRes.ok) throw new Error("me")
+   const me = await meRes.json()
+   setTopKamas(me?.kamas)
   } catch (_) {
-   grid.innerHTML = `<div class="loading"><p style="color:var(--rarity-HR)">Erreur de chargement.</p></div>`
+   setTopKamas(null)
   }
  }
 
- document.getElementById("refreshBtn").addEventListener("click", loadAchievements)
-
- initCategorySelect()
- loadAchievements()
+ bindEvents()
+ loadAchievementsHub()
  </script>
 </body>
 </html>

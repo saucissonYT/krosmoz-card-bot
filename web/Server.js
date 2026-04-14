@@ -105,6 +105,12 @@ const {
 } = require("../systems/guildQuestSystem")
 const achievementRegistry = require("../systems/achievementRegistry")
 const { getAchievementReward, formatReward } = require("../systems/achievementRewards")
+const {
+ ensureAchievementClaimState,
+ getPendingAchievementIds,
+ getPendingAchievementCategoryCounts,
+ claimAllAchievementRewards
+} = require("../systems/achievementClaimService")
 const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
 const { apiCache } = require("../systems/apiCache")
@@ -3226,6 +3232,402 @@ function getAchievementCategoryStats(unlockedSet) {
  return stats
 }
 
+const achievementProgressEvalCache = new Map()
+
+function clampProgress(value, min, max) {
+ return Math.min(max, Math.max(min, value))
+}
+
+function trimOuterParens(expression) {
+ let text = String(expression || "").trim()
+ while (text.startsWith("(") && text.endsWith(")")) {
+  let depth = 0
+  let valid = true
+  for (let i = 0; i < text.length; i++) {
+   const ch = text[i]
+   if (ch === "(") depth++
+   else if (ch === ")") depth--
+   if (depth === 0 && i < text.length - 1) {
+    valid = false
+    break
+   }
+   if (depth < 0) {
+    valid = false
+    break
+   }
+  }
+  if (!valid || depth !== 0) break
+  text = text.slice(1, -1).trim()
+ }
+ return text
+}
+
+function splitTopLevelAnd(expression) {
+ const source = String(expression || "")
+ const parts = []
+ let depth = 0
+ let quote = ""
+ let chunkStart = 0
+ for (let i = 0; i < source.length; i++) {
+  const ch = source[i]
+  const next = source[i + 1]
+  if (quote) {
+   if (ch === "\\" && i + 1 < source.length) {
+    i++
+    continue
+   }
+   if (ch === quote) quote = ""
+   continue
+  }
+  if (ch === "'" || ch === '"' || ch === "`") {
+   quote = ch
+   continue
+  }
+  if (ch === "(" || ch === "[" || ch === "{") depth++
+  else if (ch === ")" || ch === "]" || ch === "}") depth = Math.max(0, depth - 1)
+  if (depth === 0 && ch === "&" && next === "&") {
+   parts.push(source.slice(chunkStart, i).trim())
+   chunkStart = i + 2
+   i++
+  }
+ }
+ const tail = source.slice(chunkStart).trim()
+ if (tail) parts.push(tail)
+ return parts.filter(Boolean)
+}
+
+function findTopLevelComparison(expression) {
+ const source = String(expression || "")
+ let depth = 0
+ let quote = ""
+
+ for (let i = 0; i < source.length; i++) {
+  const ch = source[i]
+  const next = source[i + 1]
+  const next2 = source[i + 2]
+
+  if (quote) {
+   if (ch === "\\" && i + 1 < source.length) {
+    i++
+    continue
+   }
+   if (ch === quote) quote = ""
+   continue
+  }
+
+  if (ch === "'" || ch === "\"" || ch === "`") {
+   quote = ch
+   continue
+  }
+
+  if (ch === "(" || ch === "[" || ch === "{") {
+   depth++
+   continue
+  }
+  if (ch === ")" || ch === "]" || ch === "}") {
+   depth = Math.max(0, depth - 1)
+   continue
+  }
+  if (depth !== 0) continue
+
+  if (ch === "=" && next === ">" ) {
+   i++
+   continue
+  }
+
+  if (ch === "=" && next === "=" && next2 === "=") {
+   return {
+    left: source.slice(0, i).trim(),
+    operator: "===",
+    right: source.slice(i + 3).trim()
+   }
+  }
+  if (ch === ">" && next === "=") {
+   return {
+    left: source.slice(0, i).trim(),
+    operator: ">=",
+    right: source.slice(i + 2).trim()
+   }
+  }
+  if (ch === "<" && next === "=") {
+   return {
+    left: source.slice(0, i).trim(),
+    operator: "<=",
+    right: source.slice(i + 2).trim()
+   }
+  }
+  if (ch === "=" && next === "=") {
+   return {
+    left: source.slice(0, i).trim(),
+    operator: "==",
+    right: source.slice(i + 2).trim()
+   }
+  }
+  if (ch === ">" || ch === "<") {
+   return {
+    left: source.slice(0, i).trim(),
+    operator: ch,
+    right: source.slice(i + 1).trim()
+   }
+  }
+ }
+
+ return null
+}
+
+function extractConditionExpression(conditionFn) {
+ if (typeof conditionFn !== "function") return ""
+ const src = String(conditionFn || "").trim()
+ const arrow = src.indexOf("=>")
+ if (arrow < 0) return ""
+ const body = src.slice(arrow + 2).trim()
+ if (!body) return ""
+ if (body.startsWith("{")) {
+  const returnMatch = body.match(/return\s+([\s\S]*?);?\s*}/)
+  return returnMatch ? trimOuterParens(returnMatch[1]) : ""
+ }
+ return trimOuterParens(body.replace(/;$/, ""))
+}
+
+function countSecretUnlockedForProgress(user) {
+ const unlocked = new Set((user?.achievements || []).map((id) => String(id)))
+ if (unlocked.size <= 0) return 0
+ let count = 0
+ for (const id of unlocked) {
+  if (achievementRegistry?.[id]?.secret) count++
+ }
+ return count
+}
+
+function countNormalShinyPairsForProgress(user) {
+ const normal = user?.cards || {}
+ const shiny = user?.shinyCards || {}
+ let count = 0
+ for (const id of Object.keys(shiny)) {
+  if (Number(shiny?.[id] || 0) > 0 && Number(normal?.[id] || 0) > 0) count++
+ }
+ return count
+}
+
+function longestConsecutiveOwnedIdsForProgress(user) {
+ const ids = Object.keys(user?.cards || {})
+  .map((id) => Number(id))
+  .filter((id) => Number.isFinite(id) && Number(user?.cards?.[String(id)] || 0) > 0)
+  .sort((a, b) => a - b)
+ if (ids.length <= 0) return 0
+ let best = 1
+ let current = 1
+ for (let i = 1; i < ids.length; i++) {
+  if (ids[i] === ids[i - 1] + 1) current++
+  else if (ids[i] !== ids[i - 1]) current = 1
+  if (current > best) best = current
+ }
+ return best
+}
+
+function hasRainbowSetForProgress(user) {
+ const wanted = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+ const cardsById = new Map(getCards().map((card) => [String(card?.id || ""), card]))
+ const sets = {}
+ for (const cardId of Object.keys(user?.cards || {})) {
+  if (Number(user?.cards?.[cardId] || 0) <= 0) continue
+  const card = cardsById.get(String(cardId))
+  if (!card?.set || !card?.rarity) continue
+  if (!sets[card.set]) sets[card.set] = new Set()
+  sets[card.set].add(String(card.rarity).toUpperCase())
+ }
+ return Object.values(sets).some((rarities) => wanted.every((rarity) => rarities.has(rarity)))
+}
+
+function guildDaysFromJoinDateForProgress(user) {
+ const joinedAt = Number(user?.stats?.guildJoinedAt || 0)
+ if (joinedAt <= 0) return 0
+ return Math.floor((Date.now() - joinedAt) / 86400000)
+}
+
+function evalAchievementProgressExpression(user, expression) {
+ const safeExpr = String(expression || "").trim()
+ if (!safeExpr) return null
+ let evaluator = achievementProgressEvalCache.get(safeExpr)
+ if (!evaluator) {
+  try {
+   evaluator = new Function(
+    "u",
+    "n",
+    "arrCount",
+    "mapCount",
+    "countSecretUnlocked",
+    "countNormalShinyPairs",
+    "longestConsecutiveOwnedIds",
+    "hasRainbowSet",
+    "guildDaysFromJoinDate",
+    `return (${safeExpr})`
+   )
+   achievementProgressEvalCache.set(safeExpr, evaluator)
+  } catch (_) {
+   return null
+  }
+ }
+ try {
+  return evaluator(
+   user,
+   (targetUser, key) => Number(targetUser?.stats?.[key] || 0),
+   (value) => (Array.isArray(value) ? value.length : 0),
+   (value) => (value && typeof value === "object" ? Object.keys(value).length : 0),
+   countSecretUnlockedForProgress,
+   countNormalShinyPairsForProgress,
+   longestConsecutiveOwnedIdsForProgress,
+   hasRainbowSetForProgress,
+   guildDaysFromJoinDateForProgress
+  )
+ } catch (_) {
+  return null
+ }
+}
+
+function parseProgressClause(user, clause, unlocked) {
+ const text = trimOuterParens(clause)
+ if (!text) return null
+
+ const comparison = findTopLevelComparison(text)
+ if (comparison) {
+  const leftExpr = trimOuterParens(comparison.left)
+  const operator = String(comparison.operator || "")
+  const rightExpr = trimOuterParens(comparison.right)
+  if (!leftExpr || !rightExpr) return null
+
+  const isBooleanCompare = (operator === "===" || operator === "==") && /^(true|false)$/i.test(rightExpr)
+  if (isBooleanCompare) {
+   const expected = String(rightExpr).toLowerCase() === "true"
+   const raw = evalAchievementProgressExpression(user, leftExpr)
+   const done = Boolean(raw) === expected
+   return {
+    numeric: false,
+    done,
+    current: done ? 1 : 0,
+    goal: 1
+   }
+  }
+
+  const leftRaw = evalAchievementProgressExpression(user, leftExpr)
+  const rightRaw = evalAchievementProgressExpression(user, rightExpr)
+
+  const leftNum = Number(leftRaw)
+  const rightNum = Number(rightRaw)
+  const leftIsNum = Number.isFinite(leftNum)
+  const rightIsNum = Number.isFinite(rightNum)
+
+  if (leftIsNum && rightIsNum) {
+   let compareLeft = leftNum
+   let compareRight = rightNum
+   let currentValue = leftNum
+   let goalValue = Math.abs(rightNum)
+
+   if (rightExpr.includes("86400000")) {
+    compareLeft = Math.floor(compareLeft / 86400000)
+    compareRight = Math.floor(compareRight / 86400000)
+    currentValue = compareLeft
+    goalValue = Math.abs(compareRight)
+   }
+
+   goalValue = Math.max(1, goalValue)
+   let done = false
+   if (operator === ">=") done = compareLeft >= compareRight
+   else if (operator === ">") done = compareLeft > compareRight
+   else if (operator === "<=") done = compareLeft <= compareRight
+   else if (operator === "<") done = compareLeft < compareRight
+   else done = compareLeft === compareRight
+
+   let progressCurrent = 0
+   if (operator === ">=" || operator === ">") {
+    progressCurrent = clampProgress(Math.floor(currentValue), 0, goalValue)
+    if (done) progressCurrent = goalValue
+   } else if (operator === "===" || operator === "==") {
+    progressCurrent = done ? goalValue : 0
+   } else if (operator === "<=" || operator === "<") {
+    const delta = Math.max(0, Math.floor(compareRight - currentValue))
+    progressCurrent = goalValue - clampProgress(delta, 0, goalValue)
+    if (done) progressCurrent = goalValue
+   }
+
+   return {
+    numeric: true,
+    done,
+    current: progressCurrent,
+    goal: goalValue
+   }
+  }
+
+  const done = Boolean(evalAchievementProgressExpression(user, `${leftExpr} ${operator} ${rightExpr}`))
+  return {
+   numeric: false,
+   done,
+   current: done ? 1 : 0,
+   goal: 1
+  }
+ }
+
+ const raw = evalAchievementProgressExpression(user, text)
+ if (typeof raw === "boolean") {
+  const done = Boolean(raw)
+  return {
+   numeric: false,
+   done,
+   current: done ? 1 : 0,
+   goal: 1
+  }
+ }
+
+ if (Number.isFinite(Number(raw))) {
+  const value = Math.max(0, Math.floor(Number(raw)))
+  const done = unlocked || value > 0
+  return {
+   numeric: true,
+   done,
+   current: Math.min(value, 1),
+   goal: 1
+  }
+ }
+
+ return null
+}
+
+function computeAchievementProgress(user, achievement, unlocked) {
+ const fallbackDone = Boolean(unlocked)
+ const fallback = {
+  current: fallbackDone ? 1 : 0,
+  goal: 1,
+  percent: fallbackDone ? 100 : 0
+ }
+
+ if (!achievement || typeof achievement.condition !== "function") return fallback
+ const expression = extractConditionExpression(achievement.condition)
+ if (!expression) return fallback
+
+ const clauses = splitTopLevelAnd(expression)
+ if (clauses.length <= 0) return fallback
+
+ const parsed = clauses
+  .map((clause) => parseProgressClause(user, clause, unlocked))
+  .filter(Boolean)
+
+ if (parsed.length <= 0) return fallback
+
+ const numeric = parsed.filter((entry) => entry.numeric && entry.goal > 1)
+ const active = numeric.length > 0 ? numeric : parsed
+
+ const goal = Math.max(1, active.reduce((sum, entry) => sum + Math.max(1, Math.floor(entry.goal || 1)), 0))
+ let current = active.reduce((sum, entry) => {
+  const entryGoal = Math.max(1, Math.floor(entry.goal || 1))
+  const entryCurrent = clampProgress(Math.floor(entry.current || 0), 0, entryGoal)
+  return sum + entryCurrent
+ }, 0)
+ if (fallbackDone) current = goal
+
+ const percent = clampProgress(Math.round((current / goal) * 100), 0, 100)
+ return { current, goal, percent }
+}
+
 function createWebApp() {
  const app = express()
  app.disable("x-powered-by")
@@ -5289,6 +5691,7 @@ app.get("/api/achievements", (req, res) => {
    const session = resolveSession(req)
    const connected = Boolean(session)
    const user = connected ? getUser(session.userId) : null
+   if (user) ensureAchievementClaimState(user)
    let unlockedSet = new Set((user?.achievements || []).map((id) => String(id)))
 
    const category = String(req.query.category || "all")
@@ -5301,6 +5704,7 @@ app.get("/api/achievements", (req, res) => {
     save(session.userId)
     unlockedSet = new Set((user.achievements || []).map((id) => String(id)))
    }
+   const pendingSet = new Set(getPendingAchievementIds(user))
 
    let entries = getAchievementsByCategory(safeCategory)
    if (safeCategory === "all") {
@@ -5309,12 +5713,13 @@ app.get("/api/achievements", (req, res) => {
    }
 
    const items = entries
-    .map(([id, ach]) => {
+   .map(([id, ach]) => {
      const unlocked = unlockedSet.has(String(id))
      const hidden = Boolean(ach?.secret && !unlocked)
      const reward = getAchievementReward(String(id), ach || {})
      const hintTitle = normalizeUiText(String(ach?.title || ach?.name || "Succès secret")).trim() || "Succès secret"
      const badge = normalizeUiEmoji(ach?.badge, "🏅")
+     const progress = hidden ? { current: 0, goal: 1, percent: 0 } : computeAchievementProgress(user, ach, unlocked)
 
      return {
       id: String(id),
@@ -5322,10 +5727,14 @@ app.get("/api/achievements", (req, res) => {
       secret: Boolean(ach?.secret),
       hidden,
       unlocked,
+      pendingClaim: !hidden && pendingSet.has(String(id)),
       badge: hidden ? "🔒" : badge,
       name: hidden ? hintTitle : normalizeUiText(String(ach?.name || "Succès")),
       description: hidden ? "Indice: succès secret à découvrir." : normalizeUiText(String(ach?.description || "")),
       title: hidden ? hintTitle : normalizeUiText(String(ach?.title || "")),
+      progressCurrent: Math.max(0, Number(progress?.current || 0)),
+      progressGoal: Math.max(1, Number(progress?.goal || 1)),
+      progressPercent: Math.max(0, Math.min(100, Number(progress?.percent || 0))),
       rewardText: hidden ? "" : normalizeUiText(formatReward(reward)),
       reward: hidden ? null : reward
      }
@@ -5338,6 +5747,10 @@ app.get("/api/achievements", (req, res) => {
 
    const unlockedCount = items.filter((x) => x.unlocked).length
    const categories = getAchievementCategoryStats(unlockedSet)
+   const pendingByCategory = getPendingAchievementCategoryCounts(user)
+   for (const categoryId of Object.keys(categories)) {
+    categories[categoryId].pending = Number(pendingByCategory?.[categoryId] || 0)
+   }
    if (categories?.secret) {
     // On ne divulgue pas le nombre total de secrets non débloqués.
     categories.secret.total = categories.secret.unlocked
@@ -5348,14 +5761,53 @@ app.get("/api/achievements", (req, res) => {
     category: safeCategory,
     total: items.length,
     unlocked: unlockedCount,
+    pending: pendingSet.size,
     categories,
     items
    })
   } catch (e) {
    console.error("[WEB] /api/achievements:", e)
    res.status(500).json({ error: "Erreur serveur" })
+ }
+})
+
+app.post("/api/achievements/claim", (req, res) => {
+ try {
+  const session = requireSession(req, res)
+  if (!session) return
+
+  const user = getUser(session.userId)
+  ensureAchievementClaimState(user)
+  const claim = claimAllAchievementRewards(user)
+
+  let newlyUnlocked = []
+  if (claim.claimedCount > 0) {
+   newlyUnlocked = achievementCheck(user, null)
   }
- })
+
+  const pendingAfter = getPendingAchievementIds(user).length
+  save(session.userId)
+  apiCache.invalidate(`profile:${session.userId}`)
+  apiCache.invalidatePrefix("leaderboard:")
+
+  res.json({
+   ok: true,
+   claimedCount: claim.claimedCount,
+   claimedIds: claim.claimedIds,
+   totals: claim.totals,
+   baseTotals: claim.baseTotals,
+   levelUpTotals: claim.levelUpTotals,
+   levelUps: claim.levelUps,
+   newlyUnlocked,
+   pending: pendingAfter,
+   kamas: Number(user.kamas || 0),
+   packs: Number(user.packs || 0)
+  })
+ } catch (e) {
+  console.error("[WEB] /api/achievements/claim:", e)
+  res.status(500).json({ error: "Erreur serveur" })
+ }
+})
 
  app.get("/api/me/listings", async (req, res) => {
   try {
