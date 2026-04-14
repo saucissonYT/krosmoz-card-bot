@@ -116,6 +116,11 @@ function getPendingAchievementCategoryCounts(user) {
  return counts
 }
 
+function getAchievementCategory(achievement) {
+ if (achievement?.secret) return "secret"
+ return String(achievement?.trigger || "other").trim().toLowerCase()
+}
+
 function ensureRewardStructures(user) {
  if (!user.stats || typeof user.stats !== "object") user.stats = {}
  if (!Array.isArray(user.titles)) user.titles = ["Nouveau"]
@@ -150,10 +155,15 @@ function summarizeLevelUpRewards(levelUps = []) {
  return totals
 }
 
-function claimAllAchievementRewards(user) {
+function claimAchievementRewards(user, options = {}) {
  ensureRewardStructures(user)
  const { pendingIds, pendingRewards } = ensureAchievementClaimState(user)
- if (pendingIds.length <= 0) {
+ const requestedCategory = String(options?.category || "").trim().toLowerCase()
+ const filteredIds = requestedCategory && requestedCategory !== "all"
+  ? pendingIds.filter((id) => getAchievementCategory(achievementRegistry?.[id]) === requestedCategory)
+  : [...pendingIds]
+
+ if (filteredIds.length <= 0) {
   return {
    claimedCount: 0,
    claimedIds: [],
@@ -167,7 +177,7 @@ function claimAllAchievementRewards(user) {
     badges: 0
    },
    levelUps: [],
-   pendingCount: 0
+   pendingCount: pendingIds.length
   }
  }
 
@@ -183,7 +193,7 @@ function claimAllAchievementRewards(user) {
 
  const claimedIds = []
 
- for (const id of pendingIds) {
+ for (const id of filteredIds) {
   const snapshot = normalizePendingRewardSnapshot(
    achievementRegistry?.[id],
    pendingRewards?.[id] || {}
@@ -220,8 +230,15 @@ function claimAllAchievementRewards(user) {
  user.stats.achievementCardsEarned = toSafeNumber(user.stats.achievementCardsEarned) + baseTotals.cards
  user.stats.achievementClaims = toSafeNumber(user.stats.achievementClaims) + claimedIds.length
 
- user.pendingAchievementClaims = []
- user.pendingAchievementRewards = {}
+ const claimedSet = new Set(claimedIds)
+ user.pendingAchievementClaims = pendingIds.filter((id) => !claimedSet.has(String(id)))
+ const nextPendingRewards = {}
+ for (const id of user.pendingAchievementClaims) {
+  if (pendingRewards?.[id]) {
+   nextPendingRewards[id] = pendingRewards[id]
+  }
+ }
+ user.pendingAchievementRewards = nextPendingRewards
 
  const totals = {
   kamas: baseTotals.kamas + levelUpTotals.kamas,
@@ -240,8 +257,12 @@ function claimAllAchievementRewards(user) {
   levelUpTotals,
   totals,
   levelUps,
-  pendingCount: 0
+  pendingCount: user.pendingAchievementClaims.length
  }
+}
+
+function claimAllAchievementRewards(user) {
+ return claimAchievementRewards(user)
 }
 
 module.exports = {
@@ -250,5 +271,6 @@ module.exports = {
  getPendingAchievementIds,
  getPendingAchievementEntries,
  getPendingAchievementCategoryCounts,
+ claimAchievementRewards,
  claimAllAchievementRewards
 }

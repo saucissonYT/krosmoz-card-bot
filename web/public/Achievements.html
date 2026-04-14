@@ -349,6 +349,8 @@ function renderModalList(items = []) {
 
  async function claimAllAchievements() {
   if (!ui.claimAllBtn) return
+  const activeCategory = String(modalState.activeCategory || "").trim()
+  if (!CATEGORY_BY_ID?.[activeCategory]) return
   ui.claimAllBtn.disabled = true
   const original = ui.claimAllBtn.textContent
   ui.claimAllBtn.textContent = "Récupération..."
@@ -357,7 +359,7 @@ function renderModalList(items = []) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
-    body: JSON.stringify({})
+    body: JSON.stringify({ category: activeCategory })
    })
    if (!res.ok) throw new Error("claim")
    const data = await res.json()

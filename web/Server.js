@@ -109,7 +109,7 @@ const {
  ensureAchievementClaimState,
  getPendingAchievementIds,
  getPendingAchievementCategoryCounts,
- claimAllAchievementRewards
+ claimAchievementRewards
 } = require("../systems/achievementClaimService")
 const rouletteGameplay = require("../commands/joueur/roulette")
 const { createRateLimiter } = require("../systems/rateLimiter")
@@ -5778,7 +5778,15 @@ app.post("/api/achievements/claim", (req, res) => {
 
   const user = getUser(session.userId)
   ensureAchievementClaimState(user)
-  const claim = claimAllAchievementRewards(user)
+  const requestedCategory = String(req.body?.category || "").trim().toLowerCase()
+  const safeCategory = ACHIEVEMENT_CATEGORIES.includes(requestedCategory) && requestedCategory !== "all"
+   ? requestedCategory
+   : null
+  if (!safeCategory) {
+   return res.status(400).json({ error: "Categorie invalide pour le claim." })
+  }
+
+  const claim = claimAchievementRewards(user, { category: safeCategory })
 
   let newlyUnlocked = []
   if (claim.claimedCount > 0) {
@@ -5799,6 +5807,7 @@ app.post("/api/achievements/claim", (req, res) => {
    levelUpTotals: claim.levelUpTotals,
    levelUps: claim.levelUps,
    newlyUnlocked,
+   category: safeCategory,
    pending: pendingAfter,
    kamas: Number(user.kamas || 0),
    packs: Number(user.packs || 0)

@@ -5100,11 +5100,12 @@ body.achievements-page .achievements-hub-icon-wrap .ach-notif-flame {
 }
 
 body.achievements-page .ach-modal-icon-btn .ach-notif-flame {
- width: 30px;
- height: 30px;
+ width: 64px;
+ height: 64px;
  top: auto;
- right: 8px;
- bottom: 12px;
+ right: -4px;
+ bottom: -2px;
+ animation: achFlamePulse 1.2s ease-in-out infinite;
 }
 
 body.achievements-page .ach-modal-icon-btn:hover {

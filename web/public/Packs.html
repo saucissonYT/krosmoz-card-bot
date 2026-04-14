@@ -2588,17 +2588,18 @@
    busy: false,
    error: ""
   }
-  const packOpenState = {
-   open: false,
-   done: false,
-   timers: [],
-   resolve: null,
-   cards: [],
-   groups: [],
-   activeGroupIndex: 0,
-   completedGroups: new Set(),
-   overallStats: null
-  }
+ const packOpenState = {
+  open: false,
+  done: false,
+  timers: [],
+  resolve: null,
+  cards: [],
+  groups: [],
+  activeGroupIndex: 0,
+  completedGroups: new Set(),
+  overallStats: null,
+  transitioningNext: false
+ }
 
   const cardPreviewState = {
    list: [],
@@ -3414,26 +3415,40 @@
    return activeIndex + 1 < groups.length
   }
 
-  function updatePackOpenPrimaryAction() {
-   if (!el.packsOpenCloseMain) return
-   const hasNext = hasPackOpenNextGroup()
-   el.packsOpenCloseMain.textContent = hasNext ? "Suivant" : "Fermer"
-   el.packsOpenCloseMain.disabled = hasNext ? false : !packOpenState.done
+ function updatePackOpenPrimaryAction() {
+  if (!el.packsOpenCloseMain) return
+  const hasNext = hasPackOpenNextGroup()
+  if (hasNext && packOpenState.transitioningNext) {
+   el.packsOpenCloseMain.textContent = "Suivant..."
+   el.packsOpenCloseMain.disabled = true
+   return
   }
+  el.packsOpenCloseMain.textContent = hasNext ? "Suivant" : "Fermer"
+  el.packsOpenCloseMain.disabled = hasNext ? false : !packOpenState.done
+ }
 
-  function handlePackOpenPrimaryAction() {
-   if (!packOpenState.open) return
-   if (hasPackOpenNextGroup()) {
+ function handlePackOpenPrimaryAction() {
+  if (!packOpenState.open) return
+  if (hasPackOpenNextGroup()) {
+    if (packOpenState.transitioningNext) return
     if (!packOpenState.done) {
      completePackOpeningReveal()
     }
+    packOpenState.transitioningNext = true
+    updatePackOpenPrimaryAction()
+    if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
     closeRateCardPreview()
-    animatePackOpenGroup(Number(packOpenState.activeGroupIndex || 0) + 1)
+    const nextIndex = Number(packOpenState.activeGroupIndex || 0) + 1
+    queuePackOpenTimer(() => {
+     if (!packOpenState.open) return
+     packOpenState.transitioningNext = false
+     animatePackOpenGroup(nextIndex)
+    }, 2000)
     return
    }
-   if (!packOpenState.done) return
-   closePackOpeningOverlay()
-  }
+  if (!packOpenState.done) return
+  closePackOpeningOverlay()
+ }
 
   function updatePackOpenSummary(groupIndex, options = {}) {
    const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
@@ -3495,23 +3510,24 @@
    updatePackOpenPrimaryAction()
   }
 
-  function closePackOpeningOverlay() {
-   if (!packOpenState.open && el.packsOpenOverlay.hidden) return
-   closeRateCardPreview()
-   clearPackOpenTimers()
+ function closePackOpeningOverlay() {
+  if (!packOpenState.open && el.packsOpenOverlay.hidden) return
+  closeRateCardPreview()
+  clearPackOpenTimers()
    hidePackOpenSpecialFx()
    clearPackOpenSpotlightCards()
    packOpenState.open = false
    packOpenState.done = false
    packOpenState.cards = []
-   packOpenState.groups = []
-   packOpenState.activeGroupIndex = 0
-   packOpenState.completedGroups = new Set()
-   packOpenState.overallStats = null
-   if (el.packsOpenCloseMain) {
-    el.packsOpenCloseMain.textContent = "Fermer"
-    el.packsOpenCloseMain.disabled = false
-   }
+  packOpenState.groups = []
+  packOpenState.activeGroupIndex = 0
+  packOpenState.completedGroups = new Set()
+  packOpenState.overallStats = null
+  packOpenState.transitioningNext = false
+  if (el.packsOpenCloseMain) {
+   el.packsOpenCloseMain.textContent = "Fermer"
+   el.packsOpenCloseMain.disabled = false
+  }
    el.packsOpenOverlay.classList.remove("show")
    syncModalBodyLock()
    window.setTimeout(() => {
@@ -3696,13 +3712,14 @@
    updatePackOpenPrimaryAction()
   }
 
-  function animatePackOpenGroup(groupIndex, options = {}) {
-   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
-   const safeIndex = Math.max(0, Math.min(groups.length - 1, Number(groupIndex || 0)))
-   const group = groups[safeIndex]
-   if (!group) return
+ function animatePackOpenGroup(groupIndex, options = {}) {
+  const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+  const safeIndex = Math.max(0, Math.min(groups.length - 1, Number(groupIndex || 0)))
+  const group = groups[safeIndex]
+  if (!group) return
 
   clearPackOpenTimers()
+  packOpenState.transitioningNext = false
   hidePackOpenSpecialFx()
   clearPackOpenSpotlightCards()
   packOpenState.activeGroupIndex = safeIndex
