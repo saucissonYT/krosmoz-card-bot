@@ -59,6 +59,7 @@
  <aside id="achClaimPopup" class="ach-claim-popup" hidden>
   <div class="ach-claim-popup-backdrop"></div>
   <section class="ach-claim-popup-card">
+   <button id="achClaimPopupClose" class="ach-claim-popup-close" type="button" aria-label="Fermer">×</button>
    <h3>Récompenses récupérées</h3>
    <div id="achClaimPopupList" class="ach-claim-popup-list"></div>
   </section>
@@ -123,7 +124,8 @@ const modalState = {
   modalBackBtn: document.getElementById("achModalBackBtn"),
   claimAllBtn: document.getElementById("achClaimAllBtn"),
   claimPopup: document.getElementById("achClaimPopup"),
-  claimPopupList: document.getElementById("achClaimPopupList")
+  claimPopupList: document.getElementById("achClaimPopupList"),
+  claimPopupClose: document.getElementById("achClaimPopupClose")
  }
 
  function esc(value) {
@@ -232,8 +234,10 @@ function getStat(categoryId) {
     : ""
    return `
     <article class="achievements-hub-card" data-ach-open-category="${tile.id}" role="button" tabindex="0" style="animation-delay:${(index * 0.03).toFixed(2)}s">
-     <img src="${toIconUrl(tile.icon)}" alt="${tile.label}" class="achievements-hub-icon" loading="lazy" draggable="false">
-     ${flame}
+     <div class="achievements-hub-icon-wrap">
+      <img src="${toIconUrl(tile.icon)}" alt="${tile.label}" class="achievements-hub-icon" loading="lazy" draggable="false">
+      ${flame}
+     </div>
      <h3>${esc(tile.label)}</h3>
      <p class="achievements-hub-count">${stat.unlocked}/${stat.total || 0}</p>
      <div class="achievements-hub-bar" aria-hidden="true">
@@ -325,12 +329,14 @@ function renderModalList(items = []) {
 
   ui.claimPopup.hidden = false
   requestAnimationFrame(() => ui.claimPopup.classList.add("show"))
+ }
+
+ function closeClaimPopup() {
+  if (!ui.claimPopup) return
+  ui.claimPopup.classList.remove("show")
   window.setTimeout(() => {
-   ui.claimPopup.classList.remove("show")
-   window.setTimeout(() => {
-    if (!ui.claimPopup.classList.contains("show")) ui.claimPopup.hidden = true
-   }, 220)
-  }, 2200)
+   if (!ui.claimPopup.classList.contains("show")) ui.claimPopup.hidden = true
+  }, 220)
  }
 
  async function refreshAchievementsView(keepModalCategory = null) {
@@ -525,9 +531,22 @@ function renderModalList(items = []) {
 
   ui.modalBackBtn.addEventListener("click", closeModal)
   ui.claimAllBtn.addEventListener("click", claimAllAchievements)
+  if (ui.claimPopupClose) {
+   ui.claimPopupClose.addEventListener("click", closeClaimPopup)
+  }
+
+  ui.claimPopup.addEventListener("click", (event) => {
+   const backdrop = event.target?.closest?.(".ach-claim-popup-backdrop")
+   if (backdrop) closeClaimPopup()
+  })
 
   window.addEventListener("keydown", (event) => {
-   if (event.key === "Escape") closeModal()
+   if (event.key !== "Escape") return
+   if (!ui.claimPopup.hidden) {
+    closeClaimPopup()
+    return
+   }
+   closeModal()
   })
 
   bindDragScroll(ui.modalRail, ui.modalSidebar, ui.modalSidebar)
