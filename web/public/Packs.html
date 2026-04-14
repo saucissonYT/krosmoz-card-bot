@@ -597,10 +597,10 @@
    z-index: 88;
    display: grid;
    place-items: center;
-   padding: 18px;
+   padding: 0;
    opacity: 0;
    pointer-events: none;
-   transition: opacity 0.18s ease;
+   transition: opacity 0.22s ease;
   }
 
   .packs-open-overlay.show {
@@ -615,22 +615,41 @@
   .packs-open-backdrop {
    position: absolute;
    inset: 0;
-   background: rgba(4, 10, 34, 0.84);
-   backdrop-filter: blur(4px);
+   background:
+    radial-gradient(circle at 50% 40%, rgba(82, 184, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 50% 82%, rgba(255, 216, 110, 0.14), transparent 24%),
+    rgba(4, 10, 34, 0.86);
+   backdrop-filter: blur(8px);
   }
 
   .packs-open-dialog {
    position: relative;
    z-index: 1;
-   width: min(1240px, 96vw);
-   max-height: min(90vh, 980px);
-   border-radius: 16px;
-   border: 1px solid rgba(162, 208, 255, 0.54);
-   background: linear-gradient(180deg, rgba(13, 32, 88, 0.95), rgba(8, 20, 58, 0.96));
-   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+   width: 100vw;
+   height: 100vh;
+   max-height: none;
+   border-radius: 0;
+   border: none;
+   background:
+    radial-gradient(circle at top, rgba(90, 180, 255, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(13, 32, 88, 0.95), rgba(8, 20, 58, 0.98));
+   box-shadow: 0 34px 80px rgba(0, 0, 0, 0.52);
    display: grid;
-   grid-template-rows: auto auto 1fr auto;
+   grid-template-rows: auto auto minmax(0, 1fr) auto;
    overflow: hidden;
+  }
+
+  .packs-open-dialog::before {
+   content: "";
+   position: absolute;
+   inset: 0;
+   pointer-events: none;
+   background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.08), transparent 18%),
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 100%),
+    radial-gradient(circle at 82% 26%, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 100%);
+   background-size: auto, 180px 180px, 220px 220px;
+   opacity: 0.45;
   }
 
   .packs-open-head {
@@ -638,16 +657,17 @@
    grid-template-columns: 1fr auto;
    align-items: center;
    gap: 12px;
-   padding: 14px 18px 10px;
+   padding: 18px 26px 12px;
    border-bottom: 1px solid rgba(156, 203, 255, 0.34);
   }
 
   .packs-open-head h3 {
    margin: 0;
-   color: #eaf6ff;
+   color: #ffe978;
    font-family: "Cinzel", serif;
-   font-size: clamp(1.35rem, 2.1vw, 2rem);
-   letter-spacing: 0.02em;
+   font-size: clamp(1.7rem, 3vw, 3rem);
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
   }
 
   .packs-open-close {
@@ -664,9 +684,9 @@
 
   .packs-open-meta {
    margin: 0;
-   padding: 8px 18px 10px;
+   padding: 10px 26px 12px;
    color: #d7ebff;
-   font-size: 1.05rem;
+   font-size: 1.02rem;
    font-weight: 700;
    border-bottom: 1px solid rgba(152, 201, 255, 0.26);
   }
@@ -675,64 +695,257 @@
    display: flex;
    flex-wrap: wrap;
    gap: 6px;
-   padding: 10px 16px 0;
+   padding: 14px 24px 0;
+  }
+
+  .packs-open-selector[hidden] {
+   display: none;
   }
 
   .packs-open-selector button {
-   min-height: 30px;
+   min-height: 34px;
    border-radius: 999px;
    border: 1px solid rgba(161, 205, 255, 0.38);
    background: rgba(11, 28, 78, 0.65);
    color: #e4f2ff;
-   font-size: 0.82rem;
+   font-size: 0.84rem;
    font-weight: 700;
-   padding: 0 10px;
+   padding: 0 12px;
    cursor: pointer;
+   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+  }
+
+  .packs-open-selector button:hover {
+   transform: translateY(-1px);
+   border-color: rgba(214, 235, 255, 0.6);
   }
 
   .packs-open-selector button.active {
    border-color: rgba(246, 219, 124, 0.78);
    background: linear-gradient(180deg, rgba(255, 225, 115, 0.92), rgba(240, 179, 54, 0.9));
    color: #27324f;
+   box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
   }
 
   .packs-open-grid {
-   padding: 14px 16px;
-   overflow: auto;
-   display: grid;
-   grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+   position: relative;
+   --pack-open-card-ratio: 0.72;
+   --pack-open-card-width: clamp(172px, 18vw, 280px);
+   padding: 8px;
+   overflow: hidden;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   height: 100%;
+   min-height: 0;
+  }
+
+  .packs-open-grid::before {
+   display: none;
+  }
+
+  .packs-open-grid-body {
+   min-height: 0;
+   width: min(100vw, 1700px);
+   margin: 0 auto;
+   display: flex;
+   flex-wrap: nowrap;
+   align-items: center;
+   align-content: center;
+   justify-content: center;
    gap: 10px;
-   align-content: start;
+   flex: 0 1 auto;
+  }
+
+  .packs-open-grid.pack-many {
+   overflow: auto;
+   align-items: flex-start;
+  }
+
+  .packs-open-grid.pack-many .packs-open-grid-body {
+   flex-wrap: wrap;
+   align-items: flex-start;
+   align-content: flex-start;
+   min-height: auto;
+   padding: 10px 0 22px;
   }
 
   .packs-open-card {
    position: relative;
-   aspect-ratio: 0.72 / 1;
-   border-radius: 10px;
-   perspective: 900px;
+   width: var(--pack-open-card-width);
+   min-width: var(--pack-open-card-width);
+   max-width: var(--pack-open-card-width);
+   height: calc(var(--pack-open-card-width) / var(--pack-open-card-ratio));
+   flex: 0 0 auto;
+   aspect-ratio: auto;
+   border-radius: 14px;
+   perspective: 1200px;
+   opacity: 1;
+   transform:
+    translateY(0)
+    scale(1)
+    rotate(var(--pack-card-tilt, 0deg));
+   filter: blur(0) saturate(1);
+   transition:
+    opacity 0.2s ease,
+    transform 0.46s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.42s ease;
+   z-index: var(--pack-card-z, 1);
+  }
+
+  .packs-open-card.is-entered {
+   transform:
+    translateY(-2px)
+    scale(1.005)
+    rotate(var(--pack-card-tilt, 0deg));
   }
 
   .packs-open-card-inner {
    position: absolute;
    inset: 0;
    transform-style: preserve-3d;
-   transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+   transition: transform 1.35s cubic-bezier(0.22, 0.84, 0.24, 1);
   }
 
   .packs-open-card.revealed .packs-open-card-inner {
    transform: rotateY(180deg);
   }
 
+  .packs-open-card.revealed {
+   transform:
+    translateY(var(--pack-card-lift, -10px))
+    scale(1.02)
+    rotate(var(--pack-card-tilt, 0deg));
+  }
+
+  .packs-open-card.can-preview {
+   cursor: zoom-in;
+  }
+
+  .packs-open-card.is-pre-spotlight-shake {
+   --pack-card-shake-lift: 0px;
+   animation: packs-open-card-shake 0.14s ease-in-out infinite;
+  }
+
+  .packs-open-card.is-spotlight-moving {
+   transition:
+    opacity 0.2s ease,
+    transform 1.38s cubic-bezier(0.12, 0.88, 0.2, 1),
+    filter 0.9s ease !important;
+  }
+
+  .packs-open-card.is-spotlight,
+  .packs-open-card.is-spotlight.revealed {
+   z-index: 130;
+   transform:
+    translate(var(--spotlight-shift-x, 0px), var(--spotlight-shift-y, 0px))
+    scale(var(--spotlight-scale, 1.58))
+    rotate(0deg) !important;
+   filter: saturate(1.08);
+  }
+
+  .packs-open-card.is-spotlight-returning {
+   transition-duration: 0.62s;
+  }
+
+  .packs-open-special-fx {
+   position: absolute;
+   inset: 0;
+   z-index: 40;
+   pointer-events: none;
+   opacity: 0;
+   transition: opacity 0.22s ease;
+   overflow: hidden;
+  }
+
+  .packs-open-special-fx.show {
+   opacity: 1;
+  }
+
+  .packs-open-special-fx[hidden] {
+   display: none;
+  }
+
+  .packs-open-special-fx.rarity-s {
+   --fx-main: 245, 196, 84;
+   --fx-sub: 106, 189, 255;
+  }
+
+  .packs-open-special-fx.rarity-ssr {
+   --fx-main: 183, 118, 255;
+   --fx-sub: 255, 114, 214;
+  }
+
+  .packs-open-special-rays {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   width: 220vmax;
+   height: 220vmax;
+   border-radius: 50%;
+   transform: translate(-50%, -50%);
+   background:
+    radial-gradient(circle at center, rgba(var(--fx-main), 0.2) 0 40%, rgba(var(--fx-main), 0) 72%),
+    repeating-conic-gradient(from 0deg, rgba(var(--fx-main), 0.22) 0deg 8deg, rgba(var(--fx-sub), 0) 8deg 18deg),
+    repeating-conic-gradient(from 0deg, rgba(var(--fx-sub), 0.2) 0deg 6deg, rgba(var(--fx-main), 0) 6deg 16deg);
+   mix-blend-mode: screen;
+   opacity: 0.5;
+   animation: packs-open-special-rays-spin 14s linear infinite;
+  }
+
+  .packs-open-special-rays::after {
+   content: "";
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   width: min(58vmin, 560px);
+   height: min(58vmin, 560px);
+   transform: translate(-50%, -50%);
+   border-radius: 50%;
+   background: radial-gradient(circle, rgba(var(--fx-sub), 0.32), rgba(var(--fx-main), 0.08) 40%, rgba(var(--fx-main), 0) 68%);
+  }
+
+  @keyframes packs-open-special-rays-spin {
+   from { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+   to { transform: translate(-50%, -50%) rotate(360deg) scale(1.03); }
+  }
+
+  @keyframes packs-open-card-shake {
+   0% {
+    transform: translateY(var(--pack-card-shake-lift, 0px)) translateX(0px) scale(1.01) rotate(var(--pack-card-tilt, 0deg));
+   }
+   20% {
+    transform: translateY(calc(var(--pack-card-shake-lift, 0px) - 1px)) translateX(-3px) scale(1.016) rotate(calc(var(--pack-card-tilt, 0deg) - 1.2deg));
+   }
+   40% {
+    transform: translateY(calc(var(--pack-card-shake-lift, 0px) + 1px)) translateX(3px) scale(1.004) rotate(calc(var(--pack-card-tilt, 0deg) + 1.1deg));
+   }
+   60% {
+    transform: translateY(calc(var(--pack-card-shake-lift, 0px) - 1px)) translateX(-2px) scale(1.014) rotate(calc(var(--pack-card-tilt, 0deg) - 0.9deg));
+   }
+   80% {
+    transform: translateY(calc(var(--pack-card-shake-lift, 0px) + 1px)) translateX(2px) scale(1.006) rotate(calc(var(--pack-card-tilt, 0deg) + 0.8deg));
+   }
+   100% {
+    transform: translateY(var(--pack-card-shake-lift, 0px)) translateX(0px) scale(1.01) rotate(var(--pack-card-tilt, 0deg));
+   }
+  }
+
   .packs-open-face {
    position: absolute;
    inset: 0;
-   border-radius: 10px;
+   border-radius: 14px;
    overflow: hidden;
    backface-visibility: hidden;
-   border: 1px solid rgba(175, 216, 255, 0.35);
-   background: rgba(9, 23, 64, 0.68);
+   border: none;
+   background: transparent;
    display: grid;
    place-items: center;
+   box-shadow: none;
+  }
+
+  .packs-open-back::after {
+   display: none;
   }
 
   .packs-open-face img {
@@ -749,31 +962,82 @@
   }
 
   .packs-open-front-meta {
-   width: 100%;
-   padding: 6px 7px;
-   background: linear-gradient(180deg, rgba(5, 14, 44, 0.08), rgba(4, 10, 30, 0.82));
-   color: #f3f9ff;
-   font-size: 0.74rem;
-   font-weight: 700;
-   line-height: 1.25;
+    width: 100%;
+    padding: 8px 9px 9px;
+    background: linear-gradient(180deg, rgba(5, 14, 44, 0.12), rgba(4, 10, 30, 0.88));
+    color: #f3f9ff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.22;
+    letter-spacing: 0.03em;
+    text-align: left;
+  }
+
+  .packs-open-front-top {
+   display: flex;
+   align-items: center;
+   gap: 6px;
+   flex-wrap: wrap;
+   margin-bottom: 4px;
+  }
+
+  .packs-open-rarity-chip,
+  .packs-open-flag-chip {
+   display: inline-flex;
+   align-items: center;
+   min-height: 20px;
+   border-radius: 999px;
+   padding: 0 8px;
+   font-size: 0.66rem;
+   font-weight: 800;
+   letter-spacing: 0.07em;
    text-transform: uppercase;
-   letter-spacing: 0.03em;
-   text-align: left;
+  }
+
+  .packs-open-rarity-chip {
+   background: rgba(13, 30, 78, 0.92);
+   border: 1px solid rgba(191, 221, 255, 0.34);
+   color: #eaf5ff;
+  }
+
+  .packs-open-flag-chip {
+   background: rgba(255, 220, 120, 0.16);
+   border: 1px solid rgba(255, 224, 138, 0.38);
+   color: #ffe38a;
   }
 
   .packs-open-front-meta .name {
    display: block;
-   font-size: 0.8rem;
+   font-size: 0.88rem;
+   font-weight: 800;
    text-transform: none;
-   letter-spacing: 0;
-   white-space: nowrap;
+   letter-spacing: 0.01em;
+   white-space: normal;
    overflow: hidden;
-   text-overflow: ellipsis;
+   display: -webkit-box;
+   -webkit-line-clamp: 2;
+   -webkit-box-orient: vertical;
   }
 
-  .packs-open-card.rarity-ssr .packs-open-face,
+  .packs-open-card.rarity-sr .packs-open-face {
+   box-shadow: none;
+  }
+
+  .packs-open-card.rarity-ur .packs-open-face {
+   box-shadow: none;
+  }
+
   .packs-open-card.rarity-s .packs-open-face {
-   box-shadow: 0 0 0 1px rgba(255, 224, 138, 0.55), 0 0 16px rgba(255, 194, 84, 0.32);
+   box-shadow: none;
+  }
+
+  .packs-open-card.rarity-ssr .packs-open-face {
+   box-shadow: none;
+  }
+
+  .packs-open-card.rarity-ssr.revealed,
+  .packs-open-card.rarity-s.revealed {
+   --pack-card-lift: -12px;
   }
 
   .packs-open-foot {
@@ -781,15 +1045,16 @@
    justify-content: space-between;
    align-items: center;
    gap: 12px;
-   padding: 12px 16px 14px;
+   padding: 14px 26px 18px;
    border-top: 1px solid rgba(151, 200, 255, 0.28);
    background: rgba(7, 18, 53, 0.74);
   }
 
   .packs-open-summary {
    color: #d8ecff;
-   font-size: 1rem;
+   font-size: 0.98rem;
    font-weight: 700;
+   line-height: 1.4;
   }
 
   .packs-open-close-main {
@@ -1767,14 +2032,14 @@
     min-width: 72px;
    }
    .packs-status {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none;
-    margin: 14px auto 0;
-    width: min(94vw, 620px);
-    min-height: 0;
-   }
+     position: relative;
+     left: auto;
+     top: auto;
+     transform: none;
+     margin: 14px auto 0;
+     width: min(94vw, 760px);
+     min-height: 0;
+    }
    .packs-set-slider {
     position: relative;
     left: auto;
@@ -1792,12 +2057,30 @@
     width: min(94vw, 760px);
     max-height: min(90vh, 840px);
    }
-   .packs-open-dialog {
-    width: min(96vw, 860px);
+   .packs-open-grid {
+    padding: 14px;
+   }
+   .packs-open-grid-body {
+    width: 100%;
+    gap: 12px;
+   }
+  .packs-open-card {
+    width: var(--pack-open-card-width);
+    min-width: var(--pack-open-card-width);
    }
    .packs-open-grid {
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-    gap: 8px;
+    --pack-open-card-width: clamp(132px, 30vw, 220px);
+   }
+   .packs-open-card.is-spotlight,
+   .packs-open-card.is-spotlight.revealed {
+    --spotlight-scale: 1.42;
+   }
+   .packs-open-head,
+   .packs-open-meta,
+   .packs-open-selector,
+   .packs-open-foot {
+    padding-left: 14px;
+    padding-right: 14px;
    }
    .packs-rate-grid {
     grid-template-columns: 1fr;
@@ -1913,28 +2196,28 @@
     <p class="packs-pity-title">Pity du set</p>
    <div class="packs-pity-grid">
     <div class="packs-pity-slot">
-      <div class="packs-pity-slot-head">
-       <span class="packs-pity-slot-label">UR</span>
-       <strong id="packsSetPityUrValue" class="packs-pity-slot-value">04/10</strong>
-      </div>
-      <div class="packs-pity-slot-track"><span id="packsSetPityUrBar" class="packs-pity-slot-fill"></span></div>
+     <div class="packs-pity-slot-head">
+      <span class="packs-pity-slot-label">UR</span>
+      <strong id="packsSetPityUrValue" class="packs-pity-slot-value">04/10</strong>
      </div>
-     <div class="packs-pity-slot">
-      <div class="packs-pity-slot-head">
-       <span class="packs-pity-slot-label">S</span>
-       <strong id="packsSetPitySValue" class="packs-pity-slot-value">12/30</strong>
-      </div>
-      <div class="packs-pity-slot-track"><span id="packsSetPitySBar" class="packs-pity-slot-fill"></span></div>
+     <div class="packs-pity-slot-track"><span id="packsSetPityUrBar" class="packs-pity-slot-fill"></span></div>
+    </div>
+    <div class="packs-pity-slot">
+     <div class="packs-pity-slot-head">
+      <span class="packs-pity-slot-label">S</span>
+      <strong id="packsSetPitySValue" class="packs-pity-slot-value">12/30</strong>
      </div>
-     <div class="packs-pity-slot">
-      <div class="packs-pity-slot-head">
-       <span class="packs-pity-slot-label">SSR</span>
-       <strong id="packsSetPitySsrValue" class="packs-pity-slot-value">09/50</strong>
-      </div>
-      <div class="packs-pity-slot-track"><span id="packsSetPitySsrBar" class="packs-pity-slot-fill"></span></div>
+     <div class="packs-pity-slot-track"><span id="packsSetPitySBar" class="packs-pity-slot-fill"></span></div>
+    </div>
+    <div class="packs-pity-slot">
+     <div class="packs-pity-slot-head">
+      <span class="packs-pity-slot-label">SSR</span>
+      <strong id="packsSetPitySsrValue" class="packs-pity-slot-value">09/50</strong>
      </div>
+     <div class="packs-pity-slot-track"><span id="packsSetPitySsrBar" class="packs-pity-slot-fill"></span></div>
     </div>
    </div>
+  </div>
 
    <section class="packs-set-slider" aria-label="Sets disponibles">
     <div id="packsSetSliderTrack" class="packs-set-slider-track"></div>
@@ -1963,13 +2246,16 @@
    <p id="packsOpenMeta" class="packs-open-meta"></p>
    <div id="packsOpenSelector" class="packs-open-selector" hidden></div>
    <div id="packsOpenGrid" class="packs-open-grid"></div>
-   <footer class="packs-open-foot">
-    <p id="packsOpenSummary" class="packs-open-summary"></p>
-    <div class="packs-open-actions">
-     <button id="packsOpenSkipBtn" class="packs-open-skip-btn" type="button">Skip</button>
-     <button id="packsOpenCloseMain" class="packs-open-close-main" type="button" data-close-pack-open>Fermer</button>
-    </div>
-   </footer>
+   <div id="packsOpenSpecialFx" class="packs-open-special-fx" hidden aria-hidden="true">
+    <div class="packs-open-special-rays"></div>
+   </div>
+    <footer class="packs-open-foot">
+     <p id="packsOpenSummary" class="packs-open-summary"></p>
+     <div class="packs-open-actions">
+      <button id="packsOpenSkipBtn" class="packs-open-skip-btn" type="button">Tout reveler</button>
+      <button id="packsOpenCloseMain" class="packs-open-close-main" type="button">Fermer</button>
+     </div>
+    </footer>
   </section>
  </aside>
 
@@ -2213,6 +2499,22 @@
    }
   }
 
+  const PACK_OPEN_RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+  const LOCAL_TEST_CARD_IMAGES = [
+   "/assets/ui/cartes%20test/7316282e-bcd4-4313-bf43-60d2decf5846.png",
+   "/assets/ui/cartes%20test/839ed31e-fc34-4564-98c7-42e5618b24ca.png",
+   "/assets/ui/cartes%20test/930b8d3e-7702-4b01-97c9-f6fb223da56e.png",
+   "/assets/ui/cartes%20test/a0bda3eb-1777-4894-83cf-e63ef15381fd.png",
+   "/assets/ui/cartes%20test/b0cf1644-bcaf-4b4a-853d-83552ebda922.png",
+   "/assets/ui/cartes%20test/b90590a3-3251-4746-ae80-62ababe50d09.png",
+   "/assets/ui/cartes%20test/s54dq64dqs465d.png",
+   "/assets/ui/cartes%20test/sd4q5d4sqd54qd.png",
+   "/assets/ui/cartes%20test/sdqsdqsdqz8778787.png"
+  ]
+  const IS_LOCAL_PACKS_TEST =
+   ["localhost", "127.0.0.1", "::1"].includes(String(window.location.hostname || "").toLowerCase()) ||
+   String(window.location.search || "").includes("local=1")
+
  let activeSetId = "incarnam"
   const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
   const PACK_BACK_IMAGE_BY_RARITY = {
@@ -2277,7 +2579,11 @@
    done: false,
    timers: [],
    resolve: null,
-   cards: []
+   cards: [],
+   groups: [],
+   activeGroupIndex: 0,
+   completedGroups: new Set(),
+   overallStats: null
   }
 
   const cardPreviewState = {
@@ -2302,10 +2608,11 @@
    drawNotice: document.getElementById("packsDrawNotice"),
    packsOpenOverlay: document.getElementById("packsOpenOverlay"),
    packsOpenTitle: document.getElementById("packsOpenTitle"),
-   packsOpenMeta: document.getElementById("packsOpenMeta"),
-   packsOpenSelector: document.getElementById("packsOpenSelector"),
-   packsOpenGrid: document.getElementById("packsOpenGrid"),
-   packsOpenSummary: document.getElementById("packsOpenSummary"),
+  packsOpenMeta: document.getElementById("packsOpenMeta"),
+  packsOpenSelector: document.getElementById("packsOpenSelector"),
+  packsOpenGrid: document.getElementById("packsOpenGrid"),
+  packsOpenSpecialFx: document.getElementById("packsOpenSpecialFx"),
+  packsOpenSummary: document.getElementById("packsOpenSummary"),
    packsOpenSkipBtn: document.getElementById("packsOpenSkipBtn"),
    packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
@@ -2868,52 +3175,325 @@
    packOpenState.timers = []
   }
 
+  function queuePackOpenTimer(callback, delay) {
+   const timer = window.setTimeout(callback, Math.max(0, Number(delay || 0)))
+   packOpenState.timers.push(timer)
+   return timer
+  }
+
+  function isPackOpenSpecialRarity(rarity) {
+   const key = String(rarity || "").toUpperCase()
+   return key === "S" || key === "SSR"
+  }
+
+  function showPackOpenSpecialFx(rarity) {
+   if (!el.packsOpenSpecialFx) return
+   const key = String(rarity || "").toUpperCase()
+   el.packsOpenSpecialFx.hidden = false
+   el.packsOpenSpecialFx.classList.remove("rarity-s", "rarity-ssr")
+   el.packsOpenSpecialFx.classList.add(key === "SSR" ? "rarity-ssr" : "rarity-s")
+   requestAnimationFrame(() => {
+    if (!el.packsOpenSpecialFx) return
+    el.packsOpenSpecialFx.classList.add("show")
+   })
+  }
+
+  function hidePackOpenSpecialFx() {
+   if (!el.packsOpenSpecialFx) return
+   el.packsOpenSpecialFx.classList.remove("show", "rarity-s", "rarity-ssr")
+   el.packsOpenSpecialFx.hidden = true
+  }
+
+  function clearPackOpenSpotlightCards() {
+   if (!el.packsOpenGrid) return
+   el.packsOpenGrid.querySelectorAll(".packs-open-card.is-spotlight, .packs-open-card.is-spotlight-returning, .packs-open-card.is-pre-spotlight-shake").forEach((card) => {
+    card.classList.remove("is-spotlight", "is-spotlight-returning", "is-pre-spotlight-shake")
+    card.style.removeProperty("--spotlight-shift-x")
+    card.style.removeProperty("--spotlight-shift-y")
+    card.style.removeProperty("--spotlight-scale")
+   })
+  }
+
+  function playPackOpenSpecialReveal(card, rarity, done) {
+   if (!card) {
+    if (typeof done === "function") done()
+    return
+   }
+   const targetRarity = String(rarity || "").toUpperCase() === "SSR" ? "SSR" : "S"
+   const cardRect = card.getBoundingClientRect()
+   const centerX = window.innerWidth / 2
+   const centerY = window.innerHeight / 2
+   const cardCenterX = cardRect.left + (cardRect.width / 2)
+   const cardCenterY = cardRect.top + (cardRect.height / 2)
+   const shiftX = Math.round(centerX - cardCenterX)
+   const shiftY = Math.round(centerY - cardCenterY)
+   const scale = targetRarity === "SSR" ? 1.64 : 1.56
+
+  card.style.setProperty("--spotlight-shift-x", `${shiftX}px`)
+  card.style.setProperty("--spotlight-shift-y", `${shiftY}px`)
+  card.style.setProperty("--spotlight-scale", String(scale))
+
+   const shakeMs = 1100
+   const moveMs = 1380
+   const holdAfterFlipMs = 4000
+   const returnMs = 640
+
+   card.classList.remove("revealed")
+   card.classList.add("is-pre-spotlight-shake")
+
+   queuePackOpenTimer(() => {
+    if (!packOpenState.open) return
+    card.classList.remove("is-pre-spotlight-shake")
+    card.classList.add("is-spotlight-moving")
+    void card.offsetWidth
+    requestAnimationFrame(() => {
+     requestAnimationFrame(() => {
+      if (!packOpenState.open) return
+      card.classList.add("is-spotlight")
+      queuePackOpenTimer(() => {
+       if (!packOpenState.open) return
+       card.classList.add("revealed")
+       showPackOpenSpecialFx(targetRarity)
+       queuePackOpenTimer(() => {
+        hidePackOpenSpecialFx()
+        card.classList.add("is-spotlight-returning")
+        card.classList.remove("is-spotlight")
+        queuePackOpenTimer(() => {
+         card.classList.remove("is-spotlight-returning")
+         card.classList.remove("is-spotlight-moving")
+         card.style.removeProperty("--spotlight-shift-x")
+         card.style.removeProperty("--spotlight-shift-y")
+         card.style.removeProperty("--spotlight-scale")
+         if (typeof done === "function") done()
+        }, returnMs)
+       }, holdAfterFlipMs)
+      }, moveMs)
+     })
+    })
+   }, shakeMs)
+  }
+
   function getPackBackImageByRarity(rarity) {
    const key = String(rarity || "").toUpperCase()
    return PACK_BACK_IMAGE_BY_RARITY[key] || PACK_BACK_IMAGE_DEFAULT
   }
 
+  function getPackBackRarityForDisplay(rarity, index, total) {
+   if (!IS_LOCAL_PACKS_TEST) return String(rarity || "").toUpperCase()
+   const safeIndex = Math.max(0, Number(index || 0))
+   const safeTotal = Math.max(0, Number(total || 0))
+   if (safeTotal >= 2 && safeIndex === safeTotal - 2) return "S"
+   if (safeTotal >= 1 && safeIndex === safeTotal - 1) return "SSR"
+   return String(rarity || "").toUpperCase()
+  }
+
+  function getLocalTestCardImage(index = 0) {
+   if (!IS_LOCAL_PACKS_TEST || !LOCAL_TEST_CARD_IMAGES.length) return ""
+   const safeIndex = Math.abs(Number(index || 0)) % LOCAL_TEST_CARD_IMAGES.length
+   return String(LOCAL_TEST_CARD_IMAGES[safeIndex] || "")
+  }
+
+  function applyLocalTestImagesToRevealCards(cards = []) {
+   if (!IS_LOCAL_PACKS_TEST || !Array.isArray(cards) || !cards.length) return cards
+   return cards.map((card, index) => ({
+    ...card,
+    image: getLocalTestCardImage(index) || String(card?.image || "")
+   }))
+  }
+
+  function buildLocalFallbackRevealCards(payload = {}) {
+   if (!IS_LOCAL_PACKS_TEST) return []
+   const quantity = Math.max(1, Math.min(25, Number(payload?.quantity || 1)))
+   const cards = []
+   const baseRarities = ["C", "U", "R", "S", "SSR"]
+   for (let packIndex = 0; packIndex < quantity; packIndex++) {
+    for (let i = 0; i < 5; i++) {
+     cards.push({
+      cardId: `local-test-${packIndex}-${i}`,
+      cardName: `Carte test ${packIndex + 1}-${i + 1}`,
+      rarity: baseRarities[i] || "C",
+      set: String(payload?.setId || activeSetId || "incarnam"),
+      image: "",
+      shiny: false,
+      isNew: false
+     })
+    }
+   }
+   return applyLocalTestImagesToRevealCards(cards)
+  }
+
   function getRevealCards(payload) {
    if (Array.isArray(payload?.revealCards) && payload.revealCards.length) {
-    return payload.revealCards.slice()
+    return applyLocalTestImagesToRevealCards(payload.revealCards.slice())
    }
    const expanded = []
    for (const row of (Array.isArray(payload?.cards) ? payload.cards : [])) {
     const qty = Math.max(1, Number(row?.qty || 1))
     for (let i = 0; i < qty; i++) {
-      expanded.push({
-       cardName: row?.cardName || row?.itemName || "Carte",
-       rarity: row?.rarity || "C",
-       image: row?.image || null,
-       shiny: Boolean(row?.shiny),
-       isNew: Boolean(row?.isNew)
-      })
+     expanded.push({
+      cardName: row?.cardName || row?.itemName || "Carte",
+      rarity: row?.rarity || "C",
+      image: row?.image || null,
+      shiny: Boolean(row?.shiny),
+     isNew: Boolean(row?.isNew)
+     })
     }
    }
-   return expanded
+   if (expanded.length > 0) {
+    return applyLocalTestImagesToRevealCards(expanded)
+   }
+   return buildLocalFallbackRevealCards(payload)
+  }
+
+  function getPackOpenRarityOrder(rarity) {
+   const key = String(rarity || "").toUpperCase()
+   const idx = PACK_OPEN_RARITY_ORDER.indexOf(key)
+   return idx === -1 ? -1 : idx
+  }
+
+  function buildPackOpenStats(cards = []) {
+   const rarityCount = {}
+   let shinyCount = 0
+   let newCount = 0
+
+   for (const card of cards) {
+    const rarity = String(card?.rarity || "C").toUpperCase()
+    rarityCount[rarity] = Number(rarityCount[rarity] || 0) + 1
+    if (card?.shiny) shinyCount += 1
+    if (card?.isNew) newCount += 1
+   }
+
+   return {
+    total: cards.length,
+    shinyCount,
+    newCount,
+    rarityCount
+   }
+  }
+
+  function formatPackOpenRarityHeadline(rarityCount = {}) {
+   const priority = ["SSR", "S", "UR", "HR", "SR"]
+   const parts = priority
+    .filter((rarity) => Number(rarityCount?.[rarity] || 0) > 0)
+    .map((rarity) => `${rarity}:${formatInt(Number(rarityCount[rarity] || 0))}`)
+   return parts.join(" | ")
+  }
+
+  function setActivePackOpenSelector(index) {
+   if (!el.packsOpenSelector) return
+   el.packsOpenSelector.querySelectorAll("[data-pack-open-group]").forEach((node) => {
+    node.classList.toggle("active", Number(node.getAttribute("data-pack-open-group")) === index)
+   })
+  }
+
+  function hasPackOpenNextGroup() {
+   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+   const activeIndex = Math.max(0, Math.min(groups.length - 1, Number(packOpenState.activeGroupIndex || 0)))
+   return activeIndex + 1 < groups.length
+  }
+
+  function updatePackOpenPrimaryAction() {
+   if (!el.packsOpenCloseMain) return
+   const hasNext = hasPackOpenNextGroup()
+   el.packsOpenCloseMain.textContent = hasNext ? "Suivant" : "Fermer"
+   el.packsOpenCloseMain.disabled = !packOpenState.done
+  }
+
+  function handlePackOpenPrimaryAction() {
+   if (!packOpenState.open || !packOpenState.done) return
+   if (hasPackOpenNextGroup()) {
+    closeRateCardPreview()
+    animatePackOpenGroup(Number(packOpenState.activeGroupIndex || 0) + 1)
+    return
+   }
+   closePackOpeningOverlay()
+  }
+
+  function updatePackOpenSummary(groupIndex, options = {}) {
+   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+   const group = groups[groupIndex] || groups[0]
+   if (!group) {
+    el.packsOpenSummary.textContent = ""
+    return
+   }
+   const phase = String(options?.phase || "opening")
+   const revealStep = Math.max(0, Number(options?.revealStep || 0))
+   const totalGroups = groups.length
+   const groupStats = group?.stats || buildPackOpenStats(group?.cards || [])
+   const overallStats = packOpenState.overallStats || buildPackOpenStats(packOpenState.cards || group.cards || [])
+   const currentPackLabel = totalGroups > 1
+    ? `Pack ${groupIndex + 1}/${totalGroups}${group?.lucky ? " Lucky" : ""}`
+    : `Pack${group?.lucky ? " Lucky" : ""}`
+   const groupRarity = formatPackOpenRarityHeadline(groupStats.rarityCount)
+
+   if (phase === "opening") {
+    const progress = groupStats.total > 0 ? `Revelation ${Math.min(groupStats.total, revealStep)}/${groupStats.total}` : "Revelation"
+    const parts = [currentPackLabel, progress]
+    if (groupRarity) parts.push(groupRarity)
+    if (groupStats.newCount > 0) parts.push(`NEW:${formatInt(groupStats.newCount)}`)
+    if (groupStats.shinyCount > 0) parts.push(`Shiny:${formatInt(groupStats.shinyCount)}`)
+    el.packsOpenSummary.textContent = parts.join(" | ")
+    return
+   }
+
+   const parts = [
+    `${currentPackLabel} termine`,
+    `${formatInt(groupStats.total)} carte(s)`
+   ]
+   if (groupRarity) parts.push(groupRarity)
+   if (groupStats.newCount > 0) parts.push(`NEW:${formatInt(groupStats.newCount)}`)
+   if (groupStats.shinyCount > 0) parts.push(`Shiny:${formatInt(groupStats.shinyCount)}`)
+   if (totalGroups > 1) {
+    const overallRarity = formatPackOpenRarityHeadline(overallStats.rarityCount)
+    parts.push(`Total:${formatInt(overallStats.total)}`)
+    if (overallRarity) parts.push(overallRarity)
+   }
+   el.packsOpenSummary.textContent = parts.join(" | ")
   }
 
   function completePackOpeningReveal() {
    if (!packOpenState.open) return
+   const activeIndex = Math.max(0, Math.min(packOpenState.groups.length - 1, Number(packOpenState.activeGroupIndex || 0)))
    clearPackOpenTimers()
+   hidePackOpenSpecialFx()
+   clearPackOpenSpotlightCards()
    packOpenState.done = true
+   packOpenState.completedGroups.add(activeIndex)
    el.packsOpenGrid.querySelectorAll(".packs-open-card").forEach((card) => {
+    card.classList.add("is-entered")
     card.classList.add("revealed")
    })
    if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
+   updatePackOpenSummary(activeIndex, { phase: "done" })
+   enablePackOpenCardPreview(activeIndex)
+   updatePackOpenPrimaryAction()
   }
 
   function closePackOpeningOverlay() {
    if (!packOpenState.open && el.packsOpenOverlay.hidden) return
+   closeRateCardPreview()
    clearPackOpenTimers()
+   hidePackOpenSpecialFx()
+   clearPackOpenSpotlightCards()
    packOpenState.open = false
    packOpenState.done = false
    packOpenState.cards = []
+   packOpenState.groups = []
+   packOpenState.activeGroupIndex = 0
+   packOpenState.completedGroups = new Set()
+   packOpenState.overallStats = null
+   if (el.packsOpenCloseMain) {
+    el.packsOpenCloseMain.textContent = "Fermer"
+    el.packsOpenCloseMain.disabled = false
+   }
    el.packsOpenOverlay.classList.remove("show")
    syncModalBodyLock()
    window.setTimeout(() => {
     el.packsOpenOverlay.hidden = true
-    if (el.packsOpenGrid) el.packsOpenGrid.innerHTML = ""
+    if (el.packsOpenGrid) {
+     el.packsOpenGrid.innerHTML = ""
+     el.packsOpenGrid.className = "packs-open-grid"
+    }
     if (el.packsOpenSelector) {
      el.packsOpenSelector.hidden = true
      el.packsOpenSelector.innerHTML = ""
@@ -2931,6 +3511,7 @@
    const groups = []
    const pulls = Array.isArray(payload?.pulls) ? payload.pulls : []
    let cursor = 0
+
    if (pulls.length) {
     pulls.forEach((pull, idx) => {
      const expected = pull?.luckyPack ? 6 : 5
@@ -2940,25 +3521,32 @@
      groups.push({
       index: idx + 1,
       lucky: Boolean(pull?.luckyPack),
-      cards: slice
+      cards: slice,
+      stats: buildPackOpenStats(slice)
      })
     })
    }
+
    while (cursor < revealCards.length) {
-    const slice = revealCards.slice(cursor, cursor + 5)
+    const remaining = revealCards.length - cursor
+    const expected = remaining >= 6 ? 6 : 5
+    const slice = revealCards.slice(cursor, cursor + expected)
     if (!slice.length) break
     groups.push({
      index: groups.length + 1,
      lucky: slice.length === 6,
-     cards: slice
+     cards: slice,
+     stats: buildPackOpenStats(slice)
     })
-    cursor += 5
+    cursor += slice.length
    }
+
    if (!groups.length) {
     groups.push({
      index: 1,
      lucky: revealCards.length === 6,
-     cards: revealCards.slice()
+     cards: revealCards.slice(),
+     stats: buildPackOpenStats(revealCards)
     })
    }
    return groups
@@ -2968,34 +3556,196 @@
    const maxVisualCards = 80
    const visibleCards = cards.slice(0, maxVisualCards)
    const hiddenCount = Math.max(0, cards.length - visibleCards.length)
-   el.packsOpenGrid.innerHTML = visibleCards.map((row) => {
-    const rarity = String(row?.rarity || "C").toUpperCase()
-    const rarityClass = sanitizeText(`rarity-${rarity.toLowerCase()}`)
-    const name = sanitizeText(String(row?.cardName || "Carte"))
-    const image = sanitizeText(String(row?.image || "/assets/ui/ssr.png"))
-    const back = sanitizeText(getPackBackImageByRarity(rarity))
-    const shiny = row?.shiny ? " *" : ""
-    const isNew = row?.isNew ? " - Nouveau" : ""
+   const total = visibleCards.length
+   const gridClass = total > 6 ? "pack-many" : "pack-compact"
+   el.packsOpenGrid.className = `packs-open-grid ${gridClass}`
+
+   const cardsHtml = visibleCards.map((row, index) => {
+   const rarity = String(row?.rarity || "C").toUpperCase()
+   const rarityClass = sanitizeText(`rarity-${rarity.toLowerCase()}`)
+   const name = sanitizeText(String(row?.cardName || "Carte"))
+   const image = sanitizeText(String(row?.image || "/assets/ui/ssr.png"))
+   const backRarity = getPackBackRarityForDisplay(rarity, index, total)
+   const back = sanitizeText(getPackBackImageByRarity(backRarity))
+    const tilt = total <= 1
+      ? 0
+      : ((index - ((total - 1) / 2)) * (total <= 6 ? 5.2 : 1.8))
+    const lift = rarity === "SSR"
+      ? -14
+      : rarity === "S"
+       ? -11
+       : rarity === "UR"
+        ? -9
+        : -6
+    const order = getPackOpenRarityOrder(rarity)
+    const depth = order === -1 ? 1 : order + 1
+    const badges = [
+      `<span class="packs-open-rarity-chip">${sanitizeText(rarity)}</span>`,
+      row?.shiny ? '<span class="packs-open-flag-chip">Shiny</span>' : "",
+      row?.isNew ? '<span class="packs-open-flag-chip">New</span>' : ""
+    ].join("")
     return `
-     <article class="packs-open-card ${rarityClass}">
+     <article class="packs-open-card ${rarityClass}" data-pack-open-card-index="${index}" data-pack-rarity="${sanitizeText(rarity)}" style="--pack-card-tilt:${tilt}deg; --pack-card-lift:${lift}px; --pack-card-z:${depth};">
       <div class="packs-open-card-inner">
        <div class="packs-open-face packs-open-back">
-        <img src="${back}" alt="Dos ${rarity}">
+        <img src="${back}" alt="Dos ${backRarity}">
        </div>
        <div class="packs-open-face packs-open-front">
         <img src="${image}" alt="${name}" loading="lazy">
-        <div class="packs-open-front-meta">${sanitizeText(rarity)}${sanitizeText(shiny)}<span class="name">${name}${sanitizeText(isNew)}</span></div>
+        <div class="packs-open-front-meta">
+         <div class="packs-open-front-top">${badges}</div>
+         <span class="name">${name}</span>
+        </div>
        </div>
       </div>
      </article>
-    `
+     `
    }).join("")
+
+   el.packsOpenGrid.innerHTML = `<div class="packs-open-grid-body">${cardsHtml}</div>`
+   el.packsOpenGrid.scrollTop = 0
+
    if (hiddenCount > 0) {
     const note = document.createElement("p")
     note.className = "packs-rate-state"
     note.textContent = `+${hiddenCount} cartes supplementaires non affichees ici pour garder l'animation fluide.`
     el.packsOpenGrid.appendChild(note)
    }
+  }
+
+  function applyPackOpenGridCentering(cardCount = 0) {
+   if (!el.packsOpenGrid) return
+   const safeCount = Math.max(0, Number(cardCount || 0))
+   el.packsOpenGrid.classList.toggle("pack-many", safeCount > 6)
+   el.packsOpenGrid.classList.toggle("pack-compact", safeCount > 0 && safeCount <= 6)
+  }
+
+  function enablePackOpenCardPreview(groupIndex) {
+   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+   const safeIndex = Math.max(0, Math.min(groups.length - 1, Number(groupIndex || 0)))
+   const group = groups[safeIndex]
+   if (!group || !el.packsOpenGrid) return
+
+   cardPreviewState.list = (Array.isArray(group.cards) ? group.cards : []).map((card) => ({
+    image: String(card?.image || "/assets/ui/ssr.png"),
+    name: String(card?.cardName || "Carte")
+   }))
+   if (cardPreviewState.index >= cardPreviewState.list.length) {
+    cardPreviewState.index = 0
+   }
+
+   const cardNodes = el.packsOpenGrid.querySelectorAll(".packs-open-card")
+   cardNodes.forEach((node) => {
+    node.classList.add("can-preview")
+    node.setAttribute("role", "button")
+    node.tabIndex = 0
+    if (node.dataset.previewBound === "1") return
+    node.dataset.previewBound = "1"
+    const openPreview = () => {
+     if (!packOpenState.done) return
+     if (Number(packOpenState.activeGroupIndex) !== safeIndex) return
+     const idx = Number(node.getAttribute("data-pack-open-card-index"))
+     if (!Number.isFinite(idx)) return
+     openRateCardPreview(idx)
+    }
+    node.addEventListener("click", openPreview)
+    node.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return
+      event.preventDefault()
+      openPreview()
+    })
+   })
+  }
+
+  function finishPackOpenGroup(groupIndex) {
+   if (!packOpenState.open) return
+   packOpenState.done = true
+   packOpenState.completedGroups.add(groupIndex)
+   if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
+   updatePackOpenSummary(groupIndex, { phase: "done" })
+   enablePackOpenCardPreview(groupIndex)
+   updatePackOpenPrimaryAction()
+  }
+
+  function animatePackOpenGroup(groupIndex, options = {}) {
+   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+   const safeIndex = Math.max(0, Math.min(groups.length - 1, Number(groupIndex || 0)))
+   const group = groups[safeIndex]
+   if (!group) return
+
+  clearPackOpenTimers()
+  hidePackOpenSpecialFx()
+  clearPackOpenSpotlightCards()
+  packOpenState.activeGroupIndex = safeIndex
+  packOpenState.done = false
+   setActivePackOpenSelector(safeIndex)
+   renderPackOpenCards(group.cards || [])
+   updatePackOpenSummary(safeIndex, { phase: "opening", revealStep: 0 })
+   if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = false
+   updatePackOpenPrimaryAction()
+
+   const cards = [...el.packsOpenGrid.querySelectorAll(".packs-open-card")]
+   const instant = Boolean(options?.instant)
+   if (!cards.length) {
+    finishPackOpenGroup(safeIndex)
+    return
+   }
+
+   if (instant) {
+    hidePackOpenSpecialFx()
+    clearPackOpenSpotlightCards()
+    cards.forEach((card) => {
+     card.classList.add("is-entered")
+     card.classList.add("revealed")
+    })
+    finishPackOpenGroup(safeIndex)
+    return
+   }
+
+   const enterStepDelay = cards.length >= 6 ? 180 : 220
+   const revealStartDelay = Math.max(1050, cards.length * enterStepDelay + 320)
+   const revealStepDelay = cards.length >= 6 ? 470 : 560
+
+   cards.forEach((card, idx) => {
+    queuePackOpenTimer(() => {
+     card.classList.add("is-entered")
+    }, idx * enterStepDelay)
+   })
+
+   const runRevealStep = (idx) => {
+    if (!packOpenState.open) return
+    if (Number(packOpenState.activeGroupIndex) !== safeIndex) return
+    if (idx >= cards.length) {
+     queuePackOpenTimer(() => {
+      finishPackOpenGroup(safeIndex)
+     }, 760)
+     return
+    }
+
+    const card = cards[idx]
+    const rarity = String(card?.getAttribute("data-pack-rarity") || "").toUpperCase()
+    if (!isPackOpenSpecialRarity(rarity)) {
+     card.classList.add("revealed")
+     updatePackOpenSummary(safeIndex, { phase: "opening", revealStep: idx + 1 })
+     queuePackOpenTimer(() => {
+      runRevealStep(idx + 1)
+     }, revealStepDelay)
+     return
+    }
+
+    playPackOpenSpecialReveal(card, rarity, () => {
+     if (!packOpenState.open) return
+     if (Number(packOpenState.activeGroupIndex) !== safeIndex) return
+     updatePackOpenSummary(safeIndex, { phase: "opening", revealStep: idx + 1 })
+     queuePackOpenTimer(() => {
+      runRevealStep(idx + 1)
+     }, 260)
+    })
+   }
+
+   queuePackOpenTimer(() => {
+    runRevealStep(0)
+   }, revealStartDelay)
   }
 
   function showPackOpeningAnimation(payload) {
@@ -3005,76 +3755,31 @@
    packOpenState.open = true
    packOpenState.done = false
    packOpenState.cards = revealCards.slice()
-   const setName = sanitizeText(String(setCatalog[String(payload?.setId || activeSetId)]?.name || getActiveSetName()))
-   const quantity = Math.max(1, Number(payload?.quantity || 1))
-   const totalCards = revealCards.length
-   const newCount = revealCards.filter((row) => Boolean(row?.isNew)).length
-   const shinyCount = revealCards.filter((row) => Boolean(row?.shiny)).length
-   const rarityCount = payload?.totals?.rarityCount && typeof payload.totals.rarityCount === "object"
-    ? payload.totals.rarityCount
-    : {}
-   const pityCounters = payload?.pity?.counters || {}
-   const pitySsr = Math.max(0, Number(pityCounters?.SSR || 0))
-   el.packsOpenTitle.textContent = `Ouverture ${setName}`
-   el.packsOpenMeta.textContent = `x${quantity} pack(s) - ${totalCards} carte(s) - +${formatInt(Number(payload?.totals?.kamasGain || 0))} kamas`
-   const groups = buildPackRevealGroups(payload, revealCards)
-   const hasGroups = groups.length > 1
-   if (el.packsOpenSelector) {
-    if (hasGroups) {
-     el.packsOpenSelector.hidden = false
-     el.packsOpenSelector.innerHTML = groups.map((group, idx) => `
-      <button type="button" class="${idx === 0 ? "active" : ""}" data-pack-open-group="${idx}">
-       Pack ${group.index}${group.lucky ? " Lucky" : ""}
-      </button>
-     `).join("")
-    } else {
+   packOpenState.completedGroups = new Set()
+    const setName = sanitizeText(String(setCatalog[String(payload?.setId || activeSetId)]?.name || getActiveSetName()))
+    const quantity = Math.max(1, Number(payload?.quantity || 1))
+    const totalCards = revealCards.length
+    const overallStats = buildPackOpenStats(revealCards)
+    packOpenState.overallStats = overallStats
+    const pityCounters = payload?.pity?.counters || {}
+    const pitySsr = Math.max(0, Number(pityCounters?.SSR || 0))
+    el.packsOpenTitle.textContent = setName
+    el.packsOpenMeta.textContent = `x${quantity} pack(s) | ${totalCards} carte(s) | +${formatInt(Number(payload?.totals?.kamasGain || 0))} kamas | Pity SSR ${String(pitySsr).padStart(2, "0")}/50`
+    const groups = buildPackRevealGroups(payload, revealCards)
+    packOpenState.groups = groups
+    packOpenState.activeGroupIndex = 0
+    if (el.packsOpenSelector) {
      el.packsOpenSelector.hidden = true
      el.packsOpenSelector.innerHTML = ""
     }
-   }
-   renderPackOpenCards(groups[0]?.cards || revealCards)
-   const rarityHeadline = ["SSR", "S", "UR"]
-    .map((r) => `${r}:${formatInt(Number(rarityCount?.[r] || 0))}`)
-    .join(" | ")
-   el.packsOpenSummary.textContent = `Revelation en cours... ${rarityHeadline} | NEW:${formatInt(newCount)} | Shiny:${formatInt(shinyCount)} | Pity SSR:${String(pitySsr).padStart(2, "0")}/50`
-   if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = false
+    updatePackOpenPrimaryAction()
 
-   el.packsOpenOverlay.hidden = false
-   requestAnimationFrame(() => {
-    el.packsOpenOverlay.classList.add("show")
-    syncModalBodyLock()
-   })
-
-   const cards = [...el.packsOpenGrid.querySelectorAll(".packs-open-card")]
-   const stepDelay = cards.length > 70 ? 12 : cards.length > 40 ? 18 : 28
-   cards.forEach((card, idx) => {
-    const timer = window.setTimeout(() => {
-     card.classList.add("revealed")
-    }, idx * stepDelay)
-    packOpenState.timers.push(timer)
-   })
-   const doneTimer = window.setTimeout(() => {
-    packOpenState.done = true
-    if (el.packsOpenSkipBtn) el.packsOpenSkipBtn.disabled = true
-    el.packsOpenSummary.textContent = `${totalCards} cartes | ${rarityHeadline} | NEW:${formatInt(newCount)} | Shiny:${formatInt(shinyCount)} | Pity SSR:${String(pitySsr).padStart(2, "0")}/50`
-   }, cards.length * stepDelay + 320)
-   packOpenState.timers.push(doneTimer)
-
-   if (el.packsOpenSelector && hasGroups) {
-    el.packsOpenSelector.querySelectorAll("[data-pack-open-group]").forEach((btn) => {
-     btn.addEventListener("click", () => {
-      const idx = Math.max(0, Math.min(groups.length - 1, Number(btn.getAttribute("data-pack-open-group"))))
-      el.packsOpenSelector.querySelectorAll("button").forEach((node) => node.classList.remove("active"))
-      btn.classList.add("active")
-      renderPackOpenCards(groups[idx]?.cards || [])
-      if (packOpenState.done) {
-       el.packsOpenGrid.querySelectorAll(".packs-open-card").forEach((card) => card.classList.add("revealed"))
-      } else {
-       completePackOpeningReveal()
-      }
-     })
+    el.packsOpenOverlay.hidden = false
+    requestAnimationFrame(() => {
+     el.packsOpenOverlay.classList.add("show")
+     syncModalBodyLock()
+     animatePackOpenGroup(0)
     })
-   }
 
    return new Promise((resolve) => {
     packOpenState.resolve = resolve
@@ -3472,6 +4177,7 @@
    node.addEventListener("click", closePackOpeningOverlay)
   })
   el.packsOpenSkipBtn.addEventListener("click", completePackOpeningReveal)
+  el.packsOpenCloseMain.addEventListener("click", handlePackOpenPrimaryAction)
   el.cardPreviewOverlay.querySelectorAll("[data-close-card-preview]").forEach((node) => {
    node.addEventListener("click", closeRateCardPreview)
   })
@@ -3519,6 +4225,14 @@
     event.preventDefault()
     shiftRateCardPreview(1)
    }
+  })
+
+  window.addEventListener("resize", () => {
+   if (!el.packsOpenOverlay || el.packsOpenOverlay.hidden) return
+   const currentCards = el.packsOpenGrid
+    ? el.packsOpenGrid.querySelectorAll(".packs-open-card").length
+    : 0
+   applyPackOpenGridCentering(currentCards)
   })
 
   setupSetSliderDrag()
