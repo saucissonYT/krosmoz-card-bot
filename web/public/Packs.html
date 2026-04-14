@@ -6,6 +6,7 @@
  <title>Packs Test - Krosmoz Card</title>
  <meta name="theme-color" content="#173b9c">
  <link rel="stylesheet" href="/css/style.css">
+ <script src="/js/web-auth.js"></script>
  <style>
   html,
   body {
@@ -1783,10 +1784,10 @@
 
   .packs-buy-qty-row {
    display: grid;
-   grid-template-columns: auto auto minmax(120px, 1fr) auto auto;
+   grid-template-columns: auto auto minmax(120px, 1fr) auto auto auto;
    gap: 10px;
    align-items: center;
-   max-width: 520px;
+   max-width: 620px;
    margin: 0 auto;
   }
 
@@ -1805,6 +1806,14 @@
 
   .packs-buy-qty-btn.small {
    min-width: 62px;
+  }
+
+  .packs-buy-qty-btn.max {
+   min-width: 82px;
+   font-size: 1.05rem;
+   font-weight: 800;
+   text-transform: uppercase;
+   letter-spacing: 0.04em;
   }
 
   .packs-buy-qty-btn:disabled {
@@ -1946,8 +1955,8 @@
    .packs-buy-arrow {
     font-size: 2.2rem;
    }
-   .packs-buy-qty-row {
-    grid-template-columns: auto auto 1fr auto auto;
+  .packs-buy-qty-row {
+    grid-template-columns: auto auto 1fr auto auto auto;
     gap: 6px;
    }
    .packs-buy-qty-btn {
@@ -1957,6 +1966,10 @@
    }
    .packs-buy-qty-btn.small {
     min-width: 54px;
+   }
+   .packs-buy-qty-btn.max {
+    min-width: 66px;
+    font-size: 0.92rem;
    }
    .packs-buy-qty-value {
     min-height: 48px;
@@ -2354,11 +2367,12 @@
    <p class="packs-buy-count-label">Nombre d'achats</p>
    <div class="packs-buy-qty-row">
     <button id="packsBuyMinus10Btn" class="packs-buy-qty-btn" type="button">-10</button>
-    <button id="packsBuyMinus1Btn" class="packs-buy-qty-btn small" type="button">−</button>
-    <strong id="packsBuyQtyValue" class="packs-buy-qty-value">1</strong>
-    <button id="packsBuyPlus1Btn" class="packs-buy-qty-btn small" type="button">+</button>
-    <button id="packsBuyPlus10Btn" class="packs-buy-qty-btn" type="button">+10</button>
-   </div>
+   <button id="packsBuyMinus1Btn" class="packs-buy-qty-btn small" type="button">−</button>
+   <strong id="packsBuyQtyValue" class="packs-buy-qty-value">1</strong>
+   <button id="packsBuyPlus1Btn" class="packs-buy-qty-btn small" type="button">+</button>
+   <button id="packsBuyPlus10Btn" class="packs-buy-qty-btn" type="button">+10</button>
+   <button id="packsBuyMaxBtn" class="packs-buy-qty-btn max" type="button">MAX</button>
+  </div>
 
    <div class="packs-buy-balance">
     <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
@@ -2641,11 +2655,12 @@
    buyError: document.getElementById("packsBuyError"),
    buyTotalCost: document.getElementById("packsBuyTotalCost"),
    buySubmitBtn: document.getElementById("packsBuySubmitBtn"),
-   buyMinus10Btn: document.getElementById("packsBuyMinus10Btn"),
-   buyMinus1Btn: document.getElementById("packsBuyMinus1Btn"),
-   buyPlus1Btn: document.getElementById("packsBuyPlus1Btn"),
-   buyPlus10Btn: document.getElementById("packsBuyPlus10Btn"),
-   cardPreviewOverlay: document.getElementById("packsCardPreviewOverlay"),
+  buyMinus10Btn: document.getElementById("packsBuyMinus10Btn"),
+  buyMinus1Btn: document.getElementById("packsBuyMinus1Btn"),
+  buyPlus1Btn: document.getElementById("packsBuyPlus1Btn"),
+  buyPlus10Btn: document.getElementById("packsBuyPlus10Btn"),
+  buyMaxBtn: document.getElementById("packsBuyMaxBtn"),
+  cardPreviewOverlay: document.getElementById("packsCardPreviewOverlay"),
    cardPreviewImage: document.getElementById("packsCardPreviewImage"),
    cardPreviewPrev: document.getElementById("packsCardPreviewPrev"),
    cardPreviewNext: document.getElementById("packsCardPreviewNext"),
@@ -2759,9 +2774,16 @@
    return Math.max(0, Number(buyMenuState.packPrice || 0)) * Math.max(1, Number(buyMenuState.quantity || 1))
   }
 
-  function getBuyBalanceAfter() {
-   return Number(packsState.kamas || 0) - getBuyTotalCost()
-  }
+ function getBuyBalanceAfter() {
+  return Number(packsState.kamas || 0) - getBuyTotalCost()
+ }
+
+ function getBuyMaxQuantity() {
+  const unitPrice = Math.max(1, Number(buyMenuState.packPrice || 0))
+  const balance = Math.max(0, Number(packsState.kamas || 0))
+  const affordable = Math.floor(balance / unitPrice)
+  return clampBuyQuantity(Math.max(1, affordable))
+ }
 
   function setBuyQuantity(nextValue) {
    buyMenuState.quantity = clampBuyQuantity(nextValue)
@@ -3396,16 +3418,20 @@
    if (!el.packsOpenCloseMain) return
    const hasNext = hasPackOpenNextGroup()
    el.packsOpenCloseMain.textContent = hasNext ? "Suivant" : "Fermer"
-   el.packsOpenCloseMain.disabled = !packOpenState.done
+   el.packsOpenCloseMain.disabled = hasNext ? false : !packOpenState.done
   }
 
   function handlePackOpenPrimaryAction() {
-   if (!packOpenState.open || !packOpenState.done) return
+   if (!packOpenState.open) return
    if (hasPackOpenNextGroup()) {
+    if (!packOpenState.done) {
+     completePackOpeningReveal()
+    }
     closeRateCardPreview()
     animatePackOpenGroup(Number(packOpenState.activeGroupIndex || 0) + 1)
     return
    }
+   if (!packOpenState.done) return
    closePackOpeningOverlay()
   }
 
@@ -3497,6 +3523,9 @@
     if (el.packsOpenSelector) {
      el.packsOpenSelector.hidden = true
      el.packsOpenSelector.innerHTML = ""
+    }
+    if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+     window.__kcSetLevelUpAnimationsPaused(false)
     }
     syncModalBodyLock()
    }, 140)
@@ -3751,6 +3780,9 @@
   function showPackOpeningAnimation(payload) {
    const revealCards = getRevealCards(payload)
    if (!revealCards.length) return Promise.resolve()
+   if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
+    window.__kcSetLevelUpAnimationsPaused(true)
+   }
    clearPackOpenTimers()
    packOpenState.open = true
    packOpenState.done = false
@@ -3854,13 +3886,17 @@
    }
    el.buyError.textContent = buyMenuState.error
 
-   el.buyMinus10Btn.disabled = busy || qty <= 1
-   el.buyMinus1Btn.disabled = busy || qty <= 1
-   el.buyPlus1Btn.disabled = busy || qty >= 999
-   el.buyPlus10Btn.disabled = busy || qty >= 999
-   el.buySubmitBtn.disabled = busy || !hasEnough || totalCost <= 0
-   el.buySubmitBtn.querySelector(".label").textContent = busy ? "Achat..." : "Acheter"
+  el.buyMinus10Btn.disabled = busy || qty <= 1
+  el.buyMinus1Btn.disabled = busy || qty <= 1
+  el.buyPlus1Btn.disabled = busy || qty >= 999
+  el.buyPlus10Btn.disabled = busy || qty >= 999
+  if (el.buyMaxBtn) {
+   const maxQty = getBuyMaxQuantity()
+   el.buyMaxBtn.disabled = busy || qty >= maxQty
   }
+  el.buySubmitBtn.disabled = busy || !hasEnough || totalCost <= 0
+  el.buySubmitBtn.querySelector(".label").textContent = busy ? "Achat..." : "Acheter"
+ }
 
   function renderRateModal() {
    el.rateSetTitle.textContent = rateInfo.setName
@@ -4188,6 +4224,9 @@
   el.buyMinus1Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity - 1))
   el.buyPlus1Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity + 1))
   el.buyPlus10Btn.addEventListener("click", () => setBuyQuantity(buyMenuState.quantity + 10))
+  if (el.buyMaxBtn) {
+   el.buyMaxBtn.addEventListener("click", () => setBuyQuantity(getBuyMaxQuantity()))
+  }
   el.buySubmitBtn.addEventListener("click", () => {
    void submitBuyPacks()
   })
