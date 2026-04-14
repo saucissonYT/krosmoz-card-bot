@@ -370,6 +370,45 @@ function sanitizeCardImageName(value) {
  return text
 }
 
+function sanitizeUploadBaseName(value, fallback = "card") {
+ const raw = String(value || "").trim()
+ const withoutExt = raw.replace(/\.[^.]+$/g, "")
+ const cleaned = withoutExt
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-zA-Z0-9_-]+/g, "_")
+  .replace(/^_+|_+$/g, "")
+  .slice(0, 60)
+ return cleaned || String(fallback || "card")
+}
+
+function parseImageDataUrl(dataUrl) {
+ const text = String(dataUrl || "").trim()
+ const match = /^data:(image\/(?:png|jpeg|jpg|webp));base64,([A-Za-z0-9+/=]+)$/i.exec(text)
+ if (!match) return null
+
+ const mime = String(match[1] || "").toLowerCase()
+ const base64 = String(match[2] || "")
+ let buffer = null
+ try {
+  buffer = Buffer.from(base64, "base64")
+ } catch (_) {
+  return null
+ }
+ if (!buffer || !buffer.length) return null
+
+ const extByMime = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/webp": "webp"
+ }
+ const ext = extByMime[mime] || null
+ if (!ext) return null
+
+ return { mime, ext, buffer }
+}
+
 function loadUser(userId) {
  return dbLoadUser(userId)
 }
@@ -3682,8 +3721,8 @@ function createWebApp() {
   return next()
  })
 
- app.use(express.json({ limit: "50kb" }))
- app.use(express.urlencoded({ extended: false, limit: "50kb" }))
+ app.use(express.json({ limit: "8mb" }))
+ app.use(express.urlencoded({ extended: false, limit: "8mb" }))
 
  /* Security headers (helmet-like) */
  app.use((req, res, next) => {
@@ -4259,15 +4298,31 @@ app.get("/api/sets", (req, res) => {
     return res.status(400).json({ error: "ID de carte invalide." })
    }
 
-   const image = sanitizeCardImageName(req.body?.image)
-   if (!image) {
-    return res.status(400).json({ error: "Nom de fichier image invalide (png/jpg/jpeg/webp)." })
-   }
-
    const cards = getCards()
    const index = cards.findIndex((card) => String(card?.id || "") === cardId)
    if (index < 0) {
     return res.status(404).json({ error: "Carte introuvable." })
+   }
+
+   const currentCard = cards[index] || {}
+   const setId = String(currentCard?.set || "unknown").trim() || "unknown"
+   const safeSetId = (!setId.includes("..") && !/[\\/]/.test(setId)) ? setId : "unknown"
+   let image = sanitizeCardImageName(req.body?.image)
+
+   if (!image) {
+    const parsedUpload = parseImageDataUrl(req.body?.imageDataUrl)
+    if (!parsedUpload) {
+     return res.status(400).json({ error: "Nom de fichier ou image upload invalide." })
+    }
+    if (parsedUpload.buffer.length > (5 * 1024 * 1024)) {
+      return res.status(400).json({ error: "Image trop lourde (max 5 Mo)." })
+    }
+
+    const fileBaseName = sanitizeUploadBaseName(req.body?.fileName || `${cardId}_${Date.now()}`, cardId)
+    image = `${fileBaseName}.${parsedUpload.ext}`
+    const setDir = path.join(CARD_IMAGES_RUNTIME_DIR, safeSetId)
+    fs.mkdirSync(setDir, { recursive: true })
+    fs.writeFileSync(path.join(setDir, image), parsedUpload.buffer)
    }
 
    const nextCards = cards.map((card, idx) => (
@@ -4281,9 +4336,10 @@ app.get("/api/sets", (req, res) => {
     card: {
      id: String(nextCards[index]?.id || cardId),
      set: String(nextCards[index]?.set || ""),
-     image: String(nextCards[index]?.image || "")
-    }
-   })
+     image: String(nextCards[index]?.image || ""),
+     imageUrl: `/assets/cards/${encodeURIComponent(safeSetId)}/${encodeURIComponent(String(nextCards[index]?.image || ""))}`
+     }
+    })
   } catch (e) {
    console.error("[WEB] /api/cards/:id/image:", e)
    return res.status(500).json({ error: "Erreur serveur" })

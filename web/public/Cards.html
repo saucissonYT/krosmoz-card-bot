@@ -82,6 +82,7 @@
     <div id="resultMeta" class="result-meta"></div>
     <div id="cardsGrid" class="catalog-grid cards-dense"></div>
     <div id="pagination" class="pagination"></div>
+    <input id="cardImageUploader" type="file" accept="image/png,image/jpeg,image/webp" style="display:none">
    </section>
 
    <footer class="footer">
@@ -209,7 +210,6 @@
  function cardRow(card) {
   const cardId = String(card.id || "")
   const cardRarity = String(card.rarity || "C").toUpperCase()
-  const cardImage = String(card.image || "")
   const cardSet = String(card.set || "unknown")
   const setName = String(card.setName || "Set")
   const cardName = String(card.name || `Carte ${cardId}`)
@@ -219,7 +219,7 @@
   const miniThumbSrc = String(card.imageUrl || "/assets/ui/pack-back-normal.png")
   const showEditButton = state.canEditCards && state.editorEnabled
   const editButton = showEditButton
-   ? `<button class="btn btn-outline cards-edit-btn" data-card-edit-image="${escapeHtml(cardId)}" data-card-set="${escapeHtml(cardSet)}" data-card-image="${escapeHtml(cardImage)}">Editer image</button>`
+   ? `<button class="btn btn-outline cards-edit-btn" data-card-edit-image="${escapeHtml(cardId)}" data-card-set="${escapeHtml(cardSet)}">Uploader image</button>`
    : ""
 
   const ownedLine = state.connected
@@ -269,33 +269,45 @@
   })
  }
 
- async function editCardImage(cardId, currentImage) {
+ async function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+   const reader = new FileReader()
+   reader.onload = () => resolve(String(reader.result || ""))
+   reader.onerror = () => reject(new Error("Lecture du fichier impossible."))
+   reader.readAsDataURL(file)
+  })
+ }
+
+ async function uploadCardImage(cardId, file) {
   if (!state.canEditCards || !state.editorEnabled) return
+  if (!cardId || !file) return
 
-  const nextValue = window.prompt(
-   `Nouvelle image pour la carte #${cardId} (ex: 123_nom_SSR.png)`,
-   currentImage || ""
-  )
-  if (nextValue === null) return
-
-  const image = String(nextValue || "").trim()
-  if (!image) {
-   window.alert("Nom d'image vide.")
+  const allowedTypes = ["image/png", "image/jpeg", "image/webp"]
+  if (!allowedTypes.includes(String(file.type || "").toLowerCase())) {
+   window.alert("Format invalide. Utilise PNG, JPG ou WEBP.")
+   return
+  }
+  if (Number(file.size || 0) > 5 * 1024 * 1024) {
+   window.alert("Image trop lourde (max 5 Mo).")
    return
   }
 
   try {
+   const imageDataUrl = await readFileAsDataUrl(file)
    const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}/image`, {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image })
+    body: JSON.stringify({
+     fileName: String(file.name || `card_${cardId}`),
+     imageDataUrl
+    })
    })
    const data = await res.json().catch(() => ({}))
-   if (!res.ok) throw new Error(data?.error || "Echec de la mise a jour.")
+   if (!res.ok) throw new Error(data?.error || "Echec de l'upload.")
    await loadCards()
   } catch (error) {
-   window.alert(error?.message || "Erreur lors de la mise a jour.")
+   window.alert(error?.message || "Erreur lors de l'upload.")
   }
  }
 
@@ -428,13 +440,29 @@
   loadCards()
  })
 
+ const cardImageUploader = document.getElementById("cardImageUploader")
+ if (cardImageUploader) {
+  cardImageUploader.addEventListener("change", async (event) => {
+   const input = event.currentTarget
+   const cardId = String(input?.dataset?.cardId || "")
+   const file = input?.files?.[0] || null
+   if (cardId && file) {
+    await uploadCardImage(cardId, file)
+   }
+   input.value = ""
+   delete input.dataset.cardId
+  })
+ }
+
  document.addEventListener("click", (event) => {
   const editBtn = event.target.closest("[data-card-edit-image]")
   if (editBtn) {
    event.preventDefault()
    const cardId = String(editBtn.getAttribute("data-card-edit-image") || "")
-   const image = String(editBtn.getAttribute("data-card-image") || "")
-   if (cardId) editCardImage(cardId, image)
+   if (cardId && cardImageUploader) {
+    cardImageUploader.dataset.cardId = cardId
+    cardImageUploader.click()
+   }
    return
   }
 
