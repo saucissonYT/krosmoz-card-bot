@@ -409,6 +409,43 @@ function parseImageDataUrl(dataUrl) {
  return { mime, ext, buffer }
 }
 
+function splitImageFileName(value) {
+ const text = String(value || "").trim()
+ const match = /^(.*)\.([^.]+)$/.exec(text)
+ if (!match) return null
+ return {
+  base: String(match[1] || "").trim(),
+  ext: String(match[2] || "").trim().toLowerCase()
+ }
+}
+
+function buildUniqueImageFileName(baseName, ext, isTaken) {
+ const safeBase = sanitizeUploadBaseName(baseName || "card", "card")
+ const safeExt = String(ext || "png").toLowerCase()
+ let candidate = `${safeBase}.${safeExt}`
+ if (!isTaken(candidate)) return candidate
+
+ for (let i = 1; i <= 9999; i += 1) {
+  candidate = `${safeBase}_${i}.${safeExt}`
+  if (!isTaken(candidate)) return candidate
+ }
+
+ return `${safeBase}_${Date.now()}.${safeExt}`
+}
+
+function buildRandomImageFileName(cardId, ext, isTaken) {
+ const safeExt = String(ext || "png").toLowerCase()
+ const safeCardId = String(cardId || "card").replace(/[^a-zA-Z0-9_-]/g, "") || "card"
+
+ for (let i = 0; i < 32; i += 1) {
+  const randomHex = crypto.randomBytes(4).toString("hex")
+  const candidate = `${safeCardId}_${Date.now()}_${randomHex}.${safeExt}`
+  if (!isTaken(candidate)) return candidate
+ }
+
+ return buildUniqueImageFileName(`card_${safeCardId}_${Date.now()}`, safeExt, isTaken)
+}
+
 function loadUser(userId) {
  return dbLoadUser(userId)
 }
@@ -4307,6 +4344,13 @@ app.get("/api/sets", (req, res) => {
    const currentCard = cards[index] || {}
    const setId = String(currentCard?.set || "unknown").trim() || "unknown"
    const safeSetId = (!setId.includes("..") && !/[\\/]/.test(setId)) ? setId : "unknown"
+   const setKey = String(safeSetId || "").toLowerCase()
+   const isImageUsedByAnotherCard = (imageName) => cards.some((card, idx) => {
+    if (idx === index) return false
+    const cardSet = String(card?.set || "").toLowerCase()
+    const cardImage = String(card?.image || "").toLowerCase()
+    return cardSet === setKey && cardImage === String(imageName || "").toLowerCase()
+   })
    let image = sanitizeCardImageName(req.body?.image)
 
    if (!image) {
@@ -4318,11 +4362,21 @@ app.get("/api/sets", (req, res) => {
       return res.status(400).json({ error: "Image trop lourde (max 5 Mo)." })
     }
 
-    const fileBaseName = sanitizeUploadBaseName(req.body?.fileName || `${cardId}_${Date.now()}`, cardId)
-    image = `${fileBaseName}.${parsedUpload.ext}`
     const setDir = path.join(CARD_IMAGES_RUNTIME_DIR, safeSetId)
     fs.mkdirSync(setDir, { recursive: true })
+    image = buildRandomImageFileName(cardId, parsedUpload.ext, (candidate) => (
+     isImageUsedByAnotherCard(candidate) || fs.existsSync(path.join(setDir, candidate))
+    ))
     fs.writeFileSync(path.join(setDir, image), parsedUpload.buffer)
+   } else if (isImageUsedByAnotherCard(image)) {
+    const split = splitImageFileName(image)
+    const suggestion = split
+     ? buildUniqueImageFileName(split.base, split.ext, isImageUsedByAnotherCard)
+     : null
+    return res.status(409).json({
+     error: "Nom de fichier deja utilise par une autre carte du meme set.",
+     suggestion
+    })
    }
 
    const nextCards = cards.map((card, idx) => (
