@@ -308,6 +308,7 @@ const WEB_BOOTSTRAP_CARDS_FROM_IMAGES = String(process.env.WEB_BOOTSTRAP_CARDS_F
 const WEB_LOCAL_DEMO_SEED_VERSION = 5
 const WEB_LOCAL_DEMO_BOT_COUNT = 34
 const WEB_LOCAL_DEMO_ID_BASE = 980000000000000000n
+const DEV_CARD_EDITOR_DISCORD_ID = "231419667179241472"
 const localDiscordProfileOverrides = new Map()
 const localDevUserSeededUsers = new Set()
 let localDemoWorldSeeded = false
@@ -334,6 +335,39 @@ function readJSON(filePath, fallback) {
  } catch (_) {
   return fallback
  }
+}
+
+function saveCards(cards = []) {
+ const safeCards = Array.isArray(cards) ? cards : []
+ fs.mkdirSync(path.dirname(CARDS_PATH), { recursive: true })
+ fs.writeFileSync(CARDS_PATH, `${JSON.stringify(safeCards, null, 2)}\n`, "utf8")
+
+ _cardsCache = safeCards
+ _cardsCacheAt = Date.now()
+
+ try {
+  if (appData && Array.isArray(appData.cards)) {
+   appData.cards = safeCards
+   saveAppData()
+   resetCardRegistry()
+  }
+ } catch (error) {
+  webLog.warn("Sync appData.cards impossible", { err: error })
+ }
+}
+
+function canEditCards(session) {
+ return String(session?.userId || "") === DEV_CARD_EDITOR_DISCORD_ID
+}
+
+function sanitizeCardImageName(value) {
+ const text = String(value || "").trim()
+ if (!text) return ""
+ if (text.length > 180) return ""
+ if (text.includes("..")) return ""
+ if (/[\\/]/.test(text)) return ""
+ if (!/\.(png|jpe?g|webp)$/i.test(text)) return ""
+ return text
 }
 
 function loadUser(userId) {
@@ -438,16 +472,7 @@ function bootstrapCardsFromImagesIfNeeded() {
  if (!generatedCards.length) return
 
  try {
-  fs.mkdirSync(path.dirname(CARDS_PATH), { recursive: true })
-  fs.writeFileSync(CARDS_PATH, `${JSON.stringify(generatedCards, null, 2)}\n`, "utf8")
- } catch (_) {}
-
- try {
-  if (appData && Array.isArray(appData.cards)) {
-   appData.cards = generatedCards
-   saveAppData()
-   resetCardRegistry()
-  }
+  saveCards(generatedCards)
  } catch (_) {}
 
  _cardsCache = generatedCards
@@ -2516,13 +2541,14 @@ function computeCardsCatalog(query) {
    total: filtered.length,
    items: filtered.map((card) => ({
    id: card.id,
-   name: card.name || `Carte ${card.id}`,
-   rarity: card.rarity || "C",
-   set: card.set || "unknown",
-   setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
-   imageUrl: card?.image && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-    : null
+    name: card.name || `Carte ${card.id}`,
+    rarity: card.rarity || "C",
+    set: card.set || "unknown",
+    image: card.image || "",
+    setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
+    imageUrl: card?.image && card?.set
+     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+     : null
   }))
  }
 }
@@ -4220,6 +4246,50 @@ app.get("/api/sets", (req, res) => {
   }
  })
 
+ app.post("/api/cards/:id/image", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   if (!canEditCards(session)) {
+    return res.status(403).json({ error: "Acces reserve au dev du site." })
+   }
+
+   const cardId = String(req.params.id || "").trim()
+   if (!cardId) {
+    return res.status(400).json({ error: "ID de carte invalide." })
+   }
+
+   const image = sanitizeCardImageName(req.body?.image)
+   if (!image) {
+    return res.status(400).json({ error: "Nom de fichier image invalide (png/jpg/jpeg/webp)." })
+   }
+
+   const cards = getCards()
+   const index = cards.findIndex((card) => String(card?.id || "") === cardId)
+   if (index < 0) {
+    return res.status(404).json({ error: "Carte introuvable." })
+   }
+
+   const nextCards = cards.map((card, idx) => (
+    idx === index ? { ...card, image } : card
+   ))
+
+   saveCards(nextCards)
+
+   return res.json({
+    ok: true,
+    card: {
+     id: String(nextCards[index]?.id || cardId),
+     set: String(nextCards[index]?.set || ""),
+     image: String(nextCards[index]?.image || "")
+    }
+   })
+  } catch (e) {
+   console.error("[WEB] /api/cards/:id/image:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
  app.get("/api/market", async (req, res) => {
   try {
    const { page, limit, offset } = parsePagination(req, 20, 100)
@@ -4964,6 +5034,7 @@ app.post("/api/game/buy-packs", (req, res) => {
   user.packs = Number(user.packs || 0) + quantity
   if (!user.stats) user.stats = {}
   user.stats.packsBought = Number(user.stats.packsBought || 0) + quantity
+  user.stats.lastBulkBuy = quantity
   user.stats.maxBulkBuy = Math.max(Number(user.stats.maxBulkBuy || 0), quantity)
   if (quantity >= 2) {
    user.stats.multiPackBuys = Number(user.stats.multiPackBuys || 0) + 1
@@ -5072,6 +5143,7 @@ app.post("/api/game/open-packs", async (req, res) => {
   if (!user.stats) user.stats = {}
   user.stats.packsOpened = Number(user.stats.packsOpened || 0) + quantity
   user.stats.krosmozOpened = Number(user.stats.krosmozOpened || 0) + quantity
+  user.stats.lastBulkOpen = quantity
   user.stats.maxBulkOpen = Math.max(Number(user.stats.maxBulkOpen || 0), quantity)
   if (quantity >= 2) user.stats.multiPackOpens = Number(user.stats.multiPackOpens || 0) + 1
 

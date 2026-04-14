@@ -103,6 +103,7 @@ Confirmer l'achat ?`
 
     if (!user.stats) user.stats = {}
     user.stats.packsBought = (user.stats.packsBought || 0) + quantity
+    user.stats.lastBulkBuy = quantity
     user.stats.maxBulkBuy = Math.max(user.stats.maxBulkBuy || 0, quantity)
     if (quantity >= 2) {
      user.stats.multiPackBuys = (user.stats.multiPackBuys || 0) + 1

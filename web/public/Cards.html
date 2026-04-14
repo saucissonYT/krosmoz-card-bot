@@ -76,6 +76,7 @@
 
      <button id="searchBtn" class="btn btn-outline market-sell-btn">Rechercher</button>
      <button id="completionToggle" class="btn btn-outline market-sell-btn" disabled>Completion</button>
+     <button id="editorModeToggle" class="btn btn-outline market-sell-btn" style="display:none">Edition images: OFF</button>
     </div>
 
     <div id="resultMeta" class="result-meta"></div>
@@ -100,10 +101,14 @@
   page: 1,
   limit: 42,
   connected: false,
+  sessionUserId: null,
+  canEditCards: false,
+  editorEnabled: false,
   completionMask: false,
   ownedCardIds: new Set(),
   ownedCardQtyById: new Map()
  }
+ const DEV_CARD_EDITOR_DISCORD_ID = "231419667179241472"
  const ALL_RARITIES = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 
  function getLoginUrl() {
@@ -147,6 +152,30 @@
   summary.textContent = `Raretes: ${selected.join(", ")}`
  }
 
+ function setupEditorMode() {
+  const toggle = document.getElementById("editorModeToggle")
+  if (!toggle) return
+
+  if (!state.canEditCards) {
+   toggle.style.display = "none"
+   state.editorEnabled = false
+   return
+  }
+
+  toggle.style.display = ""
+  const refreshLabel = () => {
+   toggle.textContent = `Edition images: ${state.editorEnabled ? "ON" : "OFF"}`
+  }
+
+  toggle.onclick = () => {
+   state.editorEnabled = !state.editorEnabled
+   refreshLabel()
+   loadCards()
+  }
+
+  refreshLabel()
+ }
+
  function queryString() {
   const q = new URLSearchParams()
   q.set("page", String(state.page))
@@ -180,12 +209,18 @@
  function cardRow(card) {
   const cardId = String(card.id || "")
   const cardRarity = String(card.rarity || "C").toUpperCase()
+  const cardImage = String(card.image || "")
+  const cardSet = String(card.set || "unknown")
   const setName = String(card.setName || "Set")
   const cardName = String(card.name || `Carte ${cardId}`)
   const owned = state.ownedCardIds.has(cardId)
   const ownedQty = Number(state.ownedCardQtyById.get(cardId) || 0)
   const masked = state.completionMask && !owned
   const miniThumbSrc = String(card.imageUrl || "/assets/ui/pack-back-normal.png")
+  const showEditButton = state.canEditCards && state.editorEnabled
+  const editButton = showEditButton
+   ? `<button class="btn btn-outline cards-edit-btn" data-card-edit-image="${escapeHtml(cardId)}" data-card-set="${escapeHtml(cardSet)}" data-card-image="${escapeHtml(cardImage)}">Editer image</button>`
+   : ""
 
   const ownedLine = state.connected
    ? `Possedees: ${ownedQty > 0 ? `x${ownedQty}` : "0"}${owned ? " - Deja obtenue" : ""}`
@@ -208,6 +243,7 @@
       <img class="kshop-mini-thumb" data-card-preview="1" data-card-preview-name="${escapeHtml(cardName)}" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
      </div>
     </div>
+    ${editButton}
    </article>
   `
  }
@@ -233,6 +269,36 @@
   })
  }
 
+ async function editCardImage(cardId, currentImage) {
+  if (!state.canEditCards || !state.editorEnabled) return
+
+  const nextValue = window.prompt(
+   `Nouvelle image pour la carte #${cardId} (ex: 123_nom_SSR.png)`,
+   currentImage || ""
+  )
+  if (nextValue === null) return
+
+  const image = String(nextValue || "").trim()
+  if (!image) {
+   window.alert("Nom d'image vide.")
+   return
+  }
+
+  try {
+   const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}/image`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image })
+   })
+   const data = await res.json().catch(() => ({}))
+   if (!res.ok) throw new Error(data?.error || "Echec de la mise a jour.")
+   await loadCards()
+  } catch (error) {
+   window.alert(error?.message || "Erreur lors de la mise a jour.")
+  }
+ }
+
  async function initCompletionToggle() {
   const toggle = document.getElementById("completionToggle")
   if (!toggle) return
@@ -241,9 +307,15 @@
    const statusRes = await fetch("/api/oauth/status", { credentials: "same-origin" })
    const status = await statusRes.json()
    state.connected = Boolean(status?.connected)
+   state.sessionUserId = String(status?.userId || "")
+   state.canEditCards = state.connected && state.sessionUserId === DEV_CARD_EDITOR_DISCORD_ID
   } catch (_) {
    state.connected = false
+   state.sessionUserId = null
+   state.canEditCards = false
   }
+
+  setupEditorMode()
 
   if (!state.connected) {
    state.ownedCardIds = new Set()
@@ -357,6 +429,15 @@
  })
 
  document.addEventListener("click", (event) => {
+  const editBtn = event.target.closest("[data-card-edit-image]")
+  if (editBtn) {
+   event.preventDefault()
+   const cardId = String(editBtn.getAttribute("data-card-edit-image") || "")
+   const image = String(editBtn.getAttribute("data-card-image") || "")
+   if (cardId) editCardImage(cardId, image)
+   return
+  }
+
   const details = document.getElementById("rarityMulti")
   if (!details || !details.open) return
   if (details.contains(event.target)) return

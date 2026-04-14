@@ -347,51 +347,51 @@ nightPlayer:{
 bulkBuyShot5:{
  name:"Main Lourde",
  badge:"🫥",
- description:"Acheter 5 packs d'un seul coup.",
+ description:"Acheter exactement 5 packs d'un seul coup.",
  title:"Main Lourde",
  trigger:"economy",
  secret:true,
- condition:u=>(u.stats?.maxBulkBuy||0)>=5
+ condition:u=>(u.stats?.lastBulkBuy||0)===5 || ((u.stats?.lastBulkBuy||0)===0 && (u.stats?.maxBulkBuy||0)===5)
 },
 
 bulkBuyShot10:{
  name:"Caddie Charge",
  badge:"🛒",
- description:"Acheter 10 packs d'un seul coup.",
+ description:"Acheter exactement 10 packs d'un seul coup.",
  title:"Caddie Charge",
  trigger:"economy",
  secret:true,
- condition:u=>(u.stats?.maxBulkBuy||0)>=10
+ condition:u=>(u.stats?.lastBulkBuy||0)===10 || ((u.stats?.lastBulkBuy||0)===0 && (u.stats?.maxBulkBuy||0)===10)
 },
 
 bulkBuyShot15:{
  name:"Acheteur Serieux",
  badge:"📚",
- description:"Acheter 15 packs d'un seul coup.",
+ description:"Acheter exactement 15 packs d'un seul coup.",
  title:"Acheteur Serieux",
  trigger:"economy",
  secret:true,
- condition:u=>(u.stats?.maxBulkBuy||0)>=15
+ condition:u=>(u.stats?.lastBulkBuy||0)===15 || ((u.stats?.lastBulkBuy||0)===0 && (u.stats?.maxBulkBuy||0)===15)
 },
 
 bulkBuyShot20:{
  name:"Commande de Guerre",
  badge:"🛡️",
- description:"Acheter 20 packs d'un seul coup.",
+ description:"Acheter exactement 20 packs d'un seul coup.",
  title:"Logisticien du Krosmoz",
  trigger:"economy",
  secret:true,
- condition:u=>(u.stats?.maxBulkBuy||0)>=20
+ condition:u=>(u.stats?.lastBulkBuy||0)===20 || ((u.stats?.lastBulkBuy||0)===0 && (u.stats?.maxBulkBuy||0)===20)
 },
 
 bulkBuyShot25:{
  name:"Terminal Carte Bleue",
  badge:"💳",
- description:"Acheter 25 packs d'un seul coup.",
+ description:"Acheter exactement 25 packs d'un seul coup.",
  title:"Prince des Commandes",
  trigger:"economy",
  secret:true,
- condition:u=>(u.stats?.maxBulkBuy||0)>=25
+ condition:u=>(u.stats?.lastBulkBuy||0)===25 || ((u.stats?.lastBulkBuy||0)===0 && (u.stats?.maxBulkBuy||0)===25)
 },
 
 /* ================= HIDDEN SHOTS - OUVERTURE (exact gros lot) ================= */
@@ -399,51 +399,51 @@ bulkBuyShot25:{
 bulkOpenShot5:{
  name:"Petite Rafale",
  badge:"🍃",
- description:"Ouvrir 5 packs d'un seul coup.",
+ description:"Ouvrir exactement 5 packs d'un seul coup.",
  title:"Rafaleur",
  trigger:"pack",
  secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=5
+ condition:u=>(u.stats?.lastBulkOpen||0)===5 || ((u.stats?.lastBulkOpen||0)===0 && (u.stats?.maxBulkOpen||0)===5)
 },
 
 bulkOpenShot10:{
  name:"Double Digit",
  badge:"🔟",
- description:"Ouvrir 10 packs d'un seul coup.",
+ description:"Ouvrir exactement 10 packs d'un seul coup.",
  title:"Cadence x10",
  trigger:"pack",
  secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=10
+ condition:u=>(u.stats?.lastBulkOpen||0)===10 || ((u.stats?.lastBulkOpen||0)===0 && (u.stats?.maxBulkOpen||0)===10)
 },
 
 bulkOpenShot15:{
  name:"Machine de Guerre",
  badge:"⚔️",
- description:"Ouvrir 15 packs d'un seul coup.",
+ description:"Ouvrir exactement 15 packs d'un seul coup.",
  title:"Mitrailleur de Loot",
  trigger:"pack",
  secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=15
+ condition:u=>(u.stats?.lastBulkOpen||0)===15 || ((u.stats?.lastBulkOpen||0)===0 && (u.stats?.maxBulkOpen||0)===15)
 },
 
 bulkOpenShot20:{
  name:"Orage de Cartes",
  badge:"⛈️",
- description:"Ouvrir 20 packs d'un seul coup.",
+ description:"Ouvrir exactement 20 packs d'un seul coup.",
  title:"Maitre de l'Orage",
  trigger:"pack",
  secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=20
+ condition:u=>(u.stats?.lastBulkOpen||0)===20 || ((u.stats?.lastBulkOpen||0)===0 && (u.stats?.maxBulkOpen||0)===20)
 },
 
 bulkOpenShot25:{
  name:"Supernova",
  badge:"🌋",
- description:"Ouvrir 25 packs d'un seul coup.",
+ description:"Ouvrir exactement 25 packs d'un seul coup.",
  title:"Supernova du Krosmoz",
  trigger:"pack",
  secret:true,
- condition:u=>(u.stats?.maxBulkOpen||0)>=25
+ condition:u=>(u.stats?.lastBulkOpen||0)===25 || ((u.stats?.lastBulkOpen||0)===0 && (u.stats?.maxBulkOpen||0)===25)
 },
 
 /* ================= HIDDEN INNOVATION - COMBOS ================= */

@@ -269,6 +269,7 @@ Packs en stock : **${ownedPacks}** (manque **${missing}**)`
 
  user.stats.packsOpened   = (user.stats.packsOpened   || 0) + packCount
  user.stats.krosmozOpened = (user.stats.krosmozOpened || 0) + packCount
+ user.stats.lastBulkOpen  = packCount
  user.stats.maxBulkOpen   = Math.max(user.stats.maxBulkOpen || 0, packCount)
  if (packCount >= 2) user.stats.multiPackOpens = (user.stats.multiPackOpens || 0) + 1
 
