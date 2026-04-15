@@ -11,7 +11,7 @@ const {
 
 const { isDev } = require("../../systems/devSystem")
 const { getUser, save } = require("../../systems/userSystem")
-const { data, USERS_DIR } = require("../../systems/dataManager")
+const { data, markMarketDirty, USERS_DIR } = require("../../systems/dataManager")
 const { dbDeleteUser } = require("../../systems/database")
 
 const {
@@ -69,6 +69,7 @@ function resetUserData(userId) {
  delete data.users[userId]
 
  const marketRemoved = removeUserMarketListings(userId)
+ if (marketRemoved > 0) markMarketDirty()
  resetBattlePassProgress(userId)
 
  // Persiste market + donnees statiques

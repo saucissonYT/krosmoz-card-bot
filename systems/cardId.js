@@ -1,5 +1,8 @@
 const { data } = require("./dataManager")
 
+/* Les IDs >= SECRET_ID_THRESHOLD sont réservés aux cartes secrètes */
+const SECRET_ID_THRESHOLD = 900000
+
 function getNextCardId(){
 
  const cardsData = data.cards || []
@@ -14,7 +17,7 @@ function getNextCardId(){
 
   const id = Number(card.id)
 
-  if(Number.isFinite(id) && id > maxId)
+  if(Number.isFinite(id) && id > maxId && id < SECRET_ID_THRESHOLD)
    maxId = id
 
  }
@@ -24,5 +27,6 @@ function getNextCardId(){
 }
 
 module.exports = {
- getNextCardId
+ getNextCardId,
+ SECRET_ID_THRESHOLD
 }

@@ -75,6 +75,13 @@ const data = {
  cards:         []
 }
 
+/* Dirty flags pour éviter les syncs inutiles */
+let _marketDirty = false
+let _staticDirty = false
+
+function markMarketDirty()  { _marketDirty = true }
+function markStaticDirty()  { _staticDirty = true }
+
 /* ---------------- LOAD FILE (JSON) ---------------- */
 
 function loadFile(file, defaultValue) {
@@ -189,12 +196,18 @@ function save() {
 
  try {
 
-  /* Cards et devs restent en JSON */
-  writeAtomic(paths.cards, data.cards)
-  writeAtomic(paths.devs, data.devs)
+  /* Cards et devs restent en JSON — seulement si modifiés */
+  if (_staticDirty) {
+   writeAtomic(paths.cards, data.cards)
+   writeAtomic(paths.devs, data.devs)
+   _staticDirty = false
+  }
 
-  /* Market → SQLite (sync complet : on vide et réinsère) */
-  syncMarketToDb()
+  /* Market → SQLite — seulement si modifié */
+  if (_marketDirty) {
+   syncMarketToDb()
+   _marketDirty = false
+  }
 
  } catch (err) {
 
@@ -271,6 +284,8 @@ module.exports = {
  save,
  loadUser,
  saveUser,
+ markMarketDirty,
+ markStaticDirty,
  USERS_DIR,
  CARDS_IMAGES_DIR
 }

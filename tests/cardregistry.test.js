@@ -36,10 +36,11 @@ function test(name, fn) {
 
 console.log("\n══════ TESTS cardRegistry.js ══════\n")
 
-test("getCards retourne toutes les cartes", () => {
+test("getCards retourne toutes les cartes (mock + secret)", () => {
  const cards = getCards()
  assert.ok(Array.isArray(cards))
- assert.strictEqual(cards.length, mockCards.length)
+ const { SECRET_CARDS } = require("../systems/secretCard")
+ assert.strictEqual(cards.length, mockCards.length + SECRET_CARDS.length)
 })
 
 test("getCard retourne une carte par id", () => {
@@ -71,9 +72,10 @@ test("getCardsById retourne un objet indexé par id", () => {
  assert.strictEqual(byId["1"].id, 1)
 })
 
-test("getCardsById contient toutes les cartes", () => {
+test("getCardsById contient toutes les cartes (mock + secret)", () => {
  const byId = getCardsById()
- assert.strictEqual(Object.keys(byId).length, mockCards.length)
+ const { SECRET_CARDS } = require("../systems/secretCard")
+ assert.strictEqual(Object.keys(byId).length, mockCards.length + SECRET_CARDS.length)
 })
 
 test("chaque carte a id, name, set, rarity", () => {

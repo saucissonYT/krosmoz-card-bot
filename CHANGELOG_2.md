@@ -9,6 +9,72 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-15 -> 2026-04-15) - Audit qualite, segmentation Server.js, corrections systemes, sessions persistantes, tests web
+
+### Fixed
+
+- **Prix de vente SSR** (`systems/constants.js`)
+  - `SELL_PRICE.SSR` corrige de 2500 a 1000 (40% de `RARITY_PRICE.SSR = 2500`), alignement avec la regle appliquee a toutes les autres raretes
+
+- **Tests cardregistry** (`tests/cardregistry.test.js`)
+  - Tests `getCards` et `getCardsById` corriges pour inclure les cartes secretes injectees par `ensureSecretCard()` dans le comptage attendu
+
+- **Script ESLint** (`package.json`)
+  - Commande `lint` changee de `eslint . --ext .js` a `eslint --ext .js commands systems app web index.js` pour cibler explicitement les dossiers source
+
+- **Fichier Prettier** (`prettierrc` -> `.prettierrc`)
+  - Renomme pour etre detecte automatiquement par Prettier
+
+### Added
+
+- **Sessions web persistantes en SQLite** (`systems/database.js`, `web/Server.js`)
+  - Nouvelle table `web_sessions` (token, user_id, created_at, expires_at) avec index sur user_id et expires_at
+  - Fonctions CRUD : `dbSaveSession`, `dbDeleteSession`, `dbLoadSessions`, `dbCleanExpiredSessions`
+  - `createWebSession()` ecrit aussi dans SQLite a chaque creation de session
+  - `resolveSession()` et `clearSession()` synchronisent les suppressions avec SQLite
+  - Sessions restaurees depuis SQLite au demarrage de `createWebApp()` — les utilisateurs restent connectes apres un restart
+  - Nettoyage periodique (10 min) purge aussi les sessions expirees en SQLite
+
+- **Tests d'integration web** (`tests/web.test.js`)
+  - 19 tests couvrant les routes Express : health, stats, cards, leaderboard, achievements, events, oauth, daily, sets
+  - Verification des endpoints proteges (401 sans auth) : /api/me, /api/me/inventory, /api/me/title, /api/daily/claim, roulette, eventpack, achievements/claim, reward-toasts
+  - Test Content-Type enforcement (415 sans application/json sur POST)
+  - Test session locale (local auth cookie accorde l'acces a /api/me)
+  - Utilise `x-kc-local-auth: 0` pour desactiver l'auto-auth en loopback pendant les tests
+
+### Changed
+
+- **Server.js segmente en modules de routes** (`web/Server.js`, `web/routes/`)
+  - Extraction de ~2400 lignes de routes inline vers 12 modules dedies dans `web/routes/`
+  - Chaque module exporte `mount(app, ctx)` et recoit le contexte (helpers, cache, state) depuis `createWebApp()`
+  - Fichiers crees : `statsRoutes`, `battlepassRoutes`, `questRoutes`, `playerRoutes`, `cardsRoutes`, `gameRoutes`, `guildRoutes`, `eventRoutes`, `achievementRoutes`, `marketRoutes`, `authRoutes`, `pageRoutes`
+  - `Server.js` reduit de 6450 a 4063 lignes (-37%)
+
+- **Trade system centralise** (`systems/tradeSystem.js`, `commands/joueur/trade.js`)
+  - Remplacement de l'etat local dans `trade.js` par un module centralise `tradeSystem.js`
+  - Gestion des trades actifs en memoire avec `Map` et `Set`
+  - Validation : empeche les trades avec soi-meme, les trades simultanees, cooldown 30s par joueur
+  - Auto-expiration des trades abandonnes apres 5 minutes (cleanup toutes les 2 min)
+  - `save()` cible par joueur au lieu de `save()` global
+
+### Improved
+
+- **Anti-abuse per-user** (`systems/antiAbuse.js`, `app/handlers/interactionCreate.js`)
+  - Remplacement du cooldown global par un rate limiting par utilisateur
+  - Cooldowns configurables par commande (ex: `trade` 5s, `buypack` 3s, `daily` 2s)
+  - Limite globale de 30 actions par minute par utilisateur
+  - Integration dans le handler `interactionCreate` avant l'execution des slash commands
+  - Cleanup automatique des entrees expirees toutes les 5 minutes
+
+- **Dirty flags autosave** (`systems/dataManager.js`, `systems/market.js`, commandes dev, `index.js`, `web/Server.js`)
+  - Ajout de `markStaticDirty()` et `markMarketDirty()` pour tracker les mutations
+  - `save()` n'ecrit sur disque que si les flags sont actifs, evitant les ecritures inutiles toutes les 30s
+  - Tous les points de mutation (market, commandes dev, shutdown) appellent le flag correspondant
+
+- **Plages d'IDs separees** (`systems/cardId.js`)
+  - `getNextCardId()` exclut les IDs >= 900000 (reserves aux cartes secretes)
+  - Export de `SECRET_ID_THRESHOLD` pour usage par d'autres modules
+
 ### Updates (2026-04-14 -> 2026-04-14) - Achievements claim flow (web + Discord)
 
 ### Added

@@ -4,7 +4,7 @@ const fetch = require("node-fetch")
 
 const { SlashCommandBuilder } = require("discord.js")
 
-const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
+const { data, save, markStaticDirty, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
 const { resetRegistry } = require("../../systems/cardRegistry")
@@ -119,6 +119,7 @@ module.exports = {
 
   data.cards = cards
 
+  markStaticDirty()
   save()
   resetRegistry()
 

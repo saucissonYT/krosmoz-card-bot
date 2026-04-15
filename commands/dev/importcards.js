@@ -1,7 +1,7 @@
 const fs = require("fs")
 const sharp = require("sharp")
 
-const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
+const { data, save, markStaticDirty, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { resetRegistry } = require("../../systems/cardRegistry")
 const { isDev } = require("../../systems/devSystem")
 const { getNextCardId } = require("../../systems/cardId")
@@ -174,6 +174,7 @@ module.exports={
 
   }
 
+  markStaticDirty()
   save()
   resetRegistry()
 

@@ -25,49 +25,14 @@ const { achievementCheck }           = require("../../systems/achievementCheck")
 const { notifyAchievements }         = require("../../systems/achievementNotifier")
 const { recordTradeAccepted }        = require("../../systems/achievementProgressTracker")
 const { isSecretCard }               = require("../../systems/secretCard")
-
-/* ─── State en mémoire ───────────────────────────────────────── */
-
-/** @type {Object<string, TradeData>} */
-const trades = {}
-
-/** @type {Set<string>} IDs des joueurs en cours d'échange */
-const activeUsers = new Set()
-
-/** @type {Map<string, number>} Cooldown par joueur (timestamp) */
-const tradeCooldown = new Map()
-
-/**
- * @typedef {Object} TradeData
- * @property {string}  from     - ID Discord du créateur
- * @property {string}  to       - ID Discord de la cible
- * @property {string}  [giveCard] - ID de la carte offerte
- * @property {string}  [wantCard] - ID de la carte demandée
- */
-
-/** @param {string} id @param {TradeData} data */
-function createTrade(id, data) { trades[id] = data }
-
-/** @param {string} id @returns {TradeData|undefined} */
-function getTrade(id) { return trades[id] }
-
-/** @param {string} id */
-function deleteTrade(id) { delete trades[id] }
-
-/**
- * Nettoie un trade : supprime les entrées et libère les joueurs.
- * @param {string} tradeId
- * @param {TradeData} trade
- */
-function cleanupTrade(tradeId, trade) {
- if (trade) {
-  activeUsers.delete(trade.from)
-  activeUsers.delete(trade.to)
- }
- deleteTrade(tradeId)
-}
-
-const TRADE_COOLDOWN = 30000
+const {
+ createTrade,
+ getTrade,
+ deleteTrade,
+ isUserInTrade,
+ checkCooldown,
+ setCooldown
+} = require("../../systems/tradeSystem")
 
 /** Messages humoristiques quand on trade avec le bot */
 const scamMessages = [
@@ -99,44 +64,30 @@ module.exports = {
  async execute(interaction) {
 
   const cards  = getCards()
-  const now    = Date.now()
   const userId = interaction.user.id
 
   /* ── Cooldown ── */
-  if (tradeCooldown.has(userId)) {
-   const diff = now - tradeCooldown.get(userId)
-   if (diff < TRADE_COOLDOWN) {
-    const remain = Math.ceil((TRADE_COOLDOWN - diff) / 1000)
-    return interaction.reply({
-     content: `⏳ Attends **${remain}s** avant de refaire un trade.`,
-     flags: 64
-    })
-   }
+  const cooldownCheck = checkCooldown(userId)
+  if (!cooldownCheck.allowed) {
+   const remain = Math.ceil(cooldownCheck.remainingMs / 1000)
+   return interaction.reply({
+    content: `⏳ Attends **${remain}s** avant de refaire un trade.`,
+    flags: 64
+   })
   }
 
-  tradeCooldown.set(userId, now)
+  setCooldown(userId)
 
   const target = interaction.options.getUser("joueur")
 
-  if (target.id === userId) {
-   return interaction.reply({ content: "❌ Impossible d'échanger avec toi-même.", flags: 64 })
-  }
-
-  if (activeUsers.has(userId)) {
-   return interaction.reply({ content: "❌ Tu as déjà un échange en cours.", flags: 64 })
-  }
-
-  if (activeUsers.has(target.id)) {
-   return interaction.reply({ content: "❌ Ce joueur est déjà dans un échange.", flags: 64 })
-  }
-
-  const user    = getUser(userId)
   const tradeId = `${userId}_${Date.now()}`
+  const result = createTrade(tradeId, { from: userId, to: target.id })
 
-  createTrade(tradeId, { from: userId, to: target.id })
+  if (!result.success) {
+   return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
+  }
 
-  activeUsers.add(userId)
-  activeUsers.add(target.id)
+  const user = getUser(userId)
 
   /* ── Construction du select menu ── */
   const options = []
@@ -155,7 +106,7 @@ module.exports = {
   }
 
   if (options.length === 0) {
-   cleanupTrade(tradeId, trades[tradeId])
+   deleteTrade(tradeId)
    return interaction.reply({ content: "❌ Tu n'as aucune carte échangeable.", flags: 64 })
   }
 
@@ -201,7 +152,7 @@ module.exports = {
    trade.giveCard = interaction.values[0]
    const selectedGiveCard = cards.find(c => String(c.id) === String(trade.giveCard))
    if (!selectedGiveCard || isSecretCard(selectedGiveCard)) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ Les cartes SECRET ne sont pas echangeables.",
      components: []
@@ -224,7 +175,7 @@ module.exports = {
    }
 
    if (options.length === 0) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ Ce joueur n'a aucune carte échangeable.",
      components: []
@@ -249,7 +200,7 @@ module.exports = {
    const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
    const wantCard = cards.find(c => String(c.id) === String(trade.wantCard))
    if (!giveCard || !wantCard || isSecretCard(giveCard) || isSecretCard(wantCard)) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ Les cartes SECRET ne sont pas echangeables.",
      components: []
@@ -305,7 +256,7 @@ module.exports = {
   if (action === "accept" && trade.to === interaction.client.user.id) {
    const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
    if (!giveCard || isSecretCard(giveCard)) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ Les cartes SECRET ne sont pas echangeables.",
      embeds: [],
@@ -338,7 +289,7 @@ module.exports = {
    /* FIX : save ciblé au lieu de save() global */
    save(trade.from)
 
-   cleanupTrade(tradeId, trade)
+   deleteTrade(tradeId)
 
    const embed = new EmbedBuilder()
     .setTitle("🤖 Échange avec Krosmo-bot")
@@ -366,7 +317,7 @@ module.exports = {
    const giveCard = cards.find(c => String(c.id) === String(trade.giveCard))
    const wantCard = cards.find(c => String(c.id) === String(trade.wantCard))
    if (!giveCard || !wantCard || isSecretCard(giveCard) || isSecretCard(wantCard)) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ Les cartes SECRET ne sont pas echangeables.",
      embeds: [],
@@ -375,7 +326,7 @@ module.exports = {
    }
 
    if (!from.cards[trade.giveCard] || !to.cards[trade.wantCard]) {
-    cleanupTrade(tradeId, trade)
+    deleteTrade(tradeId)
     return interaction.update({
      content: "❌ L'une des cartes n'est plus disponible.",
      embeds: [],
@@ -402,7 +353,7 @@ module.exports = {
    save(trade.from)
    save(trade.to)
 
-   cleanupTrade(tradeId, trade)
+   deleteTrade(tradeId)
 
    return interaction.update({
     content: "🔁 Échange validé !",
@@ -414,7 +365,7 @@ module.exports = {
   /* ── Refuse / Cancel ── */
   if (action === "refuse" || action === "cancel") {
 
-   cleanupTrade(tradeId, trade)
+   deleteTrade(tradeId)
 
    return interaction.update({
     content: "❌ Échange annulé.",

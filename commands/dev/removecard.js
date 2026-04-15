@@ -1,7 +1,7 @@
 const fs = require("fs")
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
 
-const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
+const { data, save, markStaticDirty, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { isDev } = require("../../systems/devSystem")
 const { resetRegistry } = require("../../systems/cardRegistry")
 
@@ -71,6 +71,7 @@ module.exports = {
   }
 
   data.cards = cards
+  markStaticDirty()
   save()
   resetRegistry()
 

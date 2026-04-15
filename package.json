@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "node tests/run.js",
-    "lint": "eslint . --ext .js",
+    "lint": "eslint --ext .js commands systems app web index.js",
     "format": "prettier --write \"**/*.js\" --ignore-path .gitignore"
   },
   "keywords": [],

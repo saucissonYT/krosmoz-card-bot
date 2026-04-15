@@ -3,7 +3,7 @@ const path = require("path")
 const sharp = require("sharp")
 const { SlashCommandBuilder } = require("discord.js")
 
-const { data, save, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
+const { data, save, markStaticDirty, CARDS_IMAGES_DIR } = require("../../systems/dataManager")
 const { loadSets } = require("../../systems/setSystemFile")
 const { isDev } = require("../../systems/devSystem")
 const { resetRegistry } = require("../../systems/cardRegistry")
@@ -197,6 +197,7 @@ ${preview}`
   }
 
   data.cards = cards
+  markStaticDirty()
   save()
   resetRegistry()
 

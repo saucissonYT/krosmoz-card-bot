@@ -1,4 +1,4 @@
-const { data } = require("./dataManager")
+const { data, markMarketDirty } = require("./dataManager")
 const { getUser, save: saveUserData } = require("./userSystem")
 const { getCardsById } = require("./cardRegistry")
 const { isSecretCard, getSecretCardById } = require("./secretCard")
@@ -130,6 +130,7 @@ function addListing(sellerId, cardId, price) {
  }
 
  market.push(listing)
+ markMarketDirty()
  persistUsers(sellerId)
  return listing
 }
@@ -174,6 +175,7 @@ function addFragmentListing(sellerId, cardId, fragmentNumber, price) {
  seller.stats.fragmentsSold = (seller.stats.fragmentsSold || 0)
 
  data.market.push(listing)
+ markMarketDirty()
  persistUsers(sellerId)
  return listing
 }
@@ -237,6 +239,7 @@ function buyCard(buyerId, listingId) {
 
  if (data.marketHistory.length > 5000) data.marketHistory.shift()
 
+ markMarketDirty()
  persistUsers(buyerId, listing.seller)
  return { success: true, listing }
 }
@@ -262,6 +265,7 @@ function removeListing(userId, listingId) {
  }
 
  data.market = data.market.filter((entry) => entry.id !== listingId)
+ markMarketDirty()
  recordMarketRemove(user, Date.now())
  persistUsers(userId)
  return { success: true }

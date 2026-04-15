@@ -40,7 +40,7 @@ const SELL_PRICE = {
  HR:120,
  UR:320,
  S:800,
- SSR:2500
+ SSR:1000
 }
 
 /* ---- Coût de fusion (en DOUBLONS nécessaires, PAS en kamas) ---- */

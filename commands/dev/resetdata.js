@@ -8,6 +8,8 @@ const {
 const {
  data,
  save,
+ markMarketDirty,
+ markStaticDirty,
  USERS_DIR,
  CARDS_IMAGES_DIR
 } = require("../../systems/dataManager")
@@ -80,6 +82,8 @@ module.exports = {
 
   /* ---------------- SAVE ---------------- */
 
+  markMarketDirty()
+  markStaticDirty()
   save()
 
   await interaction.editReply(

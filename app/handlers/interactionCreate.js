@@ -4,6 +4,7 @@
 
 const { createLogger, createTimer } = require("../../systems/logger")
 const { isDiscordIdBanned } = require("../../systems/banlistSystem")
+const { checkRateLimit } = require("../../systems/antiAbuse")
 
 const { routeSlashInteraction } = require("./routes/slashRoutes")
 const { routeSelectInteraction } = require("./routes/selectRoutes")
@@ -73,6 +74,11 @@ function registerInteractionCreateHandler(client) {
    }
 
    if (interaction.isChatInputCommand()) {
+    const rateCheck = checkRateLimit(interaction.user.id, interaction.commandName)
+    if (!rateCheck.allowed) {
+     await safeErrorReply(interaction, rateCheck.reason)
+     return
+    }
     await routeSlashInteraction(interaction, client)
     log.debug("Slash termine", timer.end({ command: interaction.commandName }))
     return

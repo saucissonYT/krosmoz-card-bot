@@ -157,6 +157,17 @@ function createTables(db) {
   CREATE INDEX IF NOT EXISTS idx_bp_season  ON battlepass_progress(season_id);
   CREATE INDEX IF NOT EXISTS idx_bp_level   ON battlepass_progress(current_level DESC);
 
+  /* ── WEB SESSIONS ───────────────────────────── */
+  CREATE TABLE IF NOT EXISTS web_sessions (
+   token       TEXT PRIMARY KEY,
+   user_id     TEXT NOT NULL,
+   created_at  INTEGER NOT NULL,
+   expires_at  INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ws_user    ON web_sessions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_ws_expires ON web_sessions(expires_at);
+
   /* ── META (migration tracking) ─────────────── */
   CREATE TABLE IF NOT EXISTS meta (
    key   TEXT PRIMARY KEY,
@@ -520,6 +531,38 @@ function dbGlobalStats() {
 }
 
 /* ═══════════════════════════════════════════════
+   WEB SESSIONS
+═══════════════════════════════════════════════ */
+
+function dbSaveSession(token, userId, expiresAt) {
+ stmt("saveSession", `
+  INSERT OR REPLACE INTO web_sessions (token, user_id, created_at, expires_at)
+  VALUES (?, ?, ?, ?)
+ `).run(token, userId, Date.now(), expiresAt)
+}
+
+function dbDeleteSession(token) {
+ stmt("deleteSession", "DELETE FROM web_sessions WHERE token = ?").run(token)
+}
+
+function dbLoadSessions() {
+ const now = Date.now()
+ return getDb().prepare(
+  "SELECT token, user_id, expires_at FROM web_sessions WHERE expires_at > ?"
+ ).all(now).map(row => ({
+  token:     row.token,
+  userId:    row.user_id,
+  expiresAt: row.expires_at
+ }))
+}
+
+function dbCleanExpiredSessions() {
+ return getDb().prepare(
+  "DELETE FROM web_sessions WHERE expires_at <= ?"
+ ).run(Date.now()).changes
+}
+
+/* ═══════════════════════════════════════════════
    META
 ═══════════════════════════════════════════════ */
 
@@ -587,6 +630,12 @@ module.exports = {
  dbCountBattlePassUsers,
  dbBattlePassLeaderboard,
  dbDeleteAllBattlePassProgress,
+
+ /* Web Sessions */
+ dbSaveSession,
+ dbDeleteSession,
+ dbLoadSessions,
+ dbCleanExpiredSessions,
 
  /* Meta */
  dbGetMeta,
