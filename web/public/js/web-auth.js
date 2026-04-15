@@ -39,6 +39,9 @@
  let levelUpAnimationsPaused = false
  const LOCAL_MODE_STORAGE_KEY = "kc_local_mode"
  const LOCAL_MODE_COOKIE_NAME = "kc_local_auth"
+ const BAN_OVERLAY_ID = "kcBanOverlay"
+ const BAN_IMAGE_FALLBACK = "/assets/ui/ban%20krosmoz.png"
+ let banOverlayActive = false
  const DAILY_BUTTON_REFRESH_MS = 60000
  const DAILY_BUTTON_TICK_MS = 1000
  let dailyButtonRefreshHandle = null
@@ -64,6 +67,82 @@
   } catch (_) {}
   const eventToast = document.getElementById("globalEventToast")
   if (eventToast) eventToast.hidden = true
+ }
+
+ function activateBanOverlay(options = {}) {
+  if (banOverlayActive) return
+  banOverlayActive = true
+
+  stopQuestToastPolling()
+  stopAchievementToastPolling()
+  stopEventRewardToastPolling()
+  stopPlayerProgressPolling()
+  setDailyButton(null)
+  setPlaySubnav(false)
+  setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
+  setAuthState("Compte banni")
+
+  if (btn) {
+   btn.textContent = "Compte banni"
+   btn.href = "#"
+   btn.setAttribute("aria-disabled", "true")
+   btn.style.pointerEvents = "none"
+   btn.style.opacity = "0.6"
+  }
+  if (heroPlayBtn) {
+   heroPlayBtn.textContent = "COMPTE BANNI"
+   heroPlayBtn.href = "#"
+   heroPlayBtn.setAttribute("aria-disabled", "true")
+   heroPlayBtn.style.pointerEvents = "none"
+   heroPlayBtn.style.opacity = "0.6"
+  }
+
+  const imagePath = String(options?.image || BAN_IMAGE_FALLBACK).trim() || BAN_IMAGE_FALLBACK
+  const overlay = document.createElement("div")
+  overlay.id = BAN_OVERLAY_ID
+  overlay.style.position = "fixed"
+  overlay.style.inset = "0"
+  overlay.style.zIndex = "999999"
+  overlay.style.background = "#000"
+  overlay.style.pointerEvents = "auto"
+  overlay.style.touchAction = "none"
+  overlay.style.display = "grid"
+  overlay.style.placeItems = "center"
+  overlay.style.userSelect = "none"
+  overlay.style.cursor = "not-allowed"
+  overlay.innerHTML = `<img src=\"${imagePath}\" alt=\"Ban Krosmoz\" draggable=\"false\" style=\"width:100vw;height:100vh;object-fit:cover;pointer-events:none;-webkit-user-drag:none;\">`
+
+  document.documentElement.style.overflow = "hidden"
+  document.body.style.overflow = "hidden"
+  document.body.appendChild(overlay)
+
+  const blockEvent = (event) => {
+   event.preventDefault()
+   event.stopPropagation()
+   if (typeof event.stopImmediatePropagation === "function") {
+    event.stopImmediatePropagation()
+   }
+  }
+
+  ;[
+   "click",
+   "dblclick",
+   "mousedown",
+   "mouseup",
+   "pointerdown",
+   "pointerup",
+   "touchstart",
+   "touchmove",
+   "keydown",
+   "keypress",
+   "keyup",
+   "submit",
+   "contextmenu"
+  ].forEach((eventName) => {
+   window.addEventListener(eventName, blockEvent, true)
+  })
  }
 
  function getCardPreviewSrc(imageEl) {
@@ -544,6 +623,15 @@ function drainProgressToastQueue() {
 
   const response = await nativeFetch(input, outboundInit)
   try {
+   if (response?.status === 403) {
+    try {
+     const payload = await response.clone().json()
+     if (payload?.banned) {
+      activateBanOverlay({ image: payload?.banImage || payload?.image || BAN_IMAGE_FALLBACK })
+     }
+    } catch (_) {}
+   }
+
    const method = String(outboundInit?.method || (input && typeof input === "object" ? input.method : "") || "GET").toUpperCase()
    const requestUrl = requestUrlRaw.startsWith(window.location.origin)
      ? requestUrlRaw.slice(window.location.origin.length)
@@ -1672,7 +1760,18 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  ensureEventToast()
  refreshEventToast().catch(() => {})
  window.setInterval(() => { refreshEventToast().catch(() => {}) }, 15000)
- if (!btn) return
+ if (!btn) {
+  try {
+   const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
+   if (res.ok) {
+    const status = await res.json()
+    if (status?.banned) {
+     activateBanOverlay({ image: status?.banImage || BAN_IMAGE_FALLBACK })
+    }
+   }
+  } catch (_) {}
+  return
+ }
 
  function setAuthBodyClass(connected) {
   if (!document || !document.body) return
@@ -1991,6 +2090,11 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
 
  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
  const localSessionActive = Boolean(localModeEnabled || status?.localAuthSession || status?.localAuthEnabled)
+
+ if (status?.banned) {
+  activateBanOverlay({ image: status?.banImage || BAN_IMAGE_FALLBACK })
+  return
+ }
 
  if (!status?.enabled && !localModeEnabled) {
   setAuthBodyClass(false)

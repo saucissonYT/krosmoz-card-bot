@@ -3,6 +3,7 @@ const express = require("express")
 const fs = require("fs")
 const path = require("path")
 const { createLogger } = require("../systems/logger")
+const { isDiscordIdBanned } = require("../systems/banlistSystem")
 const { data: appData, save: saveAppData } = require("../systems/dataManager")
 const { resetRegistry: resetCardRegistry } = require("../systems/cardRegistry")
 
@@ -298,6 +299,7 @@ const OAUTH_CLIENT_ID = process.env.DISCORD_WEB_CLIENT_ID || process.env.CLIENT_
 const OAUTH_CLIENT_SECRET = process.env.DISCORD_WEB_CLIENT_SECRET || ""
 const OAUTH_REDIRECT_URI = process.env.DISCORD_WEB_REDIRECT_URI || ""
 const OAUTH_SCOPE = process.env.DISCORD_WEB_SCOPE || "identify"
+const BAN_KROSMOZ_IMAGE_PATH = "/assets/ui/ban%20krosmoz.png"
 const WEB_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
 const webSessions = new Map()
 const WEB_LOCAL_AUTH_COOKIE = "kc_local_auth"
@@ -2251,6 +2253,78 @@ function resolveSession(req) {
  return { token, userId: session.userId }
 }
 
+function isBannedSession(session) {
+ if (!session?.userId) return false
+ return isDiscordIdBanned(session.userId)
+}
+
+function buildBanPageHtml() {
+ const imageSrc = BAN_KROSMOZ_IMAGE_PATH
+ return `<!doctype html>
+<html lang="fr">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Ban Krosmoz</title>
+ <style>
+  html,body{
+   margin:0;
+   width:100%;
+   height:100%;
+   overflow:hidden;
+   background:#000;
+  }
+  body{
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   user-select:none;
+   touch-action:none;
+   pointer-events:none;
+  }
+  img{
+   width:100vw;
+   height:100vh;
+   object-fit:cover;
+   -webkit-user-drag:none;
+  }
+ </style>
+</head>
+<body>
+ <img src="${imageSrc}" alt="Ban Krosmoz" draggable="false">
+</body>
+</html>`
+}
+
+function sendBanPage(res) {
+ res.status(403)
+ res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+ return res.type("html").send(buildBanPageHtml())
+}
+
+function sendBanApiResponse(res) {
+ return res.status(403).json({
+  error: "Compte banni de Krosmoz.",
+  code: "BAN_KROSMOZ",
+  banned: true,
+  banImage: BAN_KROSMOZ_IMAGE_PATH
+ })
+}
+
+function shouldBypassBanGate(req) {
+ const rawPath = String(req.path || "")
+ let pathName = rawPath
+ try {
+  pathName = decodeURIComponent(rawPath)
+ } catch (_) {}
+
+ if (pathName === "/health") return true
+ if (pathName === "/auth/logout") return true
+ if (pathName === "/api/oauth/status") return true
+ if (pathName === "/assets/ui/ban krosmoz.png") return true
+ return false
+}
+
 function clearSession(req, res) {
  const cookies = parseCookies(req)
  const token = cookies.kc_session
@@ -2267,12 +2341,20 @@ function requireSession(req, res) {
   res.status(401).json({ error: "Connexion Discord requise." })
   return null
  }
+ if (isBannedSession(session)) {
+  sendBanApiResponse(res)
+  return null
+ }
  return session
 }
 
 function requireSessionPage(req, res) {
  const session = resolveSession(req)
- if (session) return session
+ if (session && !isBannedSession(session)) return session
+ if (session && isBannedSession(session)) {
+  sendBanPage(res)
+  return null
+ }
  res.redirect("/")
  return null
 }
@@ -3795,6 +3877,19 @@ function createWebApp() {
   return next()
  })
 
+ app.use((req, res, next) => {
+  if (shouldBypassBanGate(req)) return next()
+
+  const session = resolveSession(req)
+  if (!session || !isBannedSession(session)) return next()
+
+  if (String(req.path || "").startsWith("/api/")) {
+   return sendBanApiResponse(res)
+  }
+
+  return sendBanPage(res)
+ })
+
  /* Health check endpoint */
  app.get("/health", (req, res) => {
   const uptime = process.uptime()
@@ -4819,6 +4914,7 @@ app.post("/api/guild/apply", async (req, res) => {
 
  app.get("/api/oauth/status", (req, res) => {
   const session = resolveSession(req)
+  const banned = isBannedSession(session)
   const localAuthAvailable = canUseLocalAuth(req)
   const localAuthEnabled = Boolean(buildLocalSession(req))
   res.json({
@@ -4826,6 +4922,8 @@ app.post("/api/guild/apply", async (req, res) => {
    clientId: OAUTH_CLIENT_ID || null,
    connected: Boolean(session),
    userId: session?.userId || null,
+   banned,
+   banImage: banned ? BAN_KROSMOZ_IMAGE_PATH : null,
    localAuthAvailable,
    localAuthEnabled,
    localAuthSession: Boolean(session?.local)
