@@ -434,13 +434,14 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
 
    const priceLabel = Number(listing.price || 0).toLocaleString("fr-FR")
 
-   const user     = getUser(interaction.user.id)
-   const unlocked = [
-    ...achievementCheck(user, "economy"),
-    ...achievementCheck(user, "collection"),
-    ...achievementCheck(user, "pack"),
-    ...achievementCheck(user, "fragment")
-   ]
+  const user     = getUser(interaction.user.id)
+  const unlocked = [
+   ...achievementCheck(user, "economy"),
+   ...achievementCheck(user, "market"),
+   ...achievementCheck(user, "collection"),
+   ...achievementCheck(user, "pack"),
+   ...achievementCheck(user, "fragment")
+  ]
 
    await interaction.reply({
     content: `✅ Achat confirmé: **${itemLabel}** pour **${priceLabel} kamas**.\n📦 L'objet a été ajouté à ton inventaire.`,
@@ -467,7 +468,10 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
 
    const user     = getUser(interaction.user.id)
    await addBattlePassXP(interaction.user.id, "market_sell")
-   const unlocked = achievementCheck(user, "economy")
+  const unlocked = [
+   ...achievementCheck(user, "economy"),
+   ...achievementCheck(user, "market")
+  ]
 
    await interaction.editReply("🛒 Carte mise en vente.")
    if (unlocked.length) await notifyAchievements(interaction, unlocked, user)
@@ -507,7 +511,10 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
    const fragmentName = getFragmentDisplayName(cardId, fragmentNumber)
    const user         = getUser(userId)
    await addBattlePassXP(userId, "market_sell")
-   const unlocked = achievementCheck(user, "fragment")
+  const unlocked = [
+   ...achievementCheck(user, "market"),
+   ...achievementCheck(user, "fragment")
+  ]
 
    await interaction.editReply(
     `🧩 **${fragmentName}** mis en vente pour **${price} kamas**.\nPrix minimum : **${minPrice}** kamas.`
@@ -522,10 +529,14 @@ Tu peux consulter tes fragments détaillés avec \`/inventaire\` → bouton **Fr
   if (interaction.customId === "marketRemoveModal") {
 
    const listingId = parseInt(interaction.fields.getTextInputValue("listingId"))
-   const result    = removeListing(interaction.user.id, listingId)
+  const result    = removeListing(interaction.user.id, listingId)
 
-   if (result?.error) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
-   return interaction.reply({ content: "📦 Vente retirée.", flags: 64 })
+  if (result?.error) return interaction.reply({ content: `❌ ${result.error}`, flags: 64 })
+  const user = getUser(interaction.user.id)
+  const unlocked = achievementCheck(user, "market")
+  await interaction.reply({ content: "📦 Vente retirée.", flags: 64 })
+  if (unlocked.length) await notifyAchievements(interaction, unlocked, user)
+  return
   }
  }
 }

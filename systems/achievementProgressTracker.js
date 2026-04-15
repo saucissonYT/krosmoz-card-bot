@@ -196,6 +196,7 @@ function recordMarketBuy(user, cardId, ts = Date.now()) {
 function recordMarketSale(user, listing, netKamas, ts = Date.now()) {
  const stats = ensureStats(user)
  const now = Number(ts || Date.now())
+ stats.marketSalesConfirmed = Number(stats.marketSalesConfirmed || 0) + 1
  stats.marketKamasEarned = Number(stats.marketKamasEarned || 0) + Math.max(0, Number(netKamas || 0))
 
  const createdAt = Number(listing?.timestamp || 0)
@@ -339,4 +340,3 @@ module.exports = {
  recordProfileView,
  recordTradeAccepted
 }
-

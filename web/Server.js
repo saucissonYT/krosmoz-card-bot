@@ -148,6 +148,7 @@ const ACHIEVEMENT_CATEGORIES = [
  "rng",
  "collection",
  "economy",
+ "market",
  "fusion",
  "fragment",
  "daily",
@@ -6132,15 +6133,19 @@ app.post("/api/achievements/claim", (req, res) => {
 
    const buyer = getUser(session.userId)
    const seller = sellerId ? getUser(sellerId) : null
-   const unlocked = [
-    ...achievementCheck(buyer, "economy"),
-    ...achievementCheck(buyer, "collection"),
-    ...achievementCheck(buyer, "pack"),
-    ...achievementCheck(buyer, "fragment")
-   ]
-   const sellerUnlocked = seller
-    ? achievementCheck(seller, "economy")
-    : []
+  const unlocked = [
+   ...achievementCheck(buyer, "economy"),
+   ...achievementCheck(buyer, "market"),
+   ...achievementCheck(buyer, "collection"),
+   ...achievementCheck(buyer, "pack"),
+   ...achievementCheck(buyer, "fragment")
+  ]
+  const sellerUnlocked = seller
+   ? [
+      ...achievementCheck(seller, "economy"),
+      ...achievementCheck(seller, "market")
+     ]
+   : []
    if (sellerId) save(sellerId)
    save(session.userId)
 
@@ -6186,7 +6191,10 @@ app.post("/api/achievements/claim", (req, res) => {
 
    const user = getUser(session.userId)
    await addBattlePassXP(session.userId, "market_sell")
-   const unlocked = achievementCheck(user, "economy")
+  const unlocked = [
+   ...achievementCheck(user, "economy"),
+   ...achievementCheck(user, "market")
+  ]
    save(session.userId)
 
    res.json({
@@ -6234,18 +6242,26 @@ app.post("/api/achievements/claim", (req, res) => {
   }
  })
 
- app.post("/api/market/remove", (req, res) => {
-  try {
+app.post("/api/market/remove", (req, res) => {
+ try {
    const session = requireSession(req, res)
    if (!session) return
 
    const listingId = Number(req.body?.listingId)
    if (!Number.isFinite(listingId)) return res.status(400).json({ error: "listingId invalide." })
 
-   const result = removeListing(session.userId, listingId)
-   if (result?.error) return res.status(400).json({ error: result.error })
-   res.json({ ok: true })
-  } catch (e) {
+  const result = removeListing(session.userId, listingId)
+  if (result?.error) return res.status(400).json({ error: result.error })
+  const user = getUser(session.userId)
+  const unlocked = user
+   ? achievementCheck(user, "market")
+   : []
+  save(session.userId)
+  res.json({
+   ok: true,
+   unlockedAchievements: countUnlockedAchievements(unlocked)
+  })
+ } catch (e) {
    console.error("[WEB] /api/market/remove:", e)
    res.status(500).json({ error: "Erreur serveur" })
   }

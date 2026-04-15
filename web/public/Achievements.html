@@ -21,6 +21,11 @@
        <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
        <strong id="achievementsKamasValue">--</strong>
       </div>
+      <div class="achievements-resource achievements-resource-packs" aria-label="Packs">
+       <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Packs">
+       <strong>x<span id="achievementsPacksValue">--</span></strong>
+       <button id="achievementsBuyPacksBtn" class="achievements-resource-buy-btn" type="button" aria-label="Acheter des packs" title="Acheter des packs">+</button>
+      </div>
      </div>
     </header>
 
@@ -65,12 +70,59 @@
   </section>
  </aside>
 
+ <aside id="achBuyModal" class="ach-buy-modal-overlay" hidden>
+  <div class="ach-buy-modal-backdrop" data-close-ach-buy-modal></div>
+  <section class="ach-buy-modal" role="dialog" aria-modal="true" aria-labelledby="achBuyTitle">
+   <header class="ach-buy-head">
+    <h2 id="achBuyTitle">Acheter un pack</h2>
+    <button class="ach-buy-close" type="button" data-close-ach-buy-modal aria-label="Fermer">&times;</button>
+   </header>
+   <div class="ach-buy-body">
+    <p class="ach-buy-subtitle">Achetez l'objet suivant :</p>
+    <div class="ach-buy-preview">
+     <article class="ach-buy-item">
+      <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+      <strong id="achBuyCostPreview">2500</strong>
+     </article>
+     <span class="ach-buy-arrow">&rsaquo;</span>
+     <article class="ach-buy-item">
+      <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Pack">
+      <strong id="achBuyPackPreview">x1</strong>
+     </article>
+    </div>
+    <p class="ach-buy-count-label">Nombre d'achats</p>
+    <div class="ach-buy-qty-row">
+     <button id="achBuyMinus10Btn" class="ach-buy-qty-btn" type="button">-10</button>
+     <button id="achBuyMinus1Btn" class="ach-buy-qty-btn small" type="button">−</button>
+     <strong id="achBuyQtyValue" class="ach-buy-qty-value">1</strong>
+     <button id="achBuyPlus1Btn" class="ach-buy-qty-btn small" type="button">+</button>
+     <button id="achBuyPlus10Btn" class="ach-buy-qty-btn" type="button">+10</button>
+     <button id="achBuyMaxBtn" class="ach-buy-qty-btn max" type="button">MAX</button>
+    </div>
+    <div class="ach-buy-balance">
+     <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+     <span class="label">Possédé</span>
+     <strong id="achBuyBalanceBefore" class="values">0</strong>
+     <span class="arrow">&rsaquo;</span>
+     <strong id="achBuyBalanceAfter" class="values">0</strong>
+    </div>
+    <p id="achBuyError" class="ach-buy-error"></p>
+    <button id="achBuySubmitBtn" class="ach-buy-submit" type="button">
+     <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+     <span id="achBuyTotalCost" class="cost">2500</span>
+     <span class="label">Acheter</span>
+    </button>
+   </div>
+  </section>
+ </aside>
+
  <script>
  const CATEGORY_TILES = [
   { id: "collection", label: "COLLECTION", icon: "achievement collection icone.png" },
   { id: "daily", label: "DAILY", icon: "achievement daily icone.png" },
   { id: "gift", label: "DON", icon: "achievement don icone.png" },
   { id: "economy", label: "ECONOMIE", icon: "achievement économie icone.png" },
+  { id: "market", label: "MARCHE", icon: "achievement économie icone.png" },
   { id: "event", label: "EVENTS", icon: "achievement events icone.png" },
   { id: "fragment", label: "FRAGMENT", icon: "achievement fragment icone.png" },
   { id: "fusion", label: "FUSION", icon: "achievement fusion icone.png" },
@@ -97,7 +149,10 @@ const REWARD_ICON = {
  const state = {
   connected: false,
   categories: {},
-  modalCache: {}
+  modalCache: {},
+  kamas: 0,
+  packs: 0,
+  packPrice: 2500
  }
 
 const modalState = {
@@ -125,7 +180,14 @@ const modalState = {
   claimAllBtn: document.getElementById("achClaimAllBtn"),
   claimPopup: document.getElementById("achClaimPopup"),
   claimPopupList: document.getElementById("achClaimPopupList"),
-  claimPopupClose: document.getElementById("achClaimPopupClose")
+  claimPopupClose: document.getElementById("achClaimPopupClose"),
+  buyPacksBtn: document.getElementById("achievementsBuyPacksBtn")
+ }
+
+ const buyState = {
+  quantity: 1,
+  busy: false,
+  error: ""
  }
 
  function esc(value) {
@@ -156,7 +218,188 @@ function toProgressInt(value, fallback = 0) {
   const el = document.getElementById("achievementsKamasValue")
   if (!el) return
   const kamas = Number(value)
-  el.textContent = Number.isFinite(kamas) && kamas >= 0 ? formatInt(kamas) : "--"
+  if (Number.isFinite(kamas) && kamas >= 0) {
+   state.kamas = Math.floor(kamas)
+   el.textContent = formatInt(kamas)
+   return
+  }
+  el.textContent = "--"
+ }
+
+ function setTopPacks(value) {
+  const el = document.getElementById("achievementsPacksValue")
+  if (!el) return
+  const packs = Number(value)
+  if (Number.isFinite(packs) && packs >= 0) {
+   state.packs = Math.floor(packs)
+   el.textContent = formatInt(packs)
+   return
+  }
+  el.textContent = "--"
+ }
+
+ function getAchBuyEls() {
+  return {
+   modal: document.getElementById("achBuyModal"),
+   qtyValue: document.getElementById("achBuyQtyValue"),
+   costPreview: document.getElementById("achBuyCostPreview"),
+   packPreview: document.getElementById("achBuyPackPreview"),
+   balanceBefore: document.getElementById("achBuyBalanceBefore"),
+   balanceAfter: document.getElementById("achBuyBalanceAfter"),
+   error: document.getElementById("achBuyError"),
+   totalCost: document.getElementById("achBuyTotalCost"),
+   submitBtn: document.getElementById("achBuySubmitBtn"),
+   minus10Btn: document.getElementById("achBuyMinus10Btn"),
+   minus1Btn: document.getElementById("achBuyMinus1Btn"),
+   plus1Btn: document.getElementById("achBuyPlus1Btn"),
+   plus10Btn: document.getElementById("achBuyPlus10Btn"),
+   maxBtn: document.getElementById("achBuyMaxBtn")
+  }
+ }
+
+ function isAchBuyModalVisible() {
+  const modal = document.getElementById("achBuyModal")
+  return Boolean(modal && !modal.hidden && modal.classList.contains("show"))
+ }
+
+ function syncAchBuyModalBodyLock() {
+  document.body.classList.toggle("ach-buy-modal-open", isAchBuyModalVisible())
+ }
+
+ function getPackPrice() {
+  const n = Number(state.packPrice || 2500)
+  if (Number.isFinite(n) && n > 0) return Math.floor(n)
+  return 2500
+ }
+
+ function clampBuyQty(value) {
+  return Math.max(1, Math.min(999, Math.floor(Number(value || 1))))
+ }
+
+ function getBuyTotalCost() {
+  return Math.max(0, getPackPrice()) * Math.max(1, Number(buyState.quantity || 1))
+ }
+
+ function getBuyMaxQty() {
+  const unitPrice = Math.max(1, getPackPrice())
+  const balance = Math.max(0, Number(state.kamas || 0))
+  const affordable = Math.floor(balance / unitPrice)
+  return clampBuyQty(Math.max(1, affordable))
+ }
+
+ function setBuyQty(nextValue) {
+  buyState.quantity = clampBuyQty(nextValue)
+  renderBuyModal()
+ }
+
+ function renderBuyModal() {
+  const el = getAchBuyEls()
+  if (!el.modal) return
+
+  const qty = clampBuyQty(buyState.quantity)
+  buyState.quantity = qty
+  const totalCost = getBuyTotalCost()
+  const balanceBefore = Math.max(0, Number(state.kamas || 0))
+  const balanceAfter = balanceBefore - totalCost
+  const hasEnough = balanceAfter >= 0
+  const busy = Boolean(buyState.busy)
+  const submitLabel = el.submitBtn ? el.submitBtn.querySelector(".label") : null
+
+  if (el.qtyValue) el.qtyValue.textContent = String(qty)
+  if (el.costPreview) el.costPreview.textContent = formatInt(totalCost)
+  if (el.packPreview) el.packPreview.textContent = `x${qty}`
+  if (el.balanceBefore) el.balanceBefore.textContent = formatInt(balanceBefore)
+  if (el.balanceAfter) el.balanceAfter.textContent = formatInt(Math.max(0, balanceAfter))
+  if (el.totalCost) el.totalCost.textContent = formatInt(totalCost)
+
+  if (!busy) {
+   if (!hasEnough) {
+    buyState.error = `Kamas insuffisants (${formatInt(totalCost)} requis).`
+   } else if (String(buyState.error || "").startsWith("Kamas insuffisants")) {
+    buyState.error = ""
+   }
+  }
+  if (el.error) el.error.textContent = String(buyState.error || "")
+
+  if (el.minus10Btn) el.minus10Btn.disabled = busy || qty <= 1
+  if (el.minus1Btn) el.minus1Btn.disabled = busy || qty <= 1
+  if (el.plus1Btn) el.plus1Btn.disabled = busy || qty >= 999
+  if (el.plus10Btn) el.plus10Btn.disabled = busy || qty >= 999
+  if (el.maxBtn) {
+   const maxQty = getBuyMaxQty()
+   el.maxBtn.disabled = busy || qty >= maxQty
+  }
+  if (el.submitBtn) {
+   el.submitBtn.disabled = busy || !hasEnough || totalCost <= 0
+   if (submitLabel) submitLabel.textContent = busy ? "Achat..." : "Acheter"
+  }
+ }
+
+ function openBuyModal() {
+  const el = getAchBuyEls()
+  if (!el.modal) return
+  buyState.quantity = 1
+  buyState.error = ""
+  buyState.busy = false
+  renderBuyModal()
+  el.modal.hidden = false
+  requestAnimationFrame(() => {
+   if (!el.modal) return
+   el.modal.classList.add("show")
+   syncAchBuyModalBodyLock()
+  })
+ }
+
+ function closeBuyModal() {
+  const el = getAchBuyEls()
+  if (!el.modal || el.modal.hidden) return
+  el.modal.classList.remove("show")
+  syncAchBuyModalBodyLock()
+  window.setTimeout(() => {
+   if (!el.modal) return
+   el.modal.hidden = true
+   syncAchBuyModalBodyLock()
+  }, 180)
+ }
+
+ async function submitBuyPacks() {
+  if (buyState.busy) return
+  const quantity = clampBuyQty(buyState.quantity)
+  const totalCost = getBuyTotalCost()
+  if (totalCost <= 0) return
+  if (Number(state.kamas || 0) < totalCost) {
+   buyState.error = `Kamas insuffisants (${formatInt(totalCost)} requis).`
+   renderBuyModal()
+   return
+  }
+
+  buyState.busy = true
+  buyState.error = ""
+  renderBuyModal()
+
+  try {
+   const res = await fetch("/api/game/buy-packs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({ quantity })
+   })
+   const payload = await res.json().catch(() => ({}))
+   if (!res.ok) {
+    throw new Error(String(payload?.error || "Achat impossible."))
+   }
+
+   const nextKamas = Number(payload?.kamas)
+   const nextPacks = Number(payload?.packStock ?? payload?.packs)
+   if (Number.isFinite(nextKamas) && nextKamas >= 0) setTopKamas(nextKamas)
+   if (Number.isFinite(nextPacks) && nextPacks >= 0) setTopPacks(nextPacks)
+   closeBuyModal()
+  } catch (error) {
+   buyState.error = String(error?.message || "Achat impossible.")
+  } finally {
+   buyState.busy = false
+   if (isAchBuyModalVisible()) renderBuyModal()
+  }
  }
 
  function toIconUrl(filename) {
@@ -367,6 +610,9 @@ function renderModalList(items = []) {
    if (Number.isFinite(Number(data?.kamas))) {
     setTopKamas(Number(data.kamas))
    }
+   if (Number.isFinite(Number(data?.packs))) {
+    setTopPacks(Number(data.packs))
+   }
    await refreshAchievementsView(modalState.activeCategory || null)
   } catch (_) {
    showClaimPopup({})
@@ -542,8 +788,38 @@ function renderModalList(items = []) {
    if (backdrop) closeClaimPopup()
   })
 
+  if (ui.buyPacksBtn) {
+   ui.buyPacksBtn.addEventListener("click", openBuyModal)
+  }
+
+  document.querySelectorAll("[data-close-ach-buy-modal]").forEach((node) => {
+   node.addEventListener("click", closeBuyModal)
+  })
+
+  const achBuyMinus10Btn = document.getElementById("achBuyMinus10Btn")
+  const achBuyMinus1Btn = document.getElementById("achBuyMinus1Btn")
+  const achBuyPlus1Btn = document.getElementById("achBuyPlus1Btn")
+  const achBuyPlus10Btn = document.getElementById("achBuyPlus10Btn")
+  const achBuyMaxBtn = document.getElementById("achBuyMaxBtn")
+  const achBuySubmitBtn = document.getElementById("achBuySubmitBtn")
+
+  if (achBuyMinus10Btn) achBuyMinus10Btn.addEventListener("click", () => setBuyQty(buyState.quantity - 10))
+  if (achBuyMinus1Btn) achBuyMinus1Btn.addEventListener("click", () => setBuyQty(buyState.quantity - 1))
+  if (achBuyPlus1Btn) achBuyPlus1Btn.addEventListener("click", () => setBuyQty(buyState.quantity + 1))
+  if (achBuyPlus10Btn) achBuyPlus10Btn.addEventListener("click", () => setBuyQty(buyState.quantity + 10))
+  if (achBuyMaxBtn) achBuyMaxBtn.addEventListener("click", () => setBuyQty(getBuyMaxQty()))
+  if (achBuySubmitBtn) {
+   achBuySubmitBtn.addEventListener("click", () => {
+    submitBuyPacks().catch(() => {})
+   })
+  }
+
   window.addEventListener("keydown", (event) => {
    if (event.key !== "Escape") return
+   if (isAchBuyModalVisible()) {
+    closeBuyModal()
+    return
+   }
    if (!ui.claimPopup.hidden) {
     closeClaimPopup()
     return
@@ -576,8 +852,12 @@ function renderModalList(items = []) {
    if (!meRes.ok) throw new Error("me")
    const me = await meRes.json()
    setTopKamas(me?.kamas)
+   setTopPacks(me?.packs)
+   const maybePrice = Number(me?.packPrice)
+   if (Number.isFinite(maybePrice) && maybePrice > 0) state.packPrice = Math.floor(maybePrice)
   } catch (_) {
    setTopKamas(null)
+   setTopPacks(null)
   }
  }
 

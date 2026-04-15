@@ -4823,6 +4823,38 @@ body.achievements-page .achievements-resource strong {
  color: #eaf6ff;
 }
 
+body.achievements-page .achievements-resource.achievements-resource-packs {
+ gap: 8px;
+ padding-right: 6px;
+}
+
+body.achievements-page .achievements-resource-buy-btn {
+ width: 38px;
+ height: 38px;
+ border-radius: 999px;
+ border: 2px solid rgba(196, 214, 238, 0.95);
+ background: linear-gradient(180deg, rgba(241, 246, 255, 0.98), rgba(214, 226, 245, 0.94));
+ color: #2f3f63;
+ font-size: 1.75rem;
+ line-height: 1;
+ font-weight: 700;
+ display: grid;
+ place-items: center;
+ cursor: pointer;
+ box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 4px 10px rgba(0, 0, 0, 0.28);
+ transition: transform 0.12s ease, filter 0.12s ease;
+ padding: 0;
+}
+
+body.achievements-page .achievements-resource-buy-btn:hover {
+ transform: translateY(-1px) scale(1.03);
+ filter: brightness(1.04);
+}
+
+body.achievements-page .achievements-resource-buy-btn:active {
+ transform: translateY(0) scale(0.98);
+}
+
 body.achievements-page .achievements-top-btn {
  width: 42px;
  font-size: 1.1rem;
@@ -4933,6 +4965,287 @@ body.achievements-page .achievements-hub-bar span {
 
 body.achievements-page.ach-modal-open {
  overflow: hidden;
+}
+
+body.achievements-page.ach-buy-modal-open {
+ overflow: hidden;
+}
+
+body.achievements-page .ach-buy-modal-overlay {
+ position: fixed;
+ inset: 0;
+ z-index: 12900;
+ display: grid;
+ place-items: center;
+ padding: 16px;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.18s ease;
+}
+
+body.achievements-page .ach-buy-modal-overlay.show {
+ opacity: 1;
+ pointer-events: auto;
+}
+
+body.achievements-page .ach-buy-modal-overlay[hidden] {
+ display: none;
+}
+
+body.achievements-page .ach-buy-modal-backdrop {
+ position: absolute;
+ inset: 0;
+ background: rgba(5, 13, 40, 0.86);
+ backdrop-filter: blur(4px);
+}
+
+body.achievements-page .ach-buy-modal {
+ position: relative;
+ z-index: 1;
+ width: min(840px, 94vw);
+ border-radius: 14px;
+ border: 1px solid rgba(148, 205, 255, 0.62);
+ background:
+  linear-gradient(180deg, rgba(14, 31, 86, 0.95), rgba(8, 18, 58, 0.95)),
+  url("/assets/ui/background%20pack.png") center / cover no-repeat;
+ box-shadow: 0 26px 56px rgba(0, 0, 0, 0.45);
+ overflow: hidden;
+}
+
+body.achievements-page .ach-buy-head {
+ display: grid;
+ grid-template-columns: 1fr auto;
+ align-items: center;
+ gap: 12px;
+ padding: 16px 20px 14px;
+ border-bottom: 1px solid rgba(146, 202, 255, 0.32);
+}
+
+body.achievements-page .ach-buy-head h2 {
+ margin: 0;
+ text-align: center;
+ font-size: clamp(1.55rem, 2.2vw, 2.3rem);
+ color: #eaf5ff;
+ font-weight: 800;
+ letter-spacing: 0.02em;
+}
+
+body.achievements-page .ach-buy-close {
+ width: 44px;
+ height: 44px;
+ border-radius: 999px;
+ border: 1px solid rgba(180, 220, 255, 0.52);
+ background: rgba(8, 20, 60, 0.72);
+ color: #eef6ff;
+ font-size: 1.9rem;
+ line-height: 1;
+ display: grid;
+ place-items: center;
+ cursor: pointer;
+}
+
+body.achievements-page .ach-buy-body {
+ padding: 18px 24px 20px;
+}
+
+body.achievements-page .ach-buy-subtitle {
+ margin: 0 0 14px;
+ text-align: center;
+ color: #e6f3ff;
+ font-size: clamp(1.25rem, 1.8vw, 1.8rem);
+ font-weight: 700;
+}
+
+body.achievements-page .ach-buy-preview {
+ border-radius: 12px;
+ border: 1px solid rgba(141, 196, 255, 0.34);
+ background: rgba(10, 22, 62, 0.74);
+ padding: 18px 16px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ gap: 16px;
+}
+
+body.achievements-page .ach-buy-item {
+ width: 170px;
+ min-height: 156px;
+ border-radius: 10px;
+ border: 1px solid rgba(145, 196, 255, 0.34);
+ background: rgba(8, 22, 62, 0.72);
+ display: grid;
+ justify-items: center;
+ align-content: center;
+ gap: 8px;
+ padding: 12px;
+}
+
+body.achievements-page .ach-buy-item img {
+ width: 88px;
+ height: 88px;
+ object-fit: contain;
+ filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+}
+
+body.achievements-page .ach-buy-item strong {
+ color: #eef7ff;
+ font-size: 2rem;
+ font-weight: 800;
+ line-height: 1;
+}
+
+body.achievements-page .ach-buy-arrow {
+ color: #e9f3ff;
+ font-size: 3.2rem;
+ line-height: 1;
+ font-weight: 700;
+ margin-top: -8px;
+}
+
+body.achievements-page .ach-buy-count-label {
+ margin: 16px 0 8px;
+ text-align: center;
+ color: #dcedff;
+ font-size: 1.1rem;
+ font-weight: 700;
+}
+
+body.achievements-page .ach-buy-qty-row {
+ display: grid;
+ grid-template-columns: auto auto minmax(120px, 1fr) auto auto auto;
+ gap: 10px;
+ align-items: center;
+ max-width: 620px;
+ margin: 0 auto;
+}
+
+body.achievements-page .ach-buy-qty-btn {
+ min-width: 82px;
+ min-height: 54px;
+ border-radius: 10px;
+ border: 1px solid rgba(151, 197, 255, 0.4);
+ background: rgba(11, 29, 80, 0.65);
+ color: #e9f4ff;
+ font-size: 2rem;
+ font-weight: 700;
+ line-height: 1;
+ cursor: pointer;
+}
+
+body.achievements-page .ach-buy-qty-btn.small {
+ min-width: 62px;
+}
+
+body.achievements-page .ach-buy-qty-btn.max {
+ min-width: 82px;
+ font-size: 1.05rem;
+ font-weight: 800;
+ text-transform: uppercase;
+ letter-spacing: 0.04em;
+}
+
+body.achievements-page .ach-buy-qty-btn:disabled {
+ opacity: 0.42;
+ cursor: not-allowed;
+}
+
+body.achievements-page .ach-buy-qty-value {
+ min-height: 54px;
+ border-radius: 999px;
+ border: 1px solid rgba(141, 196, 255, 0.36);
+ background: rgba(14, 36, 92, 0.8);
+ display: grid;
+ place-items: center;
+ color: #ffe58a;
+ font-size: 2rem;
+ font-weight: 800;
+}
+
+body.achievements-page .ach-buy-balance {
+ margin-top: 16px;
+ border-radius: 999px;
+ border: 1px solid rgba(146, 198, 255, 0.3);
+ background: rgba(13, 31, 84, 0.72);
+ display: grid;
+ grid-template-columns: auto 1fr auto auto auto;
+ align-items: center;
+ gap: 10px;
+ padding: 9px 14px;
+}
+
+body.achievements-page .ach-buy-balance img {
+ width: 34px;
+ height: 34px;
+ object-fit: contain;
+}
+
+body.achievements-page .ach-buy-balance .label {
+ color: #deeeff;
+ font-size: 1rem;
+ font-weight: 700;
+}
+
+body.achievements-page .ach-buy-balance .values {
+ color: #ffffff;
+ font-size: 1.95rem;
+ font-weight: 800;
+ line-height: 1;
+}
+
+body.achievements-page .ach-buy-balance .arrow {
+ color: #cfe6ff;
+ font-size: 1.5rem;
+ font-weight: 700;
+ line-height: 1;
+}
+
+body.achievements-page .ach-buy-error {
+ min-height: 24px;
+ margin: 10px 0 0;
+ text-align: center;
+ color: #ffc8bf;
+ font-size: 0.98rem;
+ font-weight: 700;
+}
+
+body.achievements-page .ach-buy-submit {
+ margin: 10px auto 0;
+ width: min(500px, 100%);
+ min-height: 64px;
+ border-radius: 12px;
+ border: 1px solid rgba(250, 220, 122, 0.78);
+ background: linear-gradient(180deg, #ffe677, #f1c63f);
+ color: #27324c;
+ display: grid;
+ grid-template-columns: auto auto 1fr;
+ align-items: center;
+ gap: 10px;
+ font-size: 2rem;
+ font-weight: 800;
+ padding: 0 14px;
+ cursor: pointer;
+ box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+}
+
+body.achievements-page .ach-buy-submit:disabled {
+ opacity: 0.58;
+ cursor: not-allowed;
+}
+
+body.achievements-page .ach-buy-submit img {
+ width: 36px;
+ height: 36px;
+ object-fit: contain;
+}
+
+body.achievements-page .ach-buy-submit .cost {
+ color: #1f396e;
+ min-width: 74px;
+ text-align: left;
+}
+
+body.achievements-page .ach-buy-submit .label {
+ text-align: center;
 }
 
 body.achievements-page .ach-modal {
@@ -5535,6 +5848,12 @@ body.achievements-page .ach-claim-empty {
   gap: 7px;
  }
 
+ body.achievements-page .achievements-resource-buy-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 1.38rem;
+ }
+
  body.achievements-page .achievements-resource img {
   width: 30px;
   height: 30px;
@@ -5627,6 +5946,71 @@ body.achievements-page .ach-claim-empty {
   top: -7px;
   right: -12px;
  }
+
+ body.achievements-page .ach-buy-modal {
+  width: min(96vw, 760px);
+ }
+
+ body.achievements-page .ach-buy-body {
+  padding: 14px 14px 16px;
+ }
+
+ body.achievements-page .ach-buy-preview {
+  gap: 10px;
+  padding: 12px 8px;
+ }
+
+ body.achievements-page .ach-buy-item {
+  width: 128px;
+  min-height: 126px;
+ }
+
+ body.achievements-page .ach-buy-item img {
+  width: 72px;
+  height: 72px;
+ }
+
+ body.achievements-page .ach-buy-item strong {
+  font-size: 1.65rem;
+ }
+
+ body.achievements-page .ach-buy-arrow {
+  font-size: 2.2rem;
+ }
+
+ body.achievements-page .ach-buy-qty-row {
+  grid-template-columns: auto auto 1fr auto auto auto;
+  gap: 6px;
+ }
+
+ body.achievements-page .ach-buy-qty-btn {
+  min-width: 66px;
+  min-height: 48px;
+  font-size: 1.75rem;
+ }
+
+ body.achievements-page .ach-buy-qty-btn.small {
+  min-width: 54px;
+ }
+
+ body.achievements-page .ach-buy-qty-btn.max {
+  min-width: 66px;
+  font-size: 0.92rem;
+ }
+
+ body.achievements-page .ach-buy-qty-value {
+  min-height: 48px;
+  font-size: 1.7rem;
+ }
+
+ body.achievements-page .ach-buy-balance .values {
+  font-size: 1.45rem;
+ }
+
+ body.achievements-page .ach-buy-submit {
+  min-height: 58px;
+  font-size: 1.65rem;
+ }
 }
 
 @media (max-width: 460px) {
@@ -5646,6 +6030,12 @@ body.achievements-page .ach-claim-empty {
 
  body.achievements-page .achievements-resource strong {
   font-size: 0.9rem;
+ }
+
+ body.achievements-page .achievements-resource-buy-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 1.2rem;
  }
 
  body.achievements-page .achievements-hub-grid {

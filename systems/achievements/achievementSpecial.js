@@ -15,6 +15,7 @@
 ═══════════════════════════════════════════════════════════════ */
 
 const ALL_TRIGGERS = ["pack","rng","economy","collection","fusion","social","inventory","daily","krosmoshop","event"]
+const marketSalesCount = (u) => Math.max(Number(u?.stats?.marketSalesConfirmed || 0), Number(u?.stats?.marketListingsCreated || 0))
 
 module.exports = {
 
@@ -59,8 +60,8 @@ marketBothWays:{
  badge:"⚖️",
  description:"Avoir vendu ET acheté au moins une carte sur le market.",
  title:"Commerçant du Krosmoz",
- trigger:"economy",
- condition:u=>(u.stats?.cardsSold>=1) && (u.stats?.marketBought>=1)
+ trigger:"market",
+ condition:u=>(marketSalesCount(u)>=1) && (u.stats?.marketBought>=1)
 },
 
 /* ================= TOUS LES TRIGGERS ================= */
@@ -358,7 +359,7 @@ marketSSR:{
  badge:"😱",
  description:"Mettre une carte SSR en vente sur le market.",
  title:"Sans Pitié",
- trigger:"economy",
+ trigger:"market",
  condition:u=>u.stats?.marketSSRListed>=1
 },
 

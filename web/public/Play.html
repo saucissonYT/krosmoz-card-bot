@@ -44,6 +44,24 @@ if (__initialPlayTab === "fusion") {
 <div class="page">
   <div class="container">
    <section class="play-shell">
+    <header id="inventoryTopbar" class="inventory-topbar" hidden>
+     <div class="inventory-top-left">
+      <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
+      <span class="inventory-top-title">inventaire</span>
+     </div>
+     <div class="inventory-top-right">
+      <div class="inventory-resource" aria-label="Kamas">
+       <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+       <strong id="inventoryTopKamas">--</strong>
+      </div>
+     <div class="inventory-resource" aria-label="Packs">
+       <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Packs">
+       <strong>x<span id="inventoryTopPacks">--</span></strong>
+       <button id="inventoryTopBuyPacksBtn" class="inventory-resource-buy-btn" type="button" aria-label="Acheter des packs" title="Acheter des packs">+</button>
+      </div>
+     </div>
+    </header>
+
     <header class="play-head mode-hero">
       <h1 id="playTitle">Inventaire</h1>
       <p id="playSubtitle" class="play-subtitle">Consulte ton inventaire et fait le tri dans ton inventaire.</p>
@@ -70,17 +88,24 @@ if (__initialPlayTab === "fusion") {
 
      <div class="play-subtabs" id="inventorySubtabs">
       <button class="play-subtab active" data-view="cards">Cartes</button>
-      <button class="play-subtab" data-view="fragments">Fragments</button>
      </div>
 
      <div id="inventoryActionBox" class="action-result inventory-action-box"></div>
 
-     <div class="play-content">
-      <div id="playGrid" class="play-grid"></div>
-      <div id="playPacks" class="play-panel-alt" style="display:none"></div>
-      <div id="playFusion" class="play-panel-alt" style="display:none"></div>
-      <div id="playCraft" class="play-panel-alt" style="display:none"></div>
-      <div id="playQuests" class="play-panel-alt" style="display:none"></div>
+     <div id="inventoryContentLayout" class="inventory-content-layout">
+      <aside id="inventorySetRailWrap" class="inventory-set-rail-wrap">
+       <div id="inventorySetRail" class="inventory-set-rail"></div>
+      </aside>
+
+      <div class="play-content inventory-center-panel">
+       <div id="playGrid" class="play-grid"></div>
+       <div id="playPacks" class="play-panel-alt" style="display:none"></div>
+       <div id="playFusion" class="play-panel-alt" style="display:none"></div>
+       <div id="playCraft" class="play-panel-alt" style="display:none"></div>
+       <div id="playQuests" class="play-panel-alt" style="display:none"></div>
+      </div>
+
+      <aside id="inventoryDetailPanel" class="inventory-detail-panel"></aside>
      </div>
     </main>
    </section>
@@ -88,11 +113,74 @@ if (__initialPlayTab === "fusion") {
     <p>🎴 <a href="/">Krosmoz Card</a> — krosmozcard.fr</p>
     <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
    </footer>
-  </div>
  </div>
+</div>
 
- <script src="/js/web-auth.js"></script>
- <script>
+<aside id="inventoryBuyModal" class="inventory-buy-modal-overlay" hidden>
+ <div class="inventory-buy-modal-backdrop" data-close-inventory-buy-modal></div>
+ <section class="inventory-buy-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryBuyTitle">
+  <header class="inventory-buy-head">
+   <h2 id="inventoryBuyTitle">Acheter un pack</h2>
+   <button class="inventory-buy-close" type="button" data-close-inventory-buy-modal aria-label="Fermer">&times;</button>
+  </header>
+  <div class="inventory-buy-body">
+   <p class="inventory-buy-subtitle">Achetez l'objet suivant :</p>
+   <div class="inventory-buy-preview">
+    <article class="inventory-buy-item">
+     <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
+     <strong id="inventoryBuyCostPreview">2500</strong>
+    </article>
+    <span class="inventory-buy-arrow">&rsaquo;</span>
+    <article class="inventory-buy-item">
+     <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Pack">
+     <strong id="inventoryBuyPackPreview">x1</strong>
+    </article>
+   </div>
+   <p class="inventory-buy-count-label">Nombre d'achats</p>
+   <div class="inventory-buy-qty-row">
+    <button id="inventoryBuyMinus10Btn" class="inventory-buy-qty-btn" type="button">-10</button>
+    <button id="inventoryBuyMinus1Btn" class="inventory-buy-qty-btn small" type="button">−</button>
+    <strong id="inventoryBuyQtyValue" class="inventory-buy-qty-value">1</strong>
+    <button id="inventoryBuyPlus1Btn" class="inventory-buy-qty-btn small" type="button">+</button>
+    <button id="inventoryBuyPlus10Btn" class="inventory-buy-qty-btn" type="button">+10</button>
+    <button id="inventoryBuyMaxBtn" class="inventory-buy-qty-btn max" type="button">MAX</button>
+   </div>
+   <div class="inventory-buy-balance">
+    <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="" aria-hidden="true">
+    <span class="label">Possédé</span>
+    <strong id="inventoryBuyBalanceBefore" class="values">0</strong>
+    <span class="arrow">&rsaquo;</span>
+    <strong id="inventoryBuyBalanceAfter" class="values">0</strong>
+   </div>
+   <p id="inventoryBuyError" class="inventory-buy-error"></p>
+   <button id="inventoryBuySubmitBtn" class="inventory-buy-submit" type="button">
+    <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="" aria-hidden="true">
+    <span id="inventoryBuyTotalCost" class="cost">2500</span>
+    <span class="label">Acheter</span>
+   </button>
+  </div>
+ </section>
+</aside>
+
+<aside id="inventorySellConfirmModal" class="inventory-sell-confirm-overlay" hidden>
+ <div class="inventory-sell-confirm-backdrop" data-close-inventory-sell-confirm></div>
+ <section class="inventory-sell-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="inventorySellConfirmTitle">
+  <header class="inventory-sell-confirm-head">
+   <h2 id="inventorySellConfirmTitle">Confirmation de vente</h2>
+  </header>
+  <div class="inventory-sell-confirm-body">
+   <p id="inventorySellConfirmMessage" class="inventory-sell-confirm-message"></p>
+   <p id="inventorySellConfirmError" class="inventory-sell-confirm-error"></p>
+   <div class="inventory-sell-confirm-actions">
+    <button id="inventorySellConfirmCancelBtn" class="inventory-sell-confirm-btn ghost" type="button" data-close-inventory-sell-confirm>Annuler</button>
+    <button id="inventorySellConfirmSubmitBtn" class="inventory-sell-confirm-btn primary" type="button">Valider</button>
+   </div>
+  </div>
+ </section>
+</aside>
+
+<script src="/js/web-auth.js"></script>
+<script>
 const MODE_PATH = {
  inventory: "/play/inventory",
   packs: "/packs",
@@ -124,6 +212,16 @@ const state = {
  craftHistory: [],
  questsState: null
 }
+const inventoryBuyState = {
+ quantity: 1,
+ busy: false,
+ error: ""
+}
+const inventorySellConfirmState = {
+ item: null,
+ busy: false,
+ error: ""
+}
  const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
  const PACK_BACK_IMAGE_BY_RARITY = {
   S: "/assets/ui/pack-back-s.png",
@@ -139,6 +237,58 @@ const SET_UNLOCK_RULES = [
   { id: "katrepat", name: "Katrepat", levelRequired: 81, prevSet: "kelba" },
   { id: "sberg", name: "Sberg", levelRequired: 96, prevSet: "katrepat" }
 ]
+const INVENTORY_SET_ICONS = [
+ { id: "incarnam", name: "Incarnam", icon: "/assets/ui/icone%20incarnam%20inventaire.png" },
+ { id: "astrub", name: "Astrub", icon: "/assets/ui/icone%20astrub%20inventaire.png" },
+ { id: "amakna", name: "Amakna", icon: "/assets/ui/icone%20amakna%20inventaire.png" },
+ { id: "sufokia", name: "Sufokia", icon: "/assets/ui/icone%20sufokia%20inventaire.png" },
+ { id: "kelba", name: "Kelba", icon: "/assets/ui/icone%20kelba%20inventaire.png" },
+ { id: "katrepat", name: "Katrepat", icon: "/assets/ui/icone%20katrepat%20inventaire.png" },
+ { id: "sberg", name: "Sberg", icon: "/assets/ui/icone%20sberg%20inventaire.png" }
+]
+const INVENTORY_TEST_CARD_FILES = [
+ "035c0a2e-f1a5-45bb-b562-6af82fdbc664.png",
+ "08aaec5f-948d-4f14-bcec-dfdf1782c886.png",
+ "16e27e17-9360-4ed9-995b-877fcbd6ca83.png",
+ "239d07d3-77de-4e75-837f-c87b183f7e5c.png",
+ "25a8811c-60fc-4cd2-90cd-aae0565cc6d7.png",
+ "37f9904d-7566-4e53-a5d9-004350db5b42.png",
+ "46ff9357-cb77-4209-b199-6ebc85903827.png",
+ "48bab6a5-5583-4a6b-a853-986bcb5e4127.png",
+ "549ce5fc-8fac-4f9c-9c5f-c9b9cfcd1157.png",
+ "613b857f-51be-408c-ac62-c586f5a3a740.png",
+ "657e9cc2-7aab-48a0-86c9-b6083aa94538.png",
+ "65a3a91e-c3c4-4f9a-8dde-9bebcfdaa667.png",
+ "69d6d9e8-4fdc-4b44-90ec-c538ee8724a3.png",
+ "70deec7a-3ca7-4c5a-9a2e-da4bc1b7d10e.png",
+ "72dcf95f-2453-4925-b4b7-39e7c356b9a6.png",
+ "7316282e-bcd4-4313-bf43-60d2decf5846.png",
+ "78sdf87sf87ds.png",
+ "7f8f82a1-3ac6-4ee7-b220-850dc50bd770.png",
+ "839ed31e-fc34-4564-98c7-42e5618b24ca.png",
+ "84e5d7ed7e.png",
+ "84fgg748f7788778.png",
+ "85dqs56d74qs457dq.png",
+ "89b08b0e-2f03-4849-8e0c-aeebce72b239.png",
+ "8acf6037-bf6f-43a7-a887-3ca65211cdea.png",
+ "8ds7dqs7d.png",
+ "8e9f15d1-c3fd-4808-95ee-da29ddf19e92.png",
+ "8e9f5a8d-b7cf-4a65-9048-73e4c99f9afb.png",
+ "8f5d31cb-26a9-4f79-afc9-ad952a92050f.png",
+ "8fcf4c13-be80-4a70-8fac-167f30dfc798.png",
+ "8s7dqsd7sq8d.png",
+ "92fd912a-a461-4804-96fc-9b8fd081cdbd.png",
+ "930b8d3e-7702-4b01-97c9-f6fb223da56e.png",
+ "93e2334d-76c6-430d-a8cf-15b9437b9dfe.png",
+ "95ce6a3d-c0f6-46da-9d71-48419438ca83.png",
+ "98d74qs7ds7dsqd47.png",
+ "a0bda3eb-1777-4894-83cf-e63ef15381fd.png",
+ "b0cf1644-bcaf-4b4a-853d-83552ebda922.png",
+ "b90590a3-3251-4746-ae80-62ababe50d09.png",
+ "s54dq64dqs465d.png",
+ "sd4q5d4sqd54qd.png",
+ "sdqsdqsdqz8778787.png"
+]
 let packRevealResolve = null
 let packRevealEscHandlerBound = false
 let packRevealTimers = []
@@ -150,13 +300,13 @@ const FUSION_MAX_CYCLES = 25
   return div.innerHTML
  }
 
- function fmt(n) { return Number(n || 0).toLocaleString("fr-FR") }
+function fmt(n) { return Number(n || 0).toLocaleString("fr-FR") }
  function rarityRank(rarity) {
   const idx = RARITY_ORDER.indexOf(String(rarity || "").toUpperCase())
   return idx >= 0 ? idx : 99
  }
 
- function parseModeFromPath() {
+function parseModeFromPath() {
   const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
   return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
  }
@@ -211,18 +361,14 @@ function setMode(mode, updateUrl = true) {
   renderCurrentMode()
  }
 
- function setInventoryView(view) {
-  state.inventoryView = view
-  state.selected = null
-  if (view === "fragments") {
-   const rarityFilter = document.getElementById("rarityFilter")
-   if (rarityFilter) rarityFilter.value = ""
-  }
-  document.querySelectorAll(".play-subtab").forEach((btn) => {
-   btn.classList.toggle("active", btn.dataset.view === view)
-  })
-  renderCurrentMode()
- }
+function setInventoryView(view) {
+ state.inventoryView = "cards"
+ state.selected = null
+ document.querySelectorAll(".play-subtab").forEach((btn) => {
+  btn.classList.toggle("active", btn.dataset.view === "cards")
+ })
+ renderCurrentMode()
+}
 
  function groupFragments(fragments = []) {
   const grouped = new Map()
@@ -277,120 +423,196 @@ function setMode(mode, updateUrl = true) {
 
  }
 
- function getActiveSource() {
-  if (state.mode === "inventory" && state.inventoryView === "fragments") return state.groupedFragments
-  return (state.inventory && state.inventory.cards) || []
+function getActiveSource() {
+ return (state.inventory && state.inventory.cards) || []
+}
+
+function getFilteredItems() {
+ const set = String(document.getElementById("setFilter")?.value || "")
+
+ const items = getActiveSource().filter((item) => {
+  if (set && String(item.set) !== String(set)) return false
+  if (state.mode === "inventory" && Number(item.qty || 0) <= 0) return false
+  return true
+ })
+
+ items.sort((a, b) => {
+  const aId = Number(a.cardId || 0)
+  const bId = Number(b.cardId || 0)
+  if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) return aId - bId
+  return String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr")
+ })
+ return items
+}
+
+function getInventoryItemKey(item) {
+ const isFragment = String(item?.itemType || "card") === "fragment"
+ const cardId = String(item?.cardId || "")
+ if (isFragment) return `fragment:${cardId}:${Number(item?.fragmentNumber || 0)}`
+ return `card:${cardId}`
+}
+
+function getInventoryItemImage(item) {
+ if (Array.isArray(INVENTORY_TEST_CARD_FILES) && INVENTORY_TEST_CARD_FILES.length) {
+  const seed = String(item?.cardId || item?.cardName || item?.fragmentNumber || "0")
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) {
+   hash = ((hash * 31) + seed.charCodeAt(i)) >>> 0
+  }
+  const file = INVENTORY_TEST_CARD_FILES[hash % INVENTORY_TEST_CARD_FILES.length]
+  if (file) return `/assets/ui/cartes%20test/${encodeURIComponent(file)}`
+ }
+ return String(item?.imageUrl || "/assets/ui/pack-back-normal.png")
+}
+
+function getInventoryDisplayCardName(item) {
+ const cardId = String(item?.cardId || "").trim()
+ return cardId ? `Carte test ${cardId}` : "Carte test"
+}
+
+function getInventoryShopSellPrice(item) {
+ return Math.max(0, Math.floor(Number(item?.sellPrice || 0)))
+}
+
+async function handleInventoryShopSell(item) {
+ const cardId = String(item?.cardId || "").trim()
+ if (!cardId) {
+  showActionResult("inventoryActionBox", "<p>Carte invalide pour la vente shop.</p>", true)
+  return
+ }
+ openInventorySellConfirmModal(item)
+}
+
+async function handleInventoryMarketSell(item, triggerButton) {
+ const cardId = String(item?.cardId || "").trim()
+ if (!cardId) {
+  showActionResult("inventoryActionBox", "<p>Carte invalide pour la vente au marché.</p>", true)
+  return
  }
 
- function getFilteredItems() {
-  const query = String(document.getElementById("searchInput").value || "").trim().toLowerCase()
-  const set = document.getElementById("setFilter").value
-  const rarity = document.getElementById("rarityFilter").value
+ const suggestedPrice = Math.max(1, Math.floor(Number(item?.sellPrice || 250)))
+ const raw = window.prompt("Prix de vente au marché (kamas) :", String(suggestedPrice))
+ if (raw === null) return
 
-  const items = getActiveSource().filter((item) => {
-   if (query && !String(item.cardName || "").toLowerCase().includes(query)) return false
-   if (set && String(item.set) !== String(set)) return false
-   if (rarity && String(item.rarity) !== String(rarity)) return false
-   if (state.mode === "inventory" && state.inventoryView === "cards" && Number(item.qty || 0) <= 0) return false
-   return true
-  })
-
-  items.sort((a, b) => {
-   const qtyCmp = state.sortDesc ? Number(b.qty || 0) - Number(a.qty || 0) : Number(a.qty || 0) - Number(b.qty || 0)
-   if (qtyCmp !== 0) return qtyCmp
-   const rarityCmp = rarityRank(a.rarity) - rarityRank(b.rarity)
-   if (rarityCmp !== 0) return rarityCmp
-   return String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr")
-  })
-  return items
+ const normalized = String(raw || "").trim().replace(/\s+/g, "").replace(",", ".")
+ const price = Math.floor(Number(normalized))
+ if (!Number.isFinite(price) || price <= 0) {
+  showActionResult("inventoryActionBox", "<p>Prix invalide pour le marché.</p>", true)
+  return
  }
+
+ if (triggerButton) triggerButton.disabled = true
+ let result = null
+ try {
+  result = await postJson("/api/market/sell-card", { cardId, price })
+ } finally {
+  if (triggerButton) triggerButton.disabled = false
+ }
+
+ if (!result.ok) {
+  showActionResult("inventoryActionBox", `<p>${escapeHtml(result.data?.error || "Mise en vente impossible.")}</p>`, true)
+  return
+ }
+
+ const listingPrice = Number(result.data?.listing?.price || price)
+ await reloadGameplayDataAndRender()
+ showActionResult(
+  "inventoryActionBox",
+  `<p><strong>Marché:</strong> carte mise en vente.</p><p>Prix: ${fmt(listingPrice)} kamas</p>`
+ )
+}
+
+function renderInventoryDetailPanel(items = []) {
+ const panel = document.getElementById("inventoryDetailPanel")
+ if (!panel) return
+
+ const selected = (Array.isArray(items) ? items : []).find((item) => getInventoryItemKey(item) === String(state.selected || ""))
+ if (!selected) {
+  panel.classList.remove("has-item")
+  panel.innerHTML = ""
+  return
+ }
+
+ const rarity = String(selected.rarity || "C").toUpperCase()
+ const cardName = getInventoryDisplayCardName(selected)
+ const cardId = String(selected.cardId || "")
+ const setName = String(selected.setName || selected.set || "Set")
+ const qty = Number(selected.qty || 0)
+ const imageSrc = getInventoryItemImage(selected)
+ const isFragment = String(selected.itemType || "card") === "fragment"
+ const ownedText = isFragment
+  ? `x${fmt(qty)} (Fragment ${Number(selected.fragmentNumber || 0)}/5)`
+  : `x${fmt(qty)}`
+ const metaLine = `${cardId ? `#${cardId}` : "--"} • ${ownedText} • ${rarity} • ${setName}`
+ const canSell = !isFragment && cardId && getInventoryShopSellPrice(selected) > 0
+
+ panel.classList.add("has-item")
+ panel.innerHTML = `
+  <article class="inventory-detail-card">
+   <div class="inventory-detail-head">
+    <span class="chip chip-rarity">${escapeHtml(rarity)}</span>
+   </div>
+   <h3>${escapeHtml(cardName)}</h3>
+   <p class="inventory-detail-meta">${escapeHtml(metaLine)}</p>
+   <div class="inventory-detail-image-wrap">
+    <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(cardName)}" loading="lazy" onerror="this.src='/assets/ui/pack-back-normal.png'">
+   </div>
+   <div class="inventory-detail-actions">
+    <button type="button" class="inventory-detail-action-btn shop" data-inventory-detail-action="shop" ${canSell ? "" : "disabled"}>Vente shop</button>
+    <button type="button" class="inventory-detail-action-btn market" data-inventory-detail-action="market" ${canSell ? "" : "disabled"}>Vendre au marché</button>
+   </div>
+  </article>
+ `
+
+ const shopBtn = panel.querySelector('[data-inventory-detail-action="shop"]')
+ const marketBtn = panel.querySelector('[data-inventory-detail-action="market"]')
+ if (shopBtn) {
+  shopBtn.addEventListener("click", () => {
+   handleInventoryShopSell(selected).catch((error) => {
+    showActionResult("inventoryActionBox", `<p>${escapeHtml(error?.message || "Vente shop impossible.")}</p>`, true)
+   })
+  })
+ }
+ if (marketBtn) {
+  marketBtn.addEventListener("click", () => {
+   handleInventoryMarketSell(selected, marketBtn).catch((error) => {
+    showActionResult("inventoryActionBox", `<p>${escapeHtml(error?.message || "Mise en vente impossible.")}</p>`, true)
+   })
+  })
+ }
+}
 
 function renderInventoryGrid() {
  const grid = document.getElementById("playGrid")
  const items = getFilteredItems()
+
  if (!items.length) {
   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun résultat avec ces filtres.</p></div>'
+  renderInventoryDetailPanel([])
   return
  }
+
  grid.innerHTML = items.map((item) => {
-  const isCard = state.inventoryView === "cards" && String(item.itemType || "card") !== "fragment"
-  const rarity = String(item.rarity || "C").toUpperCase()
-  const setName = String(item.setName || item.set || "Set")
-  const cardName = String(item.cardName || "Carte")
-  const cardId = String(item.cardId || "")
-  const qty = Number(item.qty || 0)
-  const isFragment = String(item.itemType || "card") === "fragment"
-  const quantityLabel = isFragment
-   ? `Fragment ${Number(item.fragmentNumber || 0)}/5 • x${fmt(qty)}`
-   : `Possedees: x${fmt(qty)}`
-  const sellPrice = Number(item.sellPrice || 0)
-  const canSell = isCard && Number.isFinite(sellPrice) && sellPrice > 0
-  const miniThumbSrc = String(item.imageUrl || "/assets/ui/pack-back-normal.png")
-  const sellAction = canSell
-   ? `
-      <div class="action-row play-card-actions">
-       <button
-        type="button"
-        class="btn btn-outline play-card-sell-btn"
-        data-card-id="${escapeHtml(item.cardId)}"
-        data-card-name="${escapeHtml(item.cardName || "Carte")}"
-        data-sell-price="${sellPrice}">
-        Vendre ${fmt(sellPrice)} kamas
-       </button>
-      </div>
-     `
-   : ""
+  const itemKey = getInventoryItemKey(item)
+  const isActive = String(state.selected || "") === itemKey
+  const cardName = getInventoryDisplayCardName(item)
+  const miniThumbSrc = getInventoryItemImage(item)
   return `
-    <article class="play-card kshop-card play-kshop-card">
-     <div class="kshop-card-head">
-      <span class="chip chip-rarity">${escapeHtml(rarity)}</span>
-      <span class="chip">${escapeHtml(setName)}</span>
-     </div>
-     <h3>${escapeHtml(cardName)}</h3>
-     <p class="kshop-muted">${cardId ? `ID #${escapeHtml(cardId)}` : "ID --"}</p>
-     <div class="kshop-meta-row">
-      <div class="kshop-meta-main">
-       <p class="kshop-price-line"><strong>${escapeHtml(quantityLabel)}</strong></p>
-      </div>
-      <div class="kshop-mini-thumb-wrap" aria-hidden="true">
-       <img class="kshop-mini-thumb" data-card-preview="1" data-card-preview-name="${escapeHtml(cardName)}" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
-      </div>
-     </div>
-     ${sellAction}
+    <article class="play-card inventory-card-tile inventory-selectable ${isActive ? "active" : ""}" data-inventory-item-key="${escapeHtml(itemKey)}">
+     <img class="inventory-card-thumb" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="${escapeHtml(cardName)}" onerror="this.src='/assets/ui/pack-back-normal.png'">
     </article>
    `
-  }).join("")
+ }).join("")
 
-  grid.querySelectorAll(".play-card-sell-btn").forEach((btn) => {
-   btn.addEventListener("click", async (event) => {
-    event.preventDefault()
-    event.stopPropagation()
-    const cardId = String(btn.dataset.cardId || "").trim()
-    const cardName = String(btn.dataset.cardName || "Carte")
-    const sellPrice = Number(btn.dataset.sellPrice || 0)
-    if (!cardId || !Number.isFinite(sellPrice) || sellPrice <= 0) {
-     showActionResult("inventoryActionBox", "<p>Prix de vente indisponible pour cette carte.</p>", true)
-     return
-    }
-    const ok = window.confirm(`Vendre 1 exemplaire de ${cardName} pour ${fmt(sellPrice)} kamas ?`)
-    if (!ok) return
-    btn.disabled = true
-    btn.textContent = "Vente..."
-    const res = await postJson("/api/game/sell-card", { cardId })
-    if (!res.ok) {
-     showActionResult("inventoryActionBox", `<p>${escapeHtml(res.data?.error || "Vente impossible.")}</p>`, true)
-     renderCurrentMode()
-     return
-    }
-    const sold = res.data?.sold || {}
-    await reloadGameplayDataAndRender()
-    showActionResult(
-     "inventoryActionBox",
-     `<p><strong>Carte vendue :</strong> ${escapeHtml(sold.cardName || cardName)} (${escapeHtml(sold.rarity || "")})</p><p>Gain: +${fmt(Number(sold.gain || sellPrice))} kamas • Solde: ${fmt(Number(sold.kamasAfter || res.data?.kamas || 0))} kamas</p>`
-    )
-   })
+ grid.querySelectorAll("[data-inventory-item-key]").forEach((card) => {
+  card.addEventListener("click", () => {
+   state.selected = String(card.getAttribute("data-inventory-item-key") || "")
+   renderCurrentMode()
   })
- }
+ })
+
+ renderInventoryDetailPanel(items)
+}
 
 function getCraftCandidates() {
  const grouped = new Map()
@@ -423,6 +645,325 @@ function getCraftCandidates() {
 function getFusionRowByRarity(rarity) {
  const rows = (state.gameMeta && state.gameMeta.fusion) || []
  return rows.find((row) => String(row.rarity || "").toUpperCase() === String(rarity || "").toUpperCase()) || null
+}
+
+function getTopbarKamas() {
+ const fromProfile = Number(state.profile?.kamas)
+ if (Number.isFinite(fromProfile)) return Math.max(0, Math.floor(fromProfile))
+ const fromMe = Number(state.me?.kamas)
+ if (Number.isFinite(fromMe)) return Math.max(0, Math.floor(fromMe))
+ return 0
+}
+
+function getTopbarPacks() {
+ const fromProfile = Number(state.profile?.packs)
+ if (Number.isFinite(fromProfile)) return Math.max(0, Math.floor(fromProfile))
+ const fromMe = Number(state.me?.packs)
+ if (Number.isFinite(fromMe)) return Math.max(0, Math.floor(fromMe))
+ return 0
+}
+
+function syncInventoryTopbar() {
+ const bar = document.getElementById("inventoryTopbar")
+ const kamasEl = document.getElementById("inventoryTopKamas")
+ const packsEl = document.getElementById("inventoryTopPacks")
+ if (!bar || !kamasEl || !packsEl) return
+
+ const show = state.mode === "inventory"
+ bar.hidden = !show
+ document.body.classList.toggle("inventory-layout-active", show)
+ if (!show) return
+
+ kamasEl.textContent = fmt(getTopbarKamas())
+ packsEl.textContent = fmt(getTopbarPacks())
+}
+
+function getInventoryBuyEls() {
+ return {
+  modal: document.getElementById("inventoryBuyModal"),
+  qtyValue: document.getElementById("inventoryBuyQtyValue"),
+  costPreview: document.getElementById("inventoryBuyCostPreview"),
+  packPreview: document.getElementById("inventoryBuyPackPreview"),
+  balanceBefore: document.getElementById("inventoryBuyBalanceBefore"),
+  balanceAfter: document.getElementById("inventoryBuyBalanceAfter"),
+  error: document.getElementById("inventoryBuyError"),
+  totalCost: document.getElementById("inventoryBuyTotalCost"),
+  submitBtn: document.getElementById("inventoryBuySubmitBtn"),
+  minus10Btn: document.getElementById("inventoryBuyMinus10Btn"),
+  minus1Btn: document.getElementById("inventoryBuyMinus1Btn"),
+  plus1Btn: document.getElementById("inventoryBuyPlus1Btn"),
+  plus10Btn: document.getElementById("inventoryBuyPlus10Btn"),
+  maxBtn: document.getElementById("inventoryBuyMaxBtn")
+ }
+}
+
+function isInventoryBuyModalVisible() {
+ const modal = document.getElementById("inventoryBuyModal")
+ return Boolean(modal && !modal.hidden && modal.classList.contains("show"))
+}
+
+function isInventorySellConfirmVisible() {
+ const modal = document.getElementById("inventorySellConfirmModal")
+ return Boolean(modal && !modal.hidden && modal.classList.contains("show"))
+}
+
+function syncInventoryBuyModalBodyLock() {
+ document.body.classList.toggle("inventory-buy-modal-open", isInventoryBuyModalVisible() || isInventorySellConfirmVisible())
+}
+
+function getInventoryPackPrice() {
+ const fromMeta = Number(state.gameMeta?.packPrice)
+ if (Number.isFinite(fromMeta) && fromMeta > 0) return Math.floor(fromMeta)
+ return 2500
+}
+
+function clampInventoryBuyQty(value) {
+ return Math.max(1, Math.min(999, Math.floor(Number(value || 1))))
+}
+
+function getInventoryBuyTotalCost() {
+ return Math.max(0, getInventoryPackPrice()) * Math.max(1, Number(inventoryBuyState.quantity || 1))
+}
+
+function getInventoryBuyMaxQty() {
+ const unitPrice = Math.max(1, getInventoryPackPrice())
+ const balance = Math.max(0, Number(getTopbarKamas() || 0))
+ const affordable = Math.floor(balance / unitPrice)
+ return clampInventoryBuyQty(Math.max(1, affordable))
+}
+
+function setInventoryBuyQty(nextValue) {
+ inventoryBuyState.quantity = clampInventoryBuyQty(nextValue)
+ renderInventoryBuyModal()
+}
+
+function renderInventoryBuyModal() {
+ const el = getInventoryBuyEls()
+ if (!el.modal) return
+
+ const qty = clampInventoryBuyQty(inventoryBuyState.quantity)
+ inventoryBuyState.quantity = qty
+ const totalCost = getInventoryBuyTotalCost()
+ const balanceBefore = Math.max(0, Number(getTopbarKamas() || 0))
+ const balanceAfter = balanceBefore - totalCost
+ const hasEnough = balanceAfter >= 0
+ const busy = Boolean(inventoryBuyState.busy)
+ const submitLabel = el.submitBtn ? el.submitBtn.querySelector(".label") : null
+
+ if (el.qtyValue) el.qtyValue.textContent = String(qty)
+ if (el.costPreview) el.costPreview.textContent = fmt(totalCost)
+ if (el.packPreview) el.packPreview.textContent = `x${qty}`
+ if (el.balanceBefore) el.balanceBefore.textContent = fmt(balanceBefore)
+ if (el.balanceAfter) el.balanceAfter.textContent = fmt(Math.max(0, balanceAfter))
+ if (el.totalCost) el.totalCost.textContent = fmt(totalCost)
+
+ if (!busy) {
+  if (!hasEnough) {
+   inventoryBuyState.error = `Kamas insuffisants (${fmt(totalCost)} requis).`
+  } else if (String(inventoryBuyState.error || "").startsWith("Kamas insuffisants")) {
+   inventoryBuyState.error = ""
+  }
+ }
+ if (el.error) el.error.textContent = String(inventoryBuyState.error || "")
+
+ if (el.minus10Btn) el.minus10Btn.disabled = busy || qty <= 1
+ if (el.minus1Btn) el.minus1Btn.disabled = busy || qty <= 1
+ if (el.plus1Btn) el.plus1Btn.disabled = busy || qty >= 999
+ if (el.plus10Btn) el.plus10Btn.disabled = busy || qty >= 999
+ if (el.maxBtn) {
+  const maxQty = getInventoryBuyMaxQty()
+  el.maxBtn.disabled = busy || qty >= maxQty
+ }
+ if (el.submitBtn) {
+  el.submitBtn.disabled = busy || !hasEnough || totalCost <= 0
+  if (submitLabel) submitLabel.textContent = busy ? "Achat..." : "Acheter"
+ }
+}
+
+function closeInventoryBuyModal() {
+ const el = getInventoryBuyEls()
+ if (!el.modal || el.modal.hidden) return
+ el.modal.classList.remove("show")
+ syncInventoryBuyModalBodyLock()
+ window.setTimeout(() => {
+  if (!el.modal) return
+  el.modal.hidden = true
+  syncInventoryBuyModalBodyLock()
+ }, 180)
+}
+
+function getInventorySellConfirmEls() {
+ return {
+  modal: document.getElementById("inventorySellConfirmModal"),
+  message: document.getElementById("inventorySellConfirmMessage"),
+  error: document.getElementById("inventorySellConfirmError"),
+  cancelBtn: document.getElementById("inventorySellConfirmCancelBtn"),
+  submitBtn: document.getElementById("inventorySellConfirmSubmitBtn")
+ }
+}
+
+function renderInventorySellConfirmModal() {
+ const el = getInventorySellConfirmEls()
+ if (!el.modal) return
+ const item = inventorySellConfirmState.item
+ const price = getInventoryShopSellPrice(item)
+ const cardName = getInventoryDisplayCardName(item)
+ if (el.message) el.message.textContent = `Vous allez vendre ${cardName} pour ${fmt(price)} kamas.`
+ if (el.error) el.error.textContent = String(inventorySellConfirmState.error || "")
+ if (el.cancelBtn) el.cancelBtn.disabled = Boolean(inventorySellConfirmState.busy)
+ if (el.submitBtn) {
+  el.submitBtn.disabled = Boolean(inventorySellConfirmState.busy)
+  el.submitBtn.textContent = inventorySellConfirmState.busy ? "Validation..." : "Valider"
+ }
+}
+
+function openInventorySellConfirmModal(item) {
+ const el = getInventorySellConfirmEls()
+ if (!el.modal) return
+ inventorySellConfirmState.item = item ? { ...item } : null
+ inventorySellConfirmState.busy = false
+ inventorySellConfirmState.error = ""
+ renderInventorySellConfirmModal()
+ el.modal.hidden = false
+ requestAnimationFrame(() => {
+  if (!el.modal) return
+  el.modal.classList.add("show")
+  syncInventoryBuyModalBodyLock()
+ })
+}
+
+function closeInventorySellConfirmModal() {
+ const el = getInventorySellConfirmEls()
+ if (!el.modal || el.modal.hidden) return
+ if (inventorySellConfirmState.busy) return
+ el.modal.classList.remove("show")
+ syncInventoryBuyModalBodyLock()
+ window.setTimeout(() => {
+  if (!el.modal) return
+  el.modal.hidden = true
+  inventorySellConfirmState.item = null
+  inventorySellConfirmState.error = ""
+  syncInventoryBuyModalBodyLock()
+ }, 180)
+}
+
+async function submitInventoryShopSellConfirm() {
+ if (inventorySellConfirmState.busy) return
+ const item = inventorySellConfirmState.item
+ const cardId = String(item?.cardId || "").trim()
+ if (!cardId) {
+  inventorySellConfirmState.error = "Carte invalide pour la vente shop."
+  renderInventorySellConfirmModal()
+  return
+ }
+ inventorySellConfirmState.busy = true
+ inventorySellConfirmState.error = ""
+ renderInventorySellConfirmModal()
+ try {
+  const result = await postJson("/api/game/sell-card", { cardId })
+  if (!result.ok) {
+   inventorySellConfirmState.error = String(result.data?.error || "Vente shop impossible.")
+   return
+  }
+  const sold = result.data?.sold || {}
+  closeInventorySellConfirmModal()
+  await reloadGameplayDataAndRender()
+  showActionResult(
+   "inventoryActionBox",
+   `<p><strong>Vente shop:</strong> ${escapeHtml(String(sold.cardName || getInventoryDisplayCardName(item)))}</p><p>Gain: +${fmt(Number(sold.gain || 0))} kamas • Solde: ${fmt(Number(sold.kamasAfter || result.data?.kamas || 0))} kamas</p>`
+  )
+ } finally {
+  inventorySellConfirmState.busy = false
+  if (isInventorySellConfirmVisible()) renderInventorySellConfirmModal()
+ }
+}
+
+function openInventoryBuyModal() {
+ const el = getInventoryBuyEls()
+ if (!el.modal) return
+ inventoryBuyState.quantity = 1
+ inventoryBuyState.error = ""
+ inventoryBuyState.busy = false
+ renderInventoryBuyModal()
+ el.modal.hidden = false
+ requestAnimationFrame(() => {
+  if (!el.modal) return
+  el.modal.classList.add("show")
+  syncInventoryBuyModalBodyLock()
+ })
+}
+
+async function submitInventoryBuyPacks() {
+ if (inventoryBuyState.busy) return
+ const quantity = clampInventoryBuyQty(inventoryBuyState.quantity)
+ const totalCost = getInventoryBuyTotalCost()
+ if (totalCost <= 0) return
+ if (Number(getTopbarKamas() || 0) < totalCost) {
+  inventoryBuyState.error = `Kamas insuffisants (${fmt(totalCost)} requis).`
+  renderInventoryBuyModal()
+  return
+ }
+
+ inventoryBuyState.busy = true
+ inventoryBuyState.error = ""
+ renderInventoryBuyModal()
+
+ try {
+  const res = await postJson("/api/game/buy-packs", { quantity })
+  if (!res.ok) {
+   throw new Error(String(res.data?.error || "Achat impossible."))
+  }
+  await reloadGameplayDataAndRender()
+  showActionResult(
+   "inventoryActionBox",
+   `<p><strong>Achat valide:</strong> x${fmt(Number(res.data?.quantity || quantity))} packs</p><p>Stock: ${fmt(Number(res.data?.packStock || 0))} • Solde: 💰 ${fmt(Number(res.data?.kamas || 0))}</p>`
+  )
+  closeInventoryBuyModal()
+ } catch (error) {
+  inventoryBuyState.error = String(error?.message || "Achat impossible.")
+ } finally {
+  inventoryBuyState.busy = false
+  if (isInventoryBuyModalVisible()) renderInventoryBuyModal()
+ }
+}
+
+async function buyPacksFromInventoryTopbar() {
+ openInventoryBuyModal()
+}
+
+function renderInventorySetRail() {
+ const rail = document.getElementById("inventorySetRail")
+ const setFilter = document.getElementById("setFilter")
+ if (!rail || !setFilter) return
+
+ const activeSet = String(setFilter.value || "")
+ rail.innerHTML = INVENTORY_SET_ICONS.map((set) => {
+  const active = activeSet === set.id
+  return `
+   <button
+    type="button"
+    class="inventory-set-btn ${active ? "active" : ""}"
+   data-inventory-set-id="${escapeHtml(set.id)}"
+   aria-label="${escapeHtml(set.name)}"
+   title="${escapeHtml(set.name)}">
+    <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
+    <span class="inventory-set-label">${escapeHtml(set.name)}</span>
+   </button>
+  `
+ }).join("")
+}
+
+function applyInventorySetFilter(nextSetId) {
+ const setFilter = document.getElementById("setFilter")
+ if (!setFilter) return
+
+ const safeNext = String(nextSetId || "").trim().toLowerCase()
+ if (String(setFilter.value || "") === safeNext) {
+  setFilter.value = ""
+ } else {
+  setFilter.value = safeNext
+ }
+ renderCurrentMode()
 }
 
 function getFusionRows() {
@@ -2570,22 +3111,23 @@ async function handleCraftAction() {
  }
 }
 
- function syncPanelVisibility() {
+function syncPanelVisibility() {
   const controls = document.getElementById("playControls")
   const subtabs = document.getElementById("inventorySubtabs")
-  const rarityFilter = document.getElementById("rarityFilter")
   const grid = document.getElementById("playGrid")
   const packsPanel = document.getElementById("playPacks")
   const fusionPanel = document.getElementById("playFusion")
   const craftPanel = document.getElementById("playCraft")
   const questsPanel = document.getElementById("playQuests")
+  const inventoryLayout = document.getElementById("inventoryContentLayout")
+  const inventorySetRailWrap = document.getElementById("inventorySetRailWrap")
+  const inventoryDetailPanel = document.getElementById("inventoryDetailPanel")
   const title = document.getElementById("playTitle")
   const subtitle = document.getElementById("playSubtitle")
   const inventoryActionBox = document.getElementById("inventoryActionBox")
 
-  controls.style.display = "grid"
-  subtabs.style.display = state.mode === "inventory" ? "flex" : "none"
-  rarityFilter.style.display = (state.mode === "inventory" && state.inventoryView === "fragments") ? "none" : ""
+  controls.style.display = state.mode === "inventory" ? "none" : "grid"
+  subtabs.style.display = "none"
   if (subtitle) subtitle.style.display = (state.mode === "inventory" || state.mode === "quests") ? "block" : "none"
   if (inventoryActionBox) {
    if (state.mode !== "inventory") {
@@ -2599,6 +3141,13 @@ async function handleCraftAction() {
   fusionPanel.style.display = "none"
   craftPanel.style.display = "none"
   questsPanel.style.display = "none"
+  if (inventoryLayout) inventoryLayout.classList.toggle("inventory-mode", state.mode === "inventory")
+  if (inventorySetRailWrap) inventorySetRailWrap.style.display = state.mode === "inventory" ? "block" : "none"
+  if (inventoryDetailPanel) inventoryDetailPanel.style.display = state.mode === "inventory" ? "block" : "none"
+  if (state.mode !== "inventory") {
+   closeInventoryBuyModal()
+   closeInventorySellConfirmModal()
+  }
 
   if (state.mode === "packs") {
    title.textContent = "PACKS"
@@ -2622,13 +3171,14 @@ async function handleCraftAction() {
    grid.style.display = "none"
    questsPanel.style.display = "block"
   } else {
-   title.textContent = state.inventoryView === "fragments" ? "Fragments" : "Inventaire"
+   title.textContent = "Inventaire"
    if (subtitle) {
-    subtitle.textContent = state.inventoryView === "fragments"
-     ? "Consulte tes fragments et prépare tes crafts SSR."
-     : "Consulte ton inventaire et fait le tri dans ton inventaire."
+    subtitle.textContent = "Consulte ton inventaire et fait le tri dans ton inventaire."
    }
   }
+
+  syncInventoryTopbar()
+  renderInventorySetRail()
  }
 
  function renderCurrentMode() {
@@ -2640,7 +3190,7 @@ async function handleCraftAction() {
   renderInventoryGrid()
  }
 
- function bindEvents() {
+function bindEvents() {
   document.getElementById("navToggle").addEventListener("click", () => {
    document.getElementById("navLinks").classList.toggle("open")
   })
@@ -2661,15 +3211,61 @@ async function handleCraftAction() {
    btn.addEventListener("click", () => setInventoryView(btn.dataset.view))
   })
 
-  document.getElementById("searchInput").addEventListener("input", renderCurrentMode)
-  document.getElementById("setFilter").addEventListener("change", renderCurrentMode)
-  document.getElementById("rarityFilter").addEventListener("change", renderCurrentMode)
+  const setFilter = document.getElementById("setFilter")
+  if (setFilter) setFilter.addEventListener("change", renderCurrentMode)
 
-  document.getElementById("sortBtn").addEventListener("click", () => {
-   state.sortDesc = !state.sortDesc
-   document.getElementById("sortBtn").textContent = state.sortDesc ? "Tri Qté v" : "Tri Qté ^"
-   renderCurrentMode()
+  const inventoryTopBuyPacksBtn = document.getElementById("inventoryTopBuyPacksBtn")
+  if (inventoryTopBuyPacksBtn) {
+   inventoryTopBuyPacksBtn.addEventListener("click", () => {
+    buyPacksFromInventoryTopbar().catch(() => {})
+   })
+  }
+
+  document.querySelectorAll("[data-close-inventory-buy-modal]").forEach((node) => {
+   node.addEventListener("click", closeInventoryBuyModal)
   })
+  document.querySelectorAll("[data-close-inventory-sell-confirm]").forEach((node) => {
+   node.addEventListener("click", closeInventorySellConfirmModal)
+  })
+  const inventoryBuyMinus10Btn = document.getElementById("inventoryBuyMinus10Btn")
+  const inventoryBuyMinus1Btn = document.getElementById("inventoryBuyMinus1Btn")
+  const inventoryBuyPlus1Btn = document.getElementById("inventoryBuyPlus1Btn")
+  const inventoryBuyPlus10Btn = document.getElementById("inventoryBuyPlus10Btn")
+  const inventoryBuyMaxBtn = document.getElementById("inventoryBuyMaxBtn")
+  const inventoryBuySubmitBtn = document.getElementById("inventoryBuySubmitBtn")
+  const inventorySellConfirmSubmitBtn = document.getElementById("inventorySellConfirmSubmitBtn")
+
+  if (inventoryBuyMinus10Btn) inventoryBuyMinus10Btn.addEventListener("click", () => setInventoryBuyQty(inventoryBuyState.quantity - 10))
+  if (inventoryBuyMinus1Btn) inventoryBuyMinus1Btn.addEventListener("click", () => setInventoryBuyQty(inventoryBuyState.quantity - 1))
+  if (inventoryBuyPlus1Btn) inventoryBuyPlus1Btn.addEventListener("click", () => setInventoryBuyQty(inventoryBuyState.quantity + 1))
+  if (inventoryBuyPlus10Btn) inventoryBuyPlus10Btn.addEventListener("click", () => setInventoryBuyQty(inventoryBuyState.quantity + 10))
+  if (inventoryBuyMaxBtn) inventoryBuyMaxBtn.addEventListener("click", () => setInventoryBuyQty(getInventoryBuyMaxQty()))
+  if (inventoryBuySubmitBtn) inventoryBuySubmitBtn.addEventListener("click", () => {
+   submitInventoryBuyPacks().catch(() => {})
+  })
+  if (inventorySellConfirmSubmitBtn) inventorySellConfirmSubmitBtn.addEventListener("click", () => {
+   submitInventoryShopSellConfirm().catch((error) => {
+    showActionResult("inventoryActionBox", `<p>${escapeHtml(error?.message || "Vente shop impossible.")}</p>`, true)
+   })
+  })
+
+  document.addEventListener("keydown", (event) => {
+   if (event.key !== "Escape") return
+   if (isInventorySellConfirmVisible()) {
+    closeInventorySellConfirmModal()
+    return
+   }
+   if (isInventoryBuyModalVisible()) closeInventoryBuyModal()
+  })
+
+  const inventorySetRail = document.getElementById("inventorySetRail")
+  if (inventorySetRail) {
+   inventorySetRail.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-inventory-set-id]")
+    if (!btn) return
+    applyInventorySetFilter(btn.getAttribute("data-inventory-set-id"))
+   })
+  }
 
   document.getElementById("playPacks").addEventListener("click", (event) => {
    if (event.target && event.target.id === "buyPacksBtn") return handleBuyPacksAction().catch(() => {})

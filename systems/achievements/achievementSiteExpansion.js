@@ -13,6 +13,10 @@ function arrCount(value) {
  return Array.isArray(value) ? value.length : 0
 }
 
+function marketSalesCount(user) {
+ return Math.max(n(user, "marketSalesConfirmed"), n(user, "marketListingsCreated"))
+}
+
 function hasShopRarities(user, expected) {
  const owned = user?.stats?.shopBoughtRarities || {}
  return expected.every((rarity) => Boolean(owned?.[rarity]))
@@ -93,15 +97,15 @@ module.exports = {
  siteCalendrierVerrouille: { name: "Calendrier Verrouille", badge: "🗓️", description: "Réaliser 60 daily claims.", title: "Calendrier Scellé", trigger: "daily", condition: (u) => n(u, "dailyClaims") >= 60 },
 
  /* 11-20 (13 exclu) */
- marketComptoirMobile: { name: "Comptoir Mobile", badge: "🧾", description: "Publier 25 annonces sur 10 cartes distinctes.", title: "Annonceur Actif", trigger: "economy", condition: (u) => n(u, "marketListingsCreated") >= 25 && mapCount(u?.stats?.marketListedCardIds) >= 10 },
- marketVenteEclair: { name: "Vente Eclair", badge: "⚡", description: "Réaliser 10 ventes en moins d'une minute.", title: "Scalper", trigger: "economy", condition: (u) => n(u, "marketQuickSales") >= 10 },
- marketReprisePropre: { name: "Reprise Propre", badge: "♻️", description: "Retirer 50 annonces.", title: "Gestionnaire de Vitrine", trigger: "economy", condition: (u) => n(u, "marketListingsRemoved") >= 50 },
- marketTresorier: { name: "Tresorier du Marche", badge: "🏦", description: "Gagner 1 000 000 kamas via le marché.", title: "Comptable du Krosmoz", trigger: "economy", condition: (u) => n(u, "marketKamasEarned") >= 1_000_000 },
- marketBraderie: { name: "Journee de Braderie", badge: "📣", description: "Vendre 20 cartes en une journée.", title: "Crieur Public", trigger: "economy", condition: (u) => n(u, "maxMarketSalesInDay") >= 20 },
- marketDestockeurRoyal: { name: "Destockeur Royal", badge: "📦", description: "Vendre 300 doublons.", title: "Vide-Stock", trigger: "economy", condition: (u) => n(u, "cardsSold") >= 300 },
- marketAcheteurTactique: { name: "Acheteur Tactique", badge: "🛒", description: "Acheter 100 cartes au marché.", title: "Négociateur", trigger: "economy", condition: (u) => n(u, "marketBought") >= 100 },
- marketMainInvisible2: { name: "Main Invisible II", badge: "🕶️", description: "Réaliser 200 transactions (achat + vente).", title: "Courtier Fantôme", trigger: "economy", condition: (u) => (n(u, "cardsSold") + n(u, "marketBought")) >= 200 },
- marketCentTransactions: { name: "Cent Transactions", badge: "💼", description: "Réaliser 100 ventes confirmées.", title: "Professionnel du Trade", trigger: "economy", condition: (u) => n(u, "cardsSold") >= 100 },
+ marketComptoirMobile: { name: "Comptoir Mobile", badge: "🧾", description: "Publier 25 annonces sur 10 cartes distinctes.", title: "Annonceur Actif", trigger: "market", condition: (u) => n(u, "marketListingsCreated") >= 25 && mapCount(u?.stats?.marketListedCardIds) >= 10 },
+ marketVenteEclair: { name: "Vente Eclair", badge: "⚡", description: "Réaliser 10 ventes en moins d'une minute.", title: "Scalper", trigger: "market", condition: (u) => n(u, "marketQuickSales") >= 10 },
+ marketReprisePropre: { name: "Reprise Propre", badge: "♻️", description: "Retirer 50 annonces.", title: "Gestionnaire de Vitrine", trigger: "market", condition: (u) => n(u, "marketListingsRemoved") >= 50 },
+ marketTresorier: { name: "Tresorier du Marche", badge: "🏦", description: "Gagner 1 000 000 kamas via le marché.", title: "Comptable du Krosmoz", trigger: "market", condition: (u) => n(u, "marketKamasEarned") >= 1_000_000 },
+ marketBraderie: { name: "Journee de Braderie", badge: "📣", description: "Vendre 20 cartes en une journée.", title: "Crieur Public", trigger: "market", condition: (u) => n(u, "maxMarketSalesInDay") >= 20 },
+ marketDestockeurRoyal: { name: "Destockeur Royal", badge: "📦", description: "Vendre 300 doublons.", title: "Vide-Stock", trigger: "market", condition: (u) => marketSalesCount(u) >= 300 },
+ marketAcheteurTactique: { name: "Acheteur Tactique", badge: "🛒", description: "Acheter 100 cartes au marché.", title: "Négociateur", trigger: "market", condition: (u) => n(u, "marketBought") >= 100 },
+ marketMainInvisible2: { name: "Main Invisible II", badge: "🕶️", description: "Réaliser 200 transactions (achat + vente).", title: "Courtier Fantôme", trigger: "market", condition: (u) => (marketSalesCount(u) + n(u, "marketBought")) >= 200 },
+ marketCentTransactions: { name: "Cent Transactions", badge: "💼", description: "Réaliser 100 ventes confirmées.", title: "Professionnel du Trade", trigger: "market", condition: (u) => marketSalesCount(u) >= 100 },
 
  /* 21-30 (25 exclu) */
  shopClientReset: { name: "Client du Reset", badge: "⏱️", description: "Acheter dans les 10 min du reset, 10 fois.", title: "Lève-Tôt du Shop", trigger: "krosmoshop", condition: (u) => n(u, "shopResetSnipes") >= 10 },
@@ -186,10 +190,9 @@ module.exports = {
  secretClefInterdite: { name: "Clef Interdite", badge: "🗝️", description: "Consulter les succès secrets.", title: "Porteur de Clef", trigger: "secret", secret: true, condition: (u) => Boolean(u?.stats?.viewedSecretAchievements) },
  secretTimingDivin: { name: "Timing Divin", badge: "⏰", description: "Claim le /daily proche du reset 7 fois.", title: "Horloger Divin", trigger: "daily", secret: true, condition: (u) => n(u, "dailyNearResetClaims") >= 7 },
  secretTripleAlignement: { name: "Triple Alignement", badge: "🔺", description: "Daily + roulette + piñata en 2 minutes.", title: "Alignement Total", trigger: "event", secret: true, condition: (u) => n(u, "tripleAlignment") >= 1 },
- secretOmbreComptoir: { name: "Ombre du Comptoir", badge: "🕴️", description: "Réaliser 30 flips marché.", title: "Flipper de l'Ombre", trigger: "economy", secret: true, condition: (u) => n(u, "marketFlips") >= 30 },
+ secretOmbreComptoir: { name: "Ombre du Comptoir", badge: "🕴️", description: "Réaliser 30 flips marché.", title: "Flipper de l'Ombre", trigger: "market", secret: true, condition: (u) => n(u, "marketFlips") >= 30 },
  secretDernierJour: { name: "Dernier Jour", badge: "📅", description: "Claim en fin de saison 10 fois.", title: "Dernière Minute", trigger: "progression", secret: true, condition: (u) => n(u, "bpLastDayClaims") >= 10 },
- secretCartelEclair: { name: "Cartel Eclair", badge: "💹", description: "Atteindre un rythme intense de trade.", title: "Cartel Éclair", trigger: "economy", secret: true, condition: (u) => n(u, "marketBought") >= 10 && n(u, "maxMarketSalesInDay") >= 10 },
+ secretCartelEclair: { name: "Cartel Eclair", badge: "💹", description: "Atteindre un rythme intense de trade.", title: "Cartel Éclair", trigger: "market", secret: true, condition: (u) => n(u, "marketBought") >= 10 && n(u, "maxMarketSalesInDay") >= 10 },
  secretHerautCache: { name: "Heraut Cache", badge: "🎭", description: "Rester sans titre malgré de nombreux succès.", title: "Héraut Caché", trigger: "secret", secret: true, condition: (u) => arrCount(u?.achievements) >= 120 && String(u?.title || "Nouveau") === "Nouveau" },
  secretEnigmeDouze: { name: "Enigme des Douze", badge: "🧩", description: "Débloquer 12 succès secrets.", title: "Enigme des Douze", trigger: "secret", secret: true, condition: (u) => countSecretUnlocked(u) >= 12 }
 }
-
