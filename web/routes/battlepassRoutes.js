@@ -14,7 +14,7 @@ const { ensureCurrentSeason, getSeasonTemplate } = require("../../systems/season
 module.exports = function mount(app, ctx) {
  const {
   requireSession, resolveDiscordUser,
-  buildMePayload, countUnlockedAchievements
+  buildMePayload, countUnlockedAchievements, invalidateUserCaches
  } = ctx
 
  app.get("/api/battlepass/season", (req, res) => {
@@ -105,7 +105,10 @@ module.exports = function mount(app, ctx) {
 
    const user = getUser(session.userId)
    const unlocked = user ? achievementCheck(user, "progression") : []
-   if (user) save(session.userId)
+   if (user) {
+    save(session.userId)
+    invalidateUserCaches([session.userId])
+   }
 
    const overview = getBattlePassOverview(session.userId)
    res.json({
@@ -137,7 +140,10 @@ module.exports = function mount(app, ctx) {
 
    const user = getUser(session.userId)
    const unlocked = user ? achievementCheck(user, "progression") : []
-   if (user) save(session.userId)
+   if (user) {
+    save(session.userId)
+    invalidateUserCaches([session.userId])
+   }
 
    const overview = getBattlePassOverview(session.userId)
    res.json({
@@ -165,7 +171,10 @@ module.exports = function mount(app, ctx) {
 
    const user = getUser(session.userId)
    const unlocked = user ? achievementCheck(user, "economy") : []
-   if (user) save(session.userId)
+   if (user) {
+    save(session.userId)
+    invalidateUserCaches([session.userId])
+   }
 
    const overview = getBattlePassOverview(session.userId)
    res.json({

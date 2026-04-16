@@ -9,6 +9,71 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-16 -> 2026-04-16) - Optimisation stockage inventaire, cache API et perf web
+
+### Added
+
+- **Normalisation du stockage inventaire utilisateur en SQLite** (`systems/database.js`)
+  - Nouvelles tables `user_cards`, `user_fragments`, `user_recruit_history`
+  - Index dedies pour les lectures rapides par utilisateur/carte/fragment
+  - Chargement user hydrate maintenant `cards`, `fragments`, `recruitHistory` depuis les tables normalisees
+  - Suppression transactionnelle des donnees normalisees lors d'un `dbDeleteUser()`
+
+- **Migration one-shot de normalisation users v2** (`systems/migrate.js`)
+  - Nouvelle migration `runUserPayloadNormalization(cardsDefs)` executee automatiquement au boot
+  - Marquage idempotent via `meta.migrated_users_payload_v2_at`
+  - Re-sauvegarde transactionnelle de tous les users existants pour deplacer cartes/fragments/historique vers tables dediees
+
+- **Cache inventaire web cote API** (`web/routes/playerRoutes.js`)
+  - `GET /api/me/inventory` passe par `apiCache.getOrCompute()` avec cle `inventory:<userId>` (TTL 10s)
+
+- **Helper central d'invalidation de cache utilisateur** (`web/Server.js`)
+  - Ajout de `invalidateUserCaches(userIds, options)` invalide `profile:*`, `inventory:*` et leaderboards
+  - Expose dans le `ctx` des routes pour usage uniforme
+
+- **Compression HTTP reponses API/pages** (`web/Server.js`, `package.json`)
+  - Integration de `compression` avec seuil 1KB
+  - Dependance ajoutee : `compression`
+
+### Changed
+
+- **Ecriture user en base reduite et transactionnelle** (`systems/database.js`)
+  - `dbSaveUser()` retire `cards`, `fragments`, `recruitHistory` du blob `users.data`
+  - Les colonnes indexees (`total_cards`, `unique_cards`, `ssr_count`) sont conservees et recalcules
+  - Ecriture atomique dans `users` + tables normalisees dans une meme transaction
+
+- **Build inventaire optimise** (`web/Server.js`)
+  - `buildInventoryPayload()` optimise pour limiter allocations/sorts et prioriser tri par `cardId`
+  - Reutilisation de map memoisee `cardsById` au lieu de reconstruire `new Map(cards.map(...))` a chaque appel
+
+- **Memoisation des metadonnees cartes/sets** (`web/Server.js`)
+  - Ajout de `getCardsByIdMap(cards)` avec cache de reference
+  - `getCardSetNameMap(sets)` memoise maintenant la map de noms de sets
+  - Utilisation de ces helpers dans krosmoshop, market, profile, guild profile, activity feed et inventaire
+
+- **Invalidations routes web uniformisees** (`web/routes/*.js`)
+  - Remplacement des invalidations ad-hoc `apiCache.invalidate(...)` / `invalidatePrefix(...)`
+  - Adoption du helper central dans `playerRoutes`, `gameRoutes`, `eventRoutes`, `marketRoutes`, `questRoutes`, `guildRoutes`, `achievementRoutes`, `battlepassRoutes`
+  - Cas non competiteur (ex: simple mise a jour locale d'etat) invalident sans purger leaderboards via `{ invalidateLeaderboard: false }`
+
+- **Caching statique HTTP ajuste** (`web/Server.js`)
+  - `express.static(PUBLIC_DIR)` avec ETag + `Cache-Control` adapte
+  - HTML en `no-store`, assets statiques avec cache long
+  - `/assets/cards` servi avec `maxAge=30d` + `immutable`
+
+### Improved
+
+- **Taille du blob users.data fortement reduite apres normalisation**
+  - Mesure locale post-migration v2 : max `users.data` passe d'environ `125968` a `16311` caracteres
+  - Moyenne `users.data` reduite (mesure locale : ~`2148` -> ~`1758`)
+
+- **Latence inventaire et charge CPU serveur**
+  - Moins de reconstruction de structures intermediaires par requete
+  - Reponses inventaire en grande partie servies depuis cache court + invalidation precise sur mutations
+
+- **Transport web**
+  - Payloads JSON/HTML compresses automatiquement pour accelerer chargement client
+
 ### Updates (2026-04-15 -> 2026-04-15) - Audit qualite, segmentation Server.js, corrections systemes, sessions persistantes, tests web
 
 ### Fixed

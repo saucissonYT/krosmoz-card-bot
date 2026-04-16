@@ -97,6 +97,39 @@ function createTables(db) {
   CREATE INDEX IF NOT EXISTS idx_users_packs       ON users(packs_opened DESC);
   CREATE INDEX IF NOT EXISTS idx_users_ssr         ON users(ssr_count DESC);
 
+  /* ── USER CARDS (normalized inventory) ───────────────────────── */
+  CREATE TABLE IF NOT EXISTS user_cards (
+   user_id         TEXT NOT NULL,
+   card_id         TEXT NOT NULL,
+   qty             INTEGER NOT NULL,
+   PRIMARY KEY (user_id, card_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_cards_card ON user_cards(card_id);
+
+  /* ── USER FRAGMENTS (normalized inventory) ───────────────────── */
+  CREATE TABLE IF NOT EXISTS user_fragments (
+   id              INTEGER PRIMARY KEY AUTOINCREMENT,
+   user_id         TEXT NOT NULL,
+   card_id         TEXT NOT NULL,
+   fragment_number INTEGER NOT NULL,
+   source          TEXT,
+   obtained_at     TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_fragments_user ON user_fragments(user_id);
+  CREATE INDEX IF NOT EXISTS idx_user_fragments_lookup ON user_fragments(user_id, card_id, fragment_number);
+
+  /* ── USER RECRUIT HISTORY (normalized heavy array) ───────────── */
+  CREATE TABLE IF NOT EXISTS user_recruit_history (
+   user_id         TEXT NOT NULL,
+   entry_idx       INTEGER NOT NULL,
+   payload         TEXT NOT NULL,
+   PRIMARY KEY (user_id, entry_idx)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_user_recruit_history_user ON user_recruit_history(user_id);
+
   /* ── MARKET ────────────────────────────────── */
   CREATE TABLE IF NOT EXISTS market (
    id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,16 +231,73 @@ function dbLoadUser(id) {
  const row = stmt("loadUser",
   "SELECT data FROM users WHERE id = ?"
  ).get(id)
- return row ? JSON.parse(row.data) : null
+ if (!row) return null
+
+ const user = JSON.parse(row.data)
+
+ const cardRows = stmt(
+  "loadUserCards",
+  "SELECT card_id, qty FROM user_cards WHERE user_id = ?"
+ ).all(id)
+ if (cardRows.length > 0) {
+  user.cards = {}
+  for (const entry of cardRows) {
+   const cardId = String(entry.card_id || "")
+   const qty = Math.max(0, Number(entry.qty || 0))
+   if (!cardId || qty <= 0) continue
+   user.cards[cardId] = qty
+  }
+ } else if (!user.cards || typeof user.cards !== "object" || Array.isArray(user.cards)) {
+  user.cards = {}
+ }
+
+ const fragmentRows = stmt(
+  "loadUserFragments",
+  "SELECT card_id, fragment_number, source, obtained_at FROM user_fragments WHERE user_id = ? ORDER BY id ASC"
+ ).all(id)
+ if (fragmentRows.length > 0) {
+  user.fragments = fragmentRows.map((entry) => ({
+   cardId: String(entry.card_id || ""),
+   fragmentNumber: Number(entry.fragment_number || 0),
+   source: entry.source ? String(entry.source) : undefined,
+   obtainedAt: entry.obtained_at ? String(entry.obtained_at) : undefined
+  }))
+ } else if (!Array.isArray(user.fragments)) {
+  user.fragments = []
+ }
+
+ const recruitRows = stmt(
+  "loadUserRecruitHistory",
+  "SELECT payload FROM user_recruit_history WHERE user_id = ? ORDER BY entry_idx ASC"
+ ).all(id)
+ if (recruitRows.length > 0) {
+  const items = []
+  for (const rowEntry of recruitRows) {
+   try {
+    items.push(JSON.parse(String(rowEntry.payload || "{}")))
+   } catch (_) {}
+  }
+  user.recruitHistory = items
+ } else if (!Array.isArray(user.recruitHistory)) {
+  user.recruitHistory = []
+ }
+
+ return user
 }
 
 function dbSaveUser(id, user, cardsDefs) {
  const clone = JSON.parse(JSON.stringify(user))
  delete clone._dirty
 
+ const cardsMap = (clone.cards && typeof clone.cards === "object" && !Array.isArray(clone.cards))
+  ? clone.cards
+  : {}
+ const fragmentsList = Array.isArray(clone.fragments) ? clone.fragments : []
+ const recruitHistoryList = Array.isArray(clone.recruitHistory) ? clone.recruitHistory : []
+
  /* Calculer les colonnes indexées */
- const totalCards  = Object.values(clone.cards || {}).reduce((a, b) => a + b, 0)
- const uniqueCards = Object.keys(clone.cards || {}).length
+ const totalCards = Object.values(cardsMap).reduce((a, b) => a + Number(b || 0), 0)
+ const uniqueCards = Object.keys(cardsMap).length
 
  let ssrCount = 0
  if (cardsDefs && cardsDefs.length > 0) {
@@ -215,34 +305,88 @@ function dbSaveUser(id, user, cardsDefs) {
   for (const c of cardsDefs) {
    if (c.rarity === "SSR") ssrIds.add(String(c.id))
   }
-  for (const [cardId, qty] of Object.entries(clone.cards || {})) {
-   if (ssrIds.has(String(cardId))) ssrCount += qty
+  for (const [cardId, qty] of Object.entries(cardsMap)) {
+   if (ssrIds.has(String(cardId))) ssrCount += Number(qty || 0)
   }
  }
 
- stmt("saveUser", `
-  INSERT OR REPLACE INTO users
-   (id, data, kamas, level, total_cards, unique_cards, achievements, packs_opened, ssr_count, title, guild_id, updated_at)
-  VALUES
-   (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
- `).run(
-  id,
-  JSON.stringify(clone),
-  clone.kamas || 0,
-  clone.progression?.level || 1,
-  totalCards,
-  uniqueCards,
-  Array.isArray(clone.achievements) ? clone.achievements.length : 0,
-  clone.stats?.packsOpened || 0,
-  ssrCount,
-  clone.title || "Nouveau",
-  clone.guildId || null,
-  Date.now()
- )
+ /* Les gros tableaux sont normalisés dans des tables dédiées */
+ delete clone.cards
+ delete clone.fragments
+ delete clone.recruitHistory
+
+ getDb().transaction(() => {
+  stmt("saveUser", `
+   INSERT OR REPLACE INTO users
+    (id, data, kamas, level, total_cards, unique_cards, achievements, packs_opened, ssr_count, title, guild_id, updated_at)
+   VALUES
+    (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+   id,
+   JSON.stringify(clone),
+   clone.kamas || 0,
+   clone.progression?.level || 1,
+   totalCards,
+   uniqueCards,
+   Array.isArray(clone.achievements) ? clone.achievements.length : 0,
+   clone.stats?.packsOpened || 0,
+   ssrCount,
+   clone.title || "Nouveau",
+   clone.guildId || null,
+   Date.now()
+  )
+
+  stmt("deleteUserCards", "DELETE FROM user_cards WHERE user_id = ?").run(id)
+  const insertUserCard = stmt(
+   "insertUserCard",
+   "INSERT INTO user_cards (user_id, card_id, qty) VALUES (?, ?, ?)"
+  )
+  for (const [cardId, qtyRaw] of Object.entries(cardsMap)) {
+   const cardKey = String(cardId || "").trim()
+   const qty = Math.max(0, Math.floor(Number(qtyRaw || 0)))
+   if (!cardKey || qty <= 0) continue
+   insertUserCard.run(id, cardKey, qty)
+  }
+
+  stmt("deleteUserFragments", "DELETE FROM user_fragments WHERE user_id = ?").run(id)
+  const insertUserFragment = stmt(
+   "insertUserFragment",
+   "INSERT INTO user_fragments (user_id, card_id, fragment_number, source, obtained_at) VALUES (?, ?, ?, ?, ?)"
+  )
+  for (const fragment of fragmentsList) {
+   const cardId = String(fragment?.cardId || "").trim()
+   const fragmentNumber = Math.floor(Number(fragment?.fragmentNumber || 0))
+   if (!cardId || !Number.isFinite(fragmentNumber) || fragmentNumber <= 0) continue
+   insertUserFragment.run(
+    id,
+    cardId,
+    fragmentNumber,
+    fragment?.source ? String(fragment.source) : null,
+    fragment?.obtainedAt ? String(fragment.obtainedAt) : null
+   )
+  }
+
+  stmt("deleteUserRecruitHistory", "DELETE FROM user_recruit_history WHERE user_id = ?").run(id)
+  const insertUserRecruitHistory = stmt(
+   "insertUserRecruitHistory",
+   "INSERT INTO user_recruit_history (user_id, entry_idx, payload) VALUES (?, ?, ?)"
+  )
+  for (let index = 0; index < recruitHistoryList.length; index++) {
+   const entry = recruitHistoryList[index]
+   try {
+    insertUserRecruitHistory.run(id, index, JSON.stringify(entry || {}))
+   } catch (_) {}
+  }
+ })()
 }
 
 function dbDeleteUser(id) {
- stmt("deleteUser", "DELETE FROM users WHERE id = ?").run(id)
+ getDb().transaction(() => {
+  stmt("deleteUser", "DELETE FROM users WHERE id = ?").run(id)
+  stmt("deleteUserCards", "DELETE FROM user_cards WHERE user_id = ?").run(id)
+  stmt("deleteUserFragments", "DELETE FROM user_fragments WHERE user_id = ?").run(id)
+  stmt("deleteUserRecruitHistory", "DELETE FROM user_recruit_history WHERE user_id = ?").run(id)
+ })()
 }
 
 function dbListUserIds() {

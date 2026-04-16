@@ -12,7 +12,7 @@ module.exports = function mount(app, ctx) {
   buildMePayload, buildDailyStatePayload, buildInventoryPayload,
   shouldTrackProfileView, computeProfile, countUnlockedAchievements,
   oauthConfigured, canUseLocalAuth, buildLocalSession,
-  BAN_KROSMOZ_IMAGE_PATH, isBannedSession
+  BAN_KROSMOZ_IMAGE_PATH, isBannedSession, invalidateUserCaches
  } = ctx
 
  app.get("/api/profile/:id", async (req, res) => {
@@ -27,6 +27,7 @@ module.exports = function mount(app, ctx) {
      recordProfileView(viewer)
      achievementCheck(viewer, "social")
      save(String(viewerSession.userId))
+     invalidateUserCaches([viewerSession.userId], { invalidateLeaderboard: false })
     }
    }
 
@@ -157,8 +158,7 @@ module.exports = function mount(app, ctx) {
    ]
 
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    return res.json({
     ok: true,
@@ -209,8 +209,7 @@ module.exports = function mount(app, ctx) {
     user.stats.titleChanges = Number(user.stats.titleChanges || 0) + 1
    }
    save(session.userId)
-    apiCache.invalidate(`profile:${session.userId}`)
-    apiCache.invalidatePrefix("leaderboard:")
+    invalidateUserCaches([session.userId])
 
     return res.json({
      ok: true,
@@ -227,7 +226,13 @@ module.exports = function mount(app, ctx) {
   try {
    const session = requireSession(req, res)
    if (!session) return
-   res.json(buildInventoryPayload(session.userId))
+   const cacheKey = `inventory:${session.userId}`
+   const payload = apiCache.getOrCompute(
+    cacheKey,
+    () => buildInventoryPayload(session.userId),
+    10000
+   )
+   res.json(payload)
   } catch (e) {
    console.error("[WEB] /api/me/inventory:", e)
    res.status(500).json({ error: "Erreur serveur" })

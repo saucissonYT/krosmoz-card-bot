@@ -13,11 +13,11 @@ const {
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, resolveDiscordUser, apiCache, parsePagination,
-  getCards, getSets, getCardSetNameMap,
+  requireSession, resolveDiscordUser, parsePagination,
+  getCards, getSets, getCardSetNameMap, getCardsByIdMap,
   computeMarket, enrichListingWithCardMeta,
   countUnlockedAchievements,
-  webHooks, MAX_PRICE
+  webHooks, MAX_PRICE, invalidateUserCaches
  } = ctx
 
  app.get("/api/market", async (req, res) => {
@@ -52,7 +52,7 @@ module.exports = function mount(app, ctx) {
 
    const cards = getCards()
    const sets = getSets()
-   const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+   const cardsById = getCardsByIdMap(cards)
    const setNames = getCardSetNameMap(sets)
    const listings = getUserListings(session.userId)
     .map((l) => enrichListingWithCardMeta(l, cardsById, setNames))
@@ -90,10 +90,7 @@ module.exports = function mount(app, ctx) {
     : []
    if (sellerId) save(sellerId)
    save(session.userId)
-
-   apiCache.invalidate(`profile:${session.userId}`)
-   if (sellerId) apiCache.invalidate(`profile:${sellerId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId, sellerId])
 
    if (typeof webHooks.onWebMarketBuy === "function") {
     Promise.resolve(webHooks.onWebMarketBuy({
@@ -134,6 +131,7 @@ module.exports = function mount(app, ctx) {
    await addBattlePassXP(session.userId, "market_sell")
    const unlocked = achievementCheck(user, "economy")
    save(session.userId)
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -168,6 +166,7 @@ module.exports = function mount(app, ctx) {
    await addBattlePassXP(session.userId, "market_sell")
    const unlocked = achievementCheck(user, "fragment")
    save(session.userId)
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -190,6 +189,7 @@ module.exports = function mount(app, ctx) {
 
    const result = removeListing(session.userId, listingId)
    if (result?.error) return res.status(400).json({ error: result.error })
+   invalidateUserCaches([session.userId])
    res.json({ ok: true })
   } catch (e) {
    console.error("[WEB] /api/market/remove:", e)

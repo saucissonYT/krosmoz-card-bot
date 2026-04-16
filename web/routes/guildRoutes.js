@@ -19,20 +19,22 @@ const { recordGuildRecruitment } = require("../../systems/achievementProgressTra
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, apiCache, parsePagination,
+  requireSession, parsePagination,
   computeGuildSummary, computeGuildProfile,
   buildGuildStatePayload, countUnlockedAchievements,
   asGuildId, addGuildApplication, respondGuildApplication,
-  removeGuildApplicationsForUser, switchLocalGuildRole
+  removeGuildApplicationsForUser, switchLocalGuildRole,
+  invalidateUserCaches
  } = ctx
 
  const invalidateGuildCaches = (userIds = []) => {
-  apiCache.invalidatePrefix("leaderboard:")
+  const safeIds = []
   for (const id of userIds) {
    const safeId = asGuildId(id)
    if (!safeId) continue
-   apiCache.invalidate(`profile:${safeId}`)
+   safeIds.push(safeId)
   }
+  invalidateUserCaches(safeIds)
  }
 
  app.get("/api/guilds", (req, res) => {

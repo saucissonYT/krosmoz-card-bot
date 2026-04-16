@@ -12,11 +12,11 @@ const {
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, resolveSession, apiCache,
+  requireSession, resolveSession,
   getAchievementsByCategory, getAchievementCategoryStats,
   computeAchievementProgress,
   normalizeUiText, normalizeUiEmoji,
-  ACHIEVEMENT_CATEGORIES
+  ACHIEVEMENT_CATEGORIES, invalidateUserCaches
  } = ctx
 
  app.get("/api/achievements", (req, res) => {
@@ -35,6 +35,7 @@ module.exports = function mount(app, ctx) {
      user.stats.viewedSecretAchievementsCount = Number(user.stats.viewedSecretAchievementsCount || 0) + 1
      achievementCheck(user, "secret")
      save(session.userId)
+     invalidateUserCaches([session.userId], { invalidateLeaderboard: false })
      unlockedSet = new Set((user.achievements || []).map((id) => String(id)))
     }
     const pendingSet = new Set(getPendingAchievementIds(user))
@@ -126,8 +127,7 @@ module.exports = function mount(app, ctx) {
 
    const pendingAfter = getPendingAchievementIds(user).length
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,

@@ -26,7 +26,9 @@ const { getBasePath }  = require("./paths")
 const { createLogger, createTimer } = require("./logger")
 const {
  getDb,
+ dbLoadUser,
  dbSaveUser,
+ dbListUserIds,
  dbAddMarketListing,
  dbAddMarketHistory,
  dbSaveGuild,
@@ -75,6 +77,7 @@ function runMigration(cardsDefs = []) {
   /* Vérifier si les nouvelles migrations (v8) ont été faites */
   runGuildMigration()
   runBattlePassMigration()
+  runUserPayloadNormalization(cardsDefs)
   return
  }
 
@@ -214,6 +217,7 @@ function runMigration(cardsDefs = []) {
  /* Lancer les nouvelles migrations v0.38 */
  runGuildMigration()
  runBattlePassMigration()
+ runUserPayloadNormalization(cardsDefs)
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -353,6 +357,51 @@ function runBattlePassMigration() {
   }
  } catch (err) {
   log.error("ÉCHEC migration battlepass — fichiers JSON intacts", { err })
+ }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   NORMALISATION USERS v2 — tables user_cards/user_fragments/history
+═════════════════════════════════════════════════════════════════ */
+function runUserPayloadNormalization(cardsDefs = []) {
+ const already = dbGetMeta("migrated_users_payload_v2_at")
+ if (already) return
+
+ const ids = dbListUserIds()
+ if (ids.length <= 0) {
+  dbSetMeta("migrated_users_payload_v2_at", new Date().toISOString())
+  dbSetMeta("migrated_users_payload_v2", "0")
+  return
+ }
+
+ log.info("══════════════════════════════════")
+ log.info("   NORMALISATION USERS v2")
+ log.info("══════════════════════════════════")
+
+ const db = getDb()
+ let migratedCount = 0
+
+ const transaction = db.transaction(() => {
+  for (const userId of ids) {
+   try {
+    const user = dbLoadUser(userId)
+    if (!user) continue
+    dbSaveUser(userId, user, cardsDefs)
+    migratedCount++
+   } catch (err) {
+    log.error("Erreur normalisation user", { userId, err: err?.message || err })
+   }
+  }
+
+  dbSetMeta("migrated_users_payload_v2_at", new Date().toISOString())
+  dbSetMeta("migrated_users_payload_v2", String(migratedCount))
+ })
+
+ try {
+  transaction()
+  log.info(`✅ ${migratedCount} users normalisés (v2)`)
+ } catch (err) {
+  log.error("ÉCHEC normalisation users v2", { err })
  }
 }
 

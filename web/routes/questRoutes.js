@@ -19,10 +19,10 @@ const {
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, resolveSession, apiCache,
+  requireSession, resolveSession,
   buildQuestStatePayload, buildQuestPreviewPayload,
   normalizeQuestType, normalizeQuestScope,
-  countUnlockedAchievements
+  countUnlockedAchievements, invalidateUserCaches
  } = ctx
 
  app.get("/api/quests/state", (req, res) => {
@@ -42,6 +42,7 @@ module.exports = function mount(app, ctx) {
    const nextWeeklyId = String(user?.quests?.weekly?.weekId || "")
    if (prevDailyId !== nextDailyId || prevWeeklyId !== nextWeeklyId) {
     save(session.userId)
+    invalidateUserCaches([session.userId], { invalidateLeaderboard: false })
    }
 
    res.json(payload)
@@ -94,8 +95,7 @@ module.exports = function mount(app, ctx) {
     const unlocked = user ? achievementCheck(user, "guild") : []
     if (user) save(session.userId)
 
-    apiCache.invalidatePrefix("leaderboard:")
-    apiCache.invalidate(`profile:${session.userId}`)
+    invalidateUserCaches([session.userId])
     return res.json({
      ok: true,
      scope,
@@ -185,8 +185,7 @@ module.exports = function mount(app, ctx) {
    addUnlocked(achievementCheck(user, "event"))
    const unlocked = [...unlockedSet]
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,

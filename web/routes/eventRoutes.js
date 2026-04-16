@@ -35,13 +35,13 @@ const {
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, resolveSession, apiCache,
+  requireSession, resolveSession,
   buildMePayload, countUnlockedAchievements,
   getSets, getCardSetNameMap,
   stripDiscordMarkdownForWeb, buildEventVoiceLine,
   appendRecruitHistoryEntries, pushActivity,
   webPinataState, ensureWebPinataLifecycle, getWebPinataView,
-  WEB_PINATA_ALLOWED_EMOJIS
+  WEB_PINATA_ALLOWED_EMOJIS, invalidateUserCaches
  } = ctx
 
  app.get("/api/events/state", async (req, res) => {
@@ -76,7 +76,10 @@ module.exports = function mount(app, ctx) {
      tickets.used = Number(user.event?.used || 0)
      tickets.remaining = Math.max(0, tickets.total - tickets.used)
      const afterEventState = `${user.event?.uid || ""}:${user.event?.tickets || ""}:${user.event?.used || ""}`
-     if (beforeEventState !== afterEventState) save(session.userId)
+     if (beforeEventState !== afterEventState) {
+      save(session.userId)
+      invalidateUserCaches([session.userId], { invalidateLeaderboard: false })
+     }
     }
    }
 
@@ -138,8 +141,7 @@ module.exports = function mount(app, ctx) {
    const unlocked = achievementCheck(user, "roulette")
 
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    enqueueWebRewardToast(session.userId, {
     type: "event",
@@ -287,8 +289,7 @@ module.exports = function mount(app, ctx) {
     ...achievementCheck(user, "rng")
    ]
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    for (const card of pack) {
     const rarity = String(card?.rarity || "").toUpperCase()

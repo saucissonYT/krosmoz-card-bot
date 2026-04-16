@@ -15,13 +15,13 @@ const { recordShopView } = require("../../systems/achievementProgressTracker")
 
 module.exports = function mount(app, ctx) {
  const {
-  requireSession, resolveSession, apiCache, parsePagination,
+  requireSession, resolveSession, parsePagination,
   getCards, getSets, getCardSetNameMap,
   buildKrosmoshopStatePayload,
   buildRecruitHistoryPayload, appendRecruitHistoryEntries,
   normalizeRarity, getNextRarity, countUnlockedAchievements,
   consumeDuplicatesForFusion,
-  RARITY_ORDER
+  RARITY_ORDER, invalidateUserCaches
  } = ctx
 
  app.get("/api/game/meta", (req, res) => {
@@ -83,7 +83,10 @@ module.exports = function mount(app, ctx) {
    const setId = String(req.query?.setId || req.query?.set || "").trim().toLowerCase()
    const payload = buildRecruitHistoryPayload(user, { setId, page, limit })
 
-   if (payload.changed) save(session.userId)
+   if (payload.changed) {
+    save(session.userId)
+    invalidateUserCaches([session.userId], { invalidateLeaderboard: false })
+   }
 
    res.json({
     ok: true,
@@ -133,8 +136,7 @@ module.exports = function mount(app, ctx) {
    if (result?.error) return res.status(400).json({ error: String(result.error) })
 
    const user = getUser(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -182,8 +184,7 @@ module.exports = function mount(app, ctx) {
 
    const unlocked = achievementCheck(user, "economy")
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -233,8 +234,7 @@ module.exports = function mount(app, ctx) {
 
    const unlocked = achievementCheck(user, "economy")
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -365,8 +365,7 @@ module.exports = function mount(app, ctx) {
     ...achievementCheck(user, "fragment")
    ]
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    const pity = user.pity?.[setId] || { UR: 0, S: 0, SSR: 0 }
    const pityCounters = {
@@ -464,8 +463,7 @@ module.exports = function mount(app, ctx) {
     ...achievementCheck(user, "rng")
    ]
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    res.json({
     ok: true,
@@ -513,8 +511,7 @@ module.exports = function mount(app, ctx) {
     ...achievementCheck(user, "rng")
    ]
    save(session.userId)
-   apiCache.invalidate(`profile:${session.userId}`)
-   apiCache.invalidatePrefix("leaderboard:")
+   invalidateUserCaches([session.userId])
 
    const crafted = result.card || {}
    res.json({

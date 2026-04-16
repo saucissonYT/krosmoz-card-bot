@@ -2,6 +2,8 @@
 const express = require("express")
 const fs = require("fs")
 const path = require("path")
+let compression = null
+try { compression = require("compression") } catch (_) {}
 const { createLogger } = require("../systems/logger")
 const { isDiscordIdBanned } = require("../systems/banlistSystem")
 const { data: appData, save: saveAppData, markStaticDirty, markMarketDirty } = require("../systems/dataManager")
@@ -286,6 +288,10 @@ let _cardsCache = null
 let _cardsCacheAt = 0
 let _setsCache = null
 let _setsCacheAt = 0
+let _cardsByIdCache = null
+let _cardsByIdSource = null
+let _setNameMapCache = null
+let _setNameMapSource = null
 let _localCardsBootstrapTried = false
 
 /* Nettoyage périodique du cache Discord + sessions expirées (toutes les 10 min) */
@@ -573,6 +579,14 @@ function getCards() {
  return _cardsCache
 }
 
+function getCardsByIdMap(cards) {
+ const source = Array.isArray(cards) ? cards : []
+ if (_cardsByIdCache && _cardsByIdSource === source) return _cardsByIdCache
+ _cardsByIdCache = new Map(source.map((card) => [String(card.id), card]))
+ _cardsByIdSource = source
+ return _cardsByIdCache
+}
+
 function getSets() {
  const now = Date.now()
  if (_setsCache && (now - _setsCacheAt) < STATIC_CACHE_TTL) return _setsCache
@@ -725,7 +739,7 @@ function buildKrosmoshopStatePayload(userId = null) {
  const shop = getShop()
  const cards = getCards()
  const sets = getSets()
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const cardsById = getCardsByIdMap(cards)
  const setNames = getCardSetNameMap(sets)
  const shopDay = String(shop?.lastReset || getParisDateFR())
 
@@ -1349,11 +1363,28 @@ function stripDiscordMarkdownForWeb(value) {
 }
 
 function getCardSetNameMap(sets) {
+ const source = Array.isArray(sets) ? sets : []
+ if (_setNameMapCache && _setNameMapSource === source) return _setNameMapCache
  const map = new Map()
- for (const set of sets || []) {
+ for (const set of source) {
   map.set(String(set.id), set.name || set.id)
  }
+ _setNameMapCache = map
+ _setNameMapSource = source
  return map
+}
+
+function invalidateUserCaches(userIds = [], options = {}) {
+ const invalidateLeaderboard = options.invalidateLeaderboard !== false
+ if (invalidateLeaderboard) {
+  apiCache.invalidatePrefix("leaderboard:")
+ }
+ for (const userId of userIds) {
+  const safeId = String(userId || "").trim()
+  if (!safeId) continue
+  apiCache.invalidate(`profile:${safeId}`)
+  apiCache.invalidate(`inventory:${safeId}`)
+ }
 }
 
 function formatUtcTimestamp(ts) {
@@ -2136,7 +2167,7 @@ function ensureLocalDemoWorldSeed(localUserId) {
 
   const cards = getCards()
   if (!Array.isArray(cards) || cards.length <= 0) return
-  const cardsById = new Map(cards.map((card) => [String(card.id), card]))
+  const cardsById = getCardsByIdMap(cards)
 
   const botIds = []
   for (let index = 0; index < WEB_LOCAL_DEMO_BOT_COUNT; index++) {
@@ -2448,7 +2479,7 @@ function computeGlobalStats() {
 
 async function computeActivityFeed(limit = 10) {
  const cards = getCards()
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const cardsById = getCardsByIdMap(cards)
  const safeLimit = Math.max(1, Math.min(50, Number(limit) || 10))
 
  /* Market history (SQLite) */
@@ -2526,7 +2557,7 @@ function computeProfile(userId) {
  const cards = getCards()
  const sets = getSets()
  const guilds = getGuildList()
- const byId = new Map(cards.map((c) => [String(c.id), c]))
+ const byId = getCardsByIdMap(cards)
 
  const totalCards = Object.values(user.cards || {}).reduce((a, b) => a + b, 0)
  const uniqueCards = Object.keys(user.cards || {}).length
@@ -2765,7 +2796,7 @@ async function computeMarket(query) {
  const market = loadMkt()
  const history = loadHist(1000)
  const setNames = getCardSetNameMap(sets)
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const cardsById = getCardsByIdMap(cards)
  const averages = computeMarketAverages(history)
 
  const q = normalizeText(query.q)
@@ -2869,7 +2900,7 @@ async function computeGuildProfile(guildId) {
  if (!guild) return null
 
  const cards = getCards()
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const cardsById = getCardsByIdMap(cards)
  const memberIds = Array.isArray(guild.memberIds) ? guild.memberIds : []
 
  const members = await Promise.all(memberIds.map(async (id) => {
@@ -3353,61 +3384,68 @@ function buildInventoryPayload(userId) {
  const user = getUser(userId)
  const cards = getCards()
  const sets = getSets()
- const cardsById = new Map(cards.map((c) => [String(c.id), c]))
+ const cardsById = getCardsByIdMap(cards)
  const setNames = getCardSetNameMap(sets)
  const sellMultiplier = getSeasonSellMultiplier()
  const sellBonusPercent = getSellBonusPercent(sellMultiplier)
 
- const cardItems = Object.entries(user.cards || {})
-  .map(([cardId, qty]) => {
-   const card = cardsById.get(String(cardId)) || getSecretCardById(cardId)
-   const setId = card?.set || "unknown"
-   const rarity = String(card?.rarity || "C").toUpperCase()
-   const isSecret = isSecretCard(card)
-   const baseSellPrice = isSecret ? 0 : Number(SELL_PRICE[rarity] || 1)
-   return {
-    cardId: String(cardId),
-    qty: Number(qty || 0),
-    cardName: card?.name || `Carte ${cardId}`,
-    rarity,
-    set: setId,
-    setName: setNames.get(String(setId)) || String(setId),
-    imageUrl: card?.image && card?.set
-     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-     : null,
-    sellPrice: isSecret ? 0 : computeSellPrice(baseSellPrice, sellMultiplier),
-    sellBonusPercent
-   }
+ const cardItems = []
+ const userCards = (user.cards && typeof user.cards === "object" && !Array.isArray(user.cards))
+  ? user.cards
+  : {}
+ for (const [cardIdRaw, qtyRaw] of Object.entries(userCards)) {
+  const cardId = String(cardIdRaw)
+  const qty = Number(qtyRaw || 0)
+  if (qty <= 0) continue
+  const card = cardsById.get(cardId) || getSecretCardById(cardId)
+  const setId = card?.set || "unknown"
+  const rarity = String(card?.rarity || "C").toUpperCase()
+  const isSecret = isSecretCard(card)
+  const baseSellPrice = isSecret ? 0 : Number(SELL_PRICE[rarity] || 1)
+  cardItems.push({
+   cardId,
+   qty,
+   cardName: card?.name || `Carte ${cardId}`,
+   rarity,
+   set: setId,
+   setName: setNames.get(String(setId)) || String(setId),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null,
+   sellPrice: isSecret ? 0 : computeSellPrice(baseSellPrice, sellMultiplier),
+   sellBonusPercent
   })
-  .filter((x) => x.qty > 0)
-  .sort((a, b) => {
-   const ar = RARITY_ORDER.indexOf(a.rarity)
-   const br = RARITY_ORDER.indexOf(b.rarity)
-   if (ar !== br) return ar - br
-   return a.cardName.localeCompare(b.cardName, "fr")
-  })
+ }
+ cardItems.sort((a, b) => {
+  const an = Number(a.cardId || 0)
+  const bn = Number(b.cardId || 0)
+  if (Number.isFinite(an) && Number.isFinite(bn) && an !== bn) return an - bn
+  return String(a.cardId).localeCompare(String(b.cardId), "fr")
+ })
 
  const fragments = Array.isArray(user.fragments) ? user.fragments : []
- const fragmentItems = fragments
-  .map((f, idx) => {
-   const card = cardsById.get(String(f.cardId))
-   const setId = card?.set || "unknown"
-   return {
-    inventoryIndex: idx,
-    cardId: String(f.cardId),
-    fragmentNumber: Number(f.fragmentNumber || 0),
-    cardName: card?.name || `Carte ${f.cardId}`,
-    rarity: card?.rarity || "SSR",
-    set: setId,
-    setName: setNames.get(String(setId)) || String(setId),
-    imageUrl: card?.image && card?.set
-     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-     : null
-   }
-  })
-  .sort((a, b) =>
-   a.cardName.localeCompare(b.cardName, "fr") || a.fragmentNumber - b.fragmentNumber
-  )
+ const fragmentItems = fragments.map((f, idx) => {
+  const card = cardsById.get(String(f.cardId))
+  const setId = card?.set || "unknown"
+  return {
+   inventoryIndex: idx,
+   cardId: String(f.cardId),
+   fragmentNumber: Number(f.fragmentNumber || 0),
+   cardName: card?.name || `Carte ${f.cardId}`,
+   rarity: card?.rarity || "SSR",
+   set: setId,
+   setName: setNames.get(String(setId)) || String(setId),
+   imageUrl: card?.image && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+    : null
+  }
+ })
+ fragmentItems.sort((a, b) => {
+  const an = Number(a.cardId || 0)
+  const bn = Number(b.cardId || 0)
+  if (Number.isFinite(an) && Number.isFinite(bn) && an !== bn) return an - bn
+  return a.fragmentNumber - b.fragmentNumber
+ })
 
  return {
   cards: cardItems,
@@ -3859,6 +3897,10 @@ function createWebApp() {
   return next()
  })
 
+ if (compression) {
+  app.use(compression({ threshold: 1024 }))
+ }
+
  app.use(express.json({ limit: "8mb" }))
  app.use(express.urlencoded({ extended: false, limit: "8mb" }))
 
@@ -3944,10 +3986,36 @@ function createWebApp() {
   res.json(payload)
  })
 
- app.use(express.static(PUBLIC_DIR, { index: false }))
+ app.use(express.static(PUBLIC_DIR, {
+  index: false,
+  etag: true,
+  maxAge: "5m",
+  setHeaders: (res, filePath) => {
+   const ext = path.extname(String(filePath || "")).toLowerCase()
+   if (ext === ".html") {
+    res.setHeader("Cache-Control", "no-store")
+    return
+   }
+   if ([".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".avif", ".ico", ".woff", ".woff2", ".ttf", ".otf"].includes(ext)) {
+    res.setHeader("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400")
+   }
+  }
+ }))
  app.get("/css/style.css", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Style.css")))
- app.use("/assets/cards", express.static(CARD_IMAGES_RUNTIME_DIR, { index: false, fallthrough: true }))
- app.use("/assets/cards", express.static(CARD_IMAGES_REPO_DIR, { index: false, fallthrough: true }))
+ app.use("/assets/cards", express.static(CARD_IMAGES_RUNTIME_DIR, {
+  index: false,
+  etag: true,
+  fallthrough: true,
+  maxAge: "30d",
+  immutable: true
+ }))
+ app.use("/assets/cards", express.static(CARD_IMAGES_REPO_DIR, {
+  index: false,
+  etag: true,
+  fallthrough: true,
+  maxAge: "30d",
+  immutable: true
+ }))
 
  /* ── Restore persisted sessions from SQLite ── */
  try {
@@ -3974,7 +4042,7 @@ function createWebApp() {
   isBannedSession,
 
   // Data helpers
-  getCards, getSets, getSetsWithCounts, getCardSetNameMap,
+  getCards, getSets, getSetsWithCounts, getCardSetNameMap, getCardsByIdMap,
   parsePagination, normalizeText, normalizeRarity, getNextRarity,
   normalizeUiText, normalizeUiEmoji,
 
@@ -4016,7 +4084,7 @@ function createWebApp() {
   webPinataState, ensureWebPinataLifecycle, getWebPinataView,
 
   // Shared state
-  apiCache, webHooks,
+  apiCache, webHooks, invalidateUserCaches,
 
   // Constants
   RARITY_ORDER, MAX_PRICE, ACHIEVEMENT_CATEGORIES,
