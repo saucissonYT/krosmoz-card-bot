@@ -246,49 +246,6 @@ const INVENTORY_SET_ICONS = [
  { id: "katrepat", name: "Katrepat", icon: "/assets/ui/icone%20katrepat%20inventaire.png" },
  { id: "sberg", name: "Sberg", icon: "/assets/ui/icone%20sberg%20inventaire.png" }
 ]
-const INVENTORY_TEST_CARD_FILES = [
- "035c0a2e-f1a5-45bb-b562-6af82fdbc664.png",
- "08aaec5f-948d-4f14-bcec-dfdf1782c886.png",
- "16e27e17-9360-4ed9-995b-877fcbd6ca83.png",
- "239d07d3-77de-4e75-837f-c87b183f7e5c.png",
- "25a8811c-60fc-4cd2-90cd-aae0565cc6d7.png",
- "37f9904d-7566-4e53-a5d9-004350db5b42.png",
- "46ff9357-cb77-4209-b199-6ebc85903827.png",
- "48bab6a5-5583-4a6b-a853-986bcb5e4127.png",
- "549ce5fc-8fac-4f9c-9c5f-c9b9cfcd1157.png",
- "613b857f-51be-408c-ac62-c586f5a3a740.png",
- "657e9cc2-7aab-48a0-86c9-b6083aa94538.png",
- "65a3a91e-c3c4-4f9a-8dde-9bebcfdaa667.png",
- "69d6d9e8-4fdc-4b44-90ec-c538ee8724a3.png",
- "70deec7a-3ca7-4c5a-9a2e-da4bc1b7d10e.png",
- "72dcf95f-2453-4925-b4b7-39e7c356b9a6.png",
- "7316282e-bcd4-4313-bf43-60d2decf5846.png",
- "78sdf87sf87ds.png",
- "7f8f82a1-3ac6-4ee7-b220-850dc50bd770.png",
- "839ed31e-fc34-4564-98c7-42e5618b24ca.png",
- "84e5d7ed7e.png",
- "84fgg748f7788778.png",
- "85dqs56d74qs457dq.png",
- "89b08b0e-2f03-4849-8e0c-aeebce72b239.png",
- "8acf6037-bf6f-43a7-a887-3ca65211cdea.png",
- "8ds7dqs7d.png",
- "8e9f15d1-c3fd-4808-95ee-da29ddf19e92.png",
- "8e9f5a8d-b7cf-4a65-9048-73e4c99f9afb.png",
- "8f5d31cb-26a9-4f79-afc9-ad952a92050f.png",
- "8fcf4c13-be80-4a70-8fac-167f30dfc798.png",
- "8s7dqsd7sq8d.png",
- "92fd912a-a461-4804-96fc-9b8fd081cdbd.png",
- "930b8d3e-7702-4b01-97c9-f6fb223da56e.png",
- "93e2334d-76c6-430d-a8cf-15b9437b9dfe.png",
- "95ce6a3d-c0f6-46da-9d71-48419438ca83.png",
- "98d74qs7ds7dsqd47.png",
- "a0bda3eb-1777-4894-83cf-e63ef15381fd.png",
- "b0cf1644-bcaf-4b4a-853d-83552ebda922.png",
- "b90590a3-3251-4746-ae80-62ababe50d09.png",
- "s54dq64dqs465d.png",
- "sd4q5d4sqd54qd.png",
- "sdqsdqsdqz8778787.png"
-]
 let packRevealResolve = null
 let packRevealEscHandlerBound = false
 let packRevealTimers = []
@@ -453,21 +410,14 @@ function getInventoryItemKey(item) {
 }
 
 function getInventoryItemImage(item) {
- if (Array.isArray(INVENTORY_TEST_CARD_FILES) && INVENTORY_TEST_CARD_FILES.length) {
-  const seed = String(item?.cardId || item?.cardName || item?.fragmentNumber || "0")
-  let hash = 0
-  for (let i = 0; i < seed.length; i += 1) {
-   hash = ((hash * 31) + seed.charCodeAt(i)) >>> 0
-  }
-  const file = INVENTORY_TEST_CARD_FILES[hash % INVENTORY_TEST_CARD_FILES.length]
-  if (file) return `/assets/ui/cartes%20test/${encodeURIComponent(file)}`
- }
  return String(item?.imageUrl || "/assets/ui/pack-back-normal.png")
 }
 
 function getInventoryDisplayCardName(item) {
+ const cardName = String(item?.cardName || "").trim()
+ if (cardName) return cardName
  const cardId = String(item?.cardId || "").trim()
- return cardId ? `Carte test ${cardId}` : "Carte test"
+ return cardId ? `Carte ${cardId}` : "Carte"
 }
 
 function getInventoryShopSellPrice(item) {

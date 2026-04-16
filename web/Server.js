@@ -310,7 +310,7 @@ const webSessions = new Map()
 const WEB_LOCAL_AUTH_COOKIE = "kc_local_auth"
 const WEB_LOCAL_AUTH_FORCE = String(process.env.WEB_LOCAL_AUTH || "").trim().toLowerCase()
 const WEB_LOCAL_AUTH_USER_ID = String(process.env.WEB_LOCAL_AUTH_USER_ID || "999999999999999999").trim() || "999999999999999999"
-const WEB_LOCAL_DEMO_WORLD = String(process.env.WEB_LOCAL_DEMO_WORLD || "1").trim().toLowerCase()
+const WEB_LOCAL_DEMO_WORLD = String(process.env.WEB_LOCAL_DEMO_WORLD || "0").trim().toLowerCase()
 const WEB_BOOTSTRAP_CARDS_FROM_IMAGES = String(process.env.WEB_BOOTSTRAP_CARDS_FROM_IMAGES || "0").trim().toLowerCase()
 const WEB_LOCAL_DEMO_SEED_VERSION = 5
 const WEB_LOCAL_DEMO_BOT_COUNT = 34
@@ -2005,6 +2005,7 @@ function ensureLocalGuildWorld(localUserId, botIds) {
 }
 
 function ensureLocalDevUserSeed(userId) {
+ if (!isLocalDemoWorldEnabled()) return
  const safeUserId = String(userId || "").trim()
  if (!safeUserId) return
  if (localDevUserSeededUsers.has(safeUserId)) return
@@ -2247,8 +2248,10 @@ function resolveSession(req) {
  const cookies = parseCookies(req)
  const localSession = buildLocalSession(req, cookies)
  if (localSession) {
-  ensureLocalDevUserSeed(localSession.userId)
-  ensureLocalDemoWorldSeed(localSession.userId)
+  if (isLocalDemoWorldEnabled()) {
+   ensureLocalDevUserSeed(localSession.userId)
+   ensureLocalDemoWorldSeed(localSession.userId)
+  }
   return localSession
  }
 
