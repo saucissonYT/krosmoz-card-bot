@@ -1797,7 +1797,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
       <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
       <li><a href="/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
-      <li><a href="/play/craft" data-play-mode="craft">Craft</a></li>
+      <li><a href="/play/fabrication" data-play-mode="craft">Fabrication</a></li>
       <li><a href="/play/quests" data-play-mode="quests">Quêtes</a></li>
       <li><a href="/events">Events</a></li>
       <li><a href="/battlepass">Battlepass</a></li>
@@ -1812,14 +1812,17 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    navbar.appendChild(subnav)
   }
 
-  const p = String(window.location.pathname || "")
-  subnav.querySelectorAll("a").forEach((a) => {
-   const href = String(a.getAttribute("href") || "")
-   const isPlayMode = Boolean(a.dataset.playMode) && p.startsWith("/play/")
-   const active = isPlayMode ? (href === p) : (href === p || (href !== "/" && p.startsWith(`${href}/`)))
-   a.classList.toggle("active", active)
-  })
- }
+   const p = String(window.location.pathname || "")
+   const normalizedPlayPath = p === "/play/craft" ? "/play/fabrication" : p
+   subnav.querySelectorAll("a").forEach((a) => {
+    const href = String(a.getAttribute("href") || "")
+    const isPlayMode = Boolean(a.dataset.playMode) && p.startsWith("/play/")
+    const active = isPlayMode
+     ? (href === normalizedPlayPath)
+     : (href === p || (href !== "/" && p.startsWith(`${href}/`)))
+    a.classList.toggle("active", active)
+   })
+  }
 
  function setAuthState(text) {
   if (!right) return

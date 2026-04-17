@@ -1,5 +1,7 @@
 /* Routes: /api/game/*, /api/krosmoshop/* */
 
+const fs = require("fs")
+const path = require("path")
 const { getUser, save } = require("../../systems/userSystem")
 const { achievementCheck } = require("../../systems/achievementCheck")
 const { addBattlePassXP } = require("../../systems/battlePassService")
@@ -21,8 +23,59 @@ module.exports = function mount(app, ctx) {
   buildRecruitHistoryPayload, appendRecruitHistoryEntries,
   normalizeRarity, getNextRarity, countUnlockedAchievements,
   consumeDuplicatesForFusion,
-  RARITY_ORDER, invalidateUserCaches
+  RARITY_ORDER, invalidateUserCaches,
+  PUBLIC_DIR
  } = ctx
+
+ app.get("/api/game/craft-test-cards", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const folder = path.join(PUBLIC_DIR, "assets", "ui", "cartes test")
+   let files = []
+   try {
+    files = fs.readdirSync(folder, { withFileTypes: true })
+     .filter((entry) => entry && entry.isFile && entry.isFile())
+     .map((entry) => String(entry.name || "").trim())
+     .filter((name) => /\.(png|jpe?g|webp|gif)$/i.test(name))
+   } catch (_) {
+    files = []
+   }
+
+   files.sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base", numeric: true }))
+   return res.json({ ok: true, items: files })
+  } catch (e) {
+   console.error("[WEB] /api/game/craft-test-cards:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
+
+ app.get("/api/game/craft-illustrations", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+
+   const folder = path.join(PUBLIC_DIR, "assets", "ui", "illustration craft")
+   let items = []
+   try {
+    items = fs.readdirSync(folder, { withFileTypes: true })
+     .filter((entry) => entry && entry.isFile && entry.isFile())
+     .map((entry) => String(entry.name || "").trim())
+     .filter((name) => /\.(png|jpe?g|webp)$/i.test(name))
+     .map((name) => String(name).replace(/\.[^.]+$/i, ""))
+     .filter(Boolean)
+   } catch (_) {
+    items = []
+   }
+
+   items.sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base", numeric: true }))
+   return res.json({ ok: true, items })
+  } catch (e) {
+   console.error("[WEB] /api/game/craft-illustrations:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
 
  app.get("/api/game/meta", (req, res) => {
   try {

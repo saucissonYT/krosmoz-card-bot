@@ -3,7 +3,7 @@
 const path = require("path")
 
 module.exports = function mount(app, ctx) {
- const { requireSessionPage, PUBLIC_DIR } = ctx
+ const { requireSessionPage, canUseLocalAuth, PUBLIC_DIR } = ctx
 
  app.get("/", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Index.html")))
  app.get("/leaderboard", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Leaderboard.html")))
@@ -12,21 +12,36 @@ module.exports = function mount(app, ctx) {
  app.get("/cards", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Cards.html")))
  app.get("/play", (req, res) => {
   const session = requireSessionPage(req, res)
-  if (!session) return
+  if (!session) {
+   if (!res.headersSent && canUseLocalAuth(req)) {
+    return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+   }
+   return
+  }
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
  app.get("/play/:tab", (req, res) => {
   const tab = String(req.params.tab || "").toLowerCase()
   if (tab === "packs") {
    const session = requireSessionPage(req, res)
-   if (!session) return
+   if (!session) {
+    if (!res.headersSent && canUseLocalAuth(req)) {
+     return res.sendFile(path.join(PUBLIC_DIR, "Packs.html"))
+    }
+    return
+   }
    return res.sendFile(path.join(PUBLIC_DIR, "Packs.html"))
   }
   if (tab === "quests") {
    return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
   }
   const session = requireSessionPage(req, res)
-  if (!session) return
+  if (!session) {
+   if (!res.headersSent && canUseLocalAuth(req)) {
+    return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+   }
+   return
+  }
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
  app.get("/krosmoshop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))

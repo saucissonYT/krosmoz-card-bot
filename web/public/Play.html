@@ -6,15 +6,15 @@
  <title>Mon Jeu - Krosmoz Card</title>
  <meta name="theme-color" content="#0b0b18">
  <link rel="stylesheet" href="/css/style.css">
- <link rel="stylesheet" href="/Play.css">
+ <link rel="stylesheet" href="/Play.css?v=20260417p">
 </head>
 <body class="play-page">
 <script>
 const __initialPlayTab = String(window.location.pathname || "").split("/")[2] || ""
 if (__initialPlayTab === "fusion") {
  document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active")
-} else if (__initialPlayTab === "craft") {
- document.body.classList.add("route-craft-bg", "craft-bg-active", "fusion-mode-active")
+} else if (__initialPlayTab === "craft" || __initialPlayTab === "fabrication") {
+  document.body.classList.add("route-craft-bg", "craft-bg-active", "fusion-mode-active")
 } else if (__initialPlayTab === "packs") {
  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
 } else if (__initialPlayTab === "inventory") {
@@ -47,7 +47,7 @@ if (__initialPlayTab === "fusion") {
     <header id="inventoryTopbar" class="inventory-topbar" hidden>
      <div class="inventory-top-left">
       <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
-      <span class="inventory-top-title">inventaire</span>
+      <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
      </div>
      <div class="inventory-top-right">
       <div class="inventory-resource" aria-label="Kamas">
@@ -175,7 +175,34 @@ if (__initialPlayTab === "fusion") {
     <button id="inventorySellConfirmCancelBtn" class="inventory-sell-confirm-btn ghost" type="button" data-close-inventory-sell-confirm>Annuler</button>
     <button id="inventorySellConfirmSubmitBtn" class="inventory-sell-confirm-btn primary" type="button">Valider</button>
    </div>
+ </div>
+ </section>
+</aside>
+
+<aside id="craftCardZoomOverlay" class="craft-card-zoom-overlay" hidden>
+ <div class="craft-card-zoom-backdrop" data-close-craft-card-zoom></div>
+ <figure class="craft-card-zoom-modal" role="dialog" aria-modal="true" aria-labelledby="craftCardZoomCaption">
+  <button class="craft-card-zoom-close" type="button" data-close-craft-card-zoom aria-label="Fermer">&times;</button>
+  <img id="craftCardZoomImage" src="/assets/ui/pack-back-ssr.png" alt="Carte">
+  <figcaption id="craftCardZoomCaption"></figcaption>
+ </figure>
+</aside>
+
+<aside id="craftResultOverlay" class="craft-result-overlay" hidden>
+ <div class="craft-result-backdrop" data-close-craft-result></div>
+ <section class="craft-result-shell" role="dialog" aria-modal="true" aria-labelledby="craftResultTitle" data-close-craft-result>
+  <header class="craft-result-head">
+   <img src="/assets/ui/fragments%20craft/icone%20craft.png" alt="" aria-hidden="true">
+   <h2 id="craftResultTitle">Résultat de fabrication</h2>
+  </header>
+  <div class="craft-result-modal">
+   <div class="craft-result-center">
+    <img id="craftResultCardImage" src="/assets/ui/pack-back-ssr.png" alt="Carte fabriquée">
+   </div>
   </div>
+  <footer class="craft-result-foot">
+   <p id="craftResultHint">Cliquer pour continuer</p>
+  </footer>
  </section>
 </aside>
 
@@ -185,7 +212,7 @@ const MODE_PATH = {
  inventory: "/play/inventory",
   packs: "/packs",
  fusion: "/play/fusion",
- craft: "/play/craft",
+ craft: "/play/fabrication",
  quests: "/play/quests"
 }
 
@@ -196,9 +223,12 @@ const state = {
  sortDesc: true,
   me: null,
   profile: null,
-  inventory: null,
+ inventory: null,
+ cardsCatalog: [],
  groupedFragments: [],
  gameMeta: null,
+ craftTestCardFiles: [],
+ craftIllustrationIds: [],
  selected: null,
  fusionUi: {
   setId: "",
@@ -207,7 +237,10 @@ const state = {
  },
  fusionHistory: [],
  craftUi: {
-  cardId: ""
+  setId: "",
+  cardId: "",
+  setScrollTop: 0,
+  ssrScrollTop: 0
  },
  craftHistory: [],
  questsState: null
@@ -238,17 +271,71 @@ const SET_UNLOCK_RULES = [
   { id: "sberg", name: "Sberg", levelRequired: 96, prevSet: "katrepat" }
 ]
 const INVENTORY_SET_ICONS = [
- { id: "incarnam", name: "Incarnam", icon: "/assets/ui/icone%20incarnam%20inventaire.png" },
- { id: "astrub", name: "Astrub", icon: "/assets/ui/icone%20astrub%20inventaire.png" },
- { id: "amakna", name: "Amakna", icon: "/assets/ui/icone%20amakna%20inventaire.png" },
- { id: "sufokia", name: "Sufokia", icon: "/assets/ui/icone%20sufokia%20inventaire.png" },
- { id: "kelba", name: "Kelba", icon: "/assets/ui/icone%20kelba%20inventaire.png" },
- { id: "katrepat", name: "Katrepat", icon: "/assets/ui/icone%20katrepat%20inventaire.png" },
- { id: "sberg", name: "Sberg", icon: "/assets/ui/icone%20sberg%20inventaire.png" }
+ { id: "incarnam", name: "Incarnam", icon: "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png" },
+ { id: "astrub", name: "Astrub", icon: "/assets/ui/icones%20set/icone%20astrub%20inventaire.png" },
+ { id: "amakna", name: "Amakna", icon: "/assets/ui/icones%20set/icone%20amakna%20inventaire.png" },
+ { id: "sufokia", name: "Sufokia", icon: "/assets/ui/icones%20set/icone%20sufokia%20inventaire.png" },
+ { id: "kelba", name: "Kelba", icon: "/assets/ui/icones%20set/icone%20kelba%20inventaire.png" },
+ { id: "katrepat", name: "Katrepat", icon: "/assets/ui/icones%20set/icone%20katrepat%20inventaire.png" },
+ { id: "sberg", name: "Sberg", icon: "/assets/ui/icones%20set/icone%20sberg%20inventaire.png" }
 ]
+const CRAFT_COMING_SOON_SET = {
+ id: "__coming_soon__",
+ name: "à venir",
+ icon: "/assets/ui/icones%20set/icone%20a%20venir.png"
+}
+const CRAFT_TEST_CARD_FILES = [
+ "035c0a2e-f1a5-45bb-b562-6af82fdbc664.png",
+ "08aaec5f-948d-4f14-bcec-dfdf1782c886.png",
+ "16e27e17-9360-4ed9-995b-877fcbd6ca83.png",
+ "239d07d3-77de-4e75-837f-c87b183f7e5c.png",
+ "25a8811c-60fc-4cd2-90cd-aae0565cc6d7.png",
+ "37f9904d-7566-4e53-a5d9-004350db5b42.png",
+ "46ff9357-cb77-4209-b199-6ebc85903827.png",
+ "48bab6a5-5583-4a6b-a853-986bcb5e4127.png",
+ "549ce5fc-8fac-4f9c-9c5f-c9b9cfcd1157.png",
+ "613b857f-51be-408c-ac62-c586f5a3a740.png",
+ "657e9cc2-7aab-48a0-86c9-b6083aa94538.png",
+ "65a3a91e-c3c4-4f9a-8dde-9bebcfdaa667.png",
+ "69d6d9e8-4fdc-4b44-90ec-c538ee8724a3.png",
+ "70deec7a-3ca7-4c5a-9a2e-da4bc1b7d10e.png",
+ "72dcf95f-2453-4925-b4b7-39e7c356b9a6.png",
+ "7316282e-bcd4-4313-bf43-60d2decf5846.png",
+ "7f8f82a1-3ac6-4ee7-b220-850dc50bd770.png",
+ "839ed31e-fc34-4564-98c7-42e5618b24ca.png",
+ "89b08b0e-2f03-4849-8e0c-aeebce72b239.png",
+ "8acf6037-bf6f-43a7-a887-3ca65211cdea.png",
+ "8e9f15d1-c3fd-4808-95ee-da29ddf19e92.png",
+ "8e9f5a8d-b7cf-4a65-9048-73e4c99f9afb.png",
+ "8f5d31cb-26a9-4f79-afc9-ad952a92050f.png",
+ "8fcf4c13-be80-4a70-8fac-167f30dfc798.png",
+ "92fd912a-a461-4804-96fc-9b8fd081cdbd.png",
+ "930b8d3e-7702-4b01-97c9-f6fb223da56e.png",
+ "93e2334d-76c6-430d-a8cf-15b9437b9dfe.png",
+ "95ce6a3d-c0f6-46da-9d71-48419438ca83.png",
+ "a0bda3eb-1777-4894-83cf-e63ef15381fd.png",
+ "b0cf1644-bcaf-4b4a-853d-83552ebda922.png",
+ "b90590a3-3251-4746-ae80-62ababe50d09.png"
+]
+const CRAFT_ILLUSTRATION_IDS_AVAILABLE = [
+ "31", "32", "114", "211", "262", "263", "348", "383",
+ "403", "459", "478", "479", "501", "543", "675", "676"
+]
+const CRAFT_ILLUSTRATION_IDS_AVAILABLE_SET = new Set(CRAFT_ILLUSTRATION_IDS_AVAILABLE)
+const CRAFT_ILLUSTRATION_TEST_POOL_BY_SET = {
+ incarnam: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ astrub: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ amakna: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ sufokia: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ kelba: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ katrepat: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ sberg: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
+ default: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice()
+}
 let packRevealResolve = null
 let packRevealEscHandlerBound = false
 let packRevealTimers = []
+let craftResultContinueResolve = null
 const FUSION_MAX_CYCLES = 25
 
  function escapeHtml(value) {
@@ -264,8 +351,14 @@ function fmt(n) { return Number(n || 0).toLocaleString("fr-FR") }
  }
 
 function parseModeFromPath() {
-  const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
-  return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
+ const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
+ if (tab === "fabrication") return "craft"
+ return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
+ }
+
+ function isLoopbackHost() {
+  const host = String(window.location.hostname || "").toLowerCase()
+  return host === "localhost" || host === "127.0.0.1" || host === "::1"
  }
 
  async function fetchJson(url, options = {}) {
@@ -283,10 +376,55 @@ function parseModeFromPath() {
   })
  }
 
+ async function loadSsrCardsCatalog() {
+  const all = []
+  let page = 1
+  let pages = 1
+  const hardMaxPages = 40
+
+  while (page <= pages && page <= hardMaxPages) {
+   const res = await fetchJson(`/api/cards?rarity=SSR&page=${page}&limit=100&sort=set&order=asc`)
+   if (!res.ok || !Array.isArray(res.data?.items)) break
+   all.push(...res.data.items)
+   pages = Math.max(1, Number(res.data?.pages || 1))
+   page += 1
+  }
+
+  return all.map((item) => ({
+   id: String(item?.id || ""),
+   name: String(item?.name || `Carte ${item?.id || "?"}`),
+   rarity: String(item?.rarity || "SSR").toUpperCase(),
+   set: String(item?.set || "unknown"),
+   setName: String(item?.setName || item?.set || "Set"),
+   imageUrl: item?.imageUrl || null
+  })).filter((item) => item.id && item.rarity === "SSR")
+ }
+
  async function requireLogin() {
   const meRes = await fetchJson("/api/me")
-  if (!meRes.ok || !meRes.data || !meRes.data.id) throw new Error("not_connected")
-  state.me = meRes.data
+  if (meRes.ok && meRes.data && meRes.data.id) {
+   state.me = meRes.data
+   return
+  }
+
+  if (isLoopbackHost()) {
+   const statusRes = await fetchJson("/api/oauth/status")
+   const status = statusRes.ok ? (statusRes.data || {}) : {}
+   const localAvailable = Boolean(status.localAuthAvailable || status.localAuthEnabled)
+   const alreadyConnected = Boolean(status.connected || status.localAuthSession)
+   const params = new URLSearchParams(window.location.search || "")
+   const bootstrapAttempted = String(params.get("local_bootstrap") || "") === "1"
+   if (localAvailable && !alreadyConnected && !bootstrapAttempted) {
+    const returnToUrl = new URL(window.location.href)
+    returnToUrl.searchParams.set("local", "1")
+    returnToUrl.searchParams.set("local_bootstrap", "1")
+    const returnTo = `${returnToUrl.pathname}${returnToUrl.search}${returnToUrl.hash || ""}`
+    window.location.href = `/auth/discord?local=1&returnTo=${encodeURIComponent(returnTo)}`
+    throw new Error("local_auth_bootstrap")
+   }
+  }
+
+  throw new Error("not_connected")
  }
 
 function setMode(mode, updateUrl = true) {
@@ -355,14 +493,26 @@ function setInventoryView(view) {
  async function loadData() {
   await requireLogin()
 
-  const [profileRes, inventoryRes, gameMetaRes] = await Promise.all([
-  fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}?track=0`),
-   fetchJson("/api/me/inventory"),
-   fetchJson("/api/game/meta")
-  ])
+  const cardsCatalogPromise = loadSsrCardsCatalog().catch(() => [])
+
+  const [profileRes, inventoryRes, gameMetaRes, cardsCatalog, craftTestCardsRes, craftIllustrationsRes] = await Promise.all([
+   fetchJson(`/api/profile/${encodeURIComponent(state.me.id)}?track=0`),
+    fetchJson("/api/me/inventory"),
+    fetchJson("/api/game/meta"),
+    cardsCatalogPromise,
+    fetchJson("/api/game/craft-test-cards"),
+    fetchJson("/api/game/craft-illustrations")
+   ])
   if (profileRes.ok) state.profile = profileRes.data
   if (inventoryRes.ok) state.inventory = inventoryRes.data
   if (gameMetaRes.ok) state.gameMeta = gameMetaRes.data
+  if (Array.isArray(cardsCatalog)) state.cardsCatalog = cardsCatalog
+  if (craftTestCardsRes.ok && Array.isArray(craftTestCardsRes.data?.items)) {
+   state.craftTestCardFiles = craftTestCardsRes.data.items
+  }
+  if (craftIllustrationsRes.ok && Array.isArray(craftIllustrationsRes.data?.items)) {
+   state.craftIllustrationIds = craftIllustrationsRes.data.items.map((id) => String(id || "").trim()).filter(Boolean)
+  }
   state.groupedFragments = groupFragments((state.inventory && state.inventory.fragments) || [])
 
   const setSelect = document.getElementById("setFilter")
@@ -566,25 +716,176 @@ function renderInventoryGrid() {
 
 function getCraftCandidates() {
  const grouped = new Map()
- for (const frag of state.groupedFragments || []) {
-  const id = String(frag.cardId)
+
+ const upsert = (payload = {}) => {
+  const id = String(payload.cardId || payload.id || "").trim()
+  if (!id) return
+  const rarity = String(payload.rarity || "SSR").toUpperCase()
+  if (rarity !== "SSR") return
   if (!grouped.has(id)) {
    grouped.set(id, {
-     cardId: id,
-     cardName: frag.cardName,
-     set: String(frag.set || "unknown"),
-     setName: String(frag.setName || frag.set || "Set"),
-     imageUrl: frag.imageUrl || null,
-     numbers: new Set()
-    })
-   }
-   grouped.get(id).numbers.add(Number(frag.fragmentNumber || 0))
+    cardId: id,
+    cardName: String(payload.cardName || payload.name || `Carte ${id}`),
+    rarity,
+    set: String(payload.set || "unknown"),
+    setName: String(payload.setName || payload.set || getSetName(payload.set) || "Set"),
+    imageUrl: payload.imageUrl || null,
+    numbers: new Set(),
+    totalFragments: 0
+   })
+   return
   }
-  return [...grouped.values()].map((x) => ({
-   ...x,
-   uniqueCount: x.numbers.size
-  })).sort((a, b) => b.uniqueCount - a.uniqueCount || String(a.cardName).localeCompare(String(b.cardName), "fr"))
+  const row = grouped.get(id)
+  if (!row.imageUrl && payload.imageUrl) row.imageUrl = payload.imageUrl
+  if ((!row.set || row.set === "unknown") && payload.set) row.set = String(payload.set)
+  if ((!row.setName || row.setName === "Set") && payload.setName) row.setName = String(payload.setName)
+  if (!row.cardName && payload.cardName) row.cardName = String(payload.cardName)
  }
+
+ for (const card of state.cardsCatalog || []) upsert(card)
+ for (const card of (state.inventory?.cards || [])) upsert(card)
+ for (const frag of state.groupedFragments || []) upsert(frag)
+
+ for (const frag of state.groupedFragments || []) {
+  const id = String(frag.cardId || "")
+  const row = grouped.get(id)
+  if (!row) continue
+  const number = Number(frag.fragmentNumber || 0)
+  if (number >= 1 && number <= 5) row.numbers.add(number)
+  row.totalFragments += Number(frag.qty || 0)
+  if (!row.imageUrl && frag.imageUrl) row.imageUrl = frag.imageUrl
+ }
+
+ return [...grouped.values()]
+  .map((row) => ({
+   ...row,
+   uniqueCount: row.numbers.size
+  }))
+  .sort((a, b) =>
+   String(a.setName || a.set).localeCompare(String(b.setName || b.set), "fr")
+   || String(a.cardName).localeCompare(String(b.cardName), "fr")
+  )
+}
+
+function getCraftSetIcon(setId) {
+ const id = String(setId || "")
+ const match = INVENTORY_SET_ICONS.find((item) => String(item.id) === id)
+ return match?.icon || "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png"
+}
+
+function getCraftSetRows(crafts = []) {
+ const grouped = new Map()
+ for (const row of crafts) {
+  const setId = String(row.set || "unknown")
+  if (setId === "unknown") continue
+  if (!grouped.has(setId)) {
+   grouped.set(setId, {
+    id: setId,
+     name: String(row.setName || getSetName(setId) || setId),
+     icon: getCraftSetIcon(setId),
+    count: 0
+   })
+  }
+  grouped.get(setId).count += 1
+ }
+
+ const ordered = []
+ const seen = new Set()
+ for (const item of INVENTORY_SET_ICONS) {
+  const id = String(item.id || "")
+  const row = grouped.get(id)
+  ordered.push({
+   id,
+   name: String(item.name || row?.name || getSetName(id) || id),
+   icon: String(item.icon || row?.icon || getCraftSetIcon(id)),
+   count: Number(row?.count || 0)
+  })
+  seen.add(id)
+ }
+
+ const extras = [...grouped.values()]
+  .filter((row) => !seen.has(String(row.id)) && String(row.id || "") !== "unknown")
+  .sort((a, b) => String(a.name).localeCompare(String(b.name), "fr"))
+ ordered.push(...extras)
+ return ordered
+}
+
+function getOwnedQtyForCard(cardId) {
+ const found = (state.inventory?.cards || []).find((item) => String(item.cardId) === String(cardId))
+ return Math.max(0, Number(found?.qty || 0))
+}
+
+function getCraftIllustrationIdsAvailableSet() {
+ const dynamic = Array.isArray(state.craftIllustrationIds) ? state.craftIllustrationIds.map((id) => String(id || "").trim()).filter(Boolean) : []
+ const source = dynamic.length ? dynamic : CRAFT_ILLUSTRATION_IDS_AVAILABLE
+ return new Set(source)
+}
+
+function getCraftIllustrationPoolForSet(setId = "") {
+ const safeSet = String(setId || "").trim().toLowerCase()
+ const availableSet = getCraftIllustrationIdsAvailableSet()
+ const fromCatalog = [...new Set(
+  (state.cardsCatalog || [])
+   .filter((row) => String(row?.set || "").trim().toLowerCase() === safeSet)
+   .map((row) => String(row?.id || "").trim())
+   .filter((id) => availableSet.has(id))
+ )]
+ if (fromCatalog.length) return fromCatalog
+ const fallback = CRAFT_ILLUSTRATION_TEST_POOL_BY_SET[safeSet] || CRAFT_ILLUSTRATION_TEST_POOL_BY_SET.default
+ return (fallback || []).filter((id) => availableSet.has(String(id)))
+}
+
+function resolveCraftIllustrationId(cardId, cardName = "") {
+ const rawId = String(cardId || "").trim()
+ const rawName = String(cardName || "").trim()
+ const candidateIds = []
+ const availableSet = getCraftIllustrationIdsAvailableSet()
+
+ if (/^\d+$/.test(rawId)) candidateIds.push(rawId)
+ if (/^\d+$/.test(rawName)) candidateIds.push(rawName)
+
+ const namesToMatch = [rawId, rawName]
+  .map((value) => String(value || "").trim().toLowerCase())
+  .filter(Boolean)
+
+ for (const token of namesToMatch) {
+  const match = (state.cardsCatalog || []).find((row) => String(row?.name || "").trim().toLowerCase() === token)
+  if (match?.id) candidateIds.push(String(match.id).trim())
+ }
+
+ for (const id of candidateIds) {
+  if (availableSet.has(id)) return id
+ }
+ return ""
+}
+
+function getCraftIllustrationForCard(cardId, setId = "", index = 0, cardName = "") {
+ const matchedId = resolveCraftIllustrationId(cardId, cardName)
+ if (matchedId) {
+  return {
+   primary: `/assets/ui/illustration%20craft/${encodeURIComponent(matchedId)}.png`,
+   fallback: "/assets/ui/pack-back-ssr.png",
+   illustrationId: matchedId
+  }
+ }
+
+ return {
+  primary: "/assets/ui/pack-back-ssr.png",
+  fallback: "/assets/ui/pack-back-ssr.png",
+  illustrationId: ""
+ }
+}
+
+function getRandomCraftTestCardImage() {
+ const pool = Array.isArray(state.craftTestCardFiles) && state.craftTestCardFiles.length
+  ? state.craftTestCardFiles
+  : CRAFT_TEST_CARD_FILES
+ if (!pool.length) return "/assets/ui/pack-back-ssr.png"
+ const randomIndex = Math.floor(Math.random() * pool.length)
+ const fileName = String(pool[randomIndex] || "").trim()
+ if (!fileName) return "/assets/ui/pack-back-ssr.png"
+ return `/assets/ui/cartes%20test/${encodeURIComponent(fileName)}`
+}
 
  function parseSafeQty(value, min, max, fallback = 1) {
   const n = Number(value)
@@ -615,14 +916,20 @@ function getTopbarPacks() {
 
 function syncInventoryTopbar() {
  const bar = document.getElementById("inventoryTopbar")
+ const titleEl = document.getElementById("inventoryTopTitle")
  const kamasEl = document.getElementById("inventoryTopKamas")
  const packsEl = document.getElementById("inventoryTopPacks")
- if (!bar || !kamasEl || !packsEl) return
+ if (!bar || !kamasEl || !packsEl || !titleEl) return
 
- const show = state.mode === "inventory"
- bar.hidden = !show
- document.body.classList.toggle("inventory-layout-active", show)
- if (!show) return
+ const isInventoryMode = state.mode === "inventory"
+ const isFabricationMode = state.mode === "craft"
+ const showTopbar = isInventoryMode || isFabricationMode
+ bar.hidden = !showTopbar
+ document.body.classList.toggle("inventory-layout-active", isInventoryMode)
+ document.body.classList.toggle("craft-header-active", isFabricationMode)
+ if (!showTopbar) return
+
+ titleEl.textContent = isFabricationMode ? "fabrication" : "inventaire"
 
  kamasEl.textContent = fmt(getTopbarKamas())
  packsEl.textContent = fmt(getTopbarPacks())
@@ -883,9 +1190,35 @@ async function buyPacksFromInventoryTopbar() {
 
 function renderInventorySetRail() {
  const rail = document.getElementById("inventorySetRail")
- const setFilter = document.getElementById("setFilter")
- if (!rail || !setFilter) return
+ if (!rail) return
 
+ if (state.mode === "craft") {
+  const craftRows = getCraftSetRows(getCraftCandidates())
+  const activeSet = String(
+   state.craftUi.setId
+   || craftRows.find((row) => Number(row.count || 0) > 0)?.id
+   || craftRows[0]?.id
+   || ""
+  )
+  rail.innerHTML = craftRows.map((set) => {
+   const active = activeSet === String(set.id || "")
+   return `
+    <button
+     type="button"
+     class="inventory-set-btn ${active ? "active" : ""}"
+     data-inventory-set-id="${escapeHtml(set.id)}"
+     aria-label="${escapeHtml(set.name)}"
+     title="${escapeHtml(set.name)}">
+     <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
+     <span class="inventory-set-label">${escapeHtml(set.name)}</span>
+    </button>
+   `
+  }).join("")
+  return
+ }
+
+ const setFilter = document.getElementById("setFilter")
+ if (!setFilter) return
  const activeSet = String(setFilter.value || "")
  rail.innerHTML = INVENTORY_SET_ICONS.map((set) => {
   const active = activeSet === set.id
@@ -893,9 +1226,9 @@ function renderInventorySetRail() {
    <button
     type="button"
     class="inventory-set-btn ${active ? "active" : ""}"
-   data-inventory-set-id="${escapeHtml(set.id)}"
-   aria-label="${escapeHtml(set.name)}"
-   title="${escapeHtml(set.name)}">
+    data-inventory-set-id="${escapeHtml(set.id)}"
+    aria-label="${escapeHtml(set.name)}"
+    title="${escapeHtml(set.name)}">
     <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
     <span class="inventory-set-label">${escapeHtml(set.name)}</span>
    </button>
@@ -904,6 +1237,16 @@ function renderInventorySetRail() {
 }
 
 function applyInventorySetFilter(nextSetId) {
+ if (state.mode === "craft") {
+  const safeNextCraft = String(nextSetId || "").trim().toLowerCase()
+  if (!safeNextCraft) return
+  if (safeNextCraft === String(state.craftUi.setId || "")) return
+  state.craftUi.setId = safeNextCraft
+  state.craftUi.cardId = ""
+  renderCurrentMode()
+  return
+ }
+
  const setFilter = document.getElementById("setFilter")
  if (!setFilter) return
 
@@ -970,9 +1313,9 @@ function getRarityEmoji(rarity) {
    numbers.add(Number(frag.fragmentNumber || 0))
    total += Number(frag.qty || 0)
   }
-  const found = [...numbers].sort((a, b) => a - b).filter((x) => x >= 1 && x <= 5)
-  const missing = [1, 2, 3, 4, 5].filter((x) => !numbers.has(x))
-  return { found, missing, unique: found.length, total }
+ const found = [...numbers].sort((a, b) => a - b).filter((x) => x >= 1 && x <= 5)
+ const missing = [1, 2, 3, 4, 5].filter((x) => !numbers.has(x))
+ return { found, missing, unique: found.length, total }
  }
 
  function getSetProgressPct(setId) {
@@ -1225,105 +1568,219 @@ function setupFusionPanel() {
  refresh()
 }
 
-function setupCraftPanel(crafts) {
- const select = document.getElementById("craftCardInput")
- const preview = document.getElementById("craftPreview")
- const readyTag = document.getElementById("craftReadyTag")
- const infoLine = document.getElementById("craftInfoLine")
- const runBtn = document.getElementById("craftBtn")
- const stepButtons = [...document.querySelectorAll(".fusion-simple-step[data-card-id]")]
- const historyBox = document.getElementById("craftHistoryList")
- if (!select || !preview || !readyTag || !runBtn || !historyBox) return
+function rememberCraftScroll(panel = null) {
+ const node = panel || document.getElementById("playCraft")
+ if (!node) return
+ const setPanel = node.querySelector(".craft-set-panel")
+ const ssrGrid = node.querySelector(".craft-ssr-grid")
+ if (setPanel) state.craftUi.setScrollTop = Math.max(0, Number(setPanel.scrollTop || 0))
+ if (ssrGrid) state.craftUi.ssrScrollTop = Math.max(0, Number(ssrGrid.scrollTop || 0))
+}
 
- const options = crafts.map((item) => String(item.cardId))
- if (!options.includes(String(state.craftUi.cardId || ""))) {
-  state.craftUi.cardId = options[0] || ""
+function restoreCraftScroll(panel = null) {
+ const node = panel || document.getElementById("playCraft")
+ if (!node) return
+ const setPanel = node.querySelector(".craft-set-panel")
+ const ssrGrid = node.querySelector(".craft-ssr-grid")
+ const targetSetTop = Math.max(0, Number(state.craftUi.setScrollTop || 0))
+ const targetSsrTop = Math.max(0, Number(state.craftUi.ssrScrollTop || 0))
+ if (setPanel) setPanel.scrollTop = targetSetTop
+ if (ssrGrid) ssrGrid.scrollTop = targetSsrTop
+}
+
+function setupCraftPanel() {
+ const panel = document.getElementById("playCraft")
+ if (!panel) return
+
+ const setPanel = panel.querySelector(".craft-set-panel")
+ const setRail = panel.querySelector(".craft-set-rail")
+ const ssrGrid = panel.querySelector(".craft-ssr-grid")
+ if (setPanel && setRail) {
+  const panelTop = Number(setPanel.getBoundingClientRect().top || 0)
+  const viewportHeight = Number(window.innerHeight || document.documentElement.clientHeight || 0)
+  const targetHeight = Math.max(120, Math.floor(viewportHeight - panelTop - 8))
+
+  // Hard-lock left rail geometry to avoid CSS override conflicts.
+  setPanel.style.setProperty("height", `${targetHeight}px`, "important")
+  setPanel.style.setProperty("max-height", `${targetHeight}px`, "important")
+  setPanel.style.setProperty("min-height", "0", "important")
+  setPanel.style.setProperty("overflow-y", "auto", "important")
+  setPanel.style.setProperty("overflow-x", "hidden", "important")
+  setPanel.style.setProperty("align-self", "stretch", "important")
+
+  setRail.style.setProperty("height", "auto", "important")
+  setRail.style.setProperty("max-height", "none", "important")
+  setRail.style.setProperty("min-height", "100%", "important")
+  setRail.style.setProperty("overflow", "visible", "important")
+
+  const wheelForward = (event) => {
+   event.preventDefault()
+   setPanel.scrollTop += Number(event.deltaY || 0)
+  }
+  setPanel.addEventListener("wheel", wheelForward, { passive: false })
+  setRail.addEventListener("wheel", wheelForward, { passive: false })
+  setPanel.addEventListener("scroll", () => {
+   state.craftUi.setScrollTop = Math.max(0, Number(setPanel.scrollTop || 0))
+  }, { passive: true })
  }
 
- function renderHistory() {
-  if (!Array.isArray(state.craftHistory) || !state.craftHistory.length) {
-   historyBox.innerHTML = '<p class="mode-muted">Aucun craft dans cette session.</p>'
-   return
-  }
-  historyBox.innerHTML = state.craftHistory.slice(0, 5).map((entry) => `
-   <article class="fusion-history-item">
-    <div>
-     <strong>🌟 ${escapeHtml(entry.cardName || "Carte")}</strong>
-     <small>${escapeHtml(entry.setName || "Set")}</small>
-    </div>
-    <div>
-     <span>${escapeHtml(entry.rarity || "SSR")}</span>
-     <small>${new Date(Number(entry.timestamp || Date.now())).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
-    </div>
-   </article>
-  `).join("")
+ if (ssrGrid) {
+  ssrGrid.addEventListener("scroll", () => {
+   state.craftUi.ssrScrollTop = Math.max(0, Number(ssrGrid.scrollTop || 0))
+  }, { passive: true })
  }
 
- function refresh() {
-  const selectedId = String(state.craftUi.cardId || select.value || "")
-  const selected = crafts.find((item) => String(item.cardId) === selectedId) || null
-  if (selected) {
-   state.craftUi.cardId = String(selected.cardId)
-   select.value = String(selected.cardId)
-  }
-
-  stepButtons.forEach((btn) => {
-   const cardId = String(btn.dataset.cardId || "")
-   const candidate = crafts.find((item) => String(item.cardId) === cardId)
-   const stockTag = btn.querySelector("[data-craft-stock]")
-   if (!candidate || !stockTag) return
-   stockTag.textContent = `${fmt(candidate.uniqueCount)}/5 fragments uniques`
-   btn.classList.toggle("active", selected && cardId === String(selected.cardId))
-   btn.classList.toggle("ready", Number(candidate.uniqueCount || 0) >= 5)
-  })
-
-  if (!selected) {
-   preview.innerHTML = '<p class="mode-muted">Aucune carte craftable pour l\'instant.</p>'
-   readyTag.textContent = "0/5"
-   if (infoLine) infoLine.textContent = "Aucune cible disponible."
-   runBtn.disabled = true
-   renderCraftForgeIdle("")
-   renderHistory()
-   return
-  }
-
-  const progress = getFragmentProgressForCard(selected.cardId)
-  const foundBadges = progress.found.map((n) => `<span class="mode-chip mode-chip-ok">Fragment ${n}</span>`).join("")
-  const missingBadges = progress.missing.map((n) => `<span class="mode-chip">Manque ${n}</span>`).join("")
-  readyTag.textContent = `${progress.unique}/5`
-  preview.innerHTML = `
-   <p><strong>${escapeHtml(selected.cardName)}</strong> • ${escapeHtml(selected.setName || "Set")}</p>
-   <div class="mode-chip-row">
-    ${foundBadges || ""}
-    ${missingBadges || ""}
-   </div>
-   <p class="mode-muted">Fragments uniques: ${fmt(progress.unique)}/5 • total en stock: ${fmt(progress.total)}</p>
-  `
-  if (infoLine) {
-   const missingText = progress.missing.length ? `manque: ${progress.missing.join(", ")}` : "prêt pour craft"
-   infoLine.textContent = `🌟 ${selected.cardName} • ${progress.unique}/5 • ${missingText}`
-  }
-  const busy = String(document.getElementById("craftForgeStage")?.getAttribute("data-busy") || "0") === "1"
-  runBtn.disabled = progress.unique < 5 || busy
-  runBtn.textContent = progress.unique >= 5 ? "Crafter SSR" : "Fragments incomplets"
-
-  renderCraftForgeIdle(selected.cardId)
-  renderHistory()
- }
-
- select.addEventListener("change", () => {
-  state.craftUi.cardId = String(select.value || "")
-  refresh()
+ requestAnimationFrame(() => {
+  restoreCraftScroll(panel)
  })
 
- stepButtons.forEach((btn) => {
+ panel.querySelectorAll("[data-craft-set-id]").forEach((btn) => {
   btn.addEventListener("click", () => {
-   state.craftUi.cardId = String(btn.dataset.cardId || "")
-   refresh()
+   const nextSetId = String(btn.dataset.craftSetId || "")
+   if (!nextSetId || nextSetId === String(state.craftUi.setId || "")) return
+   rememberCraftScroll(panel)
+   state.craftUi.setId = nextSetId
+   state.craftUi.cardId = ""
+   renderCraft()
   })
  })
 
- refresh()
+ panel.querySelectorAll("[data-craft-card-id]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+   const nextCardId = String(btn.dataset.craftCardId || "")
+   if (!nextCardId || nextCardId === String(state.craftUi.cardId || "")) return
+   rememberCraftScroll(panel)
+   state.craftUi.cardId = nextCardId
+   renderCraft()
+  })
+ })
+
+ const zoomTrigger = panel.querySelector("[data-craft-zoom-trigger]")
+ if (zoomTrigger) {
+  const openZoom = () => {
+   const isAnimating = panel.classList.contains("craft-forge-animating")
+   const isBusy = String(panel.getAttribute("data-craft-busy") || "0") === "1"
+   if (isAnimating || isBusy) return
+   const src = String(zoomTrigger.getAttribute("data-craft-zoom-src") || "").trim()
+   const fallback = String(zoomTrigger.getAttribute("data-craft-zoom-fallback") || "").trim()
+   const name = String(zoomTrigger.getAttribute("data-craft-zoom-name") || "Carte SSR")
+   openCraftCardZoom({ src, fallback, name })
+  }
+  zoomTrigger.addEventListener("click", openZoom)
+  zoomTrigger.addEventListener("keydown", (event) => {
+   if (event.key !== "Enter" && event.key !== " ") return
+   event.preventDefault()
+   openZoom()
+  })
+ }
+}
+
+function getCraftCardZoomEls() {
+ return {
+  overlay: document.getElementById("craftCardZoomOverlay"),
+  image: document.getElementById("craftCardZoomImage"),
+  caption: document.getElementById("craftCardZoomCaption")
+ }
+}
+
+function isCraftCardZoomVisible() {
+ const el = getCraftCardZoomEls()
+ return Boolean(el.overlay && !el.overlay.hidden && el.overlay.classList.contains("show"))
+}
+
+function openCraftCardZoom({ src = "", fallback = "", name = "Carte SSR" } = {}) {
+ const el = getCraftCardZoomEls()
+ if (!el.overlay || !el.image || !el.caption) return
+
+ const finalSrc = String(src || fallback || "/assets/ui/pack-back-ssr.png")
+ const finalFallback = String(fallback || "/assets/ui/pack-back-ssr.png")
+ const finalName = String(name || "Carte SSR")
+
+ el.image.src = finalSrc
+ el.image.alt = finalName
+ el.image.onerror = () => {
+  el.image.onerror = null
+  el.image.src = finalFallback
+ }
+ el.caption.textContent = finalName
+ el.overlay.hidden = false
+ requestAnimationFrame(() => {
+  if (!el.overlay) return
+  el.overlay.classList.add("show")
+  document.body.classList.add("craft-card-zoom-open")
+ })
+}
+
+function closeCraftCardZoom() {
+ const el = getCraftCardZoomEls()
+ if (!el.overlay || el.overlay.hidden) return
+
+ el.overlay.classList.remove("show")
+ document.body.classList.remove("craft-card-zoom-open")
+ window.setTimeout(() => {
+  if (!el.overlay) return
+  el.overlay.hidden = true
+ }, 180)
+}
+
+function getCraftResultEls() {
+ return {
+  overlay: document.getElementById("craftResultOverlay"),
+  image: document.getElementById("craftResultCardImage")
+ }
+}
+
+function isCraftResultVisible() {
+ const el = getCraftResultEls()
+ return Boolean(el.overlay && !el.overlay.hidden && el.overlay.classList.contains("show"))
+}
+
+function openCraftResultOverlay({ imageSrc = "", fallbackSrc = "", cardName = "Carte SSR" } = {}) {
+ const el = getCraftResultEls()
+ if (!el.overlay || !el.image) return Promise.resolve()
+
+ if (typeof craftResultContinueResolve === "function") {
+  const previous = craftResultContinueResolve
+  craftResultContinueResolve = null
+  previous()
+ }
+
+ const finalSrc = String(imageSrc || fallbackSrc || "/assets/ui/pack-back-ssr.png")
+ const finalFallback = String(fallbackSrc || "/assets/ui/pack-back-ssr.png")
+ const finalName = String(cardName || "Carte SSR")
+ el.image.src = finalSrc
+ el.image.alt = finalName
+ el.image.onerror = () => {
+  el.image.onerror = null
+  el.image.src = finalFallback
+ }
+
+ el.overlay.hidden = false
+ requestAnimationFrame(() => {
+  if (!el.overlay) return
+  el.overlay.classList.add("show")
+  document.body.classList.add("craft-result-open")
+ })
+
+ return new Promise((resolve) => {
+  craftResultContinueResolve = resolve
+ })
+}
+
+function closeCraftResultOverlay() {
+ const el = getCraftResultEls()
+ if (!el.overlay || el.overlay.hidden) return
+ el.overlay.classList.remove("show")
+ document.body.classList.remove("craft-result-open")
+ window.setTimeout(() => {
+  if (!el.overlay) return
+  el.overlay.hidden = true
+ }, 180)
+ if (typeof craftResultContinueResolve === "function") {
+  const resolver = craftResultContinueResolve
+  craftResultContinueResolve = null
+  resolver()
+ }
 }
 
 function getFusionAnimationFragments(setId, rarity, needed = 5) {
@@ -1582,71 +2039,88 @@ function renderCraftForgeIdle(cardId) {
 }
 
 function playCraftForgeAnimation(payload = {}) {
- const stage = document.getElementById("craftForgeStage")
- const orbit = document.getElementById("craftForgeOrbit")
- const result = document.getElementById("craftForgeResult")
- const resultImage = document.getElementById("craftForgeResultImage")
- const resultName = document.getElementById("craftForgeResultName")
- const status = document.getElementById("craftForgeStatus")
- if (!stage || !orbit || !result || !resultName || !status) return Promise.resolve()
+ const panel = document.getElementById("playCraft")
+ if (!panel) return Promise.resolve()
+ const previewImage = panel.querySelector("#craftDetailPreviewImage")
+ const runBtn = panel.querySelector("#craftBtn")
+ const fragments = [...panel.querySelectorAll("[data-craft-fragment-slot]")]
+ if (!previewImage) return Promise.resolve()
 
- if (Array.isArray(stage._fusionTimers)) {
-  for (const timer of stage._fusionTimers) window.clearTimeout(timer)
+ const reset = () => {
+  panel.classList.remove(
+   "craft-forge-animating",
+   "craft-forge-phase-shake",
+   "craft-forge-phase-charge",
+   "craft-forge-phase-burst",
+   "craft-forge-phase-settle"
+  )
+  if (runBtn) runBtn.classList.remove("craft-btn-forging")
+  fragments.forEach((slot) => {
+   slot.classList.remove("craft-fragment-armed")
+   slot.style.removeProperty("--craft-frag-delay")
+   slot.style.removeProperty("--craft-frag-target-x")
+   slot.style.removeProperty("--craft-frag-target-y")
+   slot.style.removeProperty("--craft-frag-rot")
+  })
  }
- stage._fusionTimers = []
 
- const reward = payload?.reward || {}
- const fragments = Array.isArray(payload?.fragments) ? payload.fragments.slice(0, 5) : []
- orbit.innerHTML = buildFusionForgeOrbitMarkup(fragments, "SSR")
-
- const rewardName = `${String(reward?.rarity || "SSR").trim()} ${String(reward?.cardName || "Carte mystère").trim()}`.trim()
- if (resultImage) {
-  if (reward?.imageUrl) {
-   resultImage.src = String(reward.imageUrl)
-   resultImage.alt = rewardName
-   resultImage.style.display = ""
-  } else {
-   resultImage.removeAttribute("src")
-   resultImage.alt = rewardName
-   resultImage.style.display = "none"
-  }
+ if (Array.isArray(panel._craftAnimTimers)) {
+  for (const timer of panel._craftAnimTimers) window.clearTimeout(timer)
  }
- resultName.textContent = rewardName
- status.textContent = "Craft fragments → SSR"
+ panel._craftAnimTimers = []
+ reset()
 
- stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
- result.classList.remove("visible")
- stage.setAttribute("data-busy", "1")
- void stage.offsetWidth
- stage.classList.add("animating", "phase-spin")
+ const fragList = Array.isArray(payload?.fragments) ? payload.fragments.slice(0, 5) : []
+ const fragCount = Math.max(1, Math.min(5, fragList.length || fragments.length || 5))
+ const previewRect = previewImage.getBoundingClientRect()
+ const targetX = previewRect.left + (previewRect.width / 2)
+ const targetY = previewRect.top + (previewRect.height * 0.58)
+ const centerIndex = (fragCount - 1) / 2
+ fragments.slice(0, fragCount).forEach((slot, index) => {
+  const rect = slot.getBoundingClientRect()
+  const fromX = rect.left + (rect.width / 2)
+  const fromY = rect.top + (rect.height / 2)
+  const deltaX = Math.round(targetX - fromX)
+  const deltaY = Math.round(targetY - fromY)
+  const rot = Math.round((index - centerIndex) * 8)
+  slot.classList.add("craft-fragment-armed")
+  slot.style.setProperty("--craft-frag-delay", `${Math.min(index, 4) * 115}ms`)
+  slot.style.setProperty("--craft-frag-target-x", `${deltaX}px`)
+  slot.style.setProperty("--craft-frag-target-y", `${deltaY}px`)
+  slot.style.setProperty("--craft-frag-rot", `${rot}deg`)
+ })
+
+ panel.classList.add("craft-forge-animating", "craft-forge-phase-charge")
+ if (runBtn) runBtn.classList.add("craft-btn-forging")
 
  return new Promise((resolve) => {
   const queue = (delay, callback) => {
    const timer = window.setTimeout(() => {
     callback()
    }, delay)
-   stage._fusionTimers.push(timer)
+   panel._craftAnimTimers.push(timer)
   }
 
-  queue(860, () => {
-   stage.classList.add("phase-converge")
-   status.textContent = "Les fragments s'assemblent..."
-  })
-  queue(1980, () => {
-   stage.classList.add("phase-result")
-   result.classList.add("visible")
-   status.textContent = "Craft SSR réussi"
-  })
-  queue(4020, () => {
-   stage.classList.add("phase-out")
-  })
-  queue(4460, () => {
-   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
-   stage.setAttribute("data-busy", "0")
-   result.classList.remove("visible")
-   status.textContent = `Dernier craft: ${rewardName}`
-   stage._fusionTimers = []
+  const finish = () => {
+   if (Array.isArray(panel._craftAnimTimers)) {
+    for (const timer of panel._craftAnimTimers) window.clearTimeout(timer)
+   }
+   panel._craftAnimTimers = []
+   reset()
    resolve()
+  }
+
+  queue(2000, () => {
+   panel.classList.add("craft-forge-phase-burst")
+  })
+
+  queue(2480, () => {
+   panel.classList.remove("craft-forge-phase-charge", "craft-forge-phase-burst")
+   panel.classList.add("craft-forge-phase-settle")
+  })
+
+  queue(2980, () => {
+   finish()
   })
  })
 }
@@ -2387,93 +2861,128 @@ function renderFusion() {
 
 function renderCraft() {
  const panel = document.getElementById("playCraft")
+ rememberCraftScroll(panel)
  const crafts = getCraftCandidates()
- const hasCraft = crafts.length > 0
- const readyCount = crafts.filter((x) => x.uniqueCount >= 5).length
- const totalFragments = (state.groupedFragments || []).reduce((sum, item) => sum + Number(item.qty || 0), 0)
- const activeCardId = String(state.craftUi.cardId || crafts[0]?.cardId || "")
- if (activeCardId) state.craftUi.cardId = activeCardId
- const activeProgress = activeCardId ? getFragmentProgressForCard(activeCardId) : { unique: 0 }
-  panel.innerHTML = `
-   <section class="mode-shell mode-craft mode-fusion mode-fusion-simple mode-craft-simple">
-    <header class="mode-hero">
-     <div>
-      <h2>⚒️ La Forge de Volkaragnar</h2>
-      <p>Assemble les 5 fragments uniques d'une carte pour forger sa version SSR.</p>
-     </div>
-    <div class="mode-kpi-grid mode-kpi-grid-2">
-      <div class="mode-kpi"><span>Cartes prêtes</span><strong>${fmt(readyCount)}</strong></div>
-      <div class="mode-kpi"><span>Fragments</span><strong>${fmt(totalFragments)}</strong></div>
-     </div>
-    </header>
-    <article class="mode-card fusion-simple-card">
-     <div class="fusion-simple-workspace">
-      <div class="fusion-simple-left">
-       <div id="craftForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
-       <div class="fusion-simple-ring">
-        <div id="craftForgeOrbit" class="fusion-forge-orbit"></div>
-        <div id="craftForgeResult" class="fusion-forge-result">
-         <div class="fusion-forge-result-card">
-          <img id="craftForgeResultImage" alt="Résultat du craft">
-         </div>
-         <strong id="craftForgeResultName">Carte SSR finale</strong>
-        </div>
-       </div>
-        <p id="craftForgeStatus" class="fusion-forge-status">Prêt: sélectionne une carte à crafter.</p>
-       </div>
-      </div>
+ const setRows = getCraftSetRows(crafts)
+ const setRowsDisplay = setRows.concat([{
+  ...CRAFT_COMING_SOON_SET,
+  isComingSoon: true
+ }])
+ const setOptions = setRows.map((row) => String(row.id))
+ const preferredSetId = String(
+  setRows.find((row) => Number(row.count || 0) > 0)?.id
+  || setRows[0]?.id
+  || ""
+ )
+ const activeSetId = setOptions.includes(String(state.craftUi.setId || ""))
+  ? String(state.craftUi.setId || "")
+  : preferredSetId
+ state.craftUi.setId = activeSetId
 
-      <aside class="fusion-simple-right">
-       <div class="fusion-simple-controls">
-        <div class="fusion-simple-main-row">
-         <div class="fusion-simple-set-cell">
-          <label class="mode-label" for="craftCardInput">Carte cible</label>
-          <select id="craftCardInput" class="input input-select" ${hasCraft ? "" : "disabled"}>
-           ${crafts.map((item) => `<option value="${escapeHtml(item.cardId)}">${escapeHtml(item.cardName)} - ${escapeHtml(item.setName || "Set")} (${item.uniqueCount}/5)</option>`).join("")}
-          </select>
-         </div>
-         <div class="fusion-simple-qty-actions">
-          <div>
-           <label class="mode-label">Progression</label>
-           <p class="mode-muted" id="craftReadyTag">${hasCraft ? `${fmt(activeProgress.unique)}/5` : "0/5"}</p>
-          </div>
-          <div class="fusion-simple-validate-cell">
-           <button id="craftBtn" class="btn btn-gold" ${hasCraft ? "" : "disabled"}>Crafter SSR</button>
-          </div>
-         </div>
-        </div>
+ const setCards = crafts.filter((item) =>
+  String(item.set) === activeSetId
+  && String(item.rarity || "").toUpperCase() === "SSR"
+ )
+ const cardOptions = setCards.map((item) => String(item.cardId))
+ const activeCardId = cardOptions.includes(String(state.craftUi.cardId || ""))
+  ? String(state.craftUi.cardId || "")
+  : String(setCards[0]?.cardId || "")
+ state.craftUi.cardId = activeCardId
 
-        <div class="fusion-simple-step-grid">
-         ${hasCraft
-          ? crafts.map((item) => {
-           const active = String(item.cardId) === activeCardId
-           const ready = Number(item.uniqueCount || 0) >= 5
-           return `
-            <button type="button" class="fusion-simple-step ${active ? "active" : ""} ${ready ? "ready" : ""}" data-card-id="${escapeHtml(item.cardId)}">
-             <span>🌟 ${escapeHtml(item.cardName)}</span>
-             <small data-craft-stock>${fmt(item.uniqueCount)}/5 fragments uniques</small>
-            </button>
-           `
-          }).join("")
-          : '<p class="mode-muted">Aucun fragment disponible pour lancer un craft.</p>'}
-        </div>
+const selected = setCards.find((item) => String(item.cardId) === activeCardId) || null
+ const selectedIndex = selected ? setCards.findIndex((item) => String(item.cardId) === String(selected.cardId)) : -1
+ const selectedArt = selected ? getCraftIllustrationForCard(selected.cardId, selected.set, Math.max(0, selectedIndex), selected.cardName) : null
+ const progress = selected ? getFragmentProgressForCard(selected.cardId) : { found: [], unique: 0, total: 0 }
+const canCraft = Boolean(selected && progress.unique >= 5)
+const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.name || getSetName(activeSetId) || "Set"
+ const selectedPreviewPrimary = selected
+  ? String(selected.imageUrl || "/assets/ui/pack-back-ssr.png")
+  : ""
+ const selectedPreviewFallback = selected
+  ? String(selected.imageUrl || "/assets/ui/pack-back-ssr.png")
+  : ""
 
-        <div id="craftPreview" class="mode-preview"></div>
-        <p id="craftInfoLine" class="mode-muted"></p>
-        <div id="craftResultBox" class="action-result mode-result"></div>
-       </div>
-      </aside>
-     </div>
-
-     <div class="fusion-simple-history">
-      <h3>Historique</h3>
-      <div id="craftHistoryList" class="fusion-history-list"></div>
-     </div>
-    </article>
-   </section>
+ const fragmentSlots = [1, 2, 3, 4, 5].map((number) => {
+  const owned = progress.found.includes(number)
+  return `
+   <article class="craft-fragment-slot ${owned ? "owned" : ""}" data-craft-fragment-slot data-fragment-number="${number}">
+    <img src="/assets/ui/fragments%20craft/fragment_${number}.png" alt="Fragment ${number}" style="width:132px !important;height:132px !important;max-width:none !important;max-height:none !important;object-fit:contain !important;display:block !important;">
+    <small class="craft-fragment-name" style="display:block !important;text-align:center !important;color:#d7e6ff !important;font-weight:700 !important;font-size:0.86rem !important;line-height:1.1 !important;">fragment n°${number}</small>
+    <strong>${owned ? "1/1" : "0/1"}</strong>
+   </article>
   `
-  setupCraftPanel(crafts)
- }
+ }).join("")
+
+ panel.innerHTML = `
+  <section class="mode-shell mode-craft">
+   <article class="mode-card craft-layout-card">
+    <div class="craft-layout">
+     <aside class="inventory-set-rail-wrap craft-set-panel" style="position:relative;top:0;min-height:0;height:100% !important;align-self:stretch !important;overflow-y:auto;overflow-x:hidden;padding:0 0 0 8px;margin:0;scrollbar-width:none;-ms-overflow-style:none;">
+      <div class="inventory-set-rail craft-set-rail" style="display:grid;grid-auto-rows:max-content;grid-template-columns:1fr;gap:10px;align-content:start;min-height:100%;height:auto !important;max-height:none !important;overflow:visible;padding:0 4px 0 0;margin:0;">
+       ${setRowsDisplay.map((set) => {
+        const active = String(set.id) === activeSetId
+        const disabled = Boolean(set.isComingSoon)
+        return `
+         <button type="button" class="inventory-set-btn craft-set-btn ${active ? "active" : ""} ${disabled ? "coming-soon" : ""}" ${disabled ? "disabled" : `data-craft-set-id="${escapeHtml(set.id)}"`} title="${escapeHtml(set.name)}">
+          <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
+          <span class="inventory-set-label">${escapeHtml(set.name)}</span>
+         </button>
+        `
+       }).join("")}
+      </div>
+     </aside>
+
+     <section class="craft-cards-panel">
+      <header class="craft-cards-head">
+       <h3>${escapeHtml(activeSetName)}</h3>
+      </header>
+      <div class="craft-ssr-grid" style="padding-bottom:120px !important;">
+       ${setCards.length
+         ? setCards.map((item, index) => {
+          const active = String(item.cardId) === activeCardId
+          const art = getCraftIllustrationForCard(item.cardId, item.set, index, item.cardName)
+          const listPrimary = art.primary
+          const listFallback = art.fallback
+          return `
+           <button type="button" class="craft-ssr-item ${active ? "active" : ""}" data-craft-card-id="${escapeHtml(item.cardId)}">
+            <div class="craft-ssr-media">
+             <img class="craft-ssr-illus" src="${escapeHtml(listPrimary)}" alt="${escapeHtml(item.cardName)}" loading="lazy" onerror="this.src='${escapeHtml(listFallback)}';this.onerror=null;">
+             <img class="craft-ssr-rarity-ui" src="/assets/ui/ssr.png" alt="SSR" loading="lazy" onerror="this.style.display='none';this.onerror=null;">
+             <span class="craft-ssr-title-overlay">${escapeHtml(item.cardName)}</span>
+            </div>
+          </button>
+         `
+        }).join("")
+        : '<p class="mode-muted">Aucune SSR disponible pour ce set.</p>'}
+      </div>
+     </section>
+
+     <aside class="craft-detail-panel ${selected ? "has-item" : ""}" style="display:flex !important;flex-direction:column !important;gap:10px !important;overflow-y:auto !important;overflow-x:hidden !important;">
+     ${selected
+       ? `
+        <div class="craft-detail-headline">
+         <h3>${escapeHtml(selected.cardName)}</h3>
+         <p>${escapeHtml(selected.setName || activeSetName)}</p>
+        </div>
+        <div id="craftDetailPreview" class="craft-detail-preview craft-detail-preview-zoom" data-craft-zoom-trigger data-craft-zoom-src="${escapeHtml(selectedPreviewPrimary)}" data-craft-zoom-fallback="${escapeHtml(selectedPreviewFallback)}" data-craft-zoom-name="${escapeHtml(selected.cardName)}" role="button" tabindex="0" aria-label="Agrandir la carte" style="min-height:480px !important;height:480px !important;padding:0 !important;border:0 !important;background:transparent !important;box-shadow:none !important;outline:0 !important;overflow:visible !important;display:flex !important;align-items:center !important;justify-content:center !important;">
+         <img id="craftDetailPreviewImage" src="${escapeHtml(selectedPreviewPrimary)}" alt="${escapeHtml(selected.cardName)}" loading="lazy" style="width:auto !important;height:100% !important;max-height:100% !important;max-width:100% !important;object-fit:contain !important;display:block !important;" onerror="this.src='${escapeHtml(selectedPreviewFallback)}';this.onerror=null;">
+        </div>
+        <div class="craft-fragment-grid" style="margin-top:-22px !important;">
+         ${fragmentSlots}
+        </div>
+       `
+       : `
+        <p class="mode-muted">Sélectionne une carte SSR pour afficher ses détails.</p>
+       `}
+      <div id="craftResultBox" class="action-result mode-result"></div>
+      <button id="craftBtn" class="btn btn-gold craft-big-btn" style="margin-top:2px !important;width:min(520px,94%) !important;height:82px !important;min-height:82px !important;max-height:82px !important;font-size:2rem !important;" ${canCraft ? "" : "disabled"}>Fabriquer</button>
+     </aside>
+    </div>
+   </article>
+  </section>
+ `
+ setupCraftPanel()
+}
 
 function questProgressPercent(quest) {
  const goal = Math.max(1, Number(quest?.goal || 1))
@@ -2878,7 +3387,7 @@ async function handleFusionAction() {
  }
 
  const runBtn = document.getElementById("fusionRunBtn")
- const baseLabel = String(runBtn?.textContent || "Valider")
+ const baseLabel = String(runBtn?.textContent || "Fabriquer")
  let refreshed = false
 
  try {
@@ -2991,12 +3500,12 @@ async function handleFusionAction() {
 }
 
 async function handleCraftAction() {
- const stage = document.getElementById("craftForgeStage")
- if (String(stage?.getAttribute("data-busy") || "0") === "1") return
+ const craftPanel = document.getElementById("playCraft")
+ if (String(craftPanel?.getAttribute("data-craft-busy") || "0") === "1") return
 
- const cardId = String(state.craftUi.cardId || document.getElementById("craftCardInput")?.value || "").trim()
+ const cardId = String(state.craftUi.cardId || "").trim()
  if (!cardId) {
-  showActionResult("craftResultBox", "<p>Sélectionne une carte avant de lancer le craft.</p>", true)
+  showActionResult("craftResultBox", "<p>Sélectionne une carte avant de lancer la fabrication.</p>", true)
   return
  }
 
@@ -3008,30 +3517,37 @@ async function handleCraftAction() {
  }
 
  const runBtn = document.getElementById("craftBtn")
- const baseLabel = String(runBtn?.textContent || "Crafter SSR")
+ const baseLabel = String(runBtn?.textContent || "Valider")
  let refreshed = false
 
  try {
+  if (craftPanel) craftPanel.setAttribute("data-craft-busy", "1")
   if (runBtn) {
    runBtn.disabled = true
-   runBtn.textContent = "Forge en cours..."
+   runBtn.textContent = "Fabrication..."
   }
-  showActionResult("craftResultBox", "<p>Assemblage des fragments...</p>")
 
   const res = await postJson("/api/game/craft", { cardId })
   if (!res.ok) {
-   showActionResult("craftResultBox", `<p>${escapeHtml(res.data?.error || "Craft impossible.")}</p>`, true)
+   showActionResult("craftResultBox", `<p>${escapeHtml(res.data?.error || "Fabrication impossible.")}</p>`, true)
    return
   }
 
   const crafted = res.data?.card || {}
+  const currentPreviewImage = String(document.getElementById("craftDetailPreviewImage")?.getAttribute("src") || "").trim()
+  const rewardImage = String(crafted.imageUrl || selected.imageUrl || currentPreviewImage || "/assets/ui/pack-back-ssr.png")
   await playCraftForgeAnimation({
    reward: {
     cardName: String(crafted.cardName || selected.cardName || "Carte"),
     rarity: String(crafted.rarity || "SSR"),
-    imageUrl: crafted.imageUrl || selected.imageUrl || null
+    imageUrl: rewardImage
    },
    fragments: getCraftAnimationFragments(cardId, 5)
+  })
+  await openCraftResultOverlay({
+   imageSrc: rewardImage,
+   fallbackSrc: "/assets/ui/pack-back-ssr.png",
+   cardName: String(crafted.cardName || selected.cardName || "Carte")
   })
 
   state.craftHistory = [{
@@ -3041,19 +3557,11 @@ async function handleCraftAction() {
    timestamp: Date.now()
   }].concat(state.craftHistory || []).slice(0, 24)
 
-  const titleLine = res.data?.titleUnlocked
-   ? `<p class="mode-muted">Titre débloqué: ${escapeHtml(res.data.titleUnlocked)}</p>`
-   : ""
-  const summary = `
-   <p><strong>Craft SSR validé:</strong> ${escapeHtml(crafted.cardName || selected.cardName || "Carte")}</p>
-   <p>Set: ${escapeHtml(getSetName(crafted.set || selected.set))}</p>
-   ${titleLine}
-  `
-
   await reloadGameplayDataAndRender()
   refreshed = true
-  showActionResult("craftResultBox", summary)
  } finally {
+  const activeCraftPanel = document.getElementById("playCraft")
+  if (activeCraftPanel) activeCraftPanel.setAttribute("data-craft-busy", "0")
   if (!refreshed && runBtn) {
    runBtn.disabled = false
    runBtn.textContent = baseLabel
@@ -3091,12 +3599,19 @@ function syncPanelVisibility() {
   fusionPanel.style.display = "none"
   craftPanel.style.display = "none"
   questsPanel.style.display = "none"
-  if (inventoryLayout) inventoryLayout.classList.toggle("inventory-mode", state.mode === "inventory")
+  if (inventoryLayout) {
+   inventoryLayout.classList.toggle("inventory-mode", state.mode === "inventory")
+   inventoryLayout.classList.remove("craft-mode")
+  }
   if (inventorySetRailWrap) inventorySetRailWrap.style.display = state.mode === "inventory" ? "block" : "none"
   if (inventoryDetailPanel) inventoryDetailPanel.style.display = state.mode === "inventory" ? "block" : "none"
   if (state.mode !== "inventory") {
    closeInventoryBuyModal()
    closeInventorySellConfirmModal()
+  }
+  if (state.mode !== "craft") {
+   closeCraftCardZoom()
+   closeCraftResultOverlay()
   }
 
   if (state.mode === "packs") {
@@ -3110,7 +3625,7 @@ function syncPanelVisibility() {
    grid.style.display = "none"
    fusionPanel.style.display = "block"
   } else if (state.mode === "craft") {
-   title.textContent = "CRAFT"
+   title.textContent = "FABRICATION"
    controls.style.display = "none"
    grid.style.display = "none"
    craftPanel.style.display = "block"
@@ -3177,6 +3692,12 @@ function bindEvents() {
   document.querySelectorAll("[data-close-inventory-sell-confirm]").forEach((node) => {
    node.addEventListener("click", closeInventorySellConfirmModal)
   })
+  document.querySelectorAll("[data-close-craft-card-zoom]").forEach((node) => {
+   node.addEventListener("click", closeCraftCardZoom)
+  })
+  document.querySelectorAll("[data-close-craft-result]").forEach((node) => {
+   node.addEventListener("click", closeCraftResultOverlay)
+  })
   const inventoryBuyMinus10Btn = document.getElementById("inventoryBuyMinus10Btn")
   const inventoryBuyMinus1Btn = document.getElementById("inventoryBuyMinus1Btn")
   const inventoryBuyPlus1Btn = document.getElementById("inventoryBuyPlus1Btn")
@@ -3200,7 +3721,16 @@ function bindEvents() {
   })
 
   document.addEventListener("keydown", (event) => {
+   if (isCraftResultVisible() && (event.key === "Escape" || event.key === "Enter" || event.key === " ")) {
+    event.preventDefault()
+    closeCraftResultOverlay()
+    return
+   }
    if (event.key !== "Escape") return
+   if (isCraftCardZoomVisible()) {
+    closeCraftCardZoom()
+    return
+   }
    if (isInventorySellConfirmVisible()) {
     closeInventorySellConfirmModal()
     return
@@ -3266,10 +3796,11 @@ function bindEvents() {
   try {
    await loadData()
    renderCurrentMode()
-  } catch (_) {
-   window.location.href = "/"
+  } catch (error) {
+   if (String(error?.message || "") === "local_auth_bootstrap") return
+    window.location.href = "/"
+   }
   }
- }
 
  bootstrap()
  </script>

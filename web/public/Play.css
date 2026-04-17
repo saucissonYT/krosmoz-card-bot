@@ -11,6 +11,95 @@
  display: none !important;
 }
 
+.play-page.craft-header-active .navbar,
+.play-page.craft-header-active #globalPlaySubnav {
+ display: none !important;
+}
+
+.play-page.craft-header-active .page,
+.play-page.craft-header-active.auth-connected .page {
+ padding-top: 0;
+}
+
+.play-page.craft-header-active .container {
+ max-width: none;
+ width: 100%;
+ margin: 0;
+ padding: 0 14px;
+ height: 100vh;
+ height: 100dvh;
+ overflow: hidden;
+}
+
+.play-page.craft-header-active .play-shell {
+ padding-top: 76px;
+ min-height: 100vh;
+ min-height: 100dvh;
+}
+
+.play-page.craft-header-active .play-main {
+ height: 100%;
+ display: grid;
+ grid-template-rows: minmax(0, 1fr);
+ overflow: hidden;
+}
+
+.play-page.craft-header-active #inventoryContentLayout {
+ height: 100%;
+ min-height: 0;
+}
+
+.play-page.craft-header-active #inventoryContentLayout.craft-mode {
+ min-height: 0;
+ height: 100%;
+ overflow: hidden;
+ align-items: stretch;
+ gap: 0;
+ padding: 0;
+ border: 1px solid rgba(110, 183, 255, 0.38);
+ border-radius: 14px;
+  background:
+  linear-gradient(170deg, rgba(11, 24, 61, 0.92), rgba(8, 18, 50, 0.92)),
+  radial-gradient(circle at 24% 16%, rgba(118, 189, 255, 0.2), rgba(118, 189, 255, 0) 42%);
+}
+
+.play-page.craft-header-active .play-content.inventory-center-panel {
+ min-height: 0;
+ height: 100%;
+ overflow: hidden;
+}
+
+.play-page.craft-header-active #playCraft.play-panel-alt {
+ border: 1px solid rgba(110, 183, 255, 0.38);
+ border-radius: 14px;
+ background:
+  linear-gradient(170deg, rgba(11, 24, 61, 0.92), rgba(8, 18, 50, 0.92)),
+  radial-gradient(circle at 24% 16%, rgba(118, 189, 255, 0.2), rgba(118, 189, 255, 0) 42%);
+ box-shadow: none;
+ padding: 8px;
+ width: 100%;
+ height: 100%;
+ margin: 0;
+}
+
+.play-page.craft-header-active .inventory-set-rail-wrap {
+ position: relative;
+ top: 0;
+ height: 100%;
+ min-height: 0;
+ border: 0;
+ border-right: 1px solid rgba(115, 190, 255, 0.26);
+ border-radius: 0;
+ background: transparent;
+ padding: 8px 4px 8px 8px;
+ overflow: hidden;
+}
+
+.play-page.craft-header-active .inventory-set-rail {
+ height: 100%;
+ max-height: none;
+}
+
 .play-page.inventory-layout-active {
  background: none !important;
 }
@@ -631,6 +720,10 @@ body.inventory-buy-modal-open {
  grid-template-columns: 142px minmax(0, 1fr) 500px;
 }
 
+.inventory-content-layout.craft-mode {
+ grid-template-columns: 142px minmax(0, 1fr);
+}
+
 .inventory-set-rail-wrap {
  position: sticky;
  top: 88px;
@@ -859,10 +952,34 @@ body.inventory-buy-modal-open {
 
 .play-page.route-craft-bg,
 .play-page.craft-bg-active {
+ background: none !important;
+}
+
+.play-page.route-craft-bg::before,
+.play-page.craft-bg-active::before {
+ content: "";
+ position: fixed;
+ display: block;
+ inset: -18px;
  background:
-  linear-gradient(180deg, rgba(5, 8, 22, 0.56), rgba(5, 8, 22, 0.64)),
-  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.24), rgba(128, 188, 255, 0) 44%),
-  url("/assets/ui/background%20craft.png") center / cover no-repeat fixed;
+  linear-gradient(180deg, rgba(5, 8, 22, 0.34), rgba(5, 8, 22, 0.52)),
+  radial-gradient(circle at 22% 18%, rgba(128, 188, 255, 0.16), rgba(128, 188, 255, 0) 44%),
+  url("/assets/ui/background%20craft.png?v=20260416x") center / cover no-repeat fixed;
+ filter: blur(6px) brightness(0.76);
+ transform: scale(1.04);
+ pointer-events: none;
+ z-index: 0;
+}
+
+.play-page.route-craft-bg::after,
+.play-page.craft-bg-active::after {
+ content: "";
+ position: fixed;
+ display: block;
+ inset: 0;
+ background: rgba(4, 10, 26, 0.2);
+ pointer-events: none;
+ z-index: 0;
 }
 
 .play-page.route-pack-bg,
@@ -915,6 +1032,8 @@ body.inventory-buy-modal-open {
 .play-page.route-craft-bg .page,
 .play-page.craft-bg-active .page {
  background: transparent;
+ position: relative;
+ z-index: 1;
 }
 
 .play-page.route-pack-bg .page,
@@ -2738,6 +2857,321 @@ body.inventory-buy-modal-open {
  border-color: rgba(201, 168, 76, 0.38);
 }
 
+.mode-craft .craft-layout-card {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ box-shadow: none;
+ padding: 0;
+ min-height: 0;
+ height: 100%;
+}
+
+.mode-craft .craft-layout {
+ display: grid;
+ grid-template-columns: 142px minmax(0, 1fr) minmax(320px, 0.9fr);
+ gap: 0;
+ align-items: stretch;
+ min-height: 0;
+ height: 100%;
+}
+
+.mode-craft .craft-set-panel,
+.mode-craft .craft-cards-panel,
+.mode-craft .craft-detail-panel {
+ border: 0;
+ border-radius: 0;
+ background: transparent;
+ min-height: 0;
+}
+
+.mode-craft .craft-set-panel {
+ padding: 0 4px 8px 8px;
+ overflow: hidden;
+}
+
+.mode-craft .craft-set-rail {
+ height: 100%;
+ max-height: none;
+ overflow-y: auto;
+ overflow-x: hidden;
+ display: grid;
+ gap: 10px;
+ align-content: start;
+ padding-right: 2px;
+ scrollbar-width: none;
+ -ms-overflow-style: none;
+}
+
+.mode-craft .craft-set-rail::-webkit-scrollbar {
+ display: none;
+}
+
+.mode-craft .craft-set-btn {
+ width: 100%;
+}
+
+.mode-craft .craft-cards-panel {
+ display: grid;
+ grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+ padding: 10px;
+}
+
+.mode-craft .craft-cards-head {
+ display: flex;
+ align-items: baseline;
+ justify-content: space-between;
+ gap: 8px;
+ padding: 2px 2px 0;
+}
+
+.mode-craft .craft-cards-head h3 {
+ margin: 0;
+ font-family: "Cinzel", serif;
+ color: #eef5ff;
+ font-size: 1.08rem;
+}
+
+.mode-craft .craft-cards-head small {
+ color: #a7b6df;
+ font-size: 0.78rem;
+}
+
+.mode-craft .craft-ssr-grid {
+ display: grid;
+ grid-template-columns: repeat(2, minmax(0, 1fr));
+ gap: 10px;
+ overflow: auto;
+ padding-right: 4px;
+ scrollbar-width: none;
+ -ms-overflow-style: none;
+}
+
+.mode-craft .craft-ssr-grid::-webkit-scrollbar {
+ display: none;
+}
+
+.mode-craft .craft-ssr-item {
+ border: 1px solid rgba(142, 205, 255, 0.35);
+ border-radius: 10px;
+ background: rgba(10, 20, 52, 0.82);
+ padding: 6px;
+ display: grid;
+ grid-template-rows: 112px auto;
+ gap: 6px;
+ text-align: left;
+ cursor: pointer;
+ color: #ecf4ff;
+ transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+
+.mode-craft .craft-ssr-item img {
+ width: 100%;
+ height: 100%;
+ border-radius: 8px;
+ object-fit: cover;
+ background: rgba(5, 11, 30, 0.7);
+}
+
+.mode-craft .craft-ssr-item-info {
+ display: grid;
+ gap: 3px;
+}
+
+.mode-craft .craft-ssr-item-info strong {
+ font-size: 0.83rem;
+ line-height: 1.2;
+ color: #f2f6ff;
+}
+
+.mode-craft .craft-ssr-item-info small {
+ font-size: 0.74rem;
+ color: #aab8e1;
+}
+
+.mode-craft .craft-ssr-item:hover {
+ transform: translateY(-1px);
+ border-color: rgba(180, 221, 255, 0.72);
+}
+
+.mode-craft .craft-ssr-item.active {
+ border-color: rgba(201, 168, 76, 0.82);
+ background: rgba(35, 43, 75, 0.8);
+}
+
+.mode-craft .craft-detail-panel {
+ display: flex;
+ flex-direction: column;
+ gap: 10px;
+ padding: 10px;
+ overflow: auto;
+ scrollbar-width: none;
+ -ms-overflow-style: none;
+}
+
+.mode-craft .craft-detail-panel::-webkit-scrollbar {
+ display: none;
+}
+
+.mode-craft .craft-detail-headline h3 {
+ margin: 0;
+ font-size: 1.05rem;
+ color: #f0f5ff;
+}
+
+.mode-craft .craft-detail-headline p {
+ margin: 2px 0 0;
+ color: #a6b6df;
+ font-size: 0.83rem;
+}
+
+.mode-craft .craft-detail-preview {
+ flex: 1 1 280px;
+ min-height: 240px;
+ border: 1px solid rgba(120, 192, 255, 0.28);
+ border-radius: 14px;
+ background: rgba(9, 18, 48, 0.62);
+ display: grid;
+ place-items: center;
+ padding: 14px;
+}
+
+.mode-craft .craft-detail-preview img {
+ width: min(100%, 250px);
+ max-height: 100%;
+ object-fit: contain;
+ filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.45));
+}
+
+.mode-craft .craft-detail-header {
+ display: grid;
+ grid-template-columns: 92px minmax(0, 1fr);
+ gap: 10px;
+ align-items: center;
+}
+
+.mode-craft .craft-detail-header img {
+ width: 92px;
+ height: 122px;
+ border-radius: 8px;
+ object-fit: cover;
+ background: rgba(6, 12, 30, 0.7);
+}
+
+.mode-craft .craft-detail-header h3 {
+ margin: 0;
+ font-size: 1.05rem;
+ color: #f0f5ff;
+}
+
+.mode-craft .craft-detail-header p {
+ margin: 2px 0 0;
+ color: #a6b6df;
+ font-size: 0.83rem;
+}
+
+.mode-craft .craft-detail-stats {
+ display: grid;
+ grid-template-columns: repeat(3, minmax(0, 1fr));
+ gap: 8px;
+}
+
+.mode-craft .craft-detail-stats > div {
+ border: 1px solid rgba(255, 255, 255, 0.1);
+ border-radius: 10px;
+ background: rgba(13, 23, 58, 0.86);
+ padding: 8px;
+ display: grid;
+ gap: 2px;
+}
+
+.mode-craft .craft-detail-stats span {
+ color: #9fb0dc;
+ font-size: 0.73rem;
+}
+
+.mode-craft .craft-detail-stats strong {
+ color: #f0f6ff;
+ font-size: 0.86rem;
+}
+
+.mode-craft .craft-fragment-grid {
+ display: grid;
+ grid-template-columns: repeat(5, minmax(0, 1fr));
+ gap: 12px;
+}
+
+.mode-craft .craft-fragment-slot {
+ border: 1px solid rgba(255, 255, 255, 0.14);
+ border-radius: 12px;
+ background: rgba(9, 17, 45, 0.88);
+ padding: 12px 10px;
+ min-height: 92px;
+ display: grid;
+ justify-items: center;
+ gap: 8px;
+}
+
+.mode-craft .craft-fragment-slot img {
+ width: 56px;
+ height: 56px;
+ object-fit: contain;
+ filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
+}
+
+.mode-craft .craft-fragment-slot strong {
+ font-size: 0.9rem;
+ color: #c6d7ff;
+}
+
+.mode-craft .craft-fragment-slot.owned {
+ border-color: rgba(201, 168, 76, 0.72);
+ background: rgba(201, 168, 76, 0.12);
+}
+
+.mode-craft .craft-big-btn {
+ display: flex;
+ align-items: center;
+ width: min(420px, 86%);
+ align-self: center;
+ margin-top: auto;
+ justify-content: center;
+ height: 64px;
+ min-height: 64px;
+ max-height: 64px;
+ padding: 0 16px;
+ font-size: 1.22rem;
+ font-weight: 800;
+ letter-spacing: 0.02em;
+}
+
+.mode-craft #craftResultBox.mode-result {
+ min-height: 0;
+ margin-top: 2px;
+ display: none;
+}
+
+.mode-craft #craftResultBox.mode-result:not(:empty) {
+ display: block;
+}
+
+.mode-craft .craft-info-line {
+ min-height: 20px;
+ margin: 0;
+}
+
+@media (max-width: 1100px) {
+ .mode-craft .craft-layout {
+  grid-template-columns: 1fr;
+ }
+
+ .mode-craft .craft-set-panel,
+ .mode-craft .craft-detail-panel {
+  grid-column: 1 / -1;
+ }
+}
+
 .mode-quests .mode-hero {
  border: 0;
  border-radius: 0;
@@ -3675,6 +4109,9 @@ body.pack-opening-lock {
  .inventory-content-layout.inventory-mode {
   grid-template-columns: 118px minmax(0, 1fr) 430px;
  }
+ .inventory-content-layout.craft-mode {
+  grid-template-columns: 118px minmax(0, 1fr);
+ }
  .play-page.inventory-layout-active .play-grid {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-auto-rows: 232px;
@@ -3746,7 +4183,8 @@ body.pack-opening-lock {
  .play-controls {
   grid-template-columns: 1fr 1fr;
  }
- .inventory-content-layout.inventory-mode {
+ .inventory-content-layout.inventory-mode,
+ .inventory-content-layout.craft-mode {
   grid-template-columns: 132px 1fr;
  }
  .inventory-set-rail-wrap {
@@ -3896,6 +4334,44 @@ body.pack-opening-lock {
  .play-page.auth-connected .page {
   padding-top: 112px;
  }
+ .play-page.craft-header-active .page,
+ .play-page.craft-header-active.auth-connected .page {
+  padding-top: 0;
+ }
+ .play-page.craft-header-active .container {
+  padding: 0 8px;
+ }
+ .play-page.craft-header-active .play-shell {
+  padding-top: 124px;
+ }
+ .play-page.craft-header-active #playCraft.play-panel-alt {
+  width: 100%;
+ }
+ .mode-craft .craft-layout {
+  grid-template-columns: 1fr;
+  min-height: 0;
+ }
+ .mode-craft .craft-cards-panel,
+ .mode-craft .craft-detail-panel {
+  padding: 8px;
+ }
+ .mode-craft .craft-ssr-grid {
+  grid-template-columns: 1fr;
+  max-height: min(46vh, 340px);
+ }
+ .mode-craft .craft-detail-stats {
+  grid-template-columns: 1fr;
+ }
+ .mode-craft .craft-fragment-grid {
+  gap: 6px;
+ }
+ .mode-craft .craft-big-btn {
+  width: min(340px, 92%);
+  height: 54px;
+  min-height: 54px;
+  max-height: 54px;
+  font-size: 1.04rem;
+ }
  .play-page.inventory-layout-active .page,
  .play-page.inventory-layout-active.auth-connected .page {
   padding-top: 0;
@@ -3946,7 +4422,8 @@ body.pack-opening-lock {
  .play-controls {
   grid-template-columns: 1fr;
  }
- .inventory-content-layout.inventory-mode {
+ .inventory-content-layout.inventory-mode,
+ .inventory-content-layout.craft-mode {
   grid-template-columns: 98px 1fr;
  }
  .inventory-set-rail-wrap {
@@ -4079,7 +4556,1129 @@ body.pack-opening-lock {
  .pack-open-grid.pack-open-grid-six .pack-reveal-card {
   width: calc(50% - 6px);
  }
- .pack-reveal-tier-cards .pack-reveal-card {
+.pack-reveal-tier-cards .pack-reveal-card {
   width: calc(50% - 6px);
  }
+}
+
+/* Craft single-block hard override */
+.play-page.craft-header-active #inventoryContentLayout,
+.play-page.craft-header-active #inventoryContentLayout.craft-mode {
+ border: 0 !important;
+ background: transparent !important;
+ box-shadow: none !important;
+ padding: 0 !important;
+ gap: 0 !important;
+}
+
+.play-page.craft-header-active #playCraft.play-panel-alt {
+ border: 1px solid rgba(110, 183, 255, 0.38) !important;
+ border-radius: 14px !important;
+ background:
+  linear-gradient(170deg, rgba(11, 24, 61, 0.92), rgba(8, 18, 50, 0.92)),
+  radial-gradient(circle at 24% 16%, rgba(118, 189, 255, 0.2), rgba(118, 189, 255, 0) 42%) !important;
+ box-shadow: none !important;
+ padding: 8px !important;
+}
+
+.mode-craft .craft-layout {
+ gap: 0 !important;
+}
+
+.mode-craft .craft-set-panel,
+.mode-craft .craft-cards-panel,
+.mode-craft .craft-detail-panel {
+ border: 0 !important;
+ border-radius: 0 !important;
+ background: transparent !important;
+ box-shadow: none !important;
+ outline: 0 !important;
+}
+
+.mode-craft .craft-set-panel {
+ padding: 0 4px 8px 8px !important;
+}
+
+.mode-craft .craft-cards-panel,
+.mode-craft .craft-detail-panel {
+ padding: 8px 10px 10px !important;
+}
+
+.mode-craft .craft-set-rail {
+ align-content: start !important;
+}
+
+/* Craft SSR list: one card per row (image + name only) */
+.mode-craft .craft-ssr-grid {
+ grid-template-columns: 1fr !important;
+}
+
+.mode-craft .craft-ssr-item {
+ grid-template-rows: auto auto !important;
+ gap: 8px !important;
+}
+
+.mode-craft .craft-ssr-item img {
+ width: 100% !important;
+ height: auto !important;
+ aspect-ratio: 5 / 2;
+ object-fit: cover !important;
+}
+
+.mode-craft .craft-ssr-item-info {
+ display: block !important;
+}
+
+.mode-craft .craft-ssr-item-info strong {
+ display: block;
+ font-size: 0.92rem !important;
+}
+
+.mode-craft .craft-ssr-item-info small {
+ display: none !important;
+}
+
+/* Craft viewport fit + left rail scroll + compact right preview */
+body.play-page.craft-header-active {
+ height: 100vh !important;
+ height: 100dvh !important;
+ overflow: hidden !important;
+}
+
+.play-page.craft-header-active #playCraft.play-panel-alt,
+.play-page.craft-header-active #playCraft .mode-shell,
+.play-page.craft-header-active #playCraft .craft-layout-card,
+.play-page.craft-header-active #playCraft .craft-layout {
+ height: 100% !important;
+ min-height: 0 !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-layout {
+ grid-template-columns: 142px minmax(0, 1fr) minmax(320px, 0.9fr) !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-panel,
+.play-page.craft-header-active #playCraft .craft-cards-panel,
+.play-page.craft-header-active #playCraft .craft-detail-panel {
+ min-height: 0 !important;
+ height: 100% !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-panel {
+ overflow: hidden !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail {
+ height: 100% !important;
+ max-height: none !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ align-content: start !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* FINAL OVERRIDE: inventory-like scroll for craft set icons */
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel {
+ position: relative !important;
+ top: 0 !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ align-self: stretch !important;
+ overflow: hidden !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail {
+ display: grid !important;
+ grid-auto-rows: max-content !important;
+ grid-template-columns: 1fr !important;
+ gap: 10px !important;
+ align-content: start !important;
+ min-height: 0 !important;
+ height: auto !important;
+ max-height: calc(100vh - 190px) !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail::-webkit-scrollbar,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* CRAFT SCROLL HARD FINAL (must stay last): copy inventory rail behavior */
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .inventory-set-rail-wrap.craft-set-panel,
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .craft-set-panel {
+ position: relative !important;
+ top: 0 !important;
+ min-height: 0 !important;
+ height: auto !important;
+ align-self: start !important;
+ overflow: hidden !important;
+}
+
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail,
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .craft-set-panel > .craft-set-rail {
+ display: grid !important;
+ grid-auto-rows: max-content !important;
+ grid-template-columns: 1fr !important;
+ gap: 10px !important;
+ align-content: start !important;
+ height: auto !important;
+ min-height: 0 !important;
+ max-height: calc(100vh - 190px) !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ overscroll-behavior: contain !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail::-webkit-scrollbar,
+body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .craft-set-panel > .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* Craft left set rail: force the same scroll model as inventory */
+.play-page.craft-header-active #playCraft .inventory-set-rail-wrap.craft-set-panel,
+.play-page.craft-header-active #playCraft .craft-set-panel {
+ position: relative !important;
+ top: 0 !important;
+ align-self: start !important;
+}
+
+.play-page.craft-header-active #playCraft .inventory-set-rail.craft-set-rail,
+.play-page.craft-header-active #playCraft .craft-set-rail {
+ height: auto !important;
+ max-height: calc(100dvh - 190px) !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+.play-page.craft-header-active #playCraft .inventory-set-rail.craft-set-rail::-webkit-scrollbar,
+.play-page.craft-header-active #playCraft .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* Craft set rail final passthrough: same scroll behavior as inventory */
+.play-page.craft-header-active #playCraft .inventory-set-rail-wrap.craft-set-panel {
+ position: relative !important;
+ top: 0 !important;
+ z-index: 1 !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ overflow: hidden !important;
+ padding: 0 0 0 8px !important;
+}
+
+.play-page.craft-header-active #playCraft .inventory-set-rail.craft-set-rail {
+ display: grid !important;
+ grid-auto-rows: max-content !important;
+ align-content: start !important;
+ gap: 10px !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ max-height: 100% !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ overscroll-behavior: contain !important;
+ box-sizing: border-box !important;
+ padding: 0 4px 0 0 !important;
+ margin: 0 !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+.play-page.craft-header-active #playCraft .inventory-set-rail.craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-btn.coming-soon {
+ cursor: default !important;
+ pointer-events: none !important;
+ opacity: 0.86;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-btn.coming-soon .inventory-set-label {
+ text-transform: none !important;
+ letter-spacing: 0.02em !important;
+ color: #b7c8ef !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-cards-panel {
+ overflow: hidden !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-grid {
+ min-height: 0 !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-panel {
+ overflow: hidden !important;
+ display: grid !important;
+ grid-template-rows: auto auto auto auto auto minmax(0, 1fr) auto !important;
+ align-content: start !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-preview {
+ flex: none !important;
+ min-height: 136px !important;
+ height: clamp(136px, 21vh, 190px) !important;
+ place-items: start center !important;
+ padding: 10px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-preview img {
+ width: clamp(128px, 38%, 182px) !important;
+ max-height: 100% !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-big-btn {
+ width: min(360px, 74%) !important;
+ margin: 0 auto !important;
+ align-self: end !important;
+}
+
+/* Craft tune v2 (user layout request) */
+.play-page.craft-header-active #playCraft .craft-set-panel {
+ display: flex !important;
+ flex-direction: column !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ overflow: hidden !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail {
+ flex: 1 1 auto !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ max-height: none !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+ align-content: start !important;
+ padding-right: 4px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-cards-panel {
+ min-height: 0 !important;
+ height: 100% !important;
+ overflow: hidden !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-grid {
+ grid-template-columns: 1fr !important;
+ min-height: 0 !important;
+ height: auto !important;
+ max-height: min(100%, calc((4 * 214px) + 36px)) !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+ align-content: start !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-grid::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item {
+ display: flex !important;
+ flex-direction: column !important;
+ align-items: center !important;
+ justify-content: flex-start !important;
+ min-height: 0 !important;
+ height: auto !important;
+ min-height: 194px !important;
+ padding: 0 !important;
+ gap: 0 !important;
+ border: 0 !important;
+ border-radius: 0 !important;
+ background: transparent !important;
+ box-shadow: none !important;
+ transition: transform 0.16s ease !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-media {
+ position: relative !important;
+ width: min(512px, 96%) !important;
+ max-width: 100% !important;
+ height: 164px !important;
+ max-height: 164px !important;
+ margin: 0 auto !important;
+ display: block !important;
+ overflow: hidden !important;
+ border-radius: 8px !important;
+ border: 2px solid rgba(227, 191, 96, 0.98) !important;
+ box-sizing: border-box !important;
+ background: transparent !important;
+ transition: box-shadow 0.16s ease, border-color 0.16s ease !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item .craft-ssr-illus {
+ width: 100% !important;
+ max-width: 100% !important;
+ height: 164px !important;
+ max-height: 164px !important;
+ object-fit: cover !important;
+ display: block !important;
+ margin: 0 !important;
+ border-radius: 0 !important;
+ filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0)) !important;
+ transition: filter 0.16s ease, transform 0.16s ease !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item .craft-ssr-rarity-ui {
+ position: absolute !important;
+ top: -16px !important;
+ right: -42px !important;
+ width: 176px !important;
+ height: auto !important;
+ max-width: 176px !important;
+ max-height: none !important;
+ object-fit: contain !important;
+ background: transparent !important;
+ margin: 0 !important;
+ z-index: 3 !important;
+ clip-path: inset(23% 0% 20% 7%) !important;
+ filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.32)) !important;
+ mix-blend-mode: normal !important;
+ opacity: 1 !important;
+ pointer-events: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item .craft-ssr-title-overlay {
+ position: absolute !important;
+ left: 8px !important;
+ bottom: 8px !important;
+ z-index: 3 !important;
+ max-width: calc(100% - 196px) !important;
+ padding: 0 !important;
+ border-radius: 0 !important;
+ font-size: 1.24rem !important;
+ font-weight: 800 !important;
+ line-height: 1.12 !important;
+ color: #f4f7ff !important;
+ background: transparent !important;
+ text-shadow:
+  0 2px 8px rgba(0, 0, 0, 0.88),
+  0 0 2px rgba(0, 0, 0, 0.96) !important;
+ white-space: nowrap !important;
+ overflow: hidden !important;
+ text-overflow: ellipsis !important;
+ pointer-events: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item:hover,
+.play-page.craft-header-active #playCraft .craft-ssr-item.active {
+ transform: none !important;
+ border: 0 !important;
+ background: transparent !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item:hover {
+ transform: translateY(-1px) !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item:hover .craft-ssr-illus {
+ filter:
+  drop-shadow(0 0 16px rgba(122, 198, 255, 0.66))
+  drop-shadow(0 0 34px rgba(122, 198, 255, 0.42)) !important;
+ transform: scale(1.02) !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item.active .craft-ssr-illus {
+ filter:
+  drop-shadow(0 0 14px rgba(201, 168, 76, 0.56))
+  drop-shadow(0 0 28px rgba(201, 168, 76, 0.34)) !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item:hover .craft-ssr-media {
+ border-color: rgba(241, 206, 122, 1) !important;
+ box-shadow: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item-info {
+ display: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item-info strong {
+ display: block !important;
+ margin: 0 !important;
+ line-height: 1.1 !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-ssr-item-info small {
+ display: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-panel {
+ overflow: hidden !important;
+ display: grid !important;
+ grid-template-rows: auto auto auto auto auto auto auto !important;
+ align-content: start !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-preview {
+ min-height: 112px !important;
+ height: clamp(112px, 15vh, 150px) !important;
+ padding: 8px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-detail-preview img {
+ width: clamp(104px, 30%, 150px) !important;
+ max-height: 100% !important;
+ object-fit: contain !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-fragment-grid {
+ gap: 14px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-fragment-slot {
+ border: 0 !important;
+ background: transparent !important;
+ border-radius: 0 !important;
+ padding: 0 !important;
+ min-height: 0 !important;
+ gap: 4px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-fragment-slot img {
+ width: 44px !important;
+ height: 44px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-big-btn {
+ width: min(340px, 72%) !important;
+ height: 56px !important;
+ min-height: 56px !important;
+ max-height: 56px !important;
+ margin: 2px auto 0 !important;
+ align-self: end !important;
+}
+
+/* Craft set rail final fix: full height + internal invisible scroll */
+.play-page.craft-header-active #playCraft .craft-set-panel {
+ padding: 0 0 0 8px !important;
+ display: grid !important;
+ grid-template-rows: minmax(0, 1fr) !important;
+ min-height: 0 !important;
+ height: 100% !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail {
+ display: grid !important;
+ grid-auto-rows: max-content !important;
+ align-content: start !important;
+ gap: 10px !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ max-height: 100% !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ overscroll-behavior: contain !important;
+ box-sizing: border-box !important;
+ padding: 0 4px 0 0 !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* ZZZ FINAL CRAFT SET SCROLL OVERRIDE (keep last) */
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel {
+ position: relative !important;
+ top: 0 !important;
+ min-height: 0 !important;
+ height: auto !important;
+ align-self: start !important;
+ overflow: hidden !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail {
+ display: grid !important;
+ grid-auto-rows: max-content !important;
+ grid-template-columns: 1fr !important;
+ gap: 10px !important;
+ align-content: start !important;
+ min-height: 0 !important;
+ height: 100% !important;
+ max-height: none !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ overscroll-behavior: contain !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail::-webkit-scrollbar,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* FINAL CRAFT LEFT RAIL FIX */
+body.play-page.craft-header-active #playCraft .craft-layout,
+body.play-page.craft-header-active #playCraft .craft-layout-card,
+body.play-page.craft-header-active #playCraft .mode-shell {
+ min-height: 0 !important;
+ height: 100% !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel {
+ min-height: 0 !important;
+ height: 100% !important;
+ align-self: stretch !important;
+ overflow: hidden !important;
+ padding-bottom: 0 !important;
+ margin-bottom: 0 !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail {
+ min-height: 0 !important;
+ height: 100% !important;
+ max-height: none !important;
+ overflow-y: auto !important;
+ overflow-x: hidden !important;
+ align-content: start !important;
+ scrollbar-width: none !important;
+ -ms-overflow-style: none !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-layout > .inventory-set-rail-wrap.craft-set-panel > .inventory-set-rail.craft-set-rail::-webkit-scrollbar,
+body.play-page.craft-header-active #playCraft .craft-layout > .craft-set-panel > .craft-set-rail::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* "a venir" uses same typography as other set labels */
+body.play-page.craft-header-active #playCraft .craft-set-btn.coming-soon .inventory-set-label {
+ text-transform: uppercase !important;
+ letter-spacing: 0.04em !important;
+ color: #f3d36f !important;
+ font-size: 0.7rem !important;
+ font-weight: 700 !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-set-panel::-webkit-scrollbar,
+body.play-page.craft-header-active #playCraft .inventory-set-rail-wrap.craft-set-panel::-webkit-scrollbar {
+ width: 0 !important;
+ height: 0 !important;
+ display: none !important;
+}
+
+/* Craft button disabled visual state */
+body.play-page.craft-header-active #playCraft #craftBtn:disabled,
+body.play-page.craft-header-active #playCraft .craft-big-btn:disabled {
+ background: linear-gradient(180deg, #7b7f8a, #61656f) !important;
+ border-color: rgba(218, 226, 245, 0.2) !important;
+ color: rgba(236, 241, 252, 0.76) !important;
+ text-shadow: none !important;
+ box-shadow: none !important;
+ filter: saturate(0.15) brightness(0.9) !important;
+ cursor: not-allowed !important;
+ opacity: 0.95 !important;
+}
+
+/* Local demo: 2nd card shown as missing fragments */
+/* Match inventory global panel opacity */
+body.play-page.craft-header-active #playCraft.play-panel-alt {
+ background:
+  linear-gradient(170deg, rgba(11, 24, 61, 0.68), rgba(8, 18, 50, 0.68)),
+  radial-gradient(circle at 24% 16%, rgba(118, 189, 255, 0.15), rgba(118, 189, 255, 0) 42%) !important;
+ backdrop-filter: blur(3px) !important;
+}
+
+/* Craft right card zoom (fullscreen) */
+body.play-page.craft-card-zoom-open {
+ overflow: hidden;
+}
+
+body.play-page.craft-result-open {
+ overflow: hidden;
+}
+
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom {
+ cursor: zoom-in;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-animating .craft-detail-preview-zoom {
+ cursor: default;
+ pointer-events: none !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom img {
+ transition: transform 0.16s ease, filter 0.16s ease !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom:hover,
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom:focus-visible {
+ filter: none !important;
+ box-shadow: none !important;
+}
+
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom:hover img,
+body.play-page.craft-header-active #playCraft .craft-detail-preview-zoom:focus-visible img {
+ transform: scale(1.045) translateY(-1px) !important;
+ filter:
+  drop-shadow(0 0 24px rgba(137, 202, 255, 0.66))
+  drop-shadow(0 0 48px rgba(137, 202, 255, 0.38))
+  drop-shadow(0 10px 24px rgba(0, 0, 0, 0.35)) !important;
+}
+
+/* Craft button animation sequence: shake > charge > burst > settle */
+body.play-page.craft-header-active #playCraft #craftDetailPreviewImage {
+ transform-origin: 50% 52%;
+ will-change: transform, filter, opacity;
+}
+
+body.play-page.craft-header-active #playCraft .craft-big-btn.craft-btn-forging {
+ animation: craftForgeBtnPulse 0.95s ease-in-out infinite;
+}
+
+body.play-page.craft-header-active #playCraft .craft-big-btn.craft-btn-forging:disabled {
+ background: linear-gradient(180deg, #f3d36f, #c8a94a) !important;
+ border-color: rgba(241, 210, 122, 0.92) !important;
+ color: #1f2a45 !important;
+ text-shadow: none !important;
+ filter: none !important;
+ opacity: 1 !important;
+}
+
+body.play-page.craft-header-active #playCraft [data-craft-fragment-slot] img {
+ transform-origin: 50% 50%;
+ will-change: transform, opacity, filter;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-shake #craftDetailPreviewImage {
+ animation: craftForgeCardShake 0.78s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+ filter:
+  drop-shadow(0 0 16px rgba(128, 206, 255, 0.44))
+  drop-shadow(0 0 28px rgba(241, 206, 122, 0.24)) !important;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-charge #craftDetailPreviewImage {
+ animation: craftForgeCardCharge 0.86s ease-out both !important;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-burst #craftDetailPreviewImage {
+ animation: craftForgeCardBurst 0.72s cubic-bezier(0.2, 0.78, 0.2, 1) both !important;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-settle #craftDetailPreviewImage {
+ animation: craftForgeCardSettle 0.42s ease-out both !important;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-charge [data-craft-fragment-slot].craft-fragment-armed img {
+ animation: craftForgeFragmentSiphon 1.38s cubic-bezier(0.18, 0.8, 0.24, 1) var(--craft-frag-delay, 0ms) forwards;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-burst [data-craft-fragment-slot].craft-fragment-armed img {
+ animation: none;
+}
+
+body.play-page.craft-header-active #playCraft.craft-forge-phase-settle [data-craft-fragment-slot].craft-fragment-armed img {
+ opacity: 0.26;
+ transform: translateY(-8px) scale(0.92);
+}
+
+@keyframes craftForgeCardShake {
+ 0% { transform: translate(0, 0) rotate(0deg); }
+ 8% { transform: translate(-5px, 2px) rotate(-0.7deg); }
+ 16% { transform: translate(6px, -3px) rotate(0.75deg); }
+ 24% { transform: translate(-7px, 3px) rotate(-0.95deg); }
+ 32% { transform: translate(8px, -4px) rotate(1.05deg); }
+ 40% { transform: translate(-8px, 4px) rotate(-1.1deg); }
+ 48% { transform: translate(7px, -3px) rotate(0.95deg); }
+ 56% { transform: translate(-6px, 2px) rotate(-0.8deg); }
+ 64% { transform: translate(6px, -2px) rotate(0.75deg); }
+ 72% { transform: translate(-5px, 2px) rotate(-0.65deg); }
+ 80% { transform: translate(4px, -1px) rotate(0.45deg); }
+ 90% { transform: translate(-2px, 1px) rotate(-0.2deg); }
+ 100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@keyframes craftForgeCardCharge {
+ 0% {
+  transform: scale(1);
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+ }
+ 50% {
+  transform: scale(1.04);
+  filter:
+   drop-shadow(0 0 20px rgba(128, 206, 255, 0.58))
+   drop-shadow(0 0 38px rgba(128, 206, 255, 0.36));
+ }
+ 100% {
+  transform: scale(1.08);
+  filter:
+   drop-shadow(0 0 26px rgba(128, 206, 255, 0.7))
+   drop-shadow(0 0 56px rgba(241, 206, 122, 0.34));
+ }
+}
+
+@keyframes craftForgeCardBurst {
+ 0% {
+  transform: scale(1.08);
+  filter:
+   drop-shadow(0 0 26px rgba(128, 206, 255, 0.7))
+   drop-shadow(0 0 56px rgba(241, 206, 122, 0.34));
+ }
+ 36% {
+  transform: scale(1.15);
+  filter:
+   drop-shadow(0 0 34px rgba(255, 245, 214, 0.84))
+   drop-shadow(0 0 70px rgba(130, 214, 255, 0.54));
+ }
+ 100% {
+  transform: scale(1.05);
+  filter:
+   drop-shadow(0 0 18px rgba(255, 230, 163, 0.55))
+   drop-shadow(0 0 36px rgba(130, 214, 255, 0.3));
+ }
+}
+
+@keyframes craftForgeCardSettle {
+ 0% {
+  transform: scale(1.05);
+  filter:
+   drop-shadow(0 0 18px rgba(255, 230, 163, 0.55))
+   drop-shadow(0 0 36px rgba(130, 214, 255, 0.3));
+ }
+ 100% {
+  transform: scale(1);
+  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.45));
+ }
+}
+
+@keyframes craftForgeFragmentCharge {
+ 0% {
+  transform: translateY(0) scale(1);
+  filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
+ }
+ 50% {
+  transform: translateY(-6px) scale(1.05);
+  filter: drop-shadow(0 0 14px rgba(145, 218, 255, 0.46));
+ }
+ 100% {
+  transform: translateY(-10px) scale(1.08);
+  filter: drop-shadow(0 0 20px rgba(145, 218, 255, 0.66));
+ }
+}
+
+@keyframes craftForgeFragmentSiphon {
+ 0% {
+  opacity: 1;
+  transform: translate(0, 0) scale(1) rotate(0deg);
+  filter: drop-shadow(0 0 6px rgba(145, 218, 255, 0.24));
+ }
+ 42% {
+  opacity: 1;
+  transform:
+   translate(
+    calc(var(--craft-frag-target-x, 0px) * 0.34),
+    calc(var(--craft-frag-target-y, -52px) * 0.34)
+   )
+   scale(0.9)
+   rotate(calc(var(--craft-frag-rot, 0deg) * 0.45));
+  filter:
+   drop-shadow(0 0 20px rgba(255, 241, 195, 0.58))
+   drop-shadow(0 0 34px rgba(145, 218, 255, 0.46));
+ }
+ 78% {
+  opacity: 0.86;
+  transform:
+   translate(
+    calc(var(--craft-frag-target-x, 0px) * 0.8),
+    calc(var(--craft-frag-target-y, -52px) * 0.8)
+   )
+   scale(0.56)
+   rotate(calc(var(--craft-frag-rot, 0deg) * 0.82));
+  filter:
+   drop-shadow(0 0 28px rgba(255, 245, 214, 0.72))
+   drop-shadow(0 0 48px rgba(145, 218, 255, 0.58));
+ }
+ 100% {
+  opacity: 0;
+  transform:
+   translate(var(--craft-frag-target-x, 0px), var(--craft-frag-target-y, -52px))
+   scale(0.24)
+   rotate(var(--craft-frag-rot, 0deg));
+  filter:
+   drop-shadow(0 0 36px rgba(255, 244, 206, 0.84))
+   drop-shadow(0 0 62px rgba(145, 218, 255, 0.6));
+ }
+}
+
+@keyframes craftForgeFragmentBurst {
+ 0% {
+  opacity: 1;
+  transform: translateY(-10px) scale(1.08);
+  filter: drop-shadow(0 0 20px rgba(145, 218, 255, 0.66));
+ }
+ 40% {
+  opacity: 1;
+  transform:
+   translate(
+    calc(var(--craft-frag-target-x, 0px) * 0.45),
+    calc((var(--craft-frag-target-y, -52px) - 10px) * 0.45)
+   )
+   scale(0.94)
+   rotate(calc(var(--craft-frag-rot, 0deg) * 0.6));
+  filter:
+   drop-shadow(0 0 26px rgba(255, 239, 188, 0.72))
+   drop-shadow(0 0 44px rgba(145, 218, 255, 0.54));
+ }
+ 100% {
+  opacity: 0;
+  transform:
+   translate(var(--craft-frag-target-x, 0px), var(--craft-frag-target-y, -52px))
+   scale(0.28)
+   rotate(var(--craft-frag-rot, 0deg));
+  filter:
+   drop-shadow(0 0 42px rgba(255, 244, 206, 0.86))
+   drop-shadow(0 0 68px rgba(145, 218, 255, 0.62));
+ }
+}
+
+@keyframes craftForgeBtnPulse {
+ 0%, 100% {
+  transform: scale(1);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+ }
+ 50% {
+  transform: scale(1.02);
+  box-shadow:
+   0 0 16px rgba(241, 206, 122, 0.42),
+   0 0 34px rgba(122, 198, 255, 0.24);
+ }
+}
+
+.craft-card-zoom-overlay {
+ position: fixed;
+ inset: 0;
+ z-index: 260;
+ display: grid;
+ place-items: center;
+ padding: 22px;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.18s ease;
+}
+
+.craft-card-zoom-overlay.show {
+ opacity: 1;
+ pointer-events: auto;
+}
+
+.craft-card-zoom-overlay[hidden] {
+ display: none;
+}
+
+.craft-card-zoom-backdrop {
+ position: absolute;
+ inset: 0;
+ background: rgba(4, 10, 30, 0.9);
+ backdrop-filter: blur(4px);
+}
+
+.craft-card-zoom-modal {
+ position: relative;
+ z-index: 1;
+ margin: 0;
+ width: min(92vw, 980px);
+ max-height: calc(100vh - 56px);
+ display: grid;
+ grid-template-rows: minmax(0, 1fr) auto;
+ justify-items: center;
+ gap: 10px;
+}
+
+.craft-card-zoom-modal img {
+ width: auto;
+ max-width: min(92vw, 980px);
+ max-height: calc(100vh - 126px);
+ object-fit: contain;
+ filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.6));
+}
+
+.craft-card-zoom-modal figcaption {
+ color: #f2f6ff;
+ font-size: 1.06rem;
+ font-weight: 800;
+ text-align: center;
+ text-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.craft-card-zoom-close {
+ position: absolute;
+ top: -10px;
+ right: -10px;
+ width: 42px;
+ height: 42px;
+ border-radius: 999px;
+ border: 1px solid rgba(195, 220, 255, 0.62);
+ background: rgba(6, 17, 49, 0.84);
+ color: #eaf2ff;
+ font-size: 1.9rem;
+ line-height: 1;
+ display: grid;
+ place-items: center;
+ cursor: pointer;
+}
+
+.craft-result-overlay {
+ position: fixed;
+ inset: 0;
+ z-index: 275;
+ display: grid;
+ place-items: center;
+ padding: 0;
+ opacity: 0;
+ pointer-events: none;
+ transition: opacity 0.18s ease;
+}
+
+.craft-result-overlay.show {
+ opacity: 1;
+ pointer-events: auto;
+}
+
+.craft-result-overlay[hidden] {
+ display: none;
+}
+
+.craft-result-backdrop {
+ position: absolute;
+ inset: 0;
+ background:
+  radial-gradient(circle at 50% 42%, rgba(233, 197, 112, 0.13), rgba(233, 197, 112, 0) 42%),
+  rgba(2, 9, 29, 0.72);
+ backdrop-filter: blur(4px);
+}
+
+.craft-result-shell {
+ position: relative;
+ z-index: 1;
+ width: 100vw;
+ max-width: none;
+ min-height: 100vh;
+ display: grid;
+ grid-template-rows: auto auto auto;
+ align-content: center;
+ gap: 0;
+}
+
+.craft-result-modal {
+ width: 100%;
+ min-height: 0;
+ height: auto;
+ display: grid;
+ place-items: center;
+ padding: 12px 0;
+ border: none;
+ border-radius: 0;
+ overflow: hidden;
+ background:
+  linear-gradient(180deg, rgba(7, 20, 52, 0.52), rgba(8, 17, 41, 0.62));
+ box-shadow: none;
+}
+
+.craft-result-head {
+ display: grid;
+ justify-items: center;
+ gap: 2px;
+ padding: 0 16px 0;
+ margin-top: -10px;
+ text-align: center;
+}
+
+.craft-result-head img {
+ width: 328px;
+ height: 176px;
+ object-fit: cover;
+ object-position: center 40%;
+ display: block;
+ margin: 0;
+ filter: drop-shadow(0 0 18px rgba(241, 206, 122, 0.46));
+}
+
+.craft-result-head h2 {
+ margin: 0;
+ line-height: 1;
+ color: #f4e2b6;
+ font-size: clamp(2.2rem, 3.8vw, 3.4rem);
+ font-weight: 900;
+ text-shadow: 0 8px 20px rgba(0, 0, 0, 0.52);
+}
+
+.craft-result-center {
+ display: grid;
+ place-items: center;
+ width: 100%;
+ height: auto;
+ padding: 0;
+}
+
+.craft-result-center img {
+ width: min(470px, 56vw);
+ max-height: min(54vh, 590px);
+ object-fit: contain;
+ filter:
+  drop-shadow(0 0 42px rgba(241, 206, 122, 0.42))
+  drop-shadow(0 0 74px rgba(122, 198, 255, 0.28))
+  drop-shadow(0 22px 40px rgba(0, 0, 0, 0.5));
+}
+
+.craft-result-foot {
+ padding: 0 16px;
+ text-align: center;
+}
+
+.craft-result-foot p {
+ margin: 0;
+ color: #eef5ff;
+ font-size: clamp(1.18rem, 2.2vw, 2rem);
+ font-weight: 800;
+ text-shadow: 0 8px 16px rgba(0, 0, 0, 0.46);
 }

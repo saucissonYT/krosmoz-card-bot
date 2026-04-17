@@ -1556,7 +1556,11 @@ function hasLocalAuthSignal(req, cookies = null) {
  const headerFlag = req.headers["x-kc-local-auth"]
  const queryFlag = req.query?.local
  const cookieFlag = sourceCookies[WEB_LOCAL_AUTH_COOKIE]
- return isTruthyFlag(headerFlag) || isTruthyFlag(queryFlag) || isTruthyFlag(cookieFlag)
+ const hasHeader = headerFlag !== undefined && headerFlag !== null && String(headerFlag).trim() !== ""
+ const hasQuery = queryFlag !== undefined && queryFlag !== null && String(queryFlag).trim() !== ""
+ if (hasHeader) return isTruthyFlag(headerFlag)
+ if (hasQuery) return isTruthyFlag(queryFlag)
+ return isTruthyFlag(cookieFlag)
 }
 
 function hasLocalAuthDisableSignal(req, cookies = null) {
@@ -1564,7 +1568,11 @@ function hasLocalAuthDisableSignal(req, cookies = null) {
  const headerFlag = req.headers["x-kc-local-auth"]
  const queryFlag = req.query?.local
  const cookieFlag = sourceCookies[WEB_LOCAL_AUTH_COOKIE]
- return isFalsyFlag(headerFlag) || isFalsyFlag(queryFlag) || isFalsyFlag(cookieFlag)
+ const hasHeader = headerFlag !== undefined && headerFlag !== null && String(headerFlag).trim() !== ""
+ const hasQuery = queryFlag !== undefined && queryFlag !== null && String(queryFlag).trim() !== ""
+ if (hasHeader) return isFalsyFlag(headerFlag)
+ if (hasQuery) return isFalsyFlag(queryFlag)
+ return isFalsyFlag(cookieFlag)
 }
 
 function buildLocalSession(req, cookies = null) {
@@ -1757,7 +1765,20 @@ function ensureUserCardsForDemo(user, cards, options = {}) {
 
 function ensureUserFragmentsForDemo(user, cards, options = {}) {
  if (!Array.isArray(user.fragments)) user.fragments = []
- const prioritized = cards.filter((card) => ["SSR", "S", "UR"].includes(String(card?.rarity || "").toUpperCase()))
+ const rarityPriority = { SSR: 0, S: 1, UR: 2 }
+ const prioritized = cards
+  .filter((card) => ["SSR", "S", "UR"].includes(String(card?.rarity || "").toUpperCase()))
+  .sort((a, b) => {
+   const rarityA = String(a?.rarity || "").toUpperCase()
+   const rarityB = String(b?.rarity || "").toUpperCase()
+   const rankA = Number.isFinite(rarityPriority[rarityA]) ? rarityPriority[rarityA] : 99
+   const rankB = Number.isFinite(rarityPriority[rarityB]) ? rarityPriority[rarityB] : 99
+   if (rankA !== rankB) return rankA - rankB
+   return (
+    Number(a?.id || 0) - Number(b?.id || 0) ||
+    String(a?.name || "").localeCompare(String(b?.name || ""), "fr")
+   )
+  })
  if (!prioritized.length) return
 
  const fullSets = Math.max(0, Number(options.fullSets || 0))
@@ -2074,6 +2095,35 @@ function ensureLocalDevUserSeed(userId) {
  const cards = getCards()
  ensureUserCardsForDemo(user, cards, { uniqueTarget: 170, minQty: 2, maxQty: 6, offset: 9 })
  ensureUserFragmentsForDemo(user, cards, { fullSets: 14, partialSets: 10, offset: 4 })
+ const ssrCards = (Array.isArray(cards) ? cards : [])
+  .filter((card) => String(card?.rarity || "").toUpperCase() === "SSR")
+  .sort((a, b) =>
+   Number(a?.id || 0) - Number(b?.id || 0) ||
+   String(a?.name || "").localeCompare(String(b?.name || ""), "fr")
+  )
+ if (!Array.isArray(user.fragments)) user.fragments = []
+ const existingSsrFragments = new Set(
+  user.fragments.map((fragment) => `${String(fragment?.cardId || "")}:${Number(fragment?.fragmentNumber || 0)}`)
+ )
+ const ensureSsrFragment = (cardId, fragmentNumber) => {
+  const key = `${String(cardId)}:${Number(fragmentNumber)}`
+  if (existingSsrFragments.has(key)) return
+  user.fragments.push({
+   cardId: String(cardId),
+   fragmentNumber: Number(fragmentNumber),
+   source: "local-demo-ssr",
+   obtainedAt: new Date().toISOString()
+  })
+  existingSsrFragments.add(key)
+ }
+ const guaranteedSsrCount = Math.min(32, ssrCards.length)
+ for (let index = 0; index < guaranteedSsrCount; index++) {
+  const card = ssrCards[index]
+  if (!card?.id) continue
+  for (let fragmentNumber = 1; fragmentNumber <= 5; fragmentNumber++) {
+   ensureSsrFragment(card.id, fragmentNumber)
+  }
+ }
  dirty = true
 
  const allAchievementIds = Object.keys(achievementRegistry || {})
@@ -2400,11 +2450,36 @@ function requireSession(req, res) {
 
 function requireSessionPage(req, res) {
  const session = resolveSession(req)
- if (session && !isBannedSession(session)) return session
+ if (session && !isBannedSession(session)) {
+  if (session.local) {
+   const cookies = parseCookies(req)
+   if (!isTruthyFlag(cookies[WEB_LOCAL_AUTH_COOKIE]) || isTruthyFlag(req.query?.local)) {
+    res.setHeader("Set-Cookie", `${WEB_LOCAL_AUTH_COOKIE}=1; Path=/; Max-Age=31536000; SameSite=Lax${isHttpsRequest(req) ? "; Secure" : ""}`)
+   }
+  }
+  return session
+ }
  if (session && isBannedSession(session)) {
   sendBanPage(res)
   return null
  }
+
+ if (canUseLocalAuth(req)) {
+  const alreadySignaled = hasLocalAuthSignal(req)
+  const explicitDisableFromQuery = req.query?.local !== undefined && isFalsyFlag(req.query?.local)
+  if (!alreadySignaled && !explicitDisableFromQuery) {
+   const currentUrl = new URL(req.originalUrl || req.url || "/", "http://localhost")
+   currentUrl.searchParams.set("local", "1")
+   const target = `${currentUrl.pathname}${currentUrl.search}`
+   res.redirect(target)
+   return null
+  }
+ }
+
+ if (canUseLocalAuth(req)) {
+  return null
+ }
+
  res.redirect("/")
  return null
 }
