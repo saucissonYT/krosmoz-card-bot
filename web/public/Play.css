@@ -2289,7 +2289,9 @@ body.play-page.fusion-bg-active .event-live-toast {
  width: 100%;
  height: 100%;
  min-height: 0;
- object-fit: contain;
+ object-fit: fill;
+ object-position: center;
+ display: block;
  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.5));
 }
 
@@ -2425,7 +2427,9 @@ body.play-page.fusion-bg-active .event-live-toast {
 .mode-fusion-simple .fusion-card-pick img {
  width: 100%;
  height: 42px;
- object-fit: cover;
+ object-fit: fill;
+ object-position: center;
+ display: block;
  border-radius: 4px;
 }
 
@@ -3141,7 +3145,9 @@ body.play-page.fusion-bg-active .event-live-toast {
 .fusion-forge-result-card img {
  width: 100%;
  height: 100%;
- object-fit: cover;
+ object-fit: fill;
+ object-position: center;
+ display: block;
 }
 
 .fusion-forge-result strong {
@@ -7360,7 +7366,9 @@ body.play-page.craft-header-active #playCraft.craft-forge-phase-settle [data-cra
 .fusion-redesign .fusion-result-summary img {
  width: 58px;
  aspect-ratio: 0.69;
- object-fit: cover;
+ object-fit: fill;
+ object-position: center;
+ display: block;
  border-radius: 6px;
  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
 }
