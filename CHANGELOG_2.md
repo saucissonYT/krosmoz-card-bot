@@ -9,6 +9,69 @@ Toutes les modifications importantes de **Krosmoz Card Bot** sont documentées d
 
 ## [0.38.0] - 2026-04-06
 
+### Updates (2026-04-19 -> 2026-04-19) - Refonte Fusion web, missions et assets UI
+
+### Added
+
+- **Version web locale de Fusion** (`web/public/Play.html`, `web/routes/gameRoutes.js`)
+  - Page `/fusion` redirigee vers l'experience `/play/fusion` en local
+  - Reset de test local dedie avec stock de cartes regenere pour tester les fusions a chaque session
+  - Cartes de test injectees par set/rarete pour valider rapidement les couts, slots et resultats
+
+- **Nouvelle interaction de fusion par selection de cartes** (`web/public/Play.html`, `web/public/Play.css`)
+  - Slots de cartes bases sur le cout exact de la rarete source
+  - Selection manuelle des doublons, en conservant toujours 1 exemplaire de chaque carte
+  - Auto-completion optionnelle avec remplissage automatique des doublons disponibles
+  - Bouton `Skip animation` pour passer directement au resultat
+
+- **Animation de resultat Fusion** (`web/public/Play.html`, `web/public/assets/ui/icone fusion.png`)
+  - Animation des cartes qui convergent vers le centre avant affichage du resultat
+  - Overlay de resultat aligne sur l'experience Fabrication
+  - Nouvelle icone finale dediee a la fusion
+
+- **Nouveaux assets Missions / badges** (`web/public/assets/ui/`)
+  - Ajout des visuels de menu missions et missions guilde
+  - Ajout des assets de recompense badge niveau, badge battle pass, badge guilde et icone recompense
+
+### Changed
+
+- **DA Fusion alignee sur Fabrication, Pack, Achievements et Missions**
+  - Barre verticale de sets reprise du style Fabrication, scrollable pour supporter plus de sets
+  - Fond floute harmonise avec les autres pages web
+  - Ressources kamas et packs ajoutees en haut a droite avec bouton `+`
+  - Titre `Fusion` avec retour vers l'index et infos de set actif dans l'en-tete
+
+- **Layout Fusion simplifie**
+  - Suppression de l'ancien atelier image, des formes orbitantes, du bandeau de recap bas et du panneau lateral droit
+  - La zone principale laisse plus de place aux cartes selectionnees
+  - Slots centres par ligne selon le nombre de cartes requis, avec lignes incompletes recentrees
+  - Cartes selectionnees agrandies et ajustees pour remplir correctement les emplacements
+
+- **Fusion limitee a 1 operation par action**
+  - Suppression du selecteur de quantite, des boutons `-`, `+` et `MAX`
+  - Bouton `Fusionner` pilote une fusion unique, plus lisible et plus proche du flow carte par carte
+
+- **Pages Achievements / Missions / Guildes**
+  - Ajustements UI pour rapprocher les pages du meme vocabulaire visuel
+  - Wiring des nouveaux assets de missions et badges
+
+### Fixed
+
+- **Nettoyage d'assets UI inutilises**
+  - Suppression des references restantes a `flamme notif.png`, `enclume.png` et `fusion.png`
+  - Remplacement des usages par styles CSS ou nouveaux assets dedies
+
+- **Centrage et scroll Fusion**
+  - Correction des cas ou la barre de sets perdait son scroll ou reduisait les icones
+  - Correction des lignes `C > U`, `U > R` et des grilles multi-lignes pour garder les cartes centrees
+
+### Improved
+
+- **Ergonomie Fusion**
+  - Zone de cartes plus grande et moins surchargee
+  - Etats de boutons gris/jaune pour indiquer clairement auto-completion et skip animation
+  - Resultat de fusion plus coherent avec Fabrication tout en gardant une identite propre
+
 ### Updates (2026-04-16 -> 2026-04-16) - Optimisation stockage inventaire, cache API et perf web
 
 ### Added

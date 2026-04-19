@@ -6,7 +6,7 @@
  <title>Mon Jeu - Krosmoz Card</title>
  <meta name="theme-color" content="#0b0b18">
  <link rel="stylesheet" href="/css/style.css">
- <link rel="stylesheet" href="/Play.css?v=20260419-fusion-single-row-center1">
+ <link rel="stylesheet" href="/Play.css?v=20260419-fusion-picker-scroll1">
 </head>
 <body class="play-page">
 <script>
@@ -256,6 +256,7 @@ const state = {
   fromRarity: "C",
   quantity: 1,
   selectedCardIds: [],
+  pickerScrollLeft: 0,
   autoComplete: false,
   skipAnimation: false
  },
@@ -1807,6 +1808,7 @@ function setupFusionPanel() {
 
  setInput.addEventListener("change", () => {
   state.fusionUi.setId = String(setInput.value || "")
+  state.fusionUi.pickerScrollLeft = 0
   refresh()
  })
 
@@ -1815,6 +1817,7 @@ function setupFusionPanel() {
    const nextSet = String(btn.dataset.fusionSetCard || "")
    if (!nextSet) return
    state.fusionUi.setId = nextSet
+   state.fusionUi.pickerScrollLeft = 0
    setInput.value = nextSet
    refresh()
   })
@@ -1823,6 +1826,7 @@ function setupFusionPanel() {
  stepButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
    state.fusionUi.fromRarity = String(btn.dataset.rarity || "C").toUpperCase()
+   state.fusionUi.pickerScrollLeft = 0
    refresh()
   })
  })
@@ -1836,6 +1840,24 @@ function setupFusionPanel() {
  const stage = document.getElementById("fusionForgeStage")
  if (stage) stage.setAttribute("data-skip", "0")
  if (stage) {
+  const picker = document.getElementById("fusionDuplicatePicker")
+  if (picker) {
+   picker.addEventListener("scroll", () => {
+    state.fusionUi.pickerScrollLeft = Math.max(0, Number(picker.scrollLeft || 0))
+   }, { passive: true })
+
+   picker.addEventListener("wheel", (event) => {
+    if (picker.scrollWidth <= picker.clientWidth) return
+    const deltaX = Number(event.deltaX || 0)
+    const deltaY = Number(event.deltaY || 0)
+    const scrollDelta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY
+    if (!scrollDelta) return
+    event.preventDefault()
+    picker.scrollLeft += scrollDelta
+    state.fusionUi.pickerScrollLeft = Math.max(0, Number(picker.scrollLeft || 0))
+   }, { passive: false })
+  }
+
   stage.addEventListener("click", (event) => {
    const pick = event.target.closest("[data-fusion-pick-card]")
    if (pick) {
@@ -2271,6 +2293,7 @@ function renderFusionCardSelection(setId, rarity, needed = 0) {
  }).join("")
 
  const candidates = getFusionDuplicateCardsForSelection(setId, rarity)
+ const previousScrollLeft = Math.max(0, Number(state.fusionUi.pickerScrollLeft || pickerNode.scrollLeft || 0))
  pickerNode.innerHTML = candidates.length
   ? candidates.map((card) => {
    const used = Number(selectedCounts.get(String(card.cardId)) || 0)
@@ -2285,6 +2308,12 @@ function renderFusionCardSelection(setId, rarity, needed = 0) {
    `
   }).join("")
   : '<p class="fusion-empty-state">Aucun doublon sélectionnable pour cette rareté.</p>'
+
+ if (previousScrollLeft > 0) {
+  window.requestAnimationFrame(() => {
+   pickerNode.scrollLeft = Math.min(previousScrollLeft, Math.max(0, pickerNode.scrollWidth - pickerNode.clientWidth))
+  })
+ }
 
  if (countNode) countNode.textContent = `${fmt(selectedIds.length)}/${fmt(safeNeeded)} carte(s)`
  return selectedIds

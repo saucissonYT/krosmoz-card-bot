@@ -2384,6 +2384,9 @@ body.play-page.fusion-bg-active .event-live-toast {
  gap: 8px;
  overflow-x: auto;
  overflow-y: hidden;
+ overscroll-behavior-x: contain;
+ scroll-behavior: smooth;
+ touch-action: pan-x;
  scrollbar-width: none;
  -ms-overflow-style: none;
 }
@@ -2488,6 +2491,10 @@ body.play-page.fusion-bg-active .event-live-toast {
 .mode-fusion-simple .fusion-stage-actions .fusion-run-btn {
  min-width: 162px;
  min-height: 42px;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ text-align: center;
  font-size: 1rem;
 }
 
@@ -7264,9 +7271,6 @@ body.play-page.craft-header-active #playCraft.craft-forge-phase-settle [data-cra
  grid-template-rows: minmax(0, 1fr);
  gap: 10px;
  padding: 12px;
- background:
-  linear-gradient(180deg, rgba(8, 22, 60, 0.74), rgba(6, 17, 48, 0.78)),
-  url("/assets/ui/background%20fusion.png") center / cover no-repeat;
 }
 
 .fusion-redesign .fusion-forge-head {
@@ -7685,6 +7689,14 @@ body.play-page.craft-header-active #playCraft.craft-forge-phase-settle [data-cra
  min-height: 420px;
  border-radius: 8px;
  border-color: rgba(180, 220, 255, 0.3);
+}
+
+.fusion-redesign .fusion-conversions-panel,
+.fusion-redesign .fusion-forge-panel,
+.fusion-redesign .fusion-simple-stage {
+ border-color: transparent;
+ background: transparent;
+ box-shadow: none;
 }
 
 .fusion-redesign .fusion-forge-orb {
