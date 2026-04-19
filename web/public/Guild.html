@@ -5,7 +5,7 @@
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Guildes ? Krosmoz Card</title>
  <meta name="theme-color" content="#c9a84c">
- <link rel="stylesheet" href="/css/style.css">
+ <link rel="stylesheet" href="/css/style.css?v=20260418-guild-xp">
 </head>
 <body class="guild-page">
  <nav class="navbar scrolled">
@@ -74,6 +74,8 @@
  function fmt(value) {
   return Number(value || 0).toLocaleString("fr-FR")
  }
+
+ const GUILD_XP_REWARD_ICON = "/assets/ui/gain%20badge%20exp%20guilde.png?v=20260418-1827"
 
  function fmtDate(iso) {
   if (!iso) return "?"
@@ -187,7 +189,10 @@
      <div>
       <p><strong>${esc(quest.emoji || "🎯")} ${esc(quest.name || "Quête")}</strong></p>
       <p class="kshop-muted">${esc(quest.desc || "")}</p>
-      <p class="kshop-muted">${fmt(quest.current)} / ${fmt(quest.goal)} · +${fmt(quest.reward?.guildXp || 0)} XP guilde</p>
+      <p class="kshop-muted guild-xp-reward">
+       <span>${fmt(quest.current)} / ${fmt(quest.goal)}</span>
+       <span class="guild-xp-reward-gain"><img src="${GUILD_XP_REWARD_ICON}" alt="">+${fmt(quest.reward?.guildXp || 0)} XP guilde</span>
+      </p>
      </div>
      <div class="guild-quest-actions">
       <span class="chip">${claimed ? "Réclamée" : done ? "Terminée" : "En cours"}</span>

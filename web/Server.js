@@ -1311,11 +1311,46 @@ function getUserDuplicateCountForRarityInSet(user, cards, setId, rarity) {
  return duplicates
 }
 
-function consumeDuplicatesForFusion(user, cards, setId, rarity, cost) {
+function consumeDuplicatesForFusion(user, cards, setId, rarity, cost, selectedCardIds = []) {
  let available = getUserDuplicateCountForRarityInSet(user, cards, setId, rarity)
  if (available < cost) return { ok: false, available }
 
+ const requestedIds = Array.isArray(selectedCardIds)
+  ? selectedCardIds.map((id) => String(id || "").trim()).filter(Boolean).slice(0, cost)
+  : []
+
+ if (requestedIds.length) {
+  if (requestedIds.length < cost) return { ok: false, available, selected: requestedIds.length }
+
+  const validIds = new Set(
+   cards
+    .filter((card) => String(card.set) === String(setId) && String(card.rarity) === String(rarity))
+    .map((card) => String(card.id))
+  )
+  const wantedById = new Map()
+  for (const cardId of requestedIds) {
+   if (!validIds.has(cardId)) return { ok: false, available, invalidCardId: cardId }
+   wantedById.set(cardId, Number(wantedById.get(cardId) || 0) + 1)
+  }
+
+  for (const [cardId, wanted] of wantedById.entries()) {
+   const count = Number(user.cards?.[cardId] || 0)
+   const removable = Math.max(0, count - 1)
+   if (removable < wanted) return { ok: false, available, selectedAvailable: removable }
+  }
+
+  for (const [cardId, wanted] of wantedById.entries()) {
+   const count = Number(user.cards?.[cardId] || 0)
+   user.cards[cardId] = count - wanted
+   if (user.cards[cardId] <= 0) delete user.cards[cardId]
+  }
+
+  available = getUserDuplicateCountForRarityInSet(user, cards, setId, rarity)
+  return { ok: true, availableAfter: available, consumedCardIds: requestedIds }
+ }
+
  let remaining = cost
+ const consumedCardIds = []
  for (const card of cards) {
   if (remaining <= 0) break
   if (String(card.set) !== String(setId) || String(card.rarity) !== String(rarity)) continue
@@ -1328,10 +1363,11 @@ function consumeDuplicatesForFusion(user, cards, setId, rarity, cost) {
   user.cards[card.id] = count - take
   if (user.cards[card.id] <= 0) delete user.cards[card.id]
   remaining -= take
+  for (let i = 0; i < take; i++) consumedCardIds.push(String(card.id))
  }
 
  available = getUserDuplicateCountForRarityInSet(user, cards, setId, rarity)
- return { ok: remaining === 0, availableAfter: available }
+ return { ok: remaining === 0, availableAfter: available, consumedCardIds }
 }
 
 function parsePagination(req, defaultLimit = 25, maxLimit = 100) {

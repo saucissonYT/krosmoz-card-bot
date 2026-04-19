@@ -10,6 +10,15 @@ module.exports = function mount(app, ctx) {
  app.get("/profile/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/profile", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/cards", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Cards.html")))
+ app.get("/fusion", (req, res) => {
+  if (!canUseLocalAuth(req)) return res.redirect("/play/fusion")
+  const session = requireSessionPage(req, res)
+  if (!session) {
+   if (!res.headersSent) return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+   return
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ })
  app.get("/play", (req, res) => {
   const session = requireSessionPage(req, res)
   if (!session) {
@@ -32,7 +41,7 @@ module.exports = function mount(app, ctx) {
    }
    return res.sendFile(path.join(PUBLIC_DIR, "Packs.html"))
   }
-  if (tab === "quests") {
+  if (tab === "quests" || tab === "missions") {
    return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
   }
   const session = requireSessionPage(req, res)

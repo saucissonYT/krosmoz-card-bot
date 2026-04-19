@@ -1069,7 +1069,7 @@ function getLevelUpRewardIconSrc(type) {
  if (key === "fragments") return "/assets/ui/gain%20fragments%20level%20up.png"
  if (key === "cards") return "/assets/ui/gain%20carte%20level%20up.png"
  if (key === "title") return "/assets/ui/gain%20titre%20level%20up.png"
- if (key === "badge") return "/assets/ui/gain%20badge%20level%20up.png"
+ if (key === "badge") return "/assets/ui/gain%20badge%20level%20up.png?v=20260418-0828"
  return "/assets/ui/gain%20titre%20level%20up.png"
 }
 

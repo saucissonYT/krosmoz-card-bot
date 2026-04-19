@@ -2296,6 +2296,28 @@ body.guild-page .guild-shell {
  margin: 0;
 }
 
+.guild-xp-reward {
+ display: flex;
+ align-items: center;
+ gap: 8px;
+ flex-wrap: wrap;
+}
+
+.guild-xp-reward-gain {
+ display: inline-flex;
+ align-items: center;
+ gap: 5px;
+ color: #f6df91;
+ font-weight: 800;
+}
+
+.guild-xp-reward-gain img {
+ width: 28px;
+ height: 28px;
+ object-fit: contain;
+ filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.42));
+}
+
 .guild-quest-actions {
  display: grid;
  gap: 6px;
@@ -4633,6 +4655,10 @@ body.krosmoshop-page .kshop-card .chip {
   width: min(340px, calc(100vw - 24px));
  }
 
+ body.play-page .event-live-toast {
+  display: none;
+ }
+
  .kshop-topbar {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
@@ -5394,31 +5420,39 @@ body.achievements-page .ach-modal-icon-btn img {
  filter: drop-shadow(0 8px 12px rgba(3, 9, 24, 0.62));
 }
 
-body.achievements-page .ach-notif-flame {
+body.achievements-page .ach-notif-badge {
  position: absolute;
  top: 4px;
  right: 4px;
  z-index: 2;
- width: 54px;
- height: 54px;
- object-fit: contain;
- filter: drop-shadow(0 0 8px rgba(255, 124, 52, 0.9));
- animation: achFlamePulse 1.2s ease-in-out infinite;
+ min-width: 28px;
+ height: 28px;
+ border-radius: 999px;
+ border: 2px solid rgba(255, 255, 255, 0.92);
+ background: #d33f39;
+ color: #fff;
+ padding: 0 7px;
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 0.8rem;
+ font-weight: 800;
+ line-height: 1;
+ box-shadow: 0 0 10px rgba(145, 10, 10, 0.34);
  pointer-events: none;
 }
 
-body.achievements-page .achievements-hub-icon-wrap .ach-notif-flame {
- top: -8px;
- right: -14px;
+body.achievements-page .achievements-hub-icon-wrap .ach-notif-badge {
+ top: 21px;
+ right: 8px;
 }
 
-body.achievements-page .ach-modal-icon-btn .ach-notif-flame {
- width: 64px;
- height: 64px;
- top: auto;
- right: -4px;
- bottom: -2px;
- animation: achFlamePulse 1.2s ease-in-out infinite;
+body.achievements-page .ach-modal-icon-btn .ach-notif-badge {
+ min-width: 26px;
+ height: 26px;
+ top: 21px;
+ right: 8px;
+ bottom: auto;
 }
 
 body.achievements-page .ach-modal-icon-btn:hover {
@@ -5639,6 +5673,23 @@ body.achievements-page .ach-modal-reward-chip img {
  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
 }
 
+body.achievements-page .ach-modal-reward-chip span {
+ display: grid;
+ gap: 1px;
+ justify-items: center;
+ align-content: center;
+}
+
+body.achievements-page .ach-modal-reward-chip span small,
+body.achievements-page .ach-claim-row strong small {
+ display: block;
+ font-size: 0.68em;
+ font-weight: 700;
+ line-height: 1.05;
+ text-transform: lowercase;
+ opacity: 0.92;
+}
+
 body.achievements-page .ach-modal-actions {
  display: flex;
  justify-content: flex-end;
@@ -5765,6 +5816,8 @@ body.achievements-page .ach-claim-row img {
 body.achievements-page .ach-claim-row strong {
  color: #f6e6a9;
  font-size: 1.02rem;
+ display: grid;
+ gap: 1px;
 }
 
 body.achievements-page .ach-claim-empty {
@@ -5937,15 +5990,17 @@ body.achievements-page .ach-claim-empty {
   height: 32px;
  }
 
- body.achievements-page .ach-notif-flame {
-  width: 45px;
-  height: 45px;
+ body.achievements-page .ach-notif-badge {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 0.74rem;
  }
 
- body.achievements-page .achievements-hub-icon-wrap .ach-notif-flame {
-  top: -7px;
-  right: -12px;
- }
+ body.achievements-page .achievements-hub-icon-wrap .ach-notif-badge {
+  top: 17px;
+  right: 6px;
+  }
 
  body.achievements-page .ach-buy-modal {
   width: min(96vw, 760px);
@@ -6076,13 +6131,15 @@ body.achievements-page .ach-claim-empty {
   height: 28px;
  }
 
- body.achievements-page .ach-notif-flame {
-  width: 39px;
-  height: 39px;
+ body.achievements-page .ach-notif-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  font-size: 0.7rem;
  }
 
- body.achievements-page .achievements-hub-icon-wrap .ach-notif-flame {
-  top: -6px;
-  right: -10px;
+ body.achievements-page .achievements-hub-icon-wrap .ach-notif-badge {
+  top: 14px;
+  right: 5px;
  }
 }

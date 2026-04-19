@@ -6,20 +6,21 @@
  <title>Mon Jeu - Krosmoz Card</title>
  <meta name="theme-color" content="#0b0b18">
  <link rel="stylesheet" href="/css/style.css">
- <link rel="stylesheet" href="/Play.css?v=20260417p">
+ <link rel="stylesheet" href="/Play.css?v=20260419-fusion-single-row-center1">
 </head>
 <body class="play-page">
 <script>
-const __initialPlayTab = String(window.location.pathname || "").split("/")[2] || ""
+const __initialPlayPath = String(window.location.pathname || "")
+const __initialPlayTab = __initialPlayPath === "/fusion" ? "fusion" : (String(window.location.pathname || "").split("/")[2] || "")
 if (__initialPlayTab === "fusion") {
- document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active")
+ document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active", "craft-header-active")
 } else if (__initialPlayTab === "craft" || __initialPlayTab === "fabrication") {
   document.body.classList.add("route-craft-bg", "craft-bg-active", "fusion-mode-active")
 } else if (__initialPlayTab === "packs") {
  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
 } else if (__initialPlayTab === "inventory") {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
-} else if (__initialPlayTab === "quests") {
+} else if (__initialPlayTab === "quests" || __initialPlayTab === "missions") {
  document.body.classList.add("route-quests-bg", "quests-bg-active")
 } else {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
@@ -48,6 +49,7 @@ if (__initialPlayTab === "fusion") {
      <div class="inventory-top-left">
       <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
       <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
+      <span id="fusionTopSetInfo" class="fusion-top-set-info" hidden></span>
      </div>
      <div class="inventory-top-right">
       <div class="inventory-resource" aria-label="Kamas">
@@ -192,7 +194,7 @@ if (__initialPlayTab === "fusion") {
  <div class="craft-result-backdrop" data-close-craft-result></div>
  <section class="craft-result-shell" role="dialog" aria-modal="true" aria-labelledby="craftResultTitle" data-close-craft-result>
   <header class="craft-result-head">
-   <img src="/assets/ui/fragments%20craft/icone%20craft.png" alt="" aria-hidden="true">
+   <img id="craftResultIcon" src="/assets/ui/fragments%20craft/icone%20craft.png" alt="" aria-hidden="true">
    <h2 id="craftResultTitle">Résultat de fabrication</h2>
   </header>
   <div class="craft-result-modal">
@@ -202,6 +204,22 @@ if (__initialPlayTab === "fusion") {
   </div>
   <footer class="craft-result-foot">
    <p id="craftResultHint">Cliquer pour continuer</p>
+ </footer>
+ </section>
+</aside>
+
+<aside id="missionRewardOverlay" class="mission-reward-overlay" hidden>
+ <div class="mission-reward-backdrop" data-close-mission-reward></div>
+ <section class="mission-reward-shell" role="dialog" aria-modal="true" aria-labelledby="missionRewardTitle" data-close-mission-reward>
+  <header class="mission-reward-head">
+   <img src="/assets/ui/icones%20missions/icone%20r%C3%A9compense.png" alt="" aria-hidden="true">
+   <h2 id="missionRewardTitle">Récompense de mission</h2>
+  </header>
+  <div class="mission-reward-modal">
+   <div id="missionRewardList" class="mission-reward-list"></div>
+  </div>
+  <footer class="mission-reward-foot">
+   <p>Cliquer pour continuer</p>
   </footer>
  </section>
 </aside>
@@ -213,12 +231,15 @@ const MODE_PATH = {
   packs: "/packs",
  fusion: "/play/fusion",
  craft: "/play/fabrication",
- quests: "/play/quests"
+ quests: "/play/missions"
 }
+const IS_LOCAL_FUSION_TEST = String(window.location.pathname || "") === "/fusion"
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const state = {
  mode: "inventory",
+ localFusionTest: IS_LOCAL_FUSION_TEST,
+ localFusionResetDone: false,
  inventoryView: "cards",
  sortDesc: true,
   me: null,
@@ -233,7 +254,10 @@ const state = {
  fusionUi: {
   setId: "",
   fromRarity: "C",
-  quantity: 1
+  quantity: 1,
+  selectedCardIds: [],
+  autoComplete: false,
+  skipAnimation: false
  },
  fusionHistory: [],
  craftUi: {
@@ -243,6 +267,11 @@ const state = {
   ssrScrollTop: 0
  },
  craftHistory: [],
+ questsUi: {
+  scope: "player",
+  type: "daily",
+  scrollByKey: {}
+ },
  questsState: null
 }
 const inventoryBuyState = {
@@ -260,6 +289,18 @@ const inventorySellConfirmState = {
   S: "/assets/ui/pack-back-s.png",
   SSR: "/assets/ui/pack-back-ssr.png"
  }
+ const FUSION_TEST_CARD_IMAGES = [
+  "8e175bd9-1f9c-4a24-8cc0-399ee3b77a04.png",
+  "efsdfsdfszertgrfg (1).png",
+  "efsdfsdfszertgrfg (9).png",
+  "efsdfsdfszertgrfg (10).png",
+  "efsdfsdfszertgrfg (15).png",
+  "efsdfsdfszertgrfg (16).png",
+  "efsdfsdfszertgrfg (19).png",
+  "image (18).png",
+  "rgerffgfdgfdgdfg (3).png",
+  "rgerffgfdgfdgdfg (5).png"
+ ]
  const SET_UNLOCK_THRESHOLD_PCT = 70
 const SET_UNLOCK_RULES = [
   { id: "incarnam", name: "Incarnam", levelRequired: 1, prevSet: null },
@@ -351,8 +392,10 @@ function fmt(n) { return Number(n || 0).toLocaleString("fr-FR") }
  }
 
 function parseModeFromPath() {
+ if (String(window.location.pathname || "") === "/fusion") return "fusion"
  const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
  if (tab === "fabrication") return "craft"
+ if (tab === "missions") return "quests"
  return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
  }
 
@@ -452,7 +495,10 @@ function setMode(mode, updateUrl = true) {
   document.querySelectorAll("[data-play-mode]").forEach((tab) => {
    tab.classList.toggle("active", tab.dataset.playMode === mode)
   })
-  if (updateUrl && MODE_PATH[mode]) window.history.replaceState({}, "", MODE_PATH[mode])
+  if (updateUrl && MODE_PATH[mode]) {
+   const nextPath = state.localFusionTest && mode === "fusion" ? "/fusion" : MODE_PATH[mode]
+   window.history.replaceState({}, "", nextPath)
+  }
   renderCurrentMode()
  }
 
@@ -492,6 +538,12 @@ function setInventoryView(view) {
 
  async function loadData() {
   await requireLogin()
+  if (state.localFusionTest && !state.localFusionResetDone) {
+   const resetRes = await postJson("/api/local/fusion/reset", {})
+   if (!resetRes.ok) throw new Error(resetRes.data?.error || "local_fusion_reset_failed")
+   state.localFusionResetDone = true
+   state.fusionHistory = []
+  }
 
   const cardsCatalogPromise = loadSsrCardsCatalog().catch(() => [])
 
@@ -919,20 +971,47 @@ function syncInventoryTopbar() {
  const titleEl = document.getElementById("inventoryTopTitle")
  const kamasEl = document.getElementById("inventoryTopKamas")
  const packsEl = document.getElementById("inventoryTopPacks")
+ const fusionSetInfoEl = document.getElementById("fusionTopSetInfo")
  if (!bar || !kamasEl || !packsEl || !titleEl) return
 
- const isInventoryMode = state.mode === "inventory"
- const isFabricationMode = state.mode === "craft"
- const showTopbar = isInventoryMode || isFabricationMode
- bar.hidden = !showTopbar
- document.body.classList.toggle("inventory-layout-active", isInventoryMode)
- document.body.classList.toggle("craft-header-active", isFabricationMode)
- if (!showTopbar) return
+  const isInventoryMode = state.mode === "inventory"
+  const isFabricationMode = state.mode === "craft"
+  const isFusionMode = state.mode === "fusion"
+  const isMissionsMode = state.mode === "quests"
+  const showTopbar = isInventoryMode || isFabricationMode || isFusionMode || isMissionsMode
+  bar.hidden = !showTopbar
+  document.body.classList.toggle("inventory-layout-active", isInventoryMode)
+  document.body.classList.toggle("craft-header-active", isFabricationMode || isFusionMode || isMissionsMode)
+  if (!showTopbar) return
 
- titleEl.textContent = isFabricationMode ? "fabrication" : "inventaire"
+  titleEl.textContent = isFusionMode ? "Fusion" : (isFabricationMode ? "fabrication" : (isMissionsMode ? "missions" : "inventaire"))
+  updateFusionTopSetInfo()
+  if (fusionSetInfoEl && !isFusionMode) {
+   fusionSetInfoEl.hidden = true
+   fusionSetInfoEl.textContent = ""
+  }
 
  kamasEl.textContent = fmt(getTopbarKamas())
  packsEl.textContent = fmt(getTopbarPacks())
+}
+
+function updateFusionTopSetInfo(setId = state.fusionUi?.setId) {
+ const el = document.getElementById("fusionTopSetInfo")
+ if (!el) return
+ if (state.mode !== "fusion") {
+  el.hidden = true
+  el.textContent = ""
+  return
+ }
+ const safeSetId = String(setId || "").trim()
+ if (!safeSetId) {
+  el.hidden = true
+  el.textContent = ""
+  return
+ }
+ const pct = getSetProgressPct(safeSetId)
+ el.textContent = `Set actif: ${getSetName(safeSetId)}${pct === null ? "" : ` - ${fmt(pct)}% collection`}`
+ el.hidden = false
 }
 
 function getInventoryBuyEls() {
@@ -1271,6 +1350,28 @@ function getCardsForSetAndRarity(setId, rarity) {
  )
 }
 
+function getFusionTestCardImageUrl(card = {}, rarity = "C") {
+ if (!FUSION_TEST_CARD_IMAGES.length) return ""
+ const rawId = String(card?.cardId || card?.id || "")
+ const numericId = Number.parseInt(rawId, 10)
+ let index = Number.isFinite(numericId) && numericId > 0 ? numericId - 1 : -1
+ if (index < 0) {
+  const seed = `${String(card?.cardName || card?.name || "")}:${String(rarity || card?.rarity || "C")}`
+  index = seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)
+ }
+ const fileName = FUSION_TEST_CARD_IMAGES[Math.abs(index) % FUSION_TEST_CARD_IMAGES.length]
+ return `/assets/ui/cartes%20test/${encodeURIComponent(fileName)}`
+}
+
+function getFusionCardImageUrl(card = {}, rarity = "C") {
+ const explicitImage = String(card?.imageUrl || "").trim()
+ if (explicitImage) return explicitImage
+ const testImage = getFusionTestCardImageUrl(card, rarity)
+ if (testImage) return testImage
+ const normalizedRarity = String(rarity || card?.rarity || "").toUpperCase()
+ return PACK_BACK_IMAGE_BY_RARITY[normalizedRarity] || PACK_BACK_IMAGE_DEFAULT
+}
+
 function getDuplicateInfoForFusion(setId, rarity) {
  const matches = getCardsForSetAndRarity(setId, rarity)
  let owned = 0
@@ -1281,6 +1382,94 @@ function getDuplicateInfoForFusion(setId, rarity) {
   if (qty > 1) duplicates += (qty - 1)
  }
  return { owned, duplicates, cardKinds: matches.length }
+}
+
+function getFusionDuplicateCardsForSelection(setId, rarity) {
+ return getCardsForSetAndRarity(setId, rarity)
+  .map((card) => {
+   const qty = Number(card.qty || 0)
+   const cardId = String(card.cardId || card.id || "")
+   const cardName = String(card.cardName || card.name || "Carte")
+   const normalizedRarity = String(card.rarity || rarity || "C").toUpperCase()
+   return {
+    cardId,
+    cardName,
+    imageUrl: getFusionCardImageUrl({ ...card, cardId, cardName, rarity: normalizedRarity }, normalizedRarity),
+    rarity: normalizedRarity,
+    duplicates: Math.max(0, qty - 1),
+    qty
+   }
+  })
+  .filter((card) => card.cardId && card.duplicates > 0)
+  .sort((a, b) =>
+   String(a.cardName || "").localeCompare(String(b.cardName || ""), "fr", { sensitivity: "base", numeric: true }) ||
+   String(a.cardId).localeCompare(String(b.cardId), "fr", { numeric: true })
+  )
+}
+
+function getFusionDuplicateCardMap(setId, rarity) {
+ const map = new Map()
+ for (const card of getFusionDuplicateCardsForSelection(setId, rarity)) {
+  map.set(String(card.cardId), card)
+ }
+ return map
+}
+
+function getFusionExpandedDuplicateCards(setId, rarity, limit = 100) {
+ const expanded = []
+ const safeLimit = Math.max(0, Number(limit || 0))
+ for (const card of getFusionDuplicateCardsForSelection(setId, rarity)) {
+  for (let i = 0; i < Number(card.duplicates || 0); i++) {
+   expanded.push({ ...card, copyIndex: i + 1 })
+   if (expanded.length >= safeLimit) return expanded
+  }
+ }
+ return expanded
+}
+
+function getFusionSelectedIds() {
+ return Array.isArray(state.fusionUi.selectedCardIds)
+  ? state.fusionUi.selectedCardIds.map((id) => String(id || "")).filter(Boolean)
+  : []
+}
+
+function setFusionSelectedIds(ids = []) {
+ state.fusionUi.selectedCardIds = Array.isArray(ids)
+  ? ids.map((id) => String(id || "")).filter(Boolean)
+  : []
+}
+
+function normalizeFusionSelectedCards(setId, rarity, needed) {
+ const safeNeeded = Math.max(0, Number(needed || 0))
+ const available = getFusionDuplicateCardMap(setId, rarity)
+ const used = new Map()
+ const kept = []
+
+ for (const id of getFusionSelectedIds()) {
+  const card = available.get(String(id))
+  if (!card) continue
+  const current = Number(used.get(String(id)) || 0)
+  if (current >= Number(card.duplicates || 0)) continue
+  kept.push(String(id))
+  used.set(String(id), current + 1)
+  if (kept.length >= safeNeeded) break
+ }
+
+ if (state.fusionUi.autoComplete && kept.length < safeNeeded) {
+  for (const card of getFusionDuplicateCardsForSelection(setId, rarity)) {
+   const id = String(card.cardId)
+   let current = Number(used.get(id) || 0)
+   while (current < Number(card.duplicates || 0) && kept.length < safeNeeded) {
+    kept.push(id)
+    current += 1
+    used.set(id, current)
+   }
+   if (kept.length >= safeNeeded) break
+  }
+ }
+
+ setFusionSelectedIds(kept)
+ return kept
 }
 
 function getNextRarityFromMeta(rarity) {
@@ -1338,6 +1527,12 @@ function getRarityEmoji(rarity) {
   if (byRule?.name) return byRule.name
   const byProfile = (state.profile?.setProgress || []).find((row) => String(row.id) === id)
   return String(byProfile?.name || id || "Set")
+ }
+
+ function getSetIconForUi(setId) {
+  const id = String(setId || "")
+  const match = INVENTORY_SET_ICONS.find((row) => String(row.id) === id)
+  return match?.icon || "/assets/ui/set%20non%20deblock.png"
  }
 
 function getNextSetUnlockInfo(unlockedSetIds = []) {
@@ -1462,14 +1657,14 @@ function getNextSetUnlockInfo(unlockedSetIds = []) {
 
 function setupFusionPanel() {
  const setInput = document.getElementById("fusionSetInput")
- const qtyInput = document.getElementById("fusionQtyInput")
  const runBtn = document.getElementById("fusionRunBtn")
  const skipBtn = document.getElementById("fusionSkipAnimationBtn")
- const infoLine = document.getElementById("fusionInfoLine")
+ const autoBtn = document.getElementById("fusionAutoCompleteBtn")
  const historyBox = document.getElementById("fusionHistoryList")
  const stepButtons = [...document.querySelectorAll(".fusion-simple-step[data-rarity]")]
+ const setButtons = [...document.querySelectorAll("[data-fusion-set-card]")]
  const fusionRows = getFusionRows()
- if (!setInput || !qtyInput || !runBtn || !historyBox || !stepButtons.length || !fusionRows.length) return
+ if (!setInput || !runBtn || !stepButtons.length || !fusionRows.length) return
 
  const setOptions = [...setInput.options].map((opt) => String(opt.value))
  const rarityOptions = fusionRows.map((row) => String(row.rarity || "").toUpperCase())
@@ -1480,64 +1675,134 @@ function setupFusionPanel() {
  if (!rarityOptions.includes(String(state.fusionUi.fromRarity || ""))) {
   state.fusionUi.fromRarity = rarityOptions[0] || "C"
  }
- state.fusionUi.quantity = parseSafeQty(state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
+ state.fusionUi.quantity = 1
 
  function renderHistory() {
+  if (!historyBox) return
   if (!Array.isArray(state.fusionHistory) || !state.fusionHistory.length) {
-   historyBox.innerHTML = '<p class="mode-muted">Aucune fusion dans cette session.</p>'
+   historyBox.innerHTML = '<p class="fusion-empty-state">Aucune fusion dans cette session.</p>'
    return
   }
   historyBox.innerHTML = state.fusionHistory.slice(0, 5).map((entry) => `
    <article class="fusion-history-item">
-    <div>
-     <strong>${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}</strong>
-     <small>${escapeHtml(entry.setName || "Set")}</small>
-    </div>
-    <div>
-     <span>${escapeHtml(entry.rewardName || "Carte")}</span>
-     <small>${new Date(Number(entry.timestamp || Date.now())).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
-    </div>
-   </article>
-  `).join("")
- }
+     <div>
+      <strong>${escapeHtml(entry.from)} → ${escapeHtml(entry.to)}</strong>
+      <small>${escapeHtml(entry.setName || "Set")}</small>
+     </div>
+     <div>
+      <span>${escapeHtml(entry.rewardName || "Carte")}</span>
+      <small>${new Date(Number(entry.timestamp || Date.now())).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</small>
+     </div>
+    </article>
+   `).join("")
+  }
 
  function refresh() {
   setInput.value = String(state.fusionUi.setId || "")
-  const qty = parseSafeQty(qtyInput.value || state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
-  state.fusionUi.quantity = qty
-  qtyInput.value = String(qty)
+  const qty = 1
+  state.fusionUi.quantity = 1
 
   const fromRarity = String(state.fusionUi.fromRarity || "C").toUpperCase()
   const row = getFusionRowByRarity(fromRarity)
   const next = getNextRarityFromMeta(fromRarity) || "-"
-  const info = getDuplicateInfoForFusion(state.fusionUi.setId, fromRarity)
-  const cost = Number(row?.cost || 0)
-  const maxCycles = cost > 0 ? Math.floor(info.duplicates / cost) : 0
-  const requested = Math.max(0, Math.min(qty, maxCycles))
+   const info = getDuplicateInfoForFusion(state.fusionUi.setId, fromRarity)
+   const cost = Number(row?.cost || 0)
+   const maxCycles = cost > 0 ? Math.floor(info.duplicates / cost) : 0
+   const plannedCycles = cost > 0 ? Math.max(1, Math.min(qty, maxCycles || qty)) : 0
+   const selectedNeeded = cost * plannedCycles
+   const selectedCardIds = normalizeFusionSelectedCards(state.fusionUi.setId, fromRarity, selectedNeeded)
+   const selectedCycles = cost > 0 ? Math.floor(selectedCardIds.length / cost) : 0
+   const requested = Math.max(0, Math.min(qty, maxCycles, selectedCycles))
+   const totalDuplicates = fusionRows.reduce((sum, fusionRow) => {
+    const rowInfo = getDuplicateInfoForFusion(state.fusionUi.setId, fusionRow.rarity)
+    return sum + Number(rowInfo.duplicates || 0)
+   }, 0)
+   const totalReady = fusionRows.reduce((sum, fusionRow) => {
+    const rowCost = Number(fusionRow.cost || 0)
+    if (!rowCost) return sum
+    const rowInfo = getDuplicateInfoForFusion(state.fusionUi.setId, fusionRow.rarity)
+    return sum + Math.floor(Number(rowInfo.duplicates || 0) / rowCost)
+   }, 0)
+   const selectedSetName = getSetName(state.fusionUi.setId)
+   const selectedSetPct = getSetProgressPct(state.fusionUi.setId)
+   const nextLabel = next && next !== "-" ? next : "-"
+
+   setButtons.forEach((btn) => {
+    btn.classList.toggle("active", String(btn.dataset.fusionSetCard || "") === String(state.fusionUi.setId || ""))
+  })
 
   stepButtons.forEach((btn) => {
    const rarity = String(btn.dataset.rarity || "").toUpperCase()
    const btnRow = getFusionRowByRarity(rarity)
    const btnInfo = getDuplicateInfoForFusion(state.fusionUi.setId, rarity)
-   const btnCost = Number(btnRow?.cost || 0)
-   const stockTag = btn.querySelector("[data-fusion-stock]")
-   if (stockTag) stockTag.textContent = `${fmt(btnInfo.duplicates)}/${fmt(btnCost)}`
-   btn.classList.toggle("active", rarity === fromRarity)
-   btn.classList.toggle("ready", btnCost > 0 && btnInfo.duplicates >= btnCost)
-   btn.disabled = !btnRow
-  })
+    const btnCost = Number(btnRow?.cost || 0)
+    const stockTag = btn.querySelector("[data-fusion-stock]")
+    const readyTag = btn.querySelector("[data-fusion-ready]")
+    if (stockTag) stockTag.textContent = `${fmt(btnInfo.duplicates)}/${fmt(btnCost)} doublons`
+    if (readyTag) {
+     const possible = btnCost > 0 ? Math.floor(Number(btnInfo.duplicates || 0) / btnCost) : 0
+     readyTag.textContent = possible > 0 ? `${fmt(possible)} possible(s)` : "Stock insuffisant"
+    }
+    btn.classList.toggle("active", rarity === fromRarity)
+    btn.classList.toggle("ready", btnCost > 0 && btnInfo.duplicates >= btnCost)
+    btn.disabled = !btnRow
+   })
 
-  if (infoLine) {
-   const fromEmoji = getRarityEmoji(fromRarity)
-   const nextEmoji = next && next !== "-" ? getRarityEmoji(next) : ""
-   infoLine.textContent = `${fromEmoji} ${fromRarity} → ${nextEmoji ? `${nextEmoji} ${next}` : next} • ${fmt(info.duplicates)} doublons dispo • coût ${fmt(cost)} • prêt: ${fmt(requested)} fusion(s)`
-  }
-  runBtn.disabled = !(state.fusionUi.setId && row && requested > 0)
-  runBtn.dataset.requested = String(requested)
-  runBtn.textContent = requested > 0 ? `Valider x${fmt(requested)}` : "Valider"
+   runBtn.disabled = !(state.fusionUi.setId && row && requested > 0)
+   runBtn.dataset.requested = String(requested)
+   runBtn.textContent = "Fusionner"
+   if (autoBtn) {
+    const active = Boolean(state.fusionUi.autoComplete)
+    autoBtn.classList.toggle("active", active)
+    autoBtn.setAttribute("aria-pressed", active ? "true" : "false")
+   }
+   if (skipBtn) {
+    const active = Boolean(state.fusionUi.skipAnimation)
+    skipBtn.classList.toggle("active", active)
+    skipBtn.setAttribute("aria-pressed", active ? "true" : "false")
+   }
 
-  renderFusionForgeIdle(state.fusionUi.setId, fromRarity)
-  renderHistory()
+   const selectedCopy = document.querySelector("[data-fusion-selected-copy]")
+   if (selectedCopy) selectedCopy.textContent = `${fromRarity} > ${nextLabel}`
+   const runPreview = document.querySelector("[data-fusion-run-preview]")
+   if (runPreview) runPreview.textContent = `${fmt(selectedCardIds.length)}/${fmt(selectedNeeded)} carte(s) sélectionnée(s) - ${fmt(requested)} fusion(s) prête(s)`
+   const readyCount = document.querySelector("[data-fusion-ready-count]")
+   if (readyCount) readyCount.textContent = fmt(requested)
+   const totalDuplicateEl = document.querySelector("[data-fusion-total-duplicates]")
+   if (totalDuplicateEl) totalDuplicateEl.textContent = fmt(totalDuplicates)
+   const totalReadyEl = document.querySelector("[data-fusion-total-ready]")
+   if (totalReadyEl) totalReadyEl.textContent = fmt(totalReady)
+   const stockTotal = document.querySelector("[data-fusion-stock-total]")
+   if (stockTotal) stockTotal.textContent = fmt(totalDuplicates)
+   const activeSetLabel = document.querySelector("[data-fusion-active-set-name]")
+   if (activeSetLabel) activeSetLabel.textContent = `${selectedSetName}${selectedSetPct === null ? "" : ` - ${fmt(selectedSetPct)}% collection`}`
+   const sessionSetLabel = document.querySelector("[data-fusion-session-set-name]")
+   if (sessionSetLabel) sessionSetLabel.textContent = selectedSetName || "-"
+   const selectedSetEls = document.querySelectorAll("[data-fusion-selected-set]")
+   selectedSetEls.forEach((el) => { el.textContent = selectedSetName || "-" })
+   const selectedSetIcon = document.querySelector("[data-fusion-selected-set-icon]")
+   if (selectedSetIcon) {
+    selectedSetIcon.src = getSetIconForUi(state.fusionUi.setId)
+    selectedSetIcon.alt = selectedSetName || "Set"
+   }
+   updateFusionTopSetInfo(state.fusionUi.setId)
+   const progressEl = document.querySelector("[data-fusion-selected-progress]")
+   if (progressEl) progressEl.textContent = selectedSetPct === null ? "Progression inconnue" : `${fmt(selectedSetPct)}% collection`
+   const nextRarityEl = document.querySelector("[data-fusion-next-rarity]")
+   if (nextRarityEl) nextRarityEl.textContent = nextLabel
+   const sourceRarityEl = document.querySelector("[data-fusion-source-rarity]")
+   if (sourceRarityEl) sourceRarityEl.textContent = fromRarity
+   const costEl = document.querySelector("[data-fusion-cost]")
+   if (costEl) costEl.textContent = fmt(cost)
+   const availableEl = document.querySelector("[data-fusion-available]")
+   if (availableEl) availableEl.textContent = fmt(info.duplicates)
+   const maxEl = document.querySelector("[data-fusion-max]")
+   if (maxEl) maxEl.textContent = fmt(maxCycles)
+   const targetBadge = document.querySelector("[data-fusion-target-badge]")
+   if (targetBadge) targetBadge.textContent = `${fromRarity} > ${nextLabel}`
+
+   renderFusionForgeIdle(state.fusionUi.setId, fromRarity)
+   renderHistory()
  }
 
  setInput.addEventListener("change", () => {
@@ -1545,8 +1810,14 @@ function setupFusionPanel() {
   refresh()
  })
 
- qtyInput.addEventListener("input", () => {
-  refresh()
+ setButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+   const nextSet = String(btn.dataset.fusionSetCard || "")
+   if (!nextSet) return
+   state.fusionUi.setId = nextSet
+   setInput.value = nextSet
+   refresh()
+  })
  })
 
  stepButtons.forEach((btn) => {
@@ -1558,12 +1829,44 @@ function setupFusionPanel() {
 
  if (skipBtn) {
   skipBtn.addEventListener("click", () => {
-   requestFusionAnimationSkip()
+   state.fusionUi.skipAnimation = !Boolean(state.fusionUi.skipAnimation)
+   refresh()
   })
  }
  const stage = document.getElementById("fusionForgeStage")
  if (stage) stage.setAttribute("data-skip", "0")
- setFusionSkipButton(false)
+ if (stage) {
+  stage.addEventListener("click", (event) => {
+   const pick = event.target.closest("[data-fusion-pick-card]")
+   if (pick) {
+    const id = String(pick.dataset.fusionPickCard || "")
+    if (id && !pick.disabled) {
+     setFusionSelectedIds(getFusionSelectedIds().concat(id))
+     refresh()
+    }
+    return
+   }
+
+   const slot = event.target.closest("[data-fusion-slot-index]")
+   if (slot) {
+    const index = Number(slot.dataset.fusionSlotIndex || -1)
+    const selected = getFusionSelectedIds()
+    if (index >= 0 && index < selected.length) {
+     state.fusionUi.autoComplete = false
+     selected.splice(index, 1)
+     setFusionSelectedIds(selected)
+     refresh()
+    }
+   }
+  })
+
+  if (autoBtn) {
+   autoBtn.addEventListener("click", () => {
+    state.fusionUi.autoComplete = !Boolean(state.fusionUi.autoComplete)
+    refresh()
+   })
+  }
+ }
 
  refresh()
 }
@@ -1726,6 +2029,8 @@ function closeCraftCardZoom() {
 function getCraftResultEls() {
  return {
   overlay: document.getElementById("craftResultOverlay"),
+  title: document.getElementById("craftResultTitle"),
+  icon: document.getElementById("craftResultIcon"),
   image: document.getElementById("craftResultCardImage")
  }
 }
@@ -1735,7 +2040,13 @@ function isCraftResultVisible() {
  return Boolean(el.overlay && !el.overlay.hidden && el.overlay.classList.contains("show"))
 }
 
-function openCraftResultOverlay({ imageSrc = "", fallbackSrc = "", cardName = "Carte SSR" } = {}) {
+function openCraftResultOverlay({
+ imageSrc = "",
+ fallbackSrc = "",
+ cardName = "Carte SSR",
+ title = "Résultat de fabrication",
+ iconSrc = "/assets/ui/fragments%20craft/icone%20craft.png"
+} = {}) {
  const el = getCraftResultEls()
  if (!el.overlay || !el.image) return Promise.resolve()
 
@@ -1748,6 +2059,8 @@ function openCraftResultOverlay({ imageSrc = "", fallbackSrc = "", cardName = "C
  const finalSrc = String(imageSrc || fallbackSrc || "/assets/ui/pack-back-ssr.png")
  const finalFallback = String(fallbackSrc || "/assets/ui/pack-back-ssr.png")
  const finalName = String(cardName || "Carte SSR")
+ if (el.title) el.title.textContent = String(title || "Résultat de fabrication")
+ if (el.icon) el.icon.src = String(iconSrc || "/assets/ui/fragments%20craft/icone%20craft.png")
  el.image.src = finalSrc
  el.image.alt = finalName
  el.image.onerror = () => {
@@ -1783,6 +2096,82 @@ function closeCraftResultOverlay() {
  }
 }
 
+function getMissionRewardEls() {
+ return {
+  overlay: document.getElementById("missionRewardOverlay"),
+  title: document.getElementById("missionRewardTitle"),
+  list: document.getElementById("missionRewardList")
+ }
+}
+
+function isMissionRewardVisible() {
+ const el = getMissionRewardEls()
+ return Boolean(el.overlay && !el.overlay.hidden && el.overlay.classList.contains("show"))
+}
+
+function getMissionClaimRewardParts(scope = "player", claimResult = null) {
+ const result = claimResult && typeof claimResult === "object" ? claimResult : {}
+ if (String(scope || "").toLowerCase() === "guild") {
+  const totalXP = Number(result?.totalXP || result?.totalGuildXp || 0)
+  return totalXP > 0
+   ? [makeMissionRewardPart(QUEST_REWARD_ICON.guildXp, `${fmt(totalXP)} XP`, "guilde")]
+   : []
+ }
+
+ const parts = []
+ const kamas = Number(result?.totalKamas || 0)
+ const xp = Number(result?.totalXp || 0)
+ const bpXp = Number(result?.totalBpXp || 0)
+ const packs = Number(result?.totalPacks || 0)
+ const fragments = Number(result?.totalFragments || 0)
+ if (kamas > 0) parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.kamas, fmt(kamas), "kamas"))
+ if (xp > 0) parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.xp, `${fmt(xp)} XP`, "joueur"))
+ if (bpXp > 0) parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.bpXp, `${fmt(bpXp)} XP`, "battlepass"))
+ if (packs > 0) parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.packs, fmt(packs), packs > 1 ? "packs" : "pack"))
+ if (fragments > 0) parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.fragments, fmt(fragments), fragments > 1 ? "fragments" : "fragment"))
+ return parts
+}
+
+function renderMissionRewardPopupChips(parts = []) {
+ const rows = Array.isArray(parts) ? parts : []
+ if (rows.length <= 0) {
+  return '<span class="mission-reward-empty">Récompense récupérée</span>'
+ }
+ return rows.map((part, index) => `
+  <article class="mission-reward-chip" style="--reward-delay:${(index * 320).toFixed(0)}ms">
+   <img src="${escapeHtml(part.icon)}" alt="">
+   <strong>${escapeHtml(part.label)}</strong>
+   ${part.sublabel ? `<small>${escapeHtml(part.sublabel)}</small>` : ""}
+  </article>
+ `).join("")
+}
+
+function openMissionRewardOverlay({ scope = "player", claimResult = null } = {}) {
+ const el = getMissionRewardEls()
+ if (!el.overlay || !el.title || !el.list) return
+ const guildScope = String(scope || "").toLowerCase() === "guild"
+ const parts = getMissionClaimRewardParts(scope, claimResult)
+ el.title.textContent = guildScope ? "Récompense de mission de guilde" : "Récompense de mission"
+ el.list.innerHTML = renderMissionRewardPopupChips(parts)
+ el.overlay.hidden = false
+ requestAnimationFrame(() => {
+  if (!el.overlay) return
+  el.overlay.classList.add("show")
+  document.body.classList.add("mission-reward-open")
+ })
+}
+
+function closeMissionRewardOverlay() {
+ const el = getMissionRewardEls()
+ if (!el.overlay || el.overlay.hidden) return
+ el.overlay.classList.remove("show")
+ document.body.classList.remove("mission-reward-open")
+ window.setTimeout(() => {
+  if (!el.overlay) return
+  el.overlay.hidden = true
+ }, 180)
+}
+
 function getFusionAnimationFragments(setId, rarity, needed = 5) {
  const slots = []
  const safeNeeded = Math.max(1, Number(needed || 5))
@@ -1794,7 +2183,7 @@ function getFusionAnimationFragments(setId, rarity, needed = 5) {
   for (let i = 0; i < duplicates; i++) {
    slots.push({
     cardName: String(card.cardName || "Fragment"),
-    imageUrl: card.imageUrl || null,
+    imageUrl: getFusionCardImageUrl(card, rarity),
     rarity: String(card.rarity || rarity || "C")
    })
    if (slots.length >= safeNeeded) break
@@ -1808,7 +2197,7 @@ function getFusionAnimationFragments(setId, rarity, needed = 5) {
    for (let i = 0; i < qty; i++) {
     slots.push({
      cardName: String(card.cardName || "Fragment"),
-     imageUrl: card.imageUrl || null,
+     imageUrl: getFusionCardImageUrl(card, rarity),
      rarity: String(card.rarity || rarity || "C")
     })
     if (slots.length >= safeNeeded) break
@@ -1829,19 +2218,76 @@ function getFusionAnimationFragments(setId, rarity, needed = 5) {
 }
 
 function buildFusionForgeOrbitMarkup(fragments = [], fallbackRarity = "C") {
- const slots = Array.isArray(fragments) ? fragments.slice(0, 5) : []
- while (slots.length < 5) {
-  slots.push({ cardName: `${fallbackRarity} fragment`, imageUrl: null, rarity: fallbackRarity })
- }
+ const slots = (Array.isArray(fragments) ? fragments : [])
+  .filter((fragment) => fragment && fragment.imageUrl)
+  .slice(0, 10)
  return slots.map((fragment, index) => `
-  <div class="fusion-forge-orb orb-${index + 1}" style="--orb-index:${index};">
+  <div class="fusion-forge-orb orb-${index + 1}" style="--orb-index:${index};--angle:${((index * 360) / Math.max(1, slots.length)).toFixed(3)}deg;">
    <div class="fusion-forge-orb-core">
-    ${fragment?.imageUrl
-     ? `<img src="${escapeHtml(fragment.imageUrl)}" alt="${escapeHtml(fragment.cardName || "Fragment")}">`
-     : `<span>${escapeHtml(String(fragment?.label || String(fragment?.rarity || fallbackRarity).charAt(0)))}</span>`}
+    <img src="${escapeHtml(fragment.imageUrl)}" alt="${escapeHtml(fragment.cardName || "Fragment")}">
    </div>
   </div>
  `).join("")
+}
+
+function getFusionSlotColumnCount(needed = 0) {
+ const count = Math.max(1, Number(needed || 0))
+ if (count <= 3) return count
+ if (count === 4) return 4
+ if (count === 5 || count === 6) return 3
+ if (count === 7 || count === 8) return 4
+ return 5
+}
+
+function renderFusionCardSelection(setId, rarity, needed = 0) {
+ const slotsNode = document.getElementById("fusionCardSlots")
+ const pickerNode = document.getElementById("fusionDuplicatePicker")
+ const countNode = document.querySelector("[data-fusion-selection-count]")
+ if (!slotsNode || !pickerNode) return []
+
+ const safeNeeded = Math.max(0, Number(needed || 0))
+ const selectedIds = normalizeFusionSelectedCards(setId, rarity, safeNeeded)
+ const cardMap = getFusionDuplicateCardMap(setId, rarity)
+ const selectedCounts = new Map()
+ selectedIds.forEach((id) => selectedCounts.set(String(id), Number(selectedCounts.get(String(id)) || 0) + 1))
+
+ const slotColumns = getFusionSlotColumnCount(safeNeeded)
+ const slotWidth = 184
+ const slotGap = 18
+ slotsNode.classList.toggle("single-row", safeNeeded > 0 && safeNeeded <= slotColumns)
+ slotsNode.style.setProperty("--fusion-slot-count", String(Math.max(1, safeNeeded)))
+ slotsNode.style.setProperty("--fusion-slot-columns", String(slotColumns))
+ slotsNode.style.setProperty("--fusion-slot-width", `${slotWidth}px`)
+ slotsNode.style.setProperty("--fusion-slot-grid-width", `${(slotColumns * slotWidth) + ((slotColumns - 1) * slotGap)}px`)
+ slotsNode.innerHTML = Array.from({ length: safeNeeded }).map((_, index) => {
+  const id = selectedIds[index] || ""
+  const card = id ? cardMap.get(String(id)) : null
+  return `
+   <button type="button" class="fusion-card-slot ${card ? "filled" : ""}" data-fusion-slot-index="${index}" aria-label="${card ? "Retirer " + escapeHtml(card.cardName) : "Emplacement de fusion vide"}">
+    ${card?.imageUrl ? `<img src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.cardName)}">` : `<span>${card ? escapeHtml(card.rarity || rarity) : "+"}</span>`}
+    <small>${card ? escapeHtml(card.cardName) : `Carte ${fmt(index + 1)}`}</small>
+   </button>
+  `
+ }).join("")
+
+ const candidates = getFusionDuplicateCardsForSelection(setId, rarity)
+ pickerNode.innerHTML = candidates.length
+  ? candidates.map((card) => {
+   const used = Number(selectedCounts.get(String(card.cardId)) || 0)
+   const remaining = Math.max(0, Number(card.duplicates || 0) - used)
+   const disabled = remaining <= 0 || selectedIds.length >= safeNeeded || state.fusionUi.autoComplete
+   return `
+    <button type="button" class="fusion-card-pick ${used > 0 ? "selected" : ""}" data-fusion-pick-card="${escapeHtml(card.cardId)}" ${disabled ? "disabled" : ""} title="${escapeHtml(card.cardName)}">
+     ${card.imageUrl ? `<img src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.cardName)}">` : `<span>${escapeHtml(card.rarity || rarity)}</span>`}
+     <strong>${escapeHtml(card.cardName)}</strong>
+     <small>${fmt(remaining)}/${fmt(card.duplicates)} dispo</small>
+    </button>
+   `
+  }).join("")
+  : '<p class="fusion-empty-state">Aucun doublon sélectionnable pour cette rareté.</p>'
+
+ if (countNode) countNode.textContent = `${fmt(selectedIds.length)}/${fmt(safeNeeded)} carte(s)`
+ return selectedIds
 }
 
 function renderFusionForgeIdle(setId, rarity) {
@@ -1853,75 +2299,71 @@ function renderFusionForgeIdle(setId, rarity) {
  if (!stage || !orbit || !result || !resultName || !status) return
  if (String(stage.getAttribute("data-busy") || "0") === "1") return
  const sourceRarity = String(rarity || "C")
- orbit.innerHTML = buildFusionForgeOrbitMarkup(getFusionAnimationFragments(setId, sourceRarity, 5), sourceRarity)
+ const row = getFusionRowByRarity(sourceRarity)
+ const needed = Math.max(1, Number(row?.cost || 1))
+ renderFusionCardSelection(setId, sourceRarity, needed)
+ orbit.innerHTML = ""
  result.classList.remove("visible")
  resultName.textContent = "Carte finale"
  status.textContent = `Prêt: ${sourceRarity} → ${getNextRarityFromMeta(sourceRarity) || "?"}`
 }
 
-function setFusionSkipButton(visible, label = "Passer l'animation") {
- const skipBtn = document.getElementById("fusionSkipAnimationBtn")
- if (!skipBtn) return
- skipBtn.style.display = visible ? "" : "none"
- skipBtn.textContent = label
- skipBtn.disabled = false
-}
-
-function requestFusionAnimationSkip() {
- const stage = document.getElementById("fusionForgeStage")
- if (!stage) return
- stage.setAttribute("data-skip", "1")
- const skipFn = stage._fusionAbort
- if (typeof skipFn === "function") skipFn()
- const skipBtn = document.getElementById("fusionSkipAnimationBtn")
- if (skipBtn) {
-  skipBtn.disabled = true
-  skipBtn.textContent = "Animation passée"
- }
-}
-
 function playFusionForgeAnimation(payload = {}) {
  const stage = document.getElementById("fusionForgeStage")
- const orbit = document.getElementById("fusionForgeOrbit")
- const result = document.getElementById("fusionForgeResult")
- const resultImage = document.getElementById("fusionForgeResultImage")
- const resultName = document.getElementById("fusionForgeResultName")
+ const runBtn = document.getElementById("fusionRunBtn")
+ const cards = [...document.querySelectorAll(".fusion-card-slot.filled[data-fusion-slot-index]")]
+ if (!stage || !cards.length) return Promise.resolve()
+
  const status = document.getElementById("fusionForgeStatus")
- if (!stage || !orbit || !result || !resultName || !status) return Promise.resolve()
 
  if (Array.isArray(stage._fusionTimers)) {
   for (const timer of stage._fusionTimers) window.clearTimeout(timer)
  }
  stage._fusionTimers = []
- stage._fusionAbort = null
+ const reset = () => {
+  stage.classList.remove(
+   "animating",
+   "fusion-forge-phase-charge",
+   "fusion-forge-phase-burst",
+   "fusion-forge-phase-settle"
+  )
+  if (runBtn) runBtn.classList.remove("craft-btn-forging")
+  cards.forEach((slot) => {
+   slot.classList.remove("fusion-card-armed")
+   slot.style.removeProperty("--craft-frag-delay")
+   slot.style.removeProperty("--craft-frag-target-x")
+   slot.style.removeProperty("--craft-frag-target-y")
+   slot.style.removeProperty("--craft-frag-rot")
+  })
+ }
+ reset()
 
  const fromRarity = String(payload?.fromRarity || "C")
  const toRarity = String(payload?.toRarity || "")
- const reward = payload?.reward || {}
- const fragments = Array.isArray(payload?.fragments) ? payload.fragments.slice(0, 5) : []
+ if (status) status.textContent = `Fusion ${fromRarity} → ${toRarity || "?"}`
 
- orbit.innerHTML = buildFusionForgeOrbitMarkup(fragments, fromRarity)
+ const stageRect = stage.getBoundingClientRect()
+ const targetX = stageRect.left + (stageRect.width / 2)
+ const targetY = stageRect.top + (stageRect.height / 2)
+ const centerIndex = (cards.length - 1) / 2
+ cards.forEach((slot, index) => {
+  const rect = slot.getBoundingClientRect()
+  const fromX = rect.left + (rect.width / 2)
+  const fromY = rect.top + (rect.height / 2)
+  const deltaX = Math.round(targetX - fromX)
+  const deltaY = Math.round(targetY - fromY)
+  const rot = Math.round((index - centerIndex) * 8)
+  slot.classList.add("fusion-card-armed")
+  slot.style.setProperty("--craft-frag-delay", `${Math.min(index, 9) * 72}ms`)
+  slot.style.setProperty("--craft-frag-target-x", `${deltaX}px`)
+  slot.style.setProperty("--craft-frag-target-y", `${deltaY}px`)
+  slot.style.setProperty("--craft-frag-rot", `${rot}deg`)
+ })
 
- const rewardName = `${String(reward?.rarity || toRarity || "").trim()} ${String(reward?.cardName || "Carte mystère").trim()}`.trim()
- if (resultImage) {
-  if (reward?.imageUrl) {
-   resultImage.src = String(reward.imageUrl)
-   resultImage.alt = rewardName
-   resultImage.style.display = ""
-  } else {
-   resultImage.removeAttribute("src")
-   resultImage.alt = rewardName
-   resultImage.style.display = "none"
-  }
- }
- resultName.textContent = rewardName
- status.textContent = `Fusion ${fromRarity} → ${toRarity || "?"}`
-
- stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
- result.classList.remove("visible")
  stage.setAttribute("data-busy", "1")
  void stage.offsetWidth
- stage.classList.add("animating", "phase-spin")
+ stage.classList.add("animating", "fusion-forge-phase-charge")
+ if (runBtn) runBtn.classList.add("craft-btn-forging")
 
  return new Promise((resolve) => {
   let done = false
@@ -1931,12 +2373,11 @@ function playFusionForgeAnimation(payload = {}) {
    if (Array.isArray(stage._fusionTimers)) {
     for (const timer of stage._fusionTimers) window.clearTimeout(timer)
    }
-   stage.classList.remove("animating", "phase-spin", "phase-converge", "phase-result", "phase-out")
-   stage.setAttribute("data-busy", "0")
-   result.classList.remove("visible")
-   status.textContent = skipped ? "Animation passée" : `Dernier résultat: ${rewardName}`
    stage._fusionTimers = []
+   stage.setAttribute("data-busy", "0")
+   if (status) status.textContent = skipped ? "Animation passée" : "Transmutation réussie"
    stage._fusionAbort = null
+   reset()
    resolve({ skipped })
   }
 
@@ -1949,19 +2390,15 @@ function playFusionForgeAnimation(payload = {}) {
   }
   stage._fusionAbort = () => finish(true)
 
-  queue(860, () => {
-   stage.classList.add("phase-converge")
-   status.textContent = "Les fragments convergent vers le noyau..."
+  queue(1680, () => {
+   stage.classList.add("fusion-forge-phase-burst")
+   if (status) status.textContent = "Les cartes convergent vers le centre..."
   })
-  queue(1980, () => {
-   stage.classList.add("phase-result")
-   result.classList.add("visible")
-   status.textContent = "Transmutation réussie"
+  queue(2160, () => {
+   stage.classList.remove("fusion-forge-phase-charge", "fusion-forge-phase-burst")
+   stage.classList.add("fusion-forge-phase-settle")
   })
-  queue(4020, () => {
-   stage.classList.add("phase-out")
-  })
-  queue(4460, () => {
+  queue(2660, () => {
    finish(false)
   })
  })
@@ -2763,99 +3200,117 @@ function renderFusion() {
  const panel = document.getElementById("playFusion")
  const meta = state.gameMeta || {}
  const unlockedSets = meta.unlockedSets || []
+ const fusionSets = Array.isArray(meta.allSets) && meta.allSets.length
+  ? meta.allSets
+  : INVENTORY_SET_ICONS.map((set) => ({ id: set.id, name: set.name }))
  const fusionRows = getFusionRows()
- const hasSets = unlockedSets.length > 0
+ const hasSets = fusionSets.length > 0
  const hasRows = fusionRows.length > 0
- const activeSetId = String(state.fusionUi.setId || unlockedSets[0]?.id || "")
+ const activeSetId = String(state.fusionUi.setId || fusionSets[0]?.id || "")
+ const activeSetName = getSetName(activeSetId)
+ const activeSetPct = getSetProgressPct(activeSetId)
+ const activeRarity = String(state.fusionUi.fromRarity || fusionRows[0]?.rarity || "C").toUpperCase()
+ const activeNext = getNextRarityFromMeta(activeRarity) || "-"
+ const activeRow = getFusionRowByRarity(activeRarity)
+ const activeInfo = getDuplicateInfoForFusion(activeSetId, activeRarity)
+ const activeCost = Number(activeRow?.cost || 0)
+ const activeReady = activeCost > 0 ? Math.floor(Number(activeInfo.duplicates || 0) / activeCost) : 0
  const totalDuplicates = fusionRows.reduce((sum, row) => {
   const info = getDuplicateInfoForFusion(activeSetId, row.rarity)
   return sum + Number(info.duplicates || 0)
  }, 0)
- const activeRarity = String(state.fusionUi.fromRarity || fusionRows[0]?.rarity || "C").toUpperCase()
+ const totalReady = fusionRows.reduce((sum, row) => {
+  const cost = Number(row.cost || 0)
+  if (!cost) return sum
+  const info = getDuplicateInfoForFusion(activeSetId, row.rarity)
+  return sum + Math.floor(Number(info.duplicates || 0) / cost)
+ }, 0)
  if (!state.fusionUi.quantity) state.fusionUi.quantity = 1
  panel.innerHTML = `
-  <section class="mode-shell mode-fusion mode-fusion-simple">
-   <header class="mode-hero">
-    <div>
-     <h2>🔮 Atelier de Fusion Huppermage</h2>
-     <p>Sélectionne la conversion, règle la quantité, puis valide pour lancer la fusion.</p>
-    </div>
-    <div class="mode-kpi-grid">
-     <div class="mode-kpi"><span>Sets actifs</span><strong>${fmt(unlockedSets.length)}</strong></div>
-     <div class="mode-kpi"><span>Doublons</span><strong>${fmt(totalDuplicates)}</strong></div>
-     <div class="mode-kpi"><span>Session</span><strong>${fmt((state.fusionHistory || []).length)} fusions</strong></div>
-    </div>
-   </header>
-   <article class="mode-card fusion-simple-card">
-    <div class="fusion-simple-workspace">
-     <div class="fusion-simple-left">
-     <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
-      <div class="fusion-simple-ring">
-       <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
-        <div id="fusionForgeResult" class="fusion-forge-result">
-         <div class="fusion-forge-result-card">
-          <img id="fusionForgeResultImage" alt="Résultat de fusion">
-         </div>
-         <strong id="fusionForgeResultName">Carte finale</strong>
-        </div>
-      </div>
-      <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
-      <button id="fusionSkipAnimationBtn" type="button" class="btn btn-outline fusion-skip-btn" style="display:none">Passer l'animation</button>
-     </div>
-     </div>
-
-     <aside class="fusion-simple-right">
-      <div class="fusion-simple-controls">
-       <div class="fusion-simple-main-row">
-        <div class="fusion-simple-set-cell">
-         <label class="mode-label" for="fusionSetInput">Set</label>
-         <select id="fusionSetInput" class="input input-select" ${hasSets ? "" : "disabled"}>
-          ${unlockedSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
-         </select>
-        </div>
-        <div class="fusion-simple-qty-actions">
-         <div>
-          <label class="mode-label" for="fusionQtyInput">Quantité</label>
-          <input id="fusionQtyInput" class="input" type="number" min="1" max="25" step="1" value="${fmt(state.fusionUi.quantity || 1)}">
-         </div>
-         <div class="fusion-simple-validate-cell">
-          <button id="fusionRunBtn" class="btn btn-gold" ${hasSets && hasRows ? "" : "disabled"}>Valider</button>
-         </div>
-        </div>
-       </div>
-
-       <div class="fusion-simple-step-grid">
-        ${hasRows
-         ? fusionRows.map((row) => {
-          const token = String(row.rarity || "C").toUpperCase()
-          const next = getNextRarityFromMeta(token)
-          const info = getDuplicateInfoForFusion(activeSetId, token)
-          const active = token === activeRarity
-          const nextEmoji = next ? getRarityEmoji(next) : ""
-          const tokenEmoji = getRarityEmoji(token)
-          return `
-           <button type="button" class="fusion-simple-step ${active ? "active" : ""}" data-rarity="${escapeHtml(token)}">
-            <span>${escapeHtml(tokenEmoji)} ${escapeHtml(token)} > ${escapeHtml(nextEmoji)} ${escapeHtml(next || "-")}</span>
-            <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(Number(row.cost || 0))}</small>
-           </button>
-          `
-         }).join("")
-         : '<p class="mode-muted">Aucune conversion disponible.</p>'}
-       </div>
-
-       <p id="fusionInfoLine" class="mode-muted"></p>
-       <div id="fusionResultBox" class="action-result mode-result"></div>
+   <section class="mode-shell mode-fusion mode-fusion-simple fusion-redesign fusion-redesign-start">
+    <select id="fusionSetInput" class="fusion-hidden-select" aria-label="Set de fusion" ${hasSets ? "" : "disabled"}>
+     ${fusionSets.map((set) => `<option value="${escapeHtml(set.id)}">${escapeHtml(formatSetWithProgress(set))}</option>`).join("")}
+    </select>
+    <article class="fusion-board fusion-board-start">
+     <aside class="inventory-set-rail-wrap craft-set-panel fusion-set-panel fusion-set-icon-panel">
+      <div class="inventory-set-rail craft-set-rail fusion-icon-rail">
+       ${hasSets
+        ? fusionSets.map((set) => {
+         const setId = String(set.id)
+         const active = setId === activeSetId
+         return `
+          <button type="button" class="inventory-set-btn craft-set-btn ${active ? "active" : ""}" data-fusion-set-card="${escapeHtml(setId)}" aria-label="${escapeHtml(set.name || setId)}" title="${escapeHtml(set.name || setId)}">
+           <img src="${escapeHtml(getSetIconForUi(setId))}" alt="${escapeHtml(set.name || setId)}" loading="lazy" draggable="false">
+           <span class="inventory-set-label">${escapeHtml(set.name || setId)}</span>
+          </button>
+         `
+        }).join("")
+        : '<p class="mode-muted">Aucun set debloque.</p>'}
       </div>
      </aside>
-    </div>
 
-    <div class="fusion-simple-history">
-     <h3>Historique</h3>
-     <div id="fusionHistoryList" class="fusion-history-list"></div>
-    </div>
-   </article>
-  </section>
- `
+     <section class="fusion-start-canvas" aria-label="Zone de fusion vide">
+      <article class="fusion-main-block fusion-workbench" aria-label="Bloc principal de fusion">
+       <div class="fusion-workbench-grid">
+        <section class="fusion-panel fusion-conversions-panel">
+         <header>
+          <h3>Conversions</h3>
+          <p>Choisis la rareté source à transformer.</p>
+         </header>
+         <div class="fusion-simple-step-grid">
+          ${hasRows
+           ? fusionRows.map((row) => {
+            const token = String(row.rarity || "C").toUpperCase()
+            const next = getNextRarityFromMeta(token) || "-"
+            const info = getDuplicateInfoForFusion(activeSetId, token)
+            const cost = Number(row.cost || 0)
+            const possible = cost > 0 ? Math.floor(Number(info.duplicates || 0) / cost) : 0
+            const active = token === activeRarity
+            const ready = possible > 0
+            return `
+             <button type="button" class="fusion-simple-step ${active ? "active" : ""} ${ready ? "ready" : ""}" data-rarity="${escapeHtml(token)}">
+              <span>${escapeHtml(getRarityEmoji(token))} ${escapeHtml(token)} <b>&rsaquo;</b> ${escapeHtml(next !== "-" ? getRarityEmoji(next) : "")} ${escapeHtml(next)}</span>
+              <small data-fusion-stock>${fmt(info.duplicates)}/${fmt(cost)} doublons</small>
+              <em data-fusion-ready>${possible > 0 ? `${fmt(possible)} possible(s)` : "Stock insuffisant"}</em>
+             </button>
+            `
+           }).join("")
+           : '<p class="fusion-empty-state">Aucune conversion disponible.</p>'}
+         </div>
+        </section>
+
+        <section class="fusion-panel fusion-forge-panel">
+         <div class="fusion-stage-shell">
+          <div id="fusionForgeStage" class="fusion-forge-stage fusion-simple-stage" data-busy="0">
+           <div class="fusion-card-selection-head">
+            <span data-fusion-selection-count>0/${fmt(activeCost)} carte(s)</span>
+           </div>
+           <div id="fusionCardSlots" class="fusion-card-slots" aria-label="Cartes selectionnees pour la fusion"></div>
+           <div class="fusion-simple-ring">
+            <div id="fusionForgeOrbit" class="fusion-forge-orbit"></div>
+           <div id="fusionForgeResult" class="fusion-forge-result">
+             <div class="fusion-forge-result-card">
+              <img id="fusionForgeResultImage" alt="Résultat de fusion">
+             </div>
+             <strong id="fusionForgeResultName">Carte finale</strong>
+            </div>
+           </div>
+           <div id="fusionDuplicatePicker" class="fusion-duplicate-picker" aria-label="Doublons disponibles"></div>
+           <div class="fusion-stage-actions" aria-label="Actions de fusion">
+            <button id="fusionSkipAnimationBtn" type="button" class="fusion-toggle-button ${state.fusionUi.skipAnimation ? "active" : ""}" aria-pressed="${state.fusionUi.skipAnimation ? "true" : "false"}">Skip animation</button>
+            <button id="fusionAutoCompleteBtn" type="button" class="fusion-toggle-button ${state.fusionUi.autoComplete ? "active" : ""}" aria-pressed="${state.fusionUi.autoComplete ? "true" : "false"}">Auto complétion</button>
+            <button id="fusionRunBtn" class="btn btn-gold fusion-run-btn" ${hasSets && hasRows && activeReady > 0 ? "" : "disabled"}>Fusionner</button>
+           </div>
+           <p id="fusionForgeStatus" class="fusion-forge-status">Prêt: choisis une conversion.</p>
+         </div>
+        </div>
+       </section>
+       </div>
+      </article>
+     </section>
+    </article>
+   </section>
+  `
  setupFusionPanel()
 }
 
@@ -2990,6 +3445,64 @@ function questProgressPercent(quest) {
  return Math.max(0, Math.min(100, Math.round((current / goal) * 100)))
 }
 
+const QUEST_REWARD_ICON = {
+ kamas: "/assets/ui/gain%20kamas%20level%20up.png",
+ xp: "/assets/ui/gain%20badge%20level%20up.png?v=20260418-0828",
+ bpXp: "/assets/ui/gain%20badge%20level%20bp.png?v=20260418-0840",
+ packs: "/assets/ui/gain%20packs%20level%20up.png",
+ fragments: "/assets/ui/fragments%20craft/fragment_1.png",
+ guildXp: "/assets/ui/gain%20badge%20exp%20guilde.png?v=20260418-1827"
+}
+
+function makeMissionRewardPart(icon, label, sublabel = "") {
+ return {
+  icon: String(icon || ""),
+  label: String(label || "").trim(),
+  sublabel: String(sublabel || "").trim()
+ }
+}
+
+function getMissionRewardParts(reward = null, scope = "player") {
+ const safeReward = reward && typeof reward === "object" ? reward : {}
+ const parts = []
+
+ if (String(scope || "").toLowerCase() === "guild") {
+  const guildXp = Number(safeReward?.guildXp ?? safeReward?.xp ?? 0)
+  if (guildXp > 0) {
+   parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.guildXp, `${fmt(guildXp)} XP`, "guilde"))
+  }
+  return parts
+ }
+
+ if (Number(safeReward?.kamas || 0) > 0) {
+  parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.kamas, fmt(safeReward.kamas), "kamas"))
+ }
+ if (Number(safeReward?.xp || 0) > 0) {
+  parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.xp, `${fmt(safeReward.xp)} XP`, "joueur"))
+ }
+ if (Number(safeReward?.bpXp || 0) > 0) {
+  parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.bpXp, `${fmt(safeReward.bpXp)} XP`, "battlepass"))
+ }
+ if (Number(safeReward?.packs || 0) > 0) {
+  parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.packs, fmt(safeReward.packs), Number(safeReward.packs) > 1 ? "packs" : "pack"))
+ }
+ if (Number(safeReward?.fragments || 0) > 0) {
+  parts.push(makeMissionRewardPart(QUEST_REWARD_ICON.fragments, fmt(safeReward.fragments), Number(safeReward.fragments) > 1 ? "fragments" : "fragment"))
+ }
+ return parts
+}
+
+function renderMissionRewardChips(reward = null, scope = "player") {
+ const parts = getMissionRewardParts(reward, scope)
+ if (parts.length <= 0) return '<span class="missions-row-reward-empty">Récompense</span>'
+ return parts.map((part) => `
+  <span class="missions-row-reward-chip">
+   <img src="${escapeHtml(part.icon)}" alt="">
+   <span>${escapeHtml(part.label)}${part.sublabel ? `<small>${escapeHtml(part.sublabel)}</small>` : ""}</span>
+  </span>
+ `).join("")
+}
+
 function formatQuestRewards(reward, scope = "player") {
  const parts = []
  if (scope === "guild") {
@@ -3079,7 +3592,7 @@ function showQuestClaimToast({ scope = "player", type = "daily", questId = "", b
   questDescription = String(claimResult?.raw?.quest?.desc || "")
  }
 
- let title = guildScope ? "Quête de guilde terminée" : "Quête terminée"
+ let title = guildScope ? "Mission de guilde terminée" : "Mission terminée"
  if (questName) {
   title = `${title} "${questName}"`
  } else if (claimedCount > 1) {
@@ -3097,17 +3610,144 @@ function showQuestClaimToast({ scope = "player", type = "daily", questId = "", b
  })
 }
 
-function renderQuestRows(quests = [], scope = "player", type = "daily", canClaim = true) {
+function ensureQuestsUiState(questsState = null) {
+ if (!state.questsUi || typeof state.questsUi !== "object") {
+  state.questsUi = { scope: "player", type: "daily", scrollByKey: {} }
+ }
+ if (!state.questsUi.scrollByKey || typeof state.questsUi.scrollByKey !== "object") {
+  state.questsUi.scrollByKey = {}
+ }
+ const safeScope = String(state.questsUi.scope || "").toLowerCase() === "guild" ? "guild" : "player"
+ const safeType = String(state.questsUi.type || "").toLowerCase() === "weekly" ? "weekly" : "daily"
+ state.questsUi.scope = safeScope
+ state.questsUi.type = safeType
+
+ if (!questsState) return state.questsUi
+ const hasPlayer = Boolean(questsState?.player)
+ const hasGuild = Boolean(questsState?.guild)
+ if (state.questsUi.scope === "guild" && !hasGuild && hasPlayer) state.questsUi.scope = "player"
+ if (state.questsUi.scope === "player" && !hasPlayer && hasGuild) state.questsUi.scope = "guild"
+ return state.questsUi
+}
+
+function getMissionsSelectionKey(scope = "player", type = "daily") {
+ const safeScope = String(scope || "").toLowerCase() === "guild" ? "guild" : "player"
+ const safeType = String(type || "").toLowerCase() === "weekly" ? "weekly" : "daily"
+ return `${safeScope}:${safeType}`
+}
+
+function getMissionsScopeLabel(scope = "player") {
+ return String(scope || "").toLowerCase() === "guild" ? "Missions de guilde" : "Missions"
+}
+
+function getMissionsTypeLabel(type = "daily") {
+ return String(type || "").toLowerCase() === "weekly" ? "hebdomadaires" : "quotidiennes"
+}
+
+function getMissionsScopeIcon(scope = "player") {
+ if (String(scope || "").toLowerCase() === "guild") {
+  return "/assets/ui/icones%20missions/missions-guilde-menu.png"
+ }
+ return "/assets/ui/icones%20missions/missions-menu.png"
+}
+
+function getMissionsTypeMenuLabel(type = "daily") {
+ return String(type || "").toLowerCase() === "weekly" ? "Hebdomadaire" : "Quotidien"
+}
+
+function getMissionScopeClaimableTotal(data = null, scope = "player") {
+ const source = String(scope || "").toLowerCase() === "guild" ? data?.guild : data?.player
+ return Number(source?.daily?.summary?.claimable || 0) + Number(source?.weekly?.summary?.claimable || 0)
+}
+
+function renderMissionScopeMenuSection(data = null, scope = "player", activeScope = "player", activeType = "daily") {
+ const safeScope = String(scope || "").toLowerCase() === "guild" ? "guild" : "player"
+ const source = safeScope === "guild" ? data?.guild : data?.player
+ if (!source) return ""
+ const isActive = safeScope === activeScope
+ const totalClaimable = getMissionScopeClaimableTotal(data, safeScope)
+ const dailyClaimable = Number(source?.daily?.summary?.claimable || 0)
+ const weeklyClaimable = Number(source?.weekly?.summary?.claimable || 0)
+
+ return `
+  <section class="missions-menu-section ${isActive ? "active" : ""}">
+   <button class="missions-menu-trigger" type="button" data-missions-scope="${escapeHtml(safeScope)}" aria-expanded="${isActive ? "true" : "false"}">
+    <span class="missions-menu-icon-wrap">
+     <img src="${escapeHtml(getMissionsScopeIcon(safeScope))}" alt="${escapeHtml(getMissionsScopeLabel(safeScope))}">
+     ${totalClaimable > 0 ? `<span class="missions-menu-alert">${fmt(totalClaimable)}</span>` : ""}
+    </span>
+    <span class="missions-menu-copy">
+     <strong>${escapeHtml(getMissionsScopeLabel(safeScope))}</strong>
+    </span>
+   </button>
+   ${isActive ? `
+    <div class="missions-submenu">
+     <button class="missions-submenu-btn ${activeType === "daily" ? "active" : ""}" type="button" data-missions-type="daily" data-missions-scope="${escapeHtml(safeScope)}">
+      <span>${escapeHtml(getMissionsTypeMenuLabel("daily"))}</span>
+      <small>${fmt(dailyClaimable)} à récupérer</small>
+     </button>
+     <button class="missions-submenu-btn ${activeType === "weekly" ? "active" : ""}" type="button" data-missions-type="weekly" data-missions-scope="${escapeHtml(safeScope)}">
+      <span>${escapeHtml(getMissionsTypeMenuLabel("weekly"))}</span>
+      <small>${fmt(weeklyClaimable)} à récupérer</small>
+     </button>
+    </div>
+   ` : ""}
+  </section>
+ `
+}
+
+function normalizeMissionText(value = "") {
+ return String(value || "")
+  .toLowerCase()
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+}
+
+function resolveMissionNavigateTarget(quest = null, scope = "player", type = "daily") {
+ const content = normalizeMissionText(`${quest?.name || ""} ${quest?.desc || ""}`)
+ if (!content) return ""
+ if (content.includes("fusion")) return "/play/fusion"
+ if (content.includes("fabri") || content.includes("craft")) return "/play/fabrication"
+ if (content.includes("roulette") || content.includes("ecaflip") || content.includes("roul")) return "/events"
+ if (content.includes("pack")) return "/packs"
+ if (content.includes("guilde")) return "/guild"
+ return ""
+}
+
+function rememberMissionsScroll(panel = null) {
+ const node = panel || document.getElementById("playQuests")
+ if (!node) return
+ ensureQuestsUiState()
+ const list = node.querySelector(".missions-quest-list")
+ if (!list) return
+ const key = getMissionsSelectionKey(state.questsUi.scope, state.questsUi.type)
+ state.questsUi.scrollByKey[key] = Math.max(0, Number(list.scrollTop || 0))
+}
+
+function restoreMissionsScroll(panel = null) {
+ const node = panel || document.getElementById("playQuests")
+ if (!node) return
+ ensureQuestsUiState()
+ const list = node.querySelector(".missions-quest-list")
+ if (!list) return
+ const key = getMissionsSelectionKey(state.questsUi.scope, state.questsUi.type)
+ list.scrollTop = Math.max(0, Number(state.questsUi.scrollByKey[key] || 0))
+}
+
+function renderMissionRows(quests = [], scope = "player", type = "daily", canClaim = true) {
  if (!Array.isArray(quests) || quests.length <= 0) {
-  return '<p class="mode-muted">Aucune quête disponible.</p>'
+  return '<p class="mode-muted missions-empty">Aucune mission disponible.</p>'
  }
 
  const orderedQuests = quests
   .map((quest, index) => ({ quest, index }))
   .sort((a, b) => {
+   const aClaimed = Boolean(a.quest?.claimed)
+   const bClaimed = Boolean(b.quest?.claimed)
+   if (aClaimed !== bClaimed) return aClaimed ? 1 : -1
    const aDone = Boolean(a.quest?.done)
    const bDone = Boolean(b.quest?.done)
-   if (aDone !== bDone) return aDone ? 1 : -1
+   if (aDone !== bDone) return aDone ? -1 : 1
    return a.index - b.index
   })
   .map((entry) => entry.quest)
@@ -3116,89 +3756,189 @@ function renderQuestRows(quests = [], scope = "player", type = "daily", canClaim
   const pct = questProgressPercent(quest)
   const goal = Math.max(1, Number(quest?.goal || 1))
   const current = Math.max(0, Math.min(goal, Number(quest?.current || 0)))
-  const isClaimable = Boolean(quest?.claimable) && canClaim
-  const rowClass = quest?.claimed ? "quest-row claimed" : (quest?.done ? "quest-row done" : "quest-row")
-  let actionHtml = `<span class="mode-chip">${current}/${goal}</span>`
-  if (quest?.claimed) {
-    actionHtml = '<span class="mode-chip mode-chip-ok">Récupérée</span>'
-  } else if (isClaimable) {
-    actionHtml = `
-      <button class="btn btn-outline quest-claim-btn" data-quest-claim-one data-scope="${escapeHtml(scope)}" data-type="${escapeHtml(type)}" data-quest-id="${escapeHtml(quest.id)}">
-       Récupérer
-      </button>
-    `
-  } else if (quest?.done && !canClaim) {
-    const blockedLabel = scope === "guild" ? "Meneur / officier requis" : "Connexion requise"
-    actionHtml = `<span class="mode-chip">${blockedLabel}</span>`
+  const done = Boolean(quest?.done)
+  const claimed = Boolean(quest?.claimed)
+ const claimable = Boolean(quest?.claimable) && canClaim
+  const rowClass = claimed ? "missions-row claimed" : (done ? "missions-row done" : "missions-row")
+ const progressLabel = `${fmt(current)}/${fmt(goal)}`
+  const progressWidth = Math.max(0, Math.min(100, pct))
+  const navigateTarget = resolveMissionNavigateTarget(quest, scope, type)
+  const rewardChips = renderMissionRewardChips(quest?.reward, scope)
+
+  let actionHtml = navigateTarget
+   ? `<button class="missions-row-action missions-row-action-go" type="button" data-missions-goto="${escapeHtml(navigateTarget)}">Se déplacer</button>`
+   : '<button class="missions-row-action missions-row-action-go" type="button" disabled>Se déplacer</button>'
+  if (claimed) {
+   actionHtml = '<span class="missions-row-action missions-row-action-claimed">Récupéré</span>'
+  } else if (claimable) {
+   actionHtml = `
+    <button class="missions-row-action missions-row-action-claim" data-quest-claim-one data-scope="${escapeHtml(scope)}" data-type="${escapeHtml(type)}" data-quest-id="${escapeHtml(quest.id)}">
+     Récupérer
+    </button>
+   `
+  } else if (done && !canClaim) {
+   const blocked = scope === "guild" ? "Meneur / officier" : "Connexion requise"
+   actionHtml = `<span class="missions-row-action missions-row-action-locked">${escapeHtml(blocked)}</span>`
   }
 
   return `
    <article class="${rowClass}">
-    <div class="quest-row-head">
-     <strong>${escapeHtml(`${quest?.emoji || "🎯"} ${quest?.name || "Quête"}`)}</strong>
+   <div class="missions-row-main">
+     <div class="missions-row-top">
+      <strong>${escapeHtml(quest?.name || "Mission")}</strong>
+      <span>${escapeHtml(progressLabel)}</span>
+     </div>
+     <div class="missions-row-progress">
+      <span style="width:${progressWidth}%"></span>
+     </div>
+     <small>${escapeHtml(quest?.desc || "")}</small>
+    </div>
+    <div class="missions-row-side">
+     <div class="missions-row-reward">
+      ${rewardChips}
+     </div>
      ${actionHtml}
     </div>
-    <p>${escapeHtml(quest?.desc || "")}</p>
-    <div class="quest-progress-row">
-     <div class="quest-progress-track">
-      <span style="width:${pct}%"></span>
-     </div>
-     <small>${fmt(current)}/${fmt(goal)}</small>
-    </div>
-    <small class="quest-reward-text">${escapeHtml(formatQuestRewards(quest?.reward || {}, scope))}</small>
    </article>
   `
  }).join("")
 }
 
-function renderQuestGroupCard(options = {}) {
- const {
-  title = "Quêtes",
-  scope = "player",
-  type = "daily",
-  group = null,
-  canClaim = true,
-  roleLabel = ""
- } = options
+function isLocalMissionsMode() {
+ const params = new URLSearchParams(window.location.search || "")
+ const preview = String(
+  params.get("missionsTest")
+  || params.get("missionsPreview")
+  || params.get("previewMissions")
+  || ""
+ ).trim()
+ if (preview !== "1") return false
+ const tab = String(window.location.pathname || "").split("/")[2] || ""
+ return tab === "missions" || tab === "quests"
+}
 
- const summary = group?.summary || {}
- const done = Number(summary.done || 0)
- const total = Number(summary.total || 0)
- const claimable = Number(summary.claimable || 0)
- const claimed = Number(summary.claimed || 0)
- const bonusLine = scope === "player"
-  ? `<small class="mode-muted">Bonus complet: ${escapeHtml(formatQuestRewards(group?.bonus || {}, "player"))}</small>`
-  : ""
- const roleLine = roleLabel ? `<small class="mode-muted">${escapeHtml(roleLabel)}</small>` : ""
- const scopeClass = scope === "guild" ? "quest-card-guild" : "quest-card-player"
+function makeLocalMissionQuest(id, name, desc, current, goal, reward = {}, claimed = false) {
+ const safeGoal = Math.max(1, Number(goal || 1))
+ const safeCurrent = Math.max(0, Math.min(safeGoal, Number(current || 0)))
+ const done = safeCurrent >= safeGoal
+ return {
+  id: String(id || ""),
+  emoji: "🎯",
+  name: String(name || "Mission locale"),
+  desc: String(desc || ""),
+  current: safeCurrent,
+  goal: safeGoal,
+  done,
+  claimed: Boolean(claimed),
+  claimable: done && !claimed,
+  reward: {
+   kamas: Math.max(0, Number(reward.kamas || 0)),
+   xp: Math.max(0, Number(reward.xp || 0)),
+   guildXp: Math.max(0, Number(reward.guildXp || 0)),
+   packs: Math.max(0, Number(reward.packs || 0)),
+   fragments: Math.max(0, Number(reward.fragments || 0))
+  }
+ }
+}
 
- return `
-  <section class="mode-card quest-card ${scopeClass}">
-   <div class="quest-card-head">
-    <div>
-     <h3>${escapeHtml(title)}</h3>
-     <p>Reset dans ${escapeHtml(group?.resetIn || "-")}</p>
-     ${bonusLine}
-     ${roleLine}
-    </div>
-   <button
-     class="btn btn-gold quest-claim-all-btn"
-     data-quest-claim-all
-     data-scope="${escapeHtml(scope)}"
-     data-type="${escapeHtml(type)}"
-     ${claimable > 0 && canClaim ? "" : "disabled"}>
-     Tout récupérer (${fmt(claimable)})
-    </button>
-   </div>
-   <div class="quest-list">
-    ${renderQuestRows(group?.quests || [], scope, type, canClaim)}
-   </div>
-  </section>
- `
+function computeLocalMissionSummary(rows = []) {
+ const list = Array.isArray(rows) ? rows : []
+ return {
+  total: list.length,
+  done: list.filter((q) => Boolean(q?.done)).length,
+  claimable: list.filter((q) => Boolean(q?.claimable) && !Boolean(q?.claimed)).length,
+  claimed: list.filter((q) => Boolean(q?.claimed)).length
+ }
+}
+
+function buildLocalMissionsState() {
+ const playerDailyQuests = [
+  makeLocalMissionQuest("m_p_d_1", "Ouvrir des packs", "Ouvre 3 packs.", 3, 3, { kamas: 3000, xp: 120, packs: 0, fragments: 2 }),
+  makeLocalMissionQuest("m_p_d_2", "Fabriquer une SSR", "Fabrique 1 carte SSR.", 1, 1, { kamas: 4200, xp: 180, packs: 1, fragments: 3 }),
+  makeLocalMissionQuest("m_p_d_3", "Fusion quotidienne", "Réalise 4 fusions.", 2, 4, { kamas: 2200, xp: 90, packs: 0, fragments: 1 })
+ ]
+ const playerWeeklyQuests = [
+  makeLocalMissionQuest("m_p_w_1", "Objectif hebdo", "Récupère 12 cartes.", 12, 12, { kamas: 14000, xp: 620, packs: 2, fragments: 6 }),
+  makeLocalMissionQuest("m_p_w_2", "Régularité", "Termine 8 missions quotidiennes.", 5, 8, { kamas: 9000, xp: 420, packs: 1, fragments: 4 })
+ ]
+ const guildDailyQuests = [
+  makeLocalMissionQuest("m_g_d_1", "Don de guilde", "Fais 2 dons.", 2, 2, { guildXp: 250 }),
+  makeLocalMissionQuest("m_g_d_2", "Aide communautaire", "Valide 4 missions de membres.", 1, 4, { guildXp: 180 })
+ ]
+ const guildWeeklyQuests = [
+  makeLocalMissionQuest("m_g_w_1", "XP de guilde", "Atteins 2000 XP guilde.", 1460, 2000, { guildXp: 900 }),
+  makeLocalMissionQuest("m_g_w_2", "Coffre collectif", "Atteins 25 dons.", 25, 25, { guildXp: 1200 })
+ ]
+
+ const playerDaily = { resetIn: "10h 22m", bonus: { kamas: 2000, xp: 100, packs: 1, fragments: 2 }, quests: playerDailyQuests }
+ const playerWeekly = { resetIn: "4j 10h", bonus: { kamas: 12000, xp: 500, packs: 2, fragments: 5 }, quests: playerWeeklyQuests }
+ const guildDaily = { resetIn: "10h 22m", quests: guildDailyQuests }
+ const guildWeekly = { resetIn: "4j 10h", quests: guildWeeklyQuests }
+ playerDaily.summary = computeLocalMissionSummary(playerDaily.quests)
+ playerWeekly.summary = computeLocalMissionSummary(playerWeekly.quests)
+ guildDaily.summary = computeLocalMissionSummary(guildDaily.quests)
+ guildWeekly.summary = computeLocalMissionSummary(guildWeekly.quests)
+
+ return {
+  connected: true,
+  player: { daily: playerDaily, weekly: playerWeekly },
+  guild: {
+   id: "guild_local_test",
+   name: "Guilde Locale",
+   emoji: "🏰",
+   rank: "officier",
+   canClaim: true,
+   daily: guildDaily,
+   weekly: guildWeekly
+  }
+ }
+}
+
+function applyLocalMissionsClaim({ scope = "player", type = "daily", questId = "" } = {}) {
+ if (!state.questsState) state.questsState = buildLocalMissionsState()
+ const safeScope = String(scope || "").toLowerCase() === "guild" ? "guild" : "player"
+ const safeType = String(type || "").toLowerCase() === "weekly" ? "weekly" : "daily"
+ const group = safeScope === "guild"
+  ? state.questsState?.guild?.[safeType]
+  : state.questsState?.player?.[safeType]
+ if (!group || !Array.isArray(group.quests)) {
+  return { claimedCount: 0, totalKamas: 0, totalXp: 0, totalPacks: 0, totalFragments: 0, completionBonus: false, totalBpXp: 0 }
+ }
+
+ const selected = String(questId || "").trim()
+ const targets = selected
+  ? group.quests.filter((q) => String(q?.id || "") === selected && Boolean(q?.claimable) && !Boolean(q?.claimed))
+  : group.quests.filter((q) => Boolean(q?.claimable) && !Boolean(q?.claimed))
+
+ let claimedCount = 0
+ let totalKamas = 0
+ let totalXp = 0
+ let totalGuildXp = 0
+ let totalPacks = 0
+ let totalFragments = 0
+ for (const q of targets) {
+  q.claimed = true
+  q.claimable = false
+  q.done = true
+  q.current = Math.max(Number(q.current || 0), Number(q.goal || 0))
+  claimedCount += 1
+  totalKamas += Number(q?.reward?.kamas || 0)
+  totalXp += Number(q?.reward?.xp || 0)
+  totalGuildXp += Number(q?.reward?.guildXp || 0)
+  totalPacks += Number(q?.reward?.packs || 0)
+  totalFragments += Number(q?.reward?.fragments || 0)
+ }
+ group.summary = computeLocalMissionSummary(group.quests)
+
+ return { claimedCount, totalKamas, totalXp, totalGuildXp, totalPacks, totalFragments, completionBonus: false, totalBpXp: 0 }
 }
 
 async function fetchQuestsState(force = false) {
  if (!force && state.questsState) return { ok: true, data: state.questsState }
+ if (isLocalMissionsMode()) {
+  if (!state.questsState || force) state.questsState = buildLocalMissionsState()
+  return { ok: true, data: state.questsState }
+ }
  const res = await fetchJson("/api/quests/state")
  if (res.ok && res.data) state.questsState = res.data
  return res
@@ -3209,92 +3949,96 @@ async function renderQuests(force = false) {
  if (!panel) return
 
  if (!state.questsState || force) {
-  panel.innerHTML = '<div class="play-empty"><h3>Chargement</h3><p>Synchronisation des quêtes...</p></div>'
+  panel.innerHTML = '<div class="play-empty"><h3>Chargement</h3><p>Synchronisation des missions...</p></div>'
  }
 
  const res = await fetchQuestsState(force)
  if (!res.ok || !res.data) {
-  panel.innerHTML = '<div class="play-empty"><h3>Erreur</h3><p>Impossible de charger les quêtes.</p></div>'
+  panel.innerHTML = '<div class="play-empty"><h3>Erreur</h3><p>Impossible de charger les missions.</p></div>'
   return
  }
 
  const data = res.data
+ ensureQuestsUiState(data)
+
  const isConnected = Boolean(data?.connected)
- const playerDaily = data?.player?.daily || null
- const playerWeekly = data?.player?.weekly || null
  const guild = data?.guild || null
- const playerCanClaim = isConnected
- const guildDaily = guild?.daily || { summary: { total: 0, done: 0, claimable: 0 }, quests: [] }
- const guildWeekly = guild?.weekly || { summary: { total: 0, done: 0, claimable: 0 }, quests: [] }
-  const guildRoleLabel = guild
-  ? (guild?.canClaim ? `Rôle: ${String(guild.rank || "").replace(/^./, (x) => x.toUpperCase())}` : "Rôle: membre (récupération réservée au meneur/officier)")
-  : "Aucune guilde rejointe."
+ const safeScope = state.questsUi.scope
+ const safeType = state.questsUi.type
+ const selectedGroup = safeScope === "guild"
+  ? (guild?.[safeType] || { summary: { total: 0, done: 0, claimable: 0, claimed: 0 }, quests: [], resetIn: "-" })
+  : (data?.player?.[safeType] || { summary: { total: 0, done: 0, claimable: 0, claimed: 0 }, quests: [], resetIn: "-" })
+
+ const canClaim = safeScope === "guild"
+  ? (isConnected && Boolean(guild?.canClaim))
+  : isConnected
+ const claimable = Number(selectedGroup?.summary?.claimable || 0)
+ const totalCount = Number(selectedGroup?.summary?.total || 0)
+ const scopeTitle = getMissionsScopeLabel(safeScope)
+ const key = getMissionsSelectionKey(safeScope, safeType)
+
  panel.innerHTML = `
-  <section class="mode-shell mode-quests">
-   <header class="mode-hero quest-section-block quest-section-kpi">
-    <div class="mode-kpi-grid mode-kpi-grid-4">
-     <div class="mode-kpi"><span>Perso quotidiennes</span><strong>${fmt(playerDaily?.summary?.done || 0)}/${fmt(playerDaily?.summary?.total || 0)}</strong></div>
-     <div class="mode-kpi"><span>Perso hebdo</span><strong>${fmt(playerWeekly?.summary?.done || 0)}/${fmt(playerWeekly?.summary?.total || 0)}</strong></div>
-     <div class="mode-kpi"><span>Guilde quotidienne</span><strong>${fmt(guildDaily?.summary?.done || 0)}/${fmt(guildDaily?.summary?.total || 0)}</strong></div>
-     <div class="mode-kpi"><span>Guilde hebdo</span><strong>${fmt(guildWeekly?.summary?.done || 0)}/${fmt(guildWeekly?.summary?.total || 0)}</strong></div>
-    </div>
-   </header>
+  <section class="mode-shell mode-quests missions-shell" data-missions-key="${escapeHtml(key)}">
+   <aside class="missions-sidebar">
+    ${renderMissionScopeMenuSection(data, "player", safeScope, safeType)}
+    ${guild ? renderMissionScopeMenuSection(data, "guild", safeScope, safeType) : ""}
+   </aside>
 
-   <div id="questResultBox" class="action-result mode-result" style="display:none"></div>
+   <section class="missions-main">
+    <header class="missions-main-head">
+     <div class="missions-main-head-copy">
+      <h3>${escapeHtml(scopeTitle)}</h3>
+     </div>
+     <span class="missions-reset-pill">Temps restant ${escapeHtml(selectedGroup?.resetIn || "-")}</span>
+    </header>
 
-   <div class="quest-section-block quest-section-player">
-    <div class="quest-grid">
-     ${renderQuestGroupCard({
-       title: "Quêtes quotidiennes",
-       scope: "player",
-       type: "daily",
-       group: playerDaily,
-       canClaim: playerCanClaim
-     })}
-     ${renderQuestGroupCard({
-       title: "Quêtes hebdomadaires",
-       scope: "player",
-       type: "weekly",
-       group: playerWeekly,
-       canClaim: playerCanClaim
-     })}
-    </div>
-   </div>
+    <div id="questResultBox" class="action-result mode-result" style="display:none"></div>
 
-   <div class="quest-section-block quest-section-guild">
-    <div class="quest-grid">
-     ${renderQuestGroupCard({
-       title: guild ? `${guild.emoji || "🏰"} ${guild.name || "Guilde"} • Quotidiennes` : "Quêtes de guilde quotidiennes",
-       scope: "guild",
-       type: "daily",
-       group: guildDaily,
-       canClaim: isConnected && Boolean(guild?.canClaim),
-       roleLabel: guildRoleLabel
-     })}
-     ${renderQuestGroupCard({
-       title: guild ? `${guild.emoji || "🏰"} ${guild.name || "Guilde"} • Hebdomadaires` : "Quêtes de guilde hebdomadaires",
-       scope: "guild",
-       type: "weekly",
-       group: guildWeekly,
-       canClaim: isConnected && Boolean(guild?.canClaim),
-       roleLabel: guildRoleLabel
-     })}
+    <div class="missions-quest-list">
+     ${renderMissionRows(selectedGroup?.quests || [], safeScope, safeType, canClaim)}
     </div>
-   </div>
+
+    <footer class="missions-footer">
+     <button
+      class="missions-claim-all-btn"
+      data-quest-claim-all
+      data-scope="${escapeHtml(safeScope)}"
+      data-type="${escapeHtml(safeType)}"
+      ${claimable > 0 && canClaim ? "" : "disabled"}>
+      Tout récupérer (${fmt(claimable)})
+     </button>
+    </footer>
+   </section>
   </section>
  `
+
+ const listNode = panel.querySelector(".missions-quest-list")
+ if (listNode) {
+  listNode.addEventListener("scroll", () => rememberMissionsScroll(panel), { passive: true })
+  restoreMissionsScroll(panel)
+ }
 }
 
 async function handleQuestClaim({ scope = "player", type = "daily", questId = "" } = {}) {
+ if (isLocalMissionsMode()) {
+  const fake = applyLocalMissionsClaim({ scope, type, questId })
+  if (Number(fake.claimedCount || 0) <= 0) {
+   return
+  }
+  await renderQuests(false)
+  openMissionRewardOverlay({ scope, claimResult: fake })
+  return
+ }
+
  const previousQuestState = state.questsState || null
  const result = await postJson("/api/quests/claim", { scope, type, questId })
  if (!result.ok) {
-  showActionResult("questResultBox", `<p>${escapeHtml(result.data?.error || "Récupération impossible.")}</p>`, true)
   return
  }
 
  state.questsState = result.data?.state || null
  await renderQuests(false)
+ openMissionRewardOverlay({ scope, claimResult: result.data?.result || null })
  showQuestClaimToast({
   scope,
   type,
@@ -3304,28 +4048,8 @@ async function handleQuestClaim({ scope = "player", type = "daily", questId = ""
  })
 
  if (scope === "guild") {
-  const xp = Number(result.data?.result?.totalXP || 0)
-  const claimed = Number(result.data?.result?.claimed || 0)
-  const bonusXP = Number(result.data?.result?.bonusXP || 0)
-  const bonusLine = bonusXP > 0 ? `<p>Bonus de complétion: +${fmt(bonusXP)} XP guilde</p>` : ""
-  showActionResult(
-   "questResultBox",
-   `<p><strong>Quêtes de guilde récupérées:</strong> ${fmt(claimed)}</p><p>Gain: +${fmt(xp)} XP guilde</p>${bonusLine}`
-  )
   return
  }
-
- const claimed = Number(result.data?.result?.claimedCount || 0)
- const kamas = Number(result.data?.result?.totalKamas || 0)
- const xp = Number(result.data?.result?.totalXp || 0)
- const packs = Number(result.data?.result?.totalPacks || 0)
- const fragments = Number(result.data?.result?.totalFragments || 0)
- const bpXp = Number(result.data?.result?.totalBpXp || 0)
- const bonus = Boolean(result.data?.result?.completionBonus)
-  showActionResult(
-   "questResultBox",
-   `<p><strong>Quête(s) récupérée(s):</strong> ${fmt(claimed)}</p><p>💰 +${fmt(kamas)} • ⭐ +${fmt(xp)} XP joueur • 🎟️ +${fmt(bpXp)} XP BP • 📦 +${fmt(packs)} • 🧩 +${fmt(fragments)}</p>${bonus ? "<p>Bonus de complétion récupéré.</p>" : ""}`
-  )
 }
 
  function showActionResult(boxId, html, error = false) {
@@ -3372,17 +4096,19 @@ async function handleFusionAction() {
 
  const setId = String(state.fusionUi.setId || document.getElementById("fusionSetInput")?.value || "").trim()
  const fromRarity = String(state.fusionUi.fromRarity || "").toUpperCase()
- const qtyInput = document.getElementById("fusionQtyInput")
  const sourceRow = getFusionRowByRarity(fromRarity)
  const sourceInfo = getDuplicateInfoForFusion(setId, fromRarity)
  const cost = Number(sourceRow?.cost || 0)
  const maxSingleFusions = cost > 0 ? Math.floor(sourceInfo.duplicates / cost) : 0
- const askedQty = parseSafeQty(qtyInput?.value || state.fusionUi.quantity || 1, 1, FUSION_MAX_CYCLES, 1)
- state.fusionUi.quantity = askedQty
- if (qtyInput) qtyInput.value = String(askedQty)
- const requestedCycles = Math.max(0, Math.min(askedQty, maxSingleFusions))
+ const askedQty = 1
+ state.fusionUi.quantity = 1
+ const plannedCycles = cost > 0 ? Math.max(1, Math.min(askedQty, maxSingleFusions || askedQty)) : 0
+ const selectedIds = normalizeFusionSelectedCards(setId, fromRarity, cost * plannedCycles)
+ const selectedCycles = cost > 0 ? Math.floor(selectedIds.length / cost) : 0
+ const selectedCardMap = getFusionDuplicateCardMap(setId, fromRarity)
+ const requestedCycles = Math.max(0, Math.min(askedQty, maxSingleFusions, selectedCycles))
  if (!setId || !fromRarity || !sourceRow || requestedCycles <= 0) {
-  showActionResult("fusionResultBox", "<p>Impossible de lancer la fusion avec les paramètres actuels.</p>", true)
+  showActionResult("fusionResultBox", "<p>Sélectionne les cartes nécessaires ou active l'auto complétion.</p>", true)
   return
  }
 
@@ -3400,7 +4126,9 @@ async function handleFusionAction() {
   const logs = []
   let interruption = ""
   for (let cycle = 0; cycle < requestedCycles; cycle++) {
-   const res = await postJson("/api/game/fuse", { setId, rarity: fromRarity })
+   const cardIds = selectedIds.slice(cycle * cost, (cycle + 1) * cost)
+   const fragments = cardIds.map((id) => selectedCardMap.get(String(id))).filter(Boolean)
+   const res = await postJson("/api/game/fuse", { setId, rarity: fromRarity, cardIds })
    if (!res.ok) {
     if (!logs.length) {
      showActionResult("fusionResultBox", `<p>${escapeHtml(res.data?.error || "Fusion impossible.")}</p>`, true)
@@ -3416,10 +4144,12 @@ async function handleFusionAction() {
     setName: getSetName(setId),
     from: String(data.fromRarity || fromRarity),
     to: String(data.toRarity || getNextRarityFromMeta(fromRarity) || ""),
-    rewardName: String(data?.reward?.cardName || "Carte"),
-    rewardRarity: String(data?.reward?.rarity || data.toRarity || ""),
-    rewardImage: data?.reward?.imageUrl || null,
+   rewardName: String(data?.reward?.cardName || "Carte"),
+   rewardRarity: String(data?.reward?.rarity || data.toRarity || ""),
+    rewardImage: getFusionCardImageUrl(data?.reward || {}, data?.reward?.rarity || data.toRarity || ""),
+    rewardIsNew: Boolean(data?.reward?.isNew),
     reward: data?.reward || null,
+    fragments,
     timestamp: Date.now()
    })
   }
@@ -3429,37 +4159,30 @@ async function handleFusionAction() {
    return
   }
 
-  if (stage) stage.setAttribute("data-skip", "0")
-  const multiRun = logs.length > 1
-  setFusionSkipButton(multiRun)
+  const skipAnimation = Boolean(state.fusionUi.skipAnimation)
+  if (stage) stage.setAttribute("data-skip", skipAnimation ? "1" : "0")
   let playedAnimations = 0
-  let skippedAnimations = false
-  for (let index = 0; index < logs.length; index++) {
-   if (String(stage?.getAttribute("data-skip") || "0") === "1") {
-    skippedAnimations = true
-    break
-   }
-   const entry = logs[index]
-   if (multiRun) {
-    showActionResult("fusionResultBox", `<p>Animation de fusion ${fmt(index + 1)}/${fmt(logs.length)}...</p>`)
-   }
-   const animResult = await playFusionForgeAnimation({
-    fromRarity: entry.from,
-    toRarity: entry.to,
-    reward: {
-     cardName: entry.rewardName,
+  let skippedAnimations = skipAnimation
+  if (!skipAnimation) {
+   for (let index = 0; index < logs.length; index++) {
+    const entry = logs[index]
+    const animResult = await playFusionForgeAnimation({
+     fromRarity: entry.from,
+     toRarity: entry.to,
+     reward: {
+      cardName: entry.rewardName,
      rarity: entry.rewardRarity,
-     imageUrl: entry.rewardImage
-    },
-    fragments: getFusionAnimationFragments(setId, entry.from, 5)
-   })
-   playedAnimations = index + 1
-   if (animResult?.skipped || String(stage?.getAttribute("data-skip") || "0") === "1") {
-    skippedAnimations = true
-    break
+      imageUrl: entry.rewardImage
+     },
+     fragments: entry.fragments && entry.fragments.length ? entry.fragments : getFusionAnimationFragments(setId, entry.from, cost)
+    })
+    playedAnimations = index + 1
+    if (animResult?.skipped || String(stage?.getAttribute("data-skip") || "0") === "1") {
+     skippedAnimations = true
+     break
+    }
    }
   }
-  setFusionSkipButton(false)
   if (stage) {
    stage.setAttribute("data-skip", "0")
    stage._fusionAbort = null
@@ -3469,17 +4192,35 @@ async function handleFusionAction() {
    from: entry.from,
    to: entry.to,
    rewardName: `${entry.rewardRarity} ${entry.rewardName}`.trim(),
+   rewardImage: entry.rewardImage,
+   rewardIsNew: Boolean(entry.rewardIsNew),
    setName: entry.setName,
    timestamp: entry.timestamp
   })).concat(state.fusionHistory || []).slice(0, 24)
 
   const last = logs[logs.length - 1]
-  const animationNote = skippedAnimations
-   ? `<p class="mode-muted">Animation passée après ${fmt(playedAnimations)}/${fmt(logs.length)} fusion(s).</p>`
+  if (!skipAnimation && last) {
+   await openCraftResultOverlay({
+   title: "Résultat de fusion",
+    iconSrc: "/assets/ui/icone%20fusion.png",
+    imageSrc: last.rewardImage || "",
+    fallbackSrc: getPackBackImageForRarity(last.rewardRarity || last.to || "SSR"),
+    cardName: String(last.rewardName || "Carte")
+   })
+  }
+ const animationNote = skippedAnimations
+   ? `<p class="mode-muted">Animation passée${playedAnimations > 0 ? ` après ${fmt(playedAnimations)}/${fmt(logs.length)} fusion(s)` : ""}.</p>`
    : ""
   const summary = `
-   <p><strong>Forge terminée:</strong> ${fmt(logs.length)} fusion(s) validée(s) sur ${fmt(requestedCycles)} demandée(s)</p>
-   <p>Dernier résultat: ${escapeHtml((last.rewardRarity ? `${last.rewardRarity} ` : "") + (last.rewardName || "Carte"))}</p>
+   <div class="fusion-result-summary">
+    ${last.rewardImage ? `<img src="${escapeHtml(last.rewardImage)}" alt="${escapeHtml(last.rewardName || "Carte")}" onerror="this.style.display='none'">` : ""}
+    <div>
+     <strong>Forge terminée</strong>
+     <p>${fmt(logs.length)} fusion(s) validée(s) sur ${fmt(requestedCycles)} demandée(s)</p>
+     <p>Dernier résultat: ${escapeHtml((last.rewardRarity ? `${last.rewardRarity} ` : "") + (last.rewardName || "Carte"))}</p>
+     <small>${last.rewardIsNew ? "Nouvelle carte ajoutée à la collection." : "Carte déjà connue, exemplaire ajouté."}</small>
+    </div>
+   </div>
    ${animationNote}
    ${interruption ? `<p class="mode-muted">Arrêt partiel: ${escapeHtml(interruption)}</p>` : ""}
   `
@@ -3491,7 +4232,6 @@ async function handleFusionAction() {
    runBtn.disabled = false
    runBtn.textContent = baseLabel
   }
-  setFusionSkipButton(false)
   if (stage) {
    stage.setAttribute("data-skip", "0")
    stage._fusionAbort = null
@@ -3586,7 +4326,7 @@ function syncPanelVisibility() {
 
   controls.style.display = state.mode === "inventory" ? "none" : "grid"
   subtabs.style.display = "none"
-  if (subtitle) subtitle.style.display = (state.mode === "inventory" || state.mode === "quests") ? "block" : "none"
+  if (subtitle) subtitle.style.display = state.mode === "inventory" ? "block" : "none"
   if (inventoryActionBox) {
    if (state.mode !== "inventory") {
     inventoryActionBox.style.display = "none"
@@ -3613,6 +4353,9 @@ function syncPanelVisibility() {
    closeCraftCardZoom()
    closeCraftResultOverlay()
   }
+  if (state.mode !== "quests") {
+   closeMissionRewardOverlay()
+  }
 
   if (state.mode === "packs") {
    title.textContent = "PACKS"
@@ -3629,9 +4372,9 @@ function syncPanelVisibility() {
    controls.style.display = "none"
    grid.style.display = "none"
    craftPanel.style.display = "block"
-  } else if (state.mode === "quests") {
-   title.textContent = "Quêtes"
-   if (subtitle) subtitle.textContent = "Progression quotidienne, hebdomadaire et objectifs de guilde."
+ } else if (state.mode === "quests") {
+   title.textContent = "Missions"
+   if (subtitle) subtitle.textContent = ""
    controls.style.display = "none"
    grid.style.display = "none"
    questsPanel.style.display = "block"
@@ -3698,6 +4441,9 @@ function bindEvents() {
   document.querySelectorAll("[data-close-craft-result]").forEach((node) => {
    node.addEventListener("click", closeCraftResultOverlay)
   })
+  document.querySelectorAll("[data-close-mission-reward]").forEach((node) => {
+   node.addEventListener("click", closeMissionRewardOverlay)
+  })
   const inventoryBuyMinus10Btn = document.getElementById("inventoryBuyMinus10Btn")
   const inventoryBuyMinus1Btn = document.getElementById("inventoryBuyMinus1Btn")
   const inventoryBuyPlus1Btn = document.getElementById("inventoryBuyPlus1Btn")
@@ -3721,6 +4467,11 @@ function bindEvents() {
   })
 
   document.addEventListener("keydown", (event) => {
+   if (isMissionRewardVisible() && (event.key === "Escape" || event.key === "Enter" || event.key === " ")) {
+    event.preventDefault()
+    closeMissionRewardOverlay()
+    return
+   }
    if (isCraftResultVisible() && (event.key === "Escape" || event.key === "Enter" || event.key === " ")) {
     event.preventDefault()
     closeCraftResultOverlay()
@@ -3763,6 +4514,33 @@ function bindEvents() {
   })
 
  document.getElementById("playQuests").addEventListener("click", (event) => {
+  const gotoBtn = event.target.closest("[data-missions-goto]")
+  if (gotoBtn) {
+   const target = String(gotoBtn.dataset.missionsGoto || "").trim()
+   if (target) {
+    window.location.href = target
+   }
+   return
+  }
+
+  const missionsTypeBtn = event.target.closest("[data-missions-type]")
+  if (missionsTypeBtn) {
+   rememberMissionsScroll(document.getElementById("playQuests"))
+   ensureQuestsUiState(state.questsState)
+   state.questsUi.scope = String(missionsTypeBtn.dataset.missionsScope || "player").toLowerCase() === "guild" ? "guild" : "player"
+   state.questsUi.type = String(missionsTypeBtn.dataset.missionsType || "daily").toLowerCase() === "weekly" ? "weekly" : "daily"
+   return renderQuests(false).catch(() => {})
+  }
+
+  const missionsScopeBtn = event.target.closest("[data-missions-scope]")
+  if (missionsScopeBtn) {
+   rememberMissionsScroll(document.getElementById("playQuests"))
+   ensureQuestsUiState(state.questsState)
+   state.questsUi.scope = String(missionsScopeBtn.dataset.missionsScope || "player").toLowerCase() === "guild" ? "guild" : "player"
+   if (state.questsUi.type !== "daily" && state.questsUi.type !== "weekly") state.questsUi.type = "daily"
+   return renderQuests(false).catch(() => {})
+  }
+
   const claimOne = event.target.closest("[data-quest-claim-one]")
   if (claimOne) {
    return handleQuestClaim({

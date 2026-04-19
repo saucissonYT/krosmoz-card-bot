@@ -139,10 +139,11 @@ const REWARD_ICON = {
   kamas: "/assets/ui/gain%20kamas%20level%20up.png",
   packs: "/assets/ui/gain%20packs%20level%20up.png",
   title: "/assets/ui/gain%20titre%20level%20up.png",
-  badge: "/assets/ui/gain%20badge%20level%20up.png",
+  badge: "/assets/ui/gain%20badge%20level%20up.png?v=20260418-0828",
   card: "/assets/ui/gain%20carte%20level%20up.png",
-  flame: "/assets/ui/flamme%20notif.png",
-  xp: "/assets/ui/gain%20badge%20level%20up.png",
+  xp: "/assets/ui/gain%20badge%20level%20up.png?v=20260418-0828",
+  bpXp: "/assets/ui/gain%20badge%20level%20bp.png?v=20260418-0840",
+  guildXp: "/assets/ui/gain%20badge%20exp%20guilde.png?v=20260418-1827",
   fallback: "/assets/ui/gain%20carte%20level%20up.png"
  }
 
@@ -422,67 +423,112 @@ function getStat(categoryId) {
   return { unlocked, total, percent, pending }
  }
 
+ function rewardPart(icon, label, sublabel = "") {
+  return {
+   icon,
+   label: String(label || "").trim(),
+   sublabel: String(sublabel || "").trim()
+  }
+ }
+
+ function cleanRewardChunkLabel(chunk) {
+  return String(chunk || "")
+   .replace(/^[^0-9A-Za-zÀ-ÿ+-]+/u, "")
+   .replace(/^\+\s*/, "")
+   .replace(/\s+/g, " ")
+   .trim()
+ }
+
+ function parseRewardTextChunk(chunk) {
+  const raw = String(chunk || "").trim()
+  const low = raw.toLowerCase()
+  const label = cleanRewardChunkLabel(raw)
+
+  if (!label) return null
+
+  if (low.includes("kama")) {
+   return rewardPart(REWARD_ICON.kamas, label)
+  }
+  if (low.includes("pack")) {
+   return rewardPart(REWARD_ICON.packs, label)
+  }
+  if (low.includes("titre")) {
+   return rewardPart(REWARD_ICON.title, label)
+  }
+  if (low.includes("carte")) {
+   return rewardPart(REWARD_ICON.card, label)
+  }
+  if (low.includes("battlepass") || low.includes("battle pass") || low.includes("xp bp") || low.includes("🎟")) {
+   const amount = label.match(/(\d[\d\s.,]*)\s*xp/i)
+   return rewardPart(REWARD_ICON.bpXp, amount ? `${amount[1]} XP` : label.replace(/\s*bp$/i, "").trim(), "battlepass")
+  }
+  if ((low.includes("xp") && low.includes("guilde")) || low.includes("guild xp") || low.includes("guildxp")) {
+   const amount = label.match(/(\d[\d\s.,]*)\s*xp/i)
+   return rewardPart(REWARD_ICON.guildXp, amount ? `${amount[1]} XP` : label, "guilde")
+  }
+  if (low.includes("badge")) {
+   return rewardPart(REWARD_ICON.badge, label)
+  }
+  if (low.includes("xp")) {
+   const amount = label.match(/(\d[\d\s.,]*)\s*xp/i)
+   return rewardPart(REWARD_ICON.bpXp, amount ? `${amount[1]} XP` : label, "battlepass")
+  }
+
+  return rewardPart(REWARD_ICON.fallback, label)
+ }
+
  function rewardParts(item) {
   const reward = item?.reward || {}
   const parts = []
 
   if (toNumber(reward.kamas) > 0) {
-   parts.push({
-    icon: REWARD_ICON.kamas,
-    label: `${formatInt(reward.kamas)} kamas`
-   })
+   parts.push(rewardPart(REWARD_ICON.kamas, `${formatInt(reward.kamas)} kamas`))
   }
   if (toNumber(reward.xp) > 0) {
-   parts.push({
-    icon: REWARD_ICON.xp,
-    label: `${formatInt(reward.xp)} XP`
-   })
+   parts.push(rewardPart(REWARD_ICON.xp, `${formatInt(reward.xp)} XP`))
+  }
+  if (toNumber(reward.bpXp) > 0) {
+   parts.push(rewardPart(REWARD_ICON.bpXp, `${formatInt(reward.bpXp)} XP`, "battlepass"))
+  }
+  if (toNumber(reward.guildXp) > 0) {
+   parts.push(rewardPart(REWARD_ICON.guildXp, `${formatInt(reward.guildXp)} XP`, "guilde"))
   }
   if (toNumber(reward.packs) > 0) {
-   parts.push({
-    icon: REWARD_ICON.packs,
-    label: `${formatInt(reward.packs)} pack${toNumber(reward.packs) > 1 ? "s" : ""}`
-   })
+   parts.push(rewardPart(REWARD_ICON.packs, `${formatInt(reward.packs)} pack${toNumber(reward.packs) > 1 ? "s" : ""}`))
   }
 
   const text = String(item?.rewardText || "").trim()
   if (text) {
    const chunks = text.split(/[·,]/).map((v) => v.trim()).filter(Boolean)
    for (const chunk of chunks) {
-    const low = chunk.toLowerCase()
-    let icon = REWARD_ICON.fallback
-    if (low.includes("kama")) icon = REWARD_ICON.kamas
-    else if (low.includes("pack")) icon = REWARD_ICON.packs
-    else if (low.includes("titre")) icon = REWARD_ICON.title
-    else if (low.includes("badge") || low.includes("xp")) icon = REWARD_ICON.badge
-    else if (low.includes("carte")) icon = REWARD_ICON.card
-    parts.push({ icon, label: chunk })
+    const part = parseRewardTextChunk(chunk)
+    if (part) parts.push(part)
    }
   }
   if (parts.length > 0) return parts
-  return [{ icon: REWARD_ICON.fallback, label: "Récompense cachée" }]
+  return [rewardPart(REWARD_ICON.fallback, "Récompense cachée")]
  }
 
  function renderRewardBadges(item) {
   return rewardParts(item).map((part) => `
    <div class="ach-modal-reward-chip">
     <img src="${esc(part.icon)}" alt="">
-    <span>${esc(part.label)}</span>
+    <span>${esc(part.label)}${part.sublabel ? `<small>${esc(part.sublabel)}</small>` : ""}</span>
    </div>
   `).join("")
  }
 
- function renderGrid() {
-  ui.grid.innerHTML = CATEGORY_TILES.map((tile, index) => {
+function renderGrid() {
+ ui.grid.innerHTML = CATEGORY_TILES.map((tile, index) => {
    const stat = getStat(tile.id)
-   const flame = stat.pending > 0
-    ? `<img src="${esc(REWARD_ICON.flame)}" alt="Récompenses disponibles" class="ach-notif-flame">`
+   const notif = stat.pending > 0
+    ? `<span class="ach-notif-badge" aria-label="${esc(`${formatInt(stat.pending)} récompenses disponibles`)}">${formatInt(stat.pending)}</span>`
     : ""
    return `
     <article class="achievements-hub-card" data-ach-open-category="${tile.id}" role="button" tabindex="0" style="animation-delay:${(index * 0.03).toFixed(2)}s">
      <div class="achievements-hub-icon-wrap">
       <img src="${toIconUrl(tile.icon)}" alt="${tile.label}" class="achievements-hub-icon" loading="lazy" draggable="false">
-      ${flame}
+      ${notif}
      </div>
      <h3>${esc(tile.label)}</h3>
      <p class="achievements-hub-count">${stat.unlocked}/${stat.total || 0}</p>
@@ -495,17 +541,17 @@ function getStat(categoryId) {
 
  }
 
- function renderModalRail() {
+function renderModalRail() {
   const activeId = String(modalState.activeCategory || "")
   ui.modalRail.innerHTML = CATEGORY_TILES.map((tile) => {
    const stat = getStat(tile.id)
-   const flame = stat.pending > 0
-    ? `<img src="${esc(REWARD_ICON.flame)}" alt="Récompenses disponibles" class="ach-notif-flame">`
+   const notif = stat.pending > 0
+    ? `<span class="ach-notif-badge" aria-label="${esc(`${formatInt(stat.pending)} récompenses disponibles`)}">${formatInt(stat.pending)}</span>`
     : ""
    return `
    <button type="button" class="ach-modal-icon-btn ${activeId === tile.id ? "active" : ""}" data-ach-modal-category="${tile.id}" aria-label="${esc(tile.label)}" title="${esc(tile.label)}">
     <img src="${toIconUrl(tile.icon)}" alt="${esc(tile.label)}" draggable="false">
-    ${flame}
+    ${notif}
    </button>
   `
   }).join("")
@@ -550,11 +596,15 @@ function renderModalList(items = []) {
   const kamas = toProgressInt(totals?.kamas, 0)
   const cards = toProgressInt(totals?.cards, 0)
   const xp = toProgressInt(totals?.xp, 0)
+  const bpXp = toProgressInt(totals?.bpXp, 0)
+  const guildXp = toProgressInt(totals?.guildXp, 0)
 
-  if (packs > 0) rows.push({ icon: REWARD_ICON.packs, label: `${formatInt(packs)} pack${packs > 1 ? "s" : ""}` })
-  if (kamas > 0) rows.push({ icon: REWARD_ICON.kamas, label: `${formatInt(kamas)} kamas` })
-  if (cards > 0) rows.push({ icon: REWARD_ICON.card, label: `${formatInt(cards)} carte${cards > 1 ? "s" : ""}` })
-  if (xp > 0) rows.push({ icon: REWARD_ICON.xp, label: `${formatInt(xp)} XP` })
+  if (packs > 0) rows.push(rewardPart(REWARD_ICON.packs, `${formatInt(packs)} pack${packs > 1 ? "s" : ""}`))
+  if (kamas > 0) rows.push(rewardPart(REWARD_ICON.kamas, `${formatInt(kamas)} kamas`))
+  if (cards > 0) rows.push(rewardPart(REWARD_ICON.card, `${formatInt(cards)} carte${cards > 1 ? "s" : ""}`))
+  if (xp > 0) rows.push(rewardPart(REWARD_ICON.xp, `${formatInt(xp)} XP`))
+  if (bpXp > 0) rows.push(rewardPart(REWARD_ICON.bpXp, `${formatInt(bpXp)} XP`, "battlepass"))
+  if (guildXp > 0) rows.push(rewardPart(REWARD_ICON.guildXp, `${formatInt(guildXp)} XP`, "guilde"))
 
   return rows
  }
@@ -568,7 +618,7 @@ function renderModalList(items = []) {
    ui.claimPopupList.innerHTML = rows.map((row, index) => `
     <article class="ach-claim-row" style="animation-delay:${(index * 0.08).toFixed(2)}s">
      <img src="${esc(row.icon)}" alt="">
-     <strong>${esc(row.label)}</strong>
+     <strong>${esc(row.label)}${row.sublabel ? `<small>${esc(row.sublabel)}</small>` : ""}</strong>
     </article>
    `).join("")
   }

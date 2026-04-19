@@ -15,6 +15,79 @@ const { isSetUnlocked } = require("../../systems/setUnlockSystem")
 const { getSeasonSellMultiplier, getSellBonusPercent, computeSellPrice } = require("../../systems/sellHelper")
 const { recordShopView } = require("../../systems/achievementProgressTracker")
 
+const FUSION_TEST_RARITIES = ["C", "U", "R", "SR", "HR", "UR", "S"]
+const FUSION_TEST_CARDS_PER_RARITY = 4
+const FUSION_TEST_CYCLES_PER_CARD = 6
+
+function resetLocalFusionTestUser(user, cards, sets) {
+ const safeCards = Array.isArray(cards) ? cards : []
+ const safeSets = Array.isArray(sets) ? sets : []
+ const nextCards = {}
+ const seededSets = []
+
+ for (const set of safeSets) {
+  const setId = String(set?.id || "")
+  if (!setId) continue
+
+  let setTotal = 0
+  for (const rarity of FUSION_TEST_RARITIES) {
+   const cost = Math.max(1, Number(FUSION_COST[rarity] || 1))
+   const qty = (cost * FUSION_TEST_CYCLES_PER_CARD) + 1
+   const pool = safeCards
+    .filter((card) => String(card?.set || "") === setId && String(card?.rarity || "").toUpperCase() === rarity)
+    .sort((a, b) =>
+     Number(a?.id || 0) - Number(b?.id || 0) ||
+     String(a?.name || "").localeCompare(String(b?.name || ""), "fr")
+    )
+    .slice(0, FUSION_TEST_CARDS_PER_RARITY)
+
+   for (const card of pool) {
+    const cardId = String(card?.id || "")
+    if (!cardId) continue
+    nextCards[cardId] = qty
+    setTotal += qty
+   }
+  }
+
+  if (setTotal > 0) {
+   seededSets.push({
+    id: setId,
+    name: String(set?.name || setId),
+    totalCards: setTotal
+   })
+  }
+ }
+
+ user.cards = nextCards
+ user.fragments = []
+ user.kamas = 260000
+ user.packs = 25
+ user.pity = {}
+ user.progression = { level: 120, xp: 0, totalXp: 0 }
+ user.title = user.title || "Nouveau"
+ user.titles = Array.isArray(user.titles) && user.titles.length ? user.titles : ["Nouveau"]
+ if (!user.stats || typeof user.stats !== "object") user.stats = {}
+ user.stats.fusions = 0
+ user.stats.fusionCrit = 0
+ user.stats.fusionDouble = 0
+ user.stats.tripleFusion = 0
+ user.stats.tripleFusionToday = 0
+ user.stats.lastTripleReset = Date.now()
+ user.stats.fusionSSRResult = 0
+ user.stats.ssrPulled = 0
+ user.localFusionTest = {
+  resetAt: new Date().toISOString(),
+  seededSetCount: seededSets.length,
+  seededCardCount: Object.keys(nextCards).length
+ }
+
+ return {
+  seededSets,
+  seededCardKinds: Object.keys(nextCards).length,
+  totalCards: Object.values(nextCards).reduce((sum, qty) => sum + Number(qty || 0), 0)
+ }
+}
+
 module.exports = function mount(app, ctx) {
  const {
   requireSession, resolveSession, parsePagination,
@@ -22,10 +95,34 @@ module.exports = function mount(app, ctx) {
   buildKrosmoshopStatePayload,
   buildRecruitHistoryPayload, appendRecruitHistoryEntries,
   normalizeRarity, getNextRarity, countUnlockedAchievements,
-  consumeDuplicatesForFusion,
+  consumeDuplicatesForFusion, canUseLocalAuth,
   RARITY_ORDER, invalidateUserCaches,
   PUBLIC_DIR
  } = ctx
+
+ app.post("/api/local/fusion/reset", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   if (!session.local || !canUseLocalAuth(req)) {
+    return res.status(403).json({ error: "Reset fusion disponible uniquement en session locale." })
+   }
+
+   const user = getUser(session.userId)
+   const result = resetLocalFusionTestUser(user, getCards(), getSets())
+   save(session.userId)
+   invalidateUserCaches([session.userId])
+
+   return res.json({
+    ok: true,
+    userId: String(session.userId),
+    ...result
+   })
+  } catch (e) {
+   console.error("[WEB] /api/local/fusion/reset:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
 
  app.get("/api/game/craft-test-cards", (req, res) => {
   try {
@@ -114,11 +211,12 @@ module.exports = function mount(app, ctx) {
 
    res.json({
     packPrice: Number(PACK_PRICE || 0),
-    packStock: Number(user.packs || 0),
-    kamas: Number(user.kamas || 0),
-    unlockedSets,
-    fusion,
-    pityBySet
+   packStock: Number(user.packs || 0),
+   kamas: Number(user.kamas || 0),
+   allSets: (sets || []).map((set) => ({ id: String(set.id), name: String(set.name || set.id) })),
+   unlockedSets,
+   fusion,
+   pityBySet
    })
   } catch (e) {
    console.error("[WEB] /api/game/meta:", e)
@@ -468,6 +566,9 @@ module.exports = function mount(app, ctx) {
 
    const setId = String(req.body?.setId || "").trim()
    const rarity = normalizeRarity(req.body?.rarity)
+   const selectedCardIds = Array.isArray(req.body?.cardIds)
+    ? req.body.cardIds.map((id) => String(id || "").trim()).filter(Boolean)
+    : []
    if (!setId) return res.status(400).json({ error: "setId manquant." })
    if (!rarity || rarity === "SSR") return res.status(400).json({ error: "Rareté invalide pour fusion." })
 
@@ -483,10 +584,10 @@ module.exports = function mount(app, ctx) {
    if (!validSetIds.has(setId)) return res.status(400).json({ error: "Set invalide." })
    if (!isSetUnlocked(user, setId, cards)) return res.status(400).json({ error: "Set verrouille pour ce profil." })
 
-   const consumed = consumeDuplicatesForFusion(user, cards, setId, rarity, cost)
+   const consumed = consumeDuplicatesForFusion(user, cards, setId, rarity, cost, selectedCardIds)
    if (!consumed.ok) {
     return res.status(400).json({
-     error: "Doublons insuffisants pour fusion.",
+     error: selectedCardIds.length ? "Cartes sélectionnées insuffisantes pour fusion." : "Doublons insuffisants pour fusion.",
      required: cost,
      available: consumed.available || 0
     })
@@ -496,10 +597,11 @@ module.exports = function mount(app, ctx) {
    if (!rewardPool.length) {
     return res.status(400).json({ error: `Aucune carte ${targetRarity} dans ce set.` })
    }
-   const reward = rewardPool[Math.floor(Math.random() * rewardPool.length)]
+    const reward = rewardPool[Math.floor(Math.random() * rewardPool.length)]
+    const isNewReward = Number(user.cards?.[reward.id] || 0) <= 0
 
-   if (!user.cards) user.cards = {}
-   user.cards[reward.id] = Number(user.cards[reward.id] || 0) + 1
+    if (!user.cards) user.cards = {}
+    user.cards[reward.id] = Number(user.cards[reward.id] || 0) + 1
 
    if (!user.stats) user.stats = {}
    user.stats.fusions = Number(user.stats.fusions || 0) + 1
@@ -529,8 +631,10 @@ module.exports = function mount(app, ctx) {
      cardName: String(reward.name || `Carte ${reward.id}`),
      rarity: String(reward.rarity || targetRarity),
      set: String(reward.set || setId),
-     imageUrl: reward?.image ? `/assets/cards/${encodeURIComponent(String(reward.set || setId))}/${encodeURIComponent(String(reward.image))}` : null
+     imageUrl: reward?.image ? `/assets/cards/${encodeURIComponent(String(reward.set || setId))}/${encodeURIComponent(String(reward.image))}` : null,
+     isNew: isNewReward
     },
+    consumedCardIds: consumed.consumedCardIds || [],
     remainingDuplicates: Number(consumed.availableAfter || 0),
     xpGain: xp,
     unlockedAchievements: countUnlockedAchievements(unlocked)
