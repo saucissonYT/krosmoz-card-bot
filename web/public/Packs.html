@@ -186,6 +186,27 @@
    text-transform: uppercase;
   }
 
+  .packs-set-completion {
+   display: inline-flex;
+   align-items: center;
+   min-height: 32px;
+   margin-top: 8px;
+   border-radius: 999px;
+   border: 1px solid rgba(244, 211, 111, 0.34);
+   background: rgba(8, 22, 62, 0.54);
+   color: #f4d36f;
+   font-size: clamp(0.8rem, 1.1vw, 0.98rem);
+   font-weight: 800;
+   line-height: 1;
+   padding: 0 13px;
+   white-space: nowrap;
+   text-shadow: 0 2px 10px rgba(4, 14, 42, 0.5);
+  }
+
+  .packs-set-completion[hidden] {
+   display: none;
+  }
+
   .packs-title p {
    margin: 10px 0 0;
    max-width: 780px;
@@ -1073,6 +1094,8 @@
   .packs-open-actions {
    display: inline-flex;
    align-items: center;
+   justify-content: flex-end;
+   flex-wrap: wrap;
    gap: 8px;
   }
 
@@ -1091,6 +1114,10 @@
   .packs-open-skip-btn:disabled {
    opacity: 0.45;
    cursor: not-allowed;
+  }
+
+  .packs-open-skip-btn[hidden] {
+   display: none;
   }
 
   .packs-rate-modal-overlay {
@@ -2177,6 +2204,7 @@
   <section class="packs-main">
    <div class="packs-title">
     <h1 id="packsMainSetTitle">Incarnam</h1>
+    <div id="packsSetCompletion" class="packs-set-completion" hidden></div>
    </div>
 
    <div class="packs-planet-wrap" aria-hidden="true">
@@ -2266,6 +2294,7 @@
      <p id="packsOpenSummary" class="packs-open-summary"></p>
      <div class="packs-open-actions">
       <button id="packsOpenSkipBtn" class="packs-open-skip-btn" type="button">Tout reveler</button>
+      <button id="packsOpenAllBtn" class="packs-open-skip-btn packs-open-all-btn" type="button" hidden>Tout ouvrir</button>
       <button id="packsOpenCloseMain" class="packs-open-close-main" type="button">Fermer</button>
      </div>
     </footer>
@@ -2549,6 +2578,7 @@
    packs: 12,
    drawBusy: false,
    unlockedSetIds: new Set(Object.keys(setCatalog)),
+   setProgressBySet: {},
    pityBySet: Object.fromEntries(
     Object.entries(setCatalog).map(([setId, setData]) => [setId, { ...setData.pityStart }])
    )
@@ -2629,6 +2659,7 @@
   packsOpenSpecialFx: document.getElementById("packsOpenSpecialFx"),
   packsOpenSummary: document.getElementById("packsOpenSummary"),
    packsOpenSkipBtn: document.getElementById("packsOpenSkipBtn"),
+   packsOpenAllBtn: document.getElementById("packsOpenAllBtn"),
    packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
    focusFigure: document.getElementById("packsFocusFigure"),
@@ -2637,6 +2668,7 @@
    openRateInfoBtn: document.getElementById("openRateInfoBtn"),
    openRecruitHistoryBtn: document.getElementById("openRecruitHistoryBtn"),
    setSliderTrack: document.getElementById("packsSetSliderTrack"),
+   setCompletion: document.getElementById("packsSetCompletion"),
    rateModal: document.getElementById("packsRateModal"),
    rateSetTitle: document.getElementById("packsRateSetTitle"),
    rateEffectiveValue: document.getElementById("packsRateEffectiveValue"),
@@ -2701,6 +2733,57 @@
    return packsState.unlockedSetIds instanceof Set
     ? packsState.unlockedSetIds.has(String(setId))
     : true
+  }
+
+  function applySetProgressPayload(setProgress) {
+   if (!Array.isArray(setProgress)) return
+   const next = {}
+   for (const row of setProgress) {
+    const setId = normalizeSetId(row?.id)
+    if (!setCatalog[setId]) continue
+    const pct = Number(row?.pct)
+    next[setId] = {
+     name: String(row?.name || setCatalog[setId]?.name || setId),
+     pct: Number.isFinite(pct) ? Math.max(0, Math.min(100, Math.round(pct))) : null
+    }
+   }
+   packsState.setProgressBySet = next
+  }
+
+  function getSetProgressPct(setId) {
+   const row = packsState.setProgressBySet?.[normalizeSetId(setId)]
+   const pct = Number(row?.pct)
+   return Number.isFinite(pct) ? Math.max(0, Math.min(100, Math.round(pct))) : null
+  }
+
+  function updateSetCompletionDisplay() {
+   if (!el.setCompletion) return
+   const activeSet = getActiveSet()
+   const pct = getSetProgressPct(activeSetId)
+   if (pct === null) {
+    el.setCompletion.hidden = true
+    el.setCompletion.textContent = ""
+    return
+   }
+   el.setCompletion.textContent = `Set : ${activeSet.name} - ${formatInt(pct)}% complétion`
+   el.setCompletion.hidden = false
+  }
+
+  async function loadSetProgressFromProfile() {
+   try {
+    const meResponse = await fetch("/api/me", { credentials: "same-origin" })
+    if (!meResponse.ok) return
+    const me = await meResponse.json().catch(() => null)
+    const userId = String(me?.id || "").trim()
+    if (!userId) return
+    const profileResponse = await fetch(`/api/profile/${encodeURIComponent(userId)}?track=0`, { credentials: "same-origin" })
+    if (!profileResponse.ok) return
+    const profile = await profileResponse.json().catch(() => null)
+    applySetProgressPayload(profile?.setProgress)
+    updateSetCompletionDisplay()
+   } catch (error) {
+    console.warn("[PACKS] Impossible de charger la completion des sets:", error)
+   }
   }
 
   async function loadUnlockedSetsFromMeta() {
@@ -3031,6 +3114,7 @@
    el.pityUrBar.style.width = `${(activePity.ur / setPityCaps.ur) * 100}%`
    el.pitySBar.style.width = `${(activePity.s / setPityCaps.s) * 100}%`
    el.pitySsrBar.style.width = `${(activePity.ssr / setPityCaps.ssr) * 100}%`
+   updateSetCompletionDisplay()
   }
 
   function renderSetSlider() {
@@ -3415,9 +3499,19 @@
    return activeIndex + 1 < groups.length
   }
 
+  function updatePackOpenAllAction() {
+   if (!el.packsOpenAllBtn) return
+   const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+   const activeIndex = Math.max(0, Math.min(Math.max(0, groups.length - 1), Number(packOpenState.activeGroupIndex || 0)))
+   const hasRemaining = groups.length > 1 && activeIndex < groups.length - 1
+   el.packsOpenAllBtn.hidden = !packOpenState.open || !hasRemaining
+   el.packsOpenAllBtn.disabled = Boolean(packOpenState.transitioningNext)
+  }
+
  function updatePackOpenPrimaryAction() {
   if (!el.packsOpenCloseMain) return
   const hasNext = hasPackOpenNextGroup()
+  updatePackOpenAllAction()
   if (hasNext && packOpenState.transitioningNext) {
    el.packsOpenCloseMain.textContent = "Suivant..."
    el.packsOpenCloseMain.disabled = true
@@ -3513,6 +3607,16 @@ function handlePackOpenPrimaryAction() {
    updatePackOpenPrimaryAction()
   }
 
+   function finishAllPackOpening() {
+    if (!packOpenState.open) return
+    const groups = Array.isArray(packOpenState.groups) ? packOpenState.groups : []
+    if (groups.length <= 1) {
+     completePackOpeningReveal()
+     return
+    }
+    closePackOpeningOverlay()
+   }
+
  function closePackOpeningOverlay() {
   if (!packOpenState.open && el.packsOpenOverlay.hidden) return
   closeRateCardPreview()
@@ -3527,6 +3631,10 @@ function handlePackOpenPrimaryAction() {
   packOpenState.completedGroups = new Set()
   packOpenState.overallStats = null
   packOpenState.transitioningNext = false
+  if (el.packsOpenAllBtn) {
+   el.packsOpenAllBtn.hidden = true
+   el.packsOpenAllBtn.disabled = false
+  }
   if (el.packsOpenCloseMain) {
    el.packsOpenCloseMain.textContent = "Fermer"
    el.packsOpenCloseMain.disabled = false
@@ -4198,6 +4306,7 @@ function handlePackOpenPrimaryAction() {
     const kamasGain = Math.max(0, Number(payload?.totals?.kamasGain || 0))
     await showPackOpeningAnimation(payload)
     showDrawNotice(`Ouverture x${quantity} reussie - ${totalCards} cartes - +${formatInt(kamasGain)} kamas`)
+    void loadSetProgressFromProfile()
     if (!el.historyModal.hidden) {
      void loadHistoryPageForActiveSet()
     }
@@ -4233,6 +4342,7 @@ function handlePackOpenPrimaryAction() {
    node.addEventListener("click", closePackOpeningOverlay)
   })
   el.packsOpenSkipBtn.addEventListener("click", completePackOpeningReveal)
+  el.packsOpenAllBtn.addEventListener("click", finishAllPackOpening)
   el.packsOpenCloseMain.addEventListener("click", handlePackOpenPrimaryAction)
   el.cardPreviewOverlay.querySelectorAll("[data-close-card-preview]").forEach((node) => {
    node.addEventListener("click", closeRateCardPreview)
@@ -4298,6 +4408,7 @@ function handlePackOpenPrimaryAction() {
   renderSetSlider()
   switchActiveSet(activeSetId)
   void loadUnlockedSetsFromMeta()
+  void loadSetProgressFromProfile()
  </script>
 </body>
 </html>

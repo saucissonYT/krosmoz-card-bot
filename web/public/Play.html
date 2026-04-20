@@ -49,6 +49,7 @@ if (__initialPlayTab === "fusion") {
      <div class="inventory-top-left">
       <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
       <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
+      <span id="inventoryTopSetInfo" class="inventory-top-set-info" hidden></span>
       <span id="fusionTopSetInfo" class="fusion-top-set-info" hidden></span>
      </div>
      <div class="inventory-top-right">
@@ -986,6 +987,7 @@ function syncInventoryTopbar() {
   if (!showTopbar) return
 
   titleEl.textContent = isFusionMode ? "Fusion" : (isFabricationMode ? "fabrication" : (isMissionsMode ? "missions" : "inventaire"))
+  updateInventoryTopSetInfo()
   updateFusionTopSetInfo()
   if (fusionSetInfoEl && !isFusionMode) {
    fusionSetInfoEl.hidden = true
@@ -995,6 +997,45 @@ function syncInventoryTopbar() {
  kamasEl.textContent = fmt(getTopbarKamas())
  packsEl.textContent = fmt(getTopbarPacks())
 }
+
+ function getInventoryTopSetId() {
+  const setFilter = document.getElementById("setFilter")
+  const activeSet = String(setFilter?.value || "").trim()
+  if (activeSet) return activeSet
+
+  const selected = String(state.selected || "")
+  if (selected) {
+   const selectedItem = getActiveSource().find((item) => getInventoryItemKey(item) === selected)
+   if (selectedItem?.set) return String(selectedItem.set)
+  }
+
+  const visibleSets = new Set(getFilteredItems().map((item) => String(item.set || "")).filter(Boolean))
+  return visibleSets.size === 1 ? [...visibleSets][0] : ""
+ }
+
+ function updateInventoryTopSetInfo() {
+  const el = document.getElementById("inventoryTopSetInfo")
+  if (!el) return
+  if (state.mode !== "inventory") {
+   el.hidden = true
+   el.textContent = ""
+   return
+  }
+
+  const setId = getInventoryTopSetId()
+  if (!setId) {
+   el.hidden = true
+   el.textContent = ""
+   return
+  }
+
+  const pct = getSetProgressPct(setId)
+  const setName = getSetName(setId)
+  el.textContent = pct === null
+   ? `Set : ${setName}`
+   : `Set : ${setName} - ${fmt(pct)}% complétion`
+  el.hidden = false
+ }
 
 function updateFusionTopSetInfo(setId = state.fusionUi?.setId) {
  const el = document.getElementById("fusionTopSetInfo")
