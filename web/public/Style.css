@@ -5544,11 +5544,11 @@ body.achievements-page .ach-modal-task {
  border-radius: 10px;
  background: linear-gradient(160deg, rgba(13, 35, 82, 0.74), rgba(8, 23, 58, 0.78));
  width: 100%;
- max-width: 86%;
+ max-width: 100%;
  min-height: 102px;
  padding: 8px 10px 8px 12px;
  display: grid;
- grid-template-columns: minmax(0, 1fr) auto;
+ grid-template-columns: minmax(0, 1fr) auto minmax(128px, 152px);
  align-items: stretch;
  column-gap: 12px;
  row-gap: 0;
@@ -5643,6 +5643,41 @@ body.achievements-page .ach-modal-task-rewards {
 
 body.achievements-page .ach-modal-task-rewards::-webkit-scrollbar {
  display: none;
+}
+
+body.achievements-page .ach-modal-task-action {
+ display: flex;
+ justify-content: flex-end;
+ align-items: center;
+ min-width: 0;
+}
+
+body.achievements-page .ach-modal-task-action-btn {
+ min-width: 128px;
+ min-height: 42px;
+ border-radius: 10px;
+ border: 1px solid rgba(243, 203, 105, 0.84);
+ background: linear-gradient(180deg, #efc24d, #cc9d2c);
+ color: #1f2742;
+ font-size: 0.92rem;
+ font-weight: 900;
+ cursor: pointer;
+ box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+body.achievements-page .ach-modal-task-action-btn:hover:not(:disabled) {
+ filter: brightness(1.06);
+}
+
+body.achievements-page .ach-modal-task-action-btn:disabled {
+ cursor: default;
+}
+
+body.achievements-page .ach-modal-task-action-btn.done {
+ border-color: rgba(120, 214, 157, 0.46);
+ background: rgba(34, 84, 69, 0.62);
+ color: #d7ffe9;
+ box-shadow: none;
 }
 
 body.achievements-page .ach-modal-reward-chip {
@@ -5890,7 +5925,7 @@ body.achievements-page .ach-claim-empty {
  }
 
  body.achievements-page .ach-modal-task {
-  max-width: 92%;
+  max-width: 100%;
  }
 }
 
@@ -5971,6 +6006,10 @@ body.achievements-page .ach-claim-empty {
   min-height: 94px;
   grid-template-columns: 1fr;
   row-gap: 8px;
+ }
+
+ body.achievements-page .ach-modal-task-action {
+  justify-content: flex-end;
  }
 
  body.achievements-page .ach-modal-task-rewards {

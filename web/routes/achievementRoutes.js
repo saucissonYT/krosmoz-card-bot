@@ -111,14 +111,18 @@ module.exports = function mount(app, ctx) {
    const user = getUser(session.userId)
    ensureAchievementClaimState(user)
    const requestedCategory = String(req.body?.category || "").trim().toLowerCase()
+   const requestedAchievementId = String(req.body?.achievementId || req.body?.id || "").trim()
    const safeCategory = ACHIEVEMENT_CATEGORIES.includes(requestedCategory) && requestedCategory !== "all"
     ? requestedCategory
     : null
-   if (!safeCategory) {
+   if (!safeCategory && !requestedAchievementId) {
     return res.status(400).json({ error: "Categorie invalide pour le claim." })
    }
 
-   const claim = claimAchievementRewards(user, { category: safeCategory })
+   const claim = claimAchievementRewards(user, {
+    category: safeCategory,
+    achievementId: requestedAchievementId || null
+   })
 
    let newlyUnlocked = []
    if (claim.claimedCount > 0) {
@@ -139,6 +143,7 @@ module.exports = function mount(app, ctx) {
     levelUps: claim.levelUps,
     newlyUnlocked,
     category: safeCategory,
+    achievementId: requestedAchievementId || null,
     pending: pendingAfter,
     kamas: Number(user.kamas || 0),
     packs: Number(user.packs || 0)

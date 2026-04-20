@@ -14,7 +14,10 @@ resetRegistry()
 
 const { checkAchievements } = require("../systems/achievementEngine")
 const achievementRegistry = require("../systems/achievementRegistry")
-const { ensureAchievementClaimState } = require("../systems/achievementClaimService")
+const {
+ ensureAchievementClaimState,
+ claimAchievementRewards
+} = require("../systems/achievementClaimService")
 
 let passed = 0
 let failed = 0
@@ -80,6 +83,22 @@ test("achievement reward waits for claim", () => {
  const claimState = ensureAchievementClaimState(user)
  assert.ok(claimState.pendingIds.includes("kamas1000"), "kamas1000 should be pending")
  assert.ok(!user.titles.includes("Petit Marchand"), "title should not be granted before claim")
+})
+
+test("achievement claim can target a single pending reward", () => {
+ const user = makeUser({ kamas: 10000 })
+ checkAchievements(user, null)
+ const before = ensureAchievementClaimState(user)
+ assert.ok(before.pendingIds.length >= 2, "test needs multiple pending rewards")
+ const targetId = String(before.pendingIds[0])
+ const otherId = String(before.pendingIds[1])
+
+ const claim = claimAchievementRewards(user, { achievementId: targetId })
+ const after = ensureAchievementClaimState(user)
+
+ assert.deepStrictEqual(claim.claimedIds, [targetId], "only target achievement should be claimed")
+ assert.ok(!after.pendingIds.includes(targetId), "target should no longer be pending")
+ assert.ok(after.pendingIds.includes(otherId), "other pending rewards should remain")
 })
 
 test("unlocked achievements are in user.achievements", () => {

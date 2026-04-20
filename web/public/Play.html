@@ -2316,11 +2316,12 @@ function renderFusionCardSelection(setId, rarity, needed = 0) {
 
  const slotColumns = getFusionSlotColumnCount(safeNeeded)
  const slotWidth = 184
- const slotGap = 18
+ const slotGap = 32
  slotsNode.classList.toggle("single-row", safeNeeded > 0 && safeNeeded <= slotColumns)
  slotsNode.style.setProperty("--fusion-slot-count", String(Math.max(1, safeNeeded)))
  slotsNode.style.setProperty("--fusion-slot-columns", String(slotColumns))
  slotsNode.style.setProperty("--fusion-slot-width", `${slotWidth}px`)
+ slotsNode.style.setProperty("--fusion-slot-gap", `${slotGap}px`)
  slotsNode.style.setProperty("--fusion-slot-grid-width", `${(slotColumns * slotWidth) + ((slotColumns - 1) * slotGap)}px`)
  slotsNode.innerHTML = Array.from({ length: safeNeeded }).map((_, index) => {
   const id = selectedIds[index] || ""
@@ -2341,9 +2342,8 @@ function renderFusionCardSelection(setId, rarity, needed = 0) {
    const remaining = Math.max(0, Number(card.duplicates || 0) - used)
    const disabled = remaining <= 0 || selectedIds.length >= safeNeeded || state.fusionUi.autoComplete
    return `
-    <button type="button" class="fusion-card-pick ${used > 0 ? "selected" : ""}" data-fusion-pick-card="${escapeHtml(card.cardId)}" ${disabled ? "disabled" : ""} title="${escapeHtml(card.cardName)}">
+    <button type="button" class="fusion-card-pick ${used > 0 ? "selected" : ""}" data-fusion-pick-card="${escapeHtml(card.cardId)}" ${disabled ? "disabled" : ""} title="${escapeHtml(card.cardName)}" aria-label="${escapeHtml(card.cardName)} - ${fmt(remaining)}/${fmt(card.duplicates)} dispo">
      ${card.imageUrl ? `<img src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.cardName)}">` : `<span>${escapeHtml(card.rarity || rarity)}</span>`}
-     <strong>${escapeHtml(card.cardName)}</strong>
      <small>${fmt(remaining)}/${fmt(card.duplicates)} dispo</small>
     </button>
    `

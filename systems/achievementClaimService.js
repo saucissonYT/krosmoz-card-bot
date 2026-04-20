@@ -159,9 +159,16 @@ function claimAchievementRewards(user, options = {}) {
  ensureRewardStructures(user)
  const { pendingIds, pendingRewards } = ensureAchievementClaimState(user)
  const requestedCategory = String(options?.category || "").trim().toLowerCase()
- const filteredIds = requestedCategory && requestedCategory !== "all"
-  ? pendingIds.filter((id) => getAchievementCategory(achievementRegistry?.[id]) === requestedCategory)
-  : [...pendingIds]
+ const requestedAchievementId = String(options?.achievementId || options?.id || "").trim()
+ const pendingIdList = pendingIds.map((id) => String(id))
+ const filteredIds = requestedAchievementId
+  ? pendingIdList.filter((id) => (
+   id === requestedAchievementId &&
+   (!requestedCategory || requestedCategory === "all" || getAchievementCategory(achievementRegistry?.[id]) === requestedCategory)
+  ))
+  : (requestedCategory && requestedCategory !== "all"
+   ? pendingIdList.filter((id) => getAchievementCategory(achievementRegistry?.[id]) === requestedCategory)
+   : [...pendingIdList])
 
  if (filteredIds.length <= 0) {
   return {
