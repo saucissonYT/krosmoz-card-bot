@@ -1025,13 +1025,17 @@ function syncInventoryTopbar() {
  function updateInventoryTopSetInfo() {
   const el = document.getElementById("inventoryTopSetInfo")
   if (!el) return
-  if (state.mode !== "inventory") {
+  const isInventoryMode = state.mode === "inventory"
+  const isFabricationMode = state.mode === "craft"
+  if (!isInventoryMode && !isFabricationMode) {
    el.hidden = true
    el.textContent = ""
    return
   }
 
-  const setId = getInventoryTopSetId()
+  const setId = isFabricationMode
+   ? String(state.craftUi?.setId || getCraftSetRows(getCraftCandidates())[0]?.id || "").trim()
+   : getInventoryTopSetId()
   if (!setId) {
    el.hidden = true
    el.textContent = ""
@@ -3428,7 +3432,8 @@ const selected = setCards.find((item) => String(item.cardId) === activeCardId) |
  const selectedArt = selected ? getCraftIllustrationForCard(selected.cardId, selected.set, Math.max(0, selectedIndex), selected.cardName) : null
  const progress = selected ? getFragmentProgressForCard(selected.cardId) : { found: [], unique: 0, total: 0 }
 const canCraft = Boolean(selected && progress.unique >= 5)
-const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.name || getSetName(activeSetId) || "Set"
+ const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.name || getSetName(activeSetId) || "Set"
+ updateInventoryTopSetInfo()
  const selectedPreviewPrimary = selected
   ? String(selected.imageUrl || "/assets/ui/pack-back-ssr.png")
   : ""
@@ -3472,9 +3477,6 @@ const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.nam
      </aside>
 
      <section class="craft-cards-panel">
-      <header class="craft-cards-head">
-       <h3>${escapeHtml(activeSetName)}</h3>
-      </header>
       <div class="craft-ssr-grid" style="padding-bottom:120px !important;">
        ${setCards.length
          ? setCards.map((item, index) => {

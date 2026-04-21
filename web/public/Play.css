@@ -6029,6 +6029,7 @@ body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .cr
  min-height: 0 !important;
  height: 100% !important;
  overflow: hidden !important;
+ grid-template-rows: minmax(0, 1fr) !important;
 }
 
 .play-page.craft-header-active #playCraft .craft-ssr-grid {
