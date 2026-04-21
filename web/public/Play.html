@@ -835,12 +835,15 @@ function getCraftSetRows(crafts = []) {
   if (!grouped.has(setId)) {
    grouped.set(setId, {
     id: setId,
-     name: String(row.setName || getSetName(setId) || setId),
-     icon: getCraftSetIcon(setId),
-    count: 0
+    name: String(row.setName || getSetName(setId) || setId),
+    icon: getCraftSetIcon(setId),
+    count: 0,
+    readyCount: 0
    })
   }
-  grouped.get(setId).count += 1
+  const target = grouped.get(setId)
+  target.count += 1
+  if (getFragmentProgressForCard(row.cardId).unique >= 5) target.readyCount += 1
  }
 
  const ordered = []
@@ -852,7 +855,8 @@ function getCraftSetRows(crafts = []) {
    id,
    name: String(item.name || row?.name || getSetName(id) || id),
    icon: String(item.icon || row?.icon || getCraftSetIcon(id)),
-   count: Number(row?.count || 0)
+   count: Number(row?.count || 0),
+   readyCount: Number(row?.readyCount || 0)
   })
   seen.add(id)
  }
@@ -862,6 +866,11 @@ function getCraftSetRows(crafts = []) {
   .sort((a, b) => String(a.name).localeCompare(String(b.name), "fr"))
  ordered.push(...extras)
  return ordered
+}
+
+function formatCraftNotifCount(count) {
+ const safe = Math.max(0, Math.floor(Number(count || 0)))
+ return safe > 99 ? "99+" : String(safe)
 }
 
 function getOwnedQtyForCard(cardId) {
@@ -3447,9 +3456,14 @@ const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.nam
        ${setRowsDisplay.map((set) => {
         const active = String(set.id) === activeSetId
         const disabled = Boolean(set.isComingSoon)
+        const readyCount = Math.max(0, Number(set.readyCount || 0))
+        const notif = !disabled && readyCount > 0
+         ? `<span class="craft-notif-badge craft-set-notif-badge" aria-label="${escapeHtml(`${formatCraftNotifCount(readyCount)} carte(s) fabricable(s) dans ${set.name}`)}">${escapeHtml(formatCraftNotifCount(readyCount))}</span>`
+         : ""
         return `
          <button type="button" class="inventory-set-btn craft-set-btn ${active ? "active" : ""} ${disabled ? "coming-soon" : ""}" ${disabled ? "disabled" : `data-craft-set-id="${escapeHtml(set.id)}"`} title="${escapeHtml(set.name)}">
           <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
+          ${notif}
           <span class="inventory-set-label">${escapeHtml(set.name)}</span>
          </button>
         `
@@ -3468,12 +3482,17 @@ const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.nam
           const art = getCraftIllustrationForCard(item.cardId, item.set, index, item.cardName)
           const listPrimary = art.primary
           const listFallback = art.fallback
+          const ready = getFragmentProgressForCard(item.cardId).unique >= 5
+          const notif = ready
+           ? `<span class="craft-notif-badge craft-card-notif-badge" aria-label="${escapeHtml(`${item.cardName} fabricable`)}">1</span>`
+           : ""
           return `
            <button type="button" class="craft-ssr-item ${active ? "active" : ""}" data-craft-card-id="${escapeHtml(item.cardId)}">
             <div class="craft-ssr-media">
              <img class="craft-ssr-illus" src="${escapeHtml(listPrimary)}" alt="${escapeHtml(item.cardName)}" loading="lazy" onerror="this.src='${escapeHtml(listFallback)}';this.onerror=null;">
              <img class="craft-ssr-rarity-ui" src="/assets/ui/ssr.png" alt="SSR" loading="lazy" onerror="this.style.display='none';this.onerror=null;">
              <span class="craft-ssr-title-overlay">${escapeHtml(item.cardName)}</span>
+             ${notif}
             </div>
           </button>
          `

@@ -5927,6 +5927,40 @@ body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .cr
  color: #b7c8ef !important;
 }
 
+.play-page.craft-header-active #playCraft .craft-set-btn {
+ position: relative !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-notif-badge {
+ position: absolute !important;
+ z-index: 8 !important;
+ min-width: 28px !important;
+ height: 28px !important;
+ border-radius: 999px !important;
+ border: 2px solid rgba(255, 255, 255, 0.92) !important;
+ background: #d33f39 !important;
+ color: #fff !important;
+ padding: 0 7px !important;
+ display: inline-flex !important;
+ align-items: center !important;
+ justify-content: center !important;
+ font-size: 0.8rem !important;
+ font-weight: 800 !important;
+ line-height: 1 !important;
+ box-shadow: 0 0 10px rgba(145, 10, 10, 0.34) !important;
+ pointer-events: none !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-set-notif-badge {
+ top: 12px !important;
+ right: 10px !important;
+}
+
+.play-page.craft-header-active #playCraft .craft-card-notif-badge {
+ top: 8px !important;
+ right: 8px !important;
+}
+
 .play-page.craft-header-active #playCraft .craft-cards-panel {
  overflow: hidden !important;
 }
