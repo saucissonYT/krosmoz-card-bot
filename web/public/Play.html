@@ -3492,8 +3492,8 @@ const activeSetName = setRows.find((row) => String(row.id) === activeSetId)?.nam
              <img class="craft-ssr-illus" src="${escapeHtml(listPrimary)}" alt="${escapeHtml(item.cardName)}" loading="lazy" onerror="this.src='${escapeHtml(listFallback)}';this.onerror=null;">
              <img class="craft-ssr-rarity-ui" src="/assets/ui/ssr.png" alt="SSR" loading="lazy" onerror="this.style.display='none';this.onerror=null;">
              <span class="craft-ssr-title-overlay">${escapeHtml(item.cardName)}</span>
+             ${notif}
             </div>
-            ${notif}
           </button>
          `
         }).join("")
