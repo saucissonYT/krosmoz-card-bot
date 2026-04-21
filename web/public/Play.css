@@ -5958,7 +5958,8 @@ body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .cr
 
 .play-page.craft-header-active #playCraft .craft-card-notif-badge {
  top: 2px !important;
- right: 2px !important;
+ right: auto !important;
+ left: calc(50% + min(256px, 48%) + 6px) !important;
  transform: none !important;
 }
 
