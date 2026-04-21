@@ -1100,8 +1100,8 @@ body.inventory-buy-modal-open {
 .play-page.fusion-bg-active .fusion-top-set-info {
  display: inline-flex;
  align-items: center;
- min-height: 28px;
- padding-left: 2px;
+ min-height: 30px;
+ padding: 0 12px;
 }
 
 body.play-page.fusion-bg-active .event-live-toast {

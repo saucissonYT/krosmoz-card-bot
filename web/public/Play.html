@@ -50,7 +50,7 @@ if (__initialPlayTab === "fusion") {
       <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
       <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
       <span id="inventoryTopSetInfo" class="inventory-top-set-info" hidden></span>
-      <span id="fusionTopSetInfo" class="fusion-top-set-info" hidden></span>
+      <span id="fusionTopSetInfo" class="inventory-top-set-info fusion-top-set-info" hidden></span>
      </div>
      <div class="inventory-top-right">
       <div class="inventory-resource" aria-label="Kamas">
@@ -1065,7 +1065,10 @@ function updateFusionTopSetInfo(setId = state.fusionUi?.setId) {
   return
  }
  const pct = getSetProgressPct(safeSetId)
- el.textContent = `Set actif: ${getSetName(safeSetId)}${pct === null ? "" : ` - ${fmt(pct)}% collection`}`
+ const setName = getSetName(safeSetId)
+ el.textContent = pct === null
+  ? `Set : ${setName}`
+  : `Set : ${setName} - ${fmt(pct)}% complétion`
  el.hidden = false
 }
 
