@@ -5958,7 +5958,7 @@ body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .cr
 
 .play-page.craft-header-active #playCraft .craft-card-notif-badge {
  top: -18px !important;
- right: -10px !important;
+ right: calc(2% - 10px) !important;
  transform: none !important;
 }
 
@@ -6049,6 +6049,7 @@ body.play-page.craft-header-active #playCraft.play-panel-alt .craft-layout > .cr
 }
 
 .play-page.craft-header-active #playCraft .craft-ssr-item {
+ position: relative !important;
  display: flex !important;
  flex-direction: column !important;
  align-items: center !important;
