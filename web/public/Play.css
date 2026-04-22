@@ -239,6 +239,8 @@ body.play-page.inventory-layout-active {
  align-items: center;
  gap: 12px;
  margin-right: auto;
+ min-width: 0;
+ flex-wrap: nowrap;
 }
 
 .inventory-back-btn {
@@ -277,6 +279,7 @@ body.play-page.inventory-layout-active {
 .inventory-top-set-info {
  display: inline-flex;
  align-items: center;
+ flex: 0 0 auto;
  min-height: 30px;
  border-radius: 999px;
  border: 1px solid rgba(244, 211, 111, 0.34);
@@ -295,6 +298,8 @@ body.play-page.inventory-layout-active {
 }
 
 .inventory-top-rarity-filter {
+ flex: 0 0 auto;
+ width: 150px;
  min-height: 30px;
  border-radius: 999px;
  border: 1px solid rgba(244, 211, 111, 0.34);

@@ -246,6 +246,7 @@ const MODE_PATH = {
  quests: "/play/missions"
 }
 const IS_LOCAL_FUSION_TEST = String(window.location.pathname || "") === "/fusion"
+const INVENTORY_DEFAULT_SET_ID = "incarnam"
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const state = {
@@ -253,6 +254,9 @@ const state = {
  localFusionTest: IS_LOCAL_FUSION_TEST,
  localFusionResetDone: false,
  inventoryView: "cards",
+ inventoryUi: {
+  setId: INVENTORY_DEFAULT_SET_ID
+ },
  sortDesc: true,
   me: null,
   profile: null,
@@ -1036,6 +1040,9 @@ function syncInventoryTopbar() {
   const activeSet = String(setFilter?.value || "").trim()
   if (activeSet) return activeSet
 
+  const rememberedSet = String(state.inventoryUi?.setId || "").trim()
+  if (rememberedSet) return rememberedSet
+
   const selected = String(state.selected || "")
   if (selected) {
    const selectedItem = getActiveSource().find((item) => getInventoryItemKey(item) === selected)
@@ -1043,7 +1050,7 @@ function syncInventoryTopbar() {
   }
 
   const visibleSets = new Set(getFilteredItems().map((item) => String(item.set || "")).filter(Boolean))
-  return visibleSets.size === 1 ? [...visibleSets][0] : ""
+  return visibleSets.size === 1 ? [...visibleSets][0] : INVENTORY_DEFAULT_SET_ID
  }
 
  function updateInventoryTopSetInfo() {
@@ -1414,8 +1421,10 @@ function applyInventorySetFilter(nextSetId) {
  const safeNext = String(nextSetId || "").trim().toLowerCase()
  if (String(setFilter.value || "") === safeNext) {
   setFilter.value = ""
+  state.inventoryUi.setId = INVENTORY_DEFAULT_SET_ID
  } else {
   setFilter.value = safeNext
+  state.inventoryUi.setId = safeNext || INVENTORY_DEFAULT_SET_ID
  }
  renderCurrentMode()
 }
@@ -4538,7 +4547,12 @@ function bindEvents() {
   })
 
   const setFilter = document.getElementById("setFilter")
-  if (setFilter) setFilter.addEventListener("change", renderCurrentMode)
+  if (setFilter) {
+   setFilter.addEventListener("change", () => {
+    state.inventoryUi.setId = String(setFilter.value || INVENTORY_DEFAULT_SET_ID).trim().toLowerCase()
+    renderCurrentMode()
+   })
+  }
   const rarityFilter = document.getElementById("rarityFilter")
   const inventoryTopRarityFilter = document.getElementById("inventoryTopRarityFilter")
   if (rarityFilter) {
