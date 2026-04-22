@@ -50,6 +50,17 @@ if (__initialPlayTab === "fusion") {
       <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
       <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
       <span id="inventoryTopSetInfo" class="inventory-top-set-info" hidden></span>
+      <select id="inventoryTopRarityFilter" class="inventory-top-rarity-filter" aria-label="Filtrer par rareté" hidden>
+       <option value="">Rareté : Toutes</option>
+       <option value="C">C</option>
+       <option value="U">U</option>
+       <option value="R">R</option>
+       <option value="SR">SR</option>
+       <option value="HR">HR</option>
+       <option value="UR">UR</option>
+       <option value="S">S</option>
+       <option value="SSR">SSR</option>
+      </select>
       <span id="fusionTopSetInfo" class="inventory-top-set-info fusion-top-set-info" hidden></span>
      </div>
      <div class="inventory-top-right">
@@ -588,11 +599,19 @@ function getActiveSource() {
  return (state.inventory && state.inventory.cards) || []
 }
 
+function getInventoryRarityFilterValue() {
+ const topRarity = document.getElementById("inventoryTopRarityFilter")
+ const legacyRarity = document.getElementById("rarityFilter")
+ return String(topRarity?.value || legacyRarity?.value || "").trim().toUpperCase()
+}
+
 function getFilteredItems() {
  const set = String(document.getElementById("setFilter")?.value || "")
+ const rarity = getInventoryRarityFilterValue()
 
  const items = getActiveSource().filter((item) => {
   if (set && String(item.set) !== String(set)) return false
+  if (rarity && String(item.rarity || "").toUpperCase() !== rarity) return false
   if (state.mode === "inventory" && Number(item.qty || 0) <= 0) return false
   return true
  })
@@ -983,6 +1002,7 @@ function syncInventoryTopbar() {
  const kamasEl = document.getElementById("inventoryTopKamas")
  const packsEl = document.getElementById("inventoryTopPacks")
  const fusionSetInfoEl = document.getElementById("fusionTopSetInfo")
+ const rarityFilterEl = document.getElementById("inventoryTopRarityFilter")
  if (!bar || !kamasEl || !packsEl || !titleEl) return
 
   const isInventoryMode = state.mode === "inventory"
@@ -998,6 +1018,10 @@ function syncInventoryTopbar() {
   titleEl.textContent = isFusionMode ? "Fusion" : (isFabricationMode ? "fabrication" : (isMissionsMode ? "missions" : "inventaire"))
   updateInventoryTopSetInfo()
   updateFusionTopSetInfo()
+  if (rarityFilterEl) {
+   rarityFilterEl.hidden = !isInventoryMode
+   rarityFilterEl.value = getInventoryRarityFilterValue()
+  }
   if (fusionSetInfoEl && !isFusionMode) {
    fusionSetInfoEl.hidden = true
    fusionSetInfoEl.textContent = ""
@@ -4515,6 +4539,20 @@ function bindEvents() {
 
   const setFilter = document.getElementById("setFilter")
   if (setFilter) setFilter.addEventListener("change", renderCurrentMode)
+  const rarityFilter = document.getElementById("rarityFilter")
+  const inventoryTopRarityFilter = document.getElementById("inventoryTopRarityFilter")
+  if (rarityFilter) {
+   rarityFilter.addEventListener("change", () => {
+    if (inventoryTopRarityFilter) inventoryTopRarityFilter.value = rarityFilter.value
+    renderCurrentMode()
+   })
+  }
+  if (inventoryTopRarityFilter) {
+   inventoryTopRarityFilter.addEventListener("change", () => {
+    if (rarityFilter) rarityFilter.value = inventoryTopRarityFilter.value
+    renderCurrentMode()
+   })
+  }
 
   const inventoryTopBuyPacksBtn = document.getElementById("inventoryTopBuyPacksBtn")
   if (inventoryTopBuyPacksBtn) {
