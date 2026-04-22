@@ -109,4 +109,44 @@ module.exports = function mount(app, ctx) {
    return res.status(500).json({ error: "Erreur serveur" })
   }
  })
+
+ app.delete("/api/cards/:id/image", (req, res) => {
+  try {
+   const session = requireSession(req, res)
+   if (!session) return
+   if (!canEditCards(session)) {
+    return res.status(403).json({ error: "Acces reserve au dev du site." })
+   }
+
+   const cardId = String(req.params.id || "").trim()
+   if (!cardId) {
+    return res.status(400).json({ error: "ID de carte invalide." })
+   }
+
+   const cards = getCards()
+   const index = cards.findIndex((card) => String(card?.id || "") === cardId)
+   if (index < 0) {
+    return res.status(404).json({ error: "Carte introuvable." })
+   }
+
+   const nextCards = cards.map((card, idx) => (
+    idx === index ? { ...card, image: "" } : card
+   ))
+
+   saveCards(nextCards)
+
+   return res.json({
+    ok: true,
+    card: {
+     id: String(nextCards[index]?.id || cardId),
+     set: String(nextCards[index]?.set || ""),
+     image: "",
+     imageUrl: null
+    }
+   })
+  } catch (e) {
+   console.error("[WEB] DELETE /api/cards/:id/image:", e)
+   return res.status(500).json({ error: "Erreur serveur" })
+  }
+ })
 }

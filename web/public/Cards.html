@@ -216,11 +216,19 @@
   const owned = state.ownedCardIds.has(cardId)
   const ownedQty = Number(state.ownedCardQtyById.get(cardId) || 0)
   const masked = state.completionMask && !owned
-  const miniThumbSrc = String(card.imageUrl || "/assets/ui/pack-back-normal.png")
+  const miniThumbSrc = String(card.imageUrl || "")
+  const hasImage = Boolean(miniThumbSrc)
   const showEditButton = state.canEditCards && state.editorEnabled
   const editButton = showEditButton
-   ? `<button class="btn btn-outline cards-edit-btn" data-card-edit-image="${escapeHtml(cardId)}" data-card-set="${escapeHtml(cardSet)}">Uploader image</button>`
+   ? `<div class="cards-edit-actions">
+       <button class="btn btn-outline cards-edit-btn" data-card-edit-image="${escapeHtml(cardId)}" data-card-set="${escapeHtml(cardSet)}">Uploader image</button>
+       <button class="btn btn-outline cards-edit-btn cards-delete-image-btn" data-card-delete-image="${escapeHtml(cardId)}" ${hasImage ? "" : "disabled"}>Supprimer image</button>
+      </div>`
    : ""
+  const emptyThumbHtml = `<span class="kshop-mini-thumb cards-empty-thumb" aria-hidden="true"></span>`
+  const thumbHtml = hasImage
+   ? `<img class="kshop-mini-thumb" data-card-preview="1" data-card-preview-name="${escapeHtml(cardName)}" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.style.display='none';this.nextElementSibling.hidden=false">${emptyThumbHtml.replace("cards-empty-thumb", "cards-empty-thumb cards-empty-thumb-fallback").replace("aria-hidden=\"true\"", "aria-hidden=\"true\" hidden")}`
+   : emptyThumbHtml
 
   const ownedLine = state.connected
    ? `Possedees: ${ownedQty > 0 ? `x${ownedQty}` : "0"}${owned ? " - Deja obtenue" : ""}`
@@ -240,7 +248,7 @@
       <p class="kshop-muted">${escapeHtml(ownedLine)}</p>
      </div>
      <div class="kshop-mini-thumb-wrap" aria-hidden="true">
-      <img class="kshop-mini-thumb" data-card-preview="1" data-card-preview-name="${escapeHtml(cardName)}" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="" onerror="this.src='/assets/ui/pack-back-normal.png'">
+      ${thumbHtml}
      </div>
     </div>
     ${editButton}
@@ -308,6 +316,24 @@
    await loadCards()
   } catch (error) {
    window.alert(error?.message || "Erreur lors de l'upload.")
+  }
+ }
+
+ async function deleteCardImage(cardId) {
+  if (!state.canEditCards || !state.editorEnabled) return
+  if (!cardId) return
+  if (!window.confirm("Supprimer l'image de cette carte ? La carte restera dans le catalogue.")) return
+
+  try {
+   const res = await fetch(`/api/cards/${encodeURIComponent(cardId)}/image`, {
+    method: "DELETE",
+    credentials: "same-origin"
+   })
+   const data = await res.json().catch(() => ({}))
+   if (!res.ok) throw new Error(data?.error || "Echec de la suppression de l'image.")
+   await loadCards()
+  } catch (error) {
+   window.alert(error?.message || "Erreur lors de la suppression de l'image.")
   }
  }
 
@@ -463,6 +489,15 @@
     cardImageUploader.dataset.cardId = cardId
     cardImageUploader.click()
    }
+   return
+  }
+
+  const deleteImageBtn = event.target.closest("[data-card-delete-image]")
+  if (deleteImageBtn) {
+   event.preventDefault()
+   if (deleteImageBtn.disabled) return
+   const cardId = String(deleteImageBtn.getAttribute("data-card-delete-image") || "")
+   deleteCardImage(cardId)
    return
   }
 
