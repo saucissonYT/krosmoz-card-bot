@@ -621,6 +621,8 @@ function getFilteredItems() {
  })
 
  items.sort((a, b) => {
+  const rarityDelta = rarityRank(a.rarity) - rarityRank(b.rarity)
+  if (rarityDelta !== 0) return rarityDelta
   const aId = Number(a.cardId || 0)
   const bId = Number(b.cardId || 0)
   if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) return aId - bId
