@@ -299,7 +299,7 @@ body.play-page.inventory-layout-active {
 
 .inventory-top-rarity-filter {
  flex: 0 0 auto;
- width: 150px;
+ width: 190px;
  min-height: 30px;
  border-radius: 999px;
  border: 1px solid rgba(244, 211, 111, 0.34);
@@ -5412,6 +5412,7 @@ body.pack-opening-lock {
   font-size: 0.78rem;
  }
  .inventory-top-rarity-filter {
+  width: 176px;
   min-height: 26px;
   padding: 0 28px 0 9px;
   font-size: 0.78rem;
