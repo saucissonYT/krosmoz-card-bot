@@ -2913,14 +2913,41 @@
    }))
   }
 
+  function normalizeRateCardLookupName(value) {
+   return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .toLowerCase()
+  }
+
+  function getFallbackSSRImageForCard(setId, card, index) {
+   const explicitImage = String(card?.image || "").trim()
+   if (explicitImage) return explicitImage
+
+   const fallbackCards = getFallbackSSRCardsForSet(setId)
+   const targetName = normalizeRateCardLookupName(card?.name || "")
+   if (targetName) {
+    const byName = fallbackCards.find((entry) => (
+     normalizeRateCardLookupName(entry?.name || "") === targetName && String(entry?.image || "").trim()
+    ))
+    if (byName?.image) return String(byName.image)
+   }
+
+   const byIndex = fallbackCards[index]
+   if (byIndex?.image) return String(byIndex.image)
+   return "/assets/ui/ssr.png"
+  }
+
   function buildSSRRateRows(setId, effectiveSSRPercent) {
    const sourceCards = rateCardsCacheBySet[setId] || getFallbackSSRCardsForSet(setId)
    if (!sourceCards.length) return []
    const perCardRate = effectiveSSRPercent / sourceCards.length
-   return sourceCards.map((card) => ({
+   return sourceCards.map((card, index) => ({
     id: card.id || "",
     name: String(card.name || "Carte SSR"),
-    image: card.image || "/assets/ui/ssr.png",
+    image: getFallbackSSRImageForCard(setId, card, index),
     rate: perCardRate
    }))
   }

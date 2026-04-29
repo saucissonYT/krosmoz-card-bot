@@ -293,6 +293,8 @@ let _cardsByIdSource = null
 let _setNameMapCache = null
 let _setNameMapSource = null
 let _localCardsBootstrapTried = false
+let _cardImageIndexCache = null
+let _cardImageIndexCacheAt = 0
 
 /* Nettoyage périodique du cache Discord + sessions expirées (toutes les 10 min) */
 setInterval(() => {
@@ -471,6 +473,102 @@ function normalizeDemoCardName(rawName) {
   .trim()
  if (!text) return "Carte inconnue"
  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function normalizeCardLookupName(rawName) {
+ return String(rawName || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/[^a-zA-Z0-9]+/g, " ")
+  .trim()
+  .toLowerCase()
+}
+
+function getCardImageIndex() {
+ const now = Date.now()
+ if (_cardImageIndexCache && (now - _cardImageIndexCacheAt) < STATIC_CACHE_TTL) {
+  return _cardImageIndexCache
+ }
+
+ const sourceRoots = [CARD_IMAGES_RUNTIME_DIR, CARD_IMAGES_REPO_DIR]
+ const raritySet = new Set(RARITY_ORDER)
+ const bySetAndId = new Map()
+ const bySetAndName = new Map()
+
+ for (const rootDir of sourceRoots) {
+  if (!fs.existsSync(rootDir)) continue
+  const stack = [{ dir: rootDir, setHint: null }]
+
+  while (stack.length > 0) {
+   const { dir, setHint } = stack.pop()
+   let entries = []
+   try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+   } catch (_) {
+    continue
+   }
+
+   for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+     const nextSetHint = setHint || entry.name
+     stack.push({ dir: fullPath, setHint: nextSetHint })
+     continue
+    }
+    if (!entry.isFile()) continue
+    if (!/\.(png|jpg|jpeg|webp)$/i.test(entry.name)) continue
+
+    const setId = String(setHint || "").trim().toLowerCase()
+    if (!setId) continue
+
+    const ext = path.extname(entry.name)
+    const stem = entry.name.slice(0, -ext.length)
+    const parts = stem.split("_").filter(Boolean)
+    if (!parts.length) continue
+
+    const last = String(parts[parts.length - 1] || "").toUpperCase()
+    if (raritySet.has(last)) {
+     parts.pop()
+    }
+
+    const parsedId = Number.parseInt(String(parts[0] || ""), 10)
+    if (Number.isInteger(parsedId)) {
+     const idKey = `${setId}:${parsedId}`
+     if (!bySetAndId.has(idKey)) bySetAndId.set(idKey, entry.name)
+     parts.shift()
+    }
+
+    const nameKey = normalizeCardLookupName(parts.join(" "))
+    if (nameKey) {
+     const lookupKey = `${setId}:${nameKey}`
+     if (!bySetAndName.has(lookupKey)) bySetAndName.set(lookupKey, entry.name)
+    }
+   }
+  }
+ }
+
+ _cardImageIndexCache = { bySetAndId, bySetAndName }
+ _cardImageIndexCacheAt = now
+ return _cardImageIndexCache
+}
+
+function getResolvedCardImageName(card) {
+ const explicitImage = String(card?.image || "").trim()
+ if (explicitImage) return explicitImage
+
+ const setId = String(card?.set || "").trim().toLowerCase()
+ if (!setId) return ""
+
+ const imageIndex = getCardImageIndex()
+ const cardId = Number.parseInt(String(card?.id || ""), 10)
+ if (Number.isInteger(cardId)) {
+  const byId = imageIndex.bySetAndId.get(`${setId}:${cardId}`)
+  if (byId) return byId
+ }
+
+ const nameKey = normalizeCardLookupName(card?.name || "")
+ if (!nameKey) return ""
+ return imageIndex.bySetAndName.get(`${setId}:${nameKey}`) || ""
 }
 
 function buildLocalCardsFromImages() {
@@ -2856,20 +2954,23 @@ function computeCardsCatalog(query) {
    break
  }
 
-  return {
-   total: filtered.length,
-   items: filtered.map((card) => ({
-   id: card.id,
-    name: card.name || `Carte ${card.id}`,
-    rarity: card.rarity || "C",
-    set: card.set || "unknown",
-    image: card.image || "",
-    setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
-    imageUrl: card?.image && card?.set
-     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-     : null
-  }))
- }
+ return {
+  total: filtered.length,
+   items: filtered.map((card) => {
+    const resolvedImage = getResolvedCardImageName(card)
+    return {
+     id: card.id,
+     name: card.name || `Carte ${card.id}`,
+     rarity: card.rarity || "C",
+     set: card.set || "unknown",
+     image: resolvedImage,
+     setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
+     imageUrl: resolvedImage && card?.set
+      ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
+      : null
+    }
+   })
+  }
 }
 
 function computeMarketAverages(history) {
