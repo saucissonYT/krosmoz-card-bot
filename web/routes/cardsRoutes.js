@@ -9,7 +9,7 @@ module.exports = function mount(app, ctx) {
   getCards, canEditCards, sanitizeCardImageName,
   parseImageDataUrl, splitImageFileName,
   buildUniqueImageFileName, buildRandomImageFileName,
-  saveCards, CARD_IMAGES_RUNTIME_DIR
+  saveCards, CARD_IMAGES_RUNTIME_DIR, apiCache
  } = ctx
 
  app.get("/api/cards", (req, res) => {
@@ -94,6 +94,8 @@ module.exports = function mount(app, ctx) {
    ))
 
    saveCards(nextCards)
+   apiCache.invalidatePrefix("inventory:")
+   apiCache.invalidatePrefix("profile:")
 
    return res.json({
     ok: true,
@@ -134,6 +136,8 @@ module.exports = function mount(app, ctx) {
    ))
 
    saveCards(nextCards)
+   apiCache.invalidatePrefix("inventory:")
+   apiCache.invalidatePrefix("profile:")
 
    return res.json({
     ok: true,

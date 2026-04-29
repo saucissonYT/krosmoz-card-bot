@@ -3610,6 +3610,7 @@ function buildInventoryPayload(userId) {
   const qty = Number(qtyRaw || 0)
   if (qty <= 0) continue
   const card = cardsById.get(cardId) || getSecretCardById(cardId)
+  const resolvedImage = getResolvedCardImageName(card)
   const setId = card?.set || "unknown"
   const rarity = String(card?.rarity || "C").toUpperCase()
   const isSecret = isSecretCard(card)
@@ -3621,8 +3622,8 @@ function buildInventoryPayload(userId) {
    rarity,
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
-   imageUrl: card?.image && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+   imageUrl: resolvedImage && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
     : null,
    sellPrice: isSecret ? 0 : computeSellPrice(baseSellPrice, sellMultiplier),
    sellBonusPercent
@@ -3638,6 +3639,7 @@ function buildInventoryPayload(userId) {
  const fragments = Array.isArray(user.fragments) ? user.fragments : []
  const fragmentItems = fragments.map((f, idx) => {
   const card = cardsById.get(String(f.cardId))
+  const resolvedImage = getResolvedCardImageName(card)
   const setId = card?.set || "unknown"
   return {
    inventoryIndex: idx,
@@ -3647,8 +3649,8 @@ function buildInventoryPayload(userId) {
    rarity: card?.rarity || "SSR",
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
-   imageUrl: card?.image && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
+   imageUrl: resolvedImage && card?.set
+    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
     : null
   }
  })

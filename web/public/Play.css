@@ -2328,6 +2328,7 @@ body.play-page.fusion-bg-active .event-live-toast {
  position: relative;
  padding: 0;
  overflow: visible;
+ animation: fusionCardHoverDrift 4.8s ease-in-out infinite;
 }
 
 .mode-fusion-simple .fusion-card-slot img {
@@ -2370,6 +2371,10 @@ body.play-page.fusion-bg-active .event-live-toast {
 
 .mode-fusion-simple .fusion-card-slot.fusion-card-armed {
  pointer-events: none;
+}
+
+.mode-fusion-simple .fusion-forge-stage.animating .fusion-card-slot.filled {
+ animation: none;
 }
 
 .mode-fusion-simple .fusion-card-slot.fusion-card-armed img {
@@ -2457,6 +2462,7 @@ body.play-page.fusion-bg-active .event-live-toast {
  gap: 4px;
  cursor: pointer;
  overflow: visible;
+ animation: fusionCardHoverDrift 5.6s ease-in-out infinite;
 }
 
 .mode-fusion-simple .fusion-card-pick.selected {
@@ -2466,6 +2472,7 @@ body.play-page.fusion-bg-active .event-live-toast {
 .mode-fusion-simple .fusion-card-pick:disabled {
  opacity: 0.52;
  cursor: not-allowed;
+ animation: none;
 }
 
 .mode-fusion-simple .fusion-card-pick img {
@@ -2594,6 +2601,7 @@ body.play-page.fusion-bg-active .event-live-toast {
 
 .mode-fusion-simple .fusion-forge-result-card {
  width: min(198px, 30vw);
+ animation: fusionCardHoverDrift 5.2s ease-in-out infinite;
 }
 
 .mode-fusion-simple .fusion-forge-result.visible {
@@ -3277,6 +3285,12 @@ body.play-page.fusion-bg-active .event-live-toast {
  100% { transform: translateY(0) scale(1); }
 }
 
+@keyframes fusionCardHoverDrift {
+ 0% { transform: translateY(0); }
+ 50% { transform: translateY(-5px); }
+ 100% { transform: translateY(0); }
+}
+
 @keyframes fusionCorePulse {
  0% { opacity: 0.82; }
  50% { opacity: 1; }
@@ -3287,6 +3301,30 @@ body.play-page.fusion-bg-active .event-live-toast {
  0% { transform: translate(-50%, -52%) scale(0.72); }
  55% { transform: translate(-50%, -60%) scale(1.08); }
  100% { transform: translate(-50%, -58%) scale(1); }
+}
+
+.mode-fusion-simple .fusion-card-slots .fusion-card-slot:nth-child(2n) {
+ animation-delay: -1.4s;
+}
+
+.mode-fusion-simple .fusion-card-slots .fusion-card-slot:nth-child(3n) {
+ animation-delay: -2.6s;
+}
+
+.mode-fusion-simple .fusion-duplicate-picker .fusion-card-pick:nth-child(2n) {
+ animation-delay: -1.8s;
+}
+
+.mode-fusion-simple .fusion-duplicate-picker .fusion-card-pick:nth-child(3n) {
+ animation-delay: -3.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+ .mode-fusion-simple .fusion-card-slot.filled,
+ .mode-fusion-simple .fusion-card-pick,
+ .mode-fusion-simple .fusion-forge-result-card {
+  animation: none !important;
+ }
 }
 
 .mode-craft .mode-hero {
