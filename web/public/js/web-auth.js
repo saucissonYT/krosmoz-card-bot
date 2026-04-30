@@ -43,6 +43,7 @@
  const BAN_IMAGE_FALLBACK = "/assets/ui/ban%20krosmoz.png"
  const MAINTENANCE_OVERLAY_ID = "kcMaintenanceOverlay"
  const MAINTENANCE_IMAGE_FALLBACK = "/assets/ui/site-construction.svg"
+ const GATE_LOGOUT_ATTR = "data-kc-gate-logout"
  let banOverlayActive = false
  let maintenanceOverlayActive = false
  const DAILY_BUTTON_REFRESH_MS = 60000
@@ -70,6 +71,65 @@
   } catch (_) {}
   const eventToast = document.getElementById("globalEventToast")
   if (eventToast) eventToast.hidden = true
+ }
+
+ async function performGateLogout(button) {
+  const btnEl = button instanceof HTMLButtonElement ? button : null
+  if (btnEl?.disabled) return
+  const initialText = btnEl ? btnEl.textContent : ""
+  if (btnEl) {
+   btnEl.disabled = true
+   btnEl.textContent = "Déconnexion..."
+  }
+  try {
+   await fetch("/auth/logout", { method: "POST", credentials: "same-origin" })
+  } catch (_) {}
+  window.location.replace("/")
+  if (btnEl) {
+   window.setTimeout(() => {
+    btnEl.disabled = false
+    btnEl.textContent = initialText
+   }, 1200)
+  }
+ }
+
+ function buildGateLogoutButton() {
+  const button = document.createElement("button")
+  button.type = "button"
+  button.textContent = "Se déconnecter"
+  button.setAttribute(GATE_LOGOUT_ATTR, "1")
+  button.style.position = "fixed"
+  button.style.right = "20px"
+  button.style.bottom = "20px"
+  button.style.zIndex = "1000001"
+  button.style.pointerEvents = "auto"
+  button.style.appearance = "none"
+  button.style.border = "0"
+  button.style.borderRadius = "999px"
+  button.style.padding = "14px 20px"
+  button.style.font = "700 15px/1.1 Arial,sans-serif"
+  button.style.color = "#fff6dc"
+  button.style.background = "rgba(30,16,8,.88)"
+  button.style.boxShadow = "0 12px 26px rgba(0,0,0,.28)"
+  button.style.cursor = "pointer"
+  button.style.transition = "transform .14s ease, opacity .14s ease, background .14s ease"
+  button.addEventListener("mouseenter", () => {
+   if (!button.disabled) {
+    button.style.transform = "translateY(-1px)"
+    button.style.background = "rgba(56,28,10,.94)"
+   }
+  })
+  button.addEventListener("mouseleave", () => {
+   button.style.transform = "translateY(0)"
+   button.style.background = "rgba(30,16,8,.88)"
+  })
+  button.addEventListener("click", () => { performGateLogout(button) })
+  return button
+ }
+
+ function isGateLogoutEvent(event) {
+  const target = event?.target
+  return Boolean(target && typeof target.closest === "function" && target.closest(`[${GATE_LOGOUT_ATTR}]`))
  }
 
  function activateBanOverlay(options = {}) {
@@ -116,12 +176,14 @@
   overlay.style.userSelect = "none"
   overlay.style.cursor = "not-allowed"
   overlay.innerHTML = `<img src=\"${imagePath}\" alt=\"Ban Krosmoz\" draggable=\"false\" style=\"width:100vw;height:100vh;object-fit:cover;pointer-events:none;-webkit-user-drag:none;\">`
+  overlay.appendChild(buildGateLogoutButton())
 
   document.documentElement.style.overflow = "hidden"
   document.body.style.overflow = "hidden"
   document.body.appendChild(overlay)
 
   const blockEvent = (event) => {
+   if (isGateLogoutEvent(event)) return
    event.preventDefault()
    event.stopPropagation()
    if (typeof event.stopImmediatePropagation === "function") {
@@ -192,12 +254,14 @@
   overlay.style.userSelect = "none"
   overlay.style.cursor = "progress"
   overlay.innerHTML = `<img src=\"${imagePath}\" alt=\"Site en construction\" draggable=\"false\" style=\"width:100vw;height:100vh;object-fit:cover;pointer-events:none;-webkit-user-drag:none;\">`
+  overlay.appendChild(buildGateLogoutButton())
 
   document.documentElement.style.overflow = "hidden"
   document.body.style.overflow = "hidden"
   document.body.appendChild(overlay)
 
   const blockEvent = (event) => {
+   if (isGateLogoutEvent(event)) return
    event.preventDefault()
    event.stopPropagation()
    if (typeof event.stopImmediatePropagation === "function") {

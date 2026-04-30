@@ -2501,14 +2501,13 @@ function isMaintenanceSession(session) {
  return Boolean(session?.userId) && !isBannedSession(session) && !isAdminSession(session)
 }
 
-function buildBanPageHtml() {
- const imageSrc = BAN_KROSMOZ_IMAGE_PATH
+function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
  return `<!doctype html>
 <html lang="fr">
 <head>
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width, initial-scale=1">
- <title>Ban Krosmoz</title>
+ <title>${title}</title>
  <style>
   html,body{
    margin:0;
@@ -2531,50 +2530,72 @@ function buildBanPageHtml() {
    object-fit:cover;
    -webkit-user-drag:none;
   }
+  .logout-shell{
+   position:fixed;
+   right:20px;
+   bottom:20px;
+   z-index:2;
+   pointer-events:auto;
+  }
+  .logout-btn{
+   appearance:none;
+   border:0;
+   border-radius:999px;
+   padding:14px 20px;
+   font:700 15px/1.1 Arial,sans-serif;
+   color:#fff6dc;
+   background:rgba(30,16,8,.88);
+   box-shadow:0 12px 26px rgba(0,0,0,.28);
+   cursor:pointer;
+   transition:transform .14s ease, opacity .14s ease, background .14s ease;
+  }
+  .logout-btn:hover{transform:translateY(-1px);background:rgba(56,28,10,.94);}
+  .logout-btn:active{transform:translateY(0);}
+  .logout-btn[disabled]{opacity:.7;cursor:wait;}
+  @media (max-width: 640px){
+   .logout-shell{right:14px;bottom:14px;}
+   .logout-btn{padding:12px 16px;font-size:14px;}
+  }
  </style>
 </head>
 <body>
- <img src="${imageSrc}" alt="Ban Krosmoz" draggable="false">
+ <img src="${imageSrc}" alt="${imageAlt}" draggable="false">
+ <div class="logout-shell">
+  <button id="gateLogoutBtn" class="logout-btn" type="button">${logoutLabel}</button>
+ </div>
+ <script>
+  (function () {
+   const btn = document.getElementById("gateLogoutBtn")
+   if (!btn) return
+   btn.addEventListener("click", async function () {
+    if (btn.disabled) return
+    btn.disabled = true
+    const initialText = btn.textContent
+    btn.textContent = "Déconnexion..."
+    try {
+     await fetch("/auth/logout", {
+      method: "POST",
+      credentials: "same-origin"
+     })
+    } catch (_) {}
+    window.location.replace("/")
+    window.setTimeout(function () {
+     btn.disabled = false
+     btn.textContent = initialText
+    }, 1200)
+   })
+  })()
+ </script>
 </body>
 </html>`
 }
 
+function buildBanPageHtml() {
+ return buildGatePageHtml("Ban Krosmoz", BAN_KROSMOZ_IMAGE_PATH, "Ban Krosmoz", "Se déconnecter")
+}
+
 function buildMaintenancePageHtml() {
- const imageSrc = MAINTENANCE_KROSMOZ_IMAGE_PATH
- return `<!doctype html>
-<html lang="fr">
-<head>
- <meta charset="utf-8">
- <meta name="viewport" content="width=device-width, initial-scale=1">
- <title>Site en construction</title>
- <style>
-  html,body{
-   margin:0;
-   width:100%;
-   height:100%;
-   overflow:hidden;
-   background:#000;
-  }
-  body{
-   display:flex;
-   align-items:center;
-   justify-content:center;
-   user-select:none;
-   touch-action:none;
-   pointer-events:none;
-  }
-  img{
-   width:100vw;
-   height:100vh;
-   object-fit:cover;
-   -webkit-user-drag:none;
-  }
- </style>
-</head>
-<body>
- <img src="${imageSrc}" alt="Site en construction" draggable="false">
-</body>
-</html>`
+ return buildGatePageHtml("Site en construction", MAINTENANCE_KROSMOZ_IMAGE_PATH, "Site en construction", "Se déconnecter")
 }
 
 function sendBanPage(res) {
