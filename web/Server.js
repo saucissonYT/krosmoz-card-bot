@@ -2561,31 +2561,32 @@ function buildGatePageHtml(title, imageSrc, imageAlt, actions = []) {
   }
   .gate-actions{
    position:fixed;
-   right:max(22px, calc(env(safe-area-inset-right, 0px) + 12px));
-   bottom:max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px));
-   z-index:3;
+   left:50%;
+   bottom:max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+   transform:translateX(-50%);
+   z-index:99999;
    pointer-events:auto;
    display:flex;
    flex-direction:column;
    align-items:stretch;
-   gap:14px;
-   width:min(320px, calc(100vw - 28px));
-   padding:18px;
-   border-radius:24px;
-   background:rgba(16,11,8,.82);
-   border:2px solid rgba(255,255,255,.2);
-   box-shadow:0 22px 54px rgba(0,0,0,.42);
+   gap:16px;
+   width:min(560px, calc(100vw - 24px));
+   padding:22px;
+   border-radius:28px;
+   background:rgba(14,10,8,.9);
+   border:2px solid rgba(255,255,255,.28);
+   box-shadow:0 24px 64px rgba(0,0,0,.5);
    backdrop-filter:blur(10px);
   }
   .gate-btn{
    display:block;
    appearance:none;
-   min-height:68px;
+   min-height:84px;
    border:2px solid rgba(255,255,255,.42);
-   border-radius:20px;
-   padding:18px 24px;
-   font:800 22px/1.1 Arial,sans-serif;
-   letter-spacing:.02em;
+   border-radius:22px;
+   padding:22px 28px;
+   font:900 28px/1 Arial,sans-serif;
+   letter-spacing:.03em;
    color:#fff9ea;
    background:linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%);
    backdrop-filter:blur(6px);
@@ -2600,22 +2601,21 @@ function buildGatePageHtml(title, imageSrc, imageAlt, actions = []) {
   .gate-btn-primary{background:linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%);}
   .gate-btn-primary:hover{background:linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%);}
   .gate-btn-secondary{
-   background:linear-gradient(180deg, rgba(40,46,61,.98) 0%, rgba(19,23,33,.98) 100%);
-   border-color:rgba(205,218,255,.34);
+   background:linear-gradient(180deg, rgba(152,41,41,.99) 0%, rgba(101,16,16,.99) 100%);
+   border-color:rgba(255,214,214,.4);
   }
-  .gate-btn-secondary:hover{background:linear-gradient(180deg, rgba(59,67,87,.99) 0%, rgba(27,33,48,.99) 100%);}
+  .gate-btn-secondary:hover{background:linear-gradient(180deg, rgba(182,56,56,.99) 0%, rgba(121,20,20,.99) 100%);}
   @media (max-width: 640px){
    .gate-actions{
-    right:max(14px, calc(env(safe-area-inset-right, 0px) + 8px));
     bottom:max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
-    width:min(280px, calc(100vw - 20px));
-    padding:14px;
+    width:min(92vw, calc(100vw - 14px));
+    padding:14px 14px 16px;
     gap:10px;
    }
    .gate-btn{
-    min-height:60px;
-    padding:16px 18px;
-    font-size:19px;
+    min-height:72px;
+    padding:18px 16px;
+    font-size:22px;
    }
   }
  </style>

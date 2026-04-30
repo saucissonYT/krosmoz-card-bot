@@ -100,15 +100,15 @@
   const isSecondary = tone === "secondary"
   button.style.display = "block"
   button.style.appearance = "none"
-  button.style.minHeight = "68px"
-  button.style.border = isSecondary ? "2px solid rgba(205,218,255,.34)" : "2px solid rgba(255,255,255,.42)"
-  button.style.borderRadius = "20px"
-  button.style.padding = "18px 24px"
-  button.style.font = "800 22px/1.1 Arial,sans-serif"
-  button.style.letterSpacing = ".02em"
+  button.style.minHeight = "84px"
+  button.style.border = isSecondary ? "2px solid rgba(255,214,214,.4)" : "2px solid rgba(255,255,255,.42)"
+  button.style.borderRadius = "22px"
+  button.style.padding = "22px 28px"
+  button.style.font = "900 28px/1 Arial,sans-serif"
+  button.style.letterSpacing = ".03em"
   button.style.color = "#fff9ea"
   button.style.background = isSecondary
-   ? "linear-gradient(180deg, rgba(40,46,61,.98) 0%, rgba(19,23,33,.98) 100%)"
+   ? "linear-gradient(180deg, rgba(152,41,41,.99) 0%, rgba(101,16,16,.99) 100%)"
    : "linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%)"
   button.style.backdropFilter = "blur(6px)"
   button.style.boxShadow = "0 18px 40px rgba(0,0,0,.38)"
@@ -119,13 +119,13 @@
    if (button.disabled) return
    button.style.transform = "translateY(-2px)"
    button.style.background = isSecondary
-    ? "linear-gradient(180deg, rgba(59,67,87,.99) 0%, rgba(27,33,48,.99) 100%)"
+    ? "linear-gradient(180deg, rgba(182,56,56,.99) 0%, rgba(121,20,20,.99) 100%)"
     : "linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%)"
   })
   button.addEventListener("mouseleave", () => {
    button.style.transform = "translateY(0)"
    button.style.background = isSecondary
-    ? "linear-gradient(180deg, rgba(40,46,61,.98) 0%, rgba(19,23,33,.98) 100%)"
+    ? "linear-gradient(180deg, rgba(152,41,41,.99) 0%, rgba(101,16,16,.99) 100%)"
     : "linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%)"
   })
  }
@@ -133,20 +133,21 @@
  function buildGateActionPanel() {
   const panel = document.createElement("div")
   panel.style.position = "fixed"
-  panel.style.right = "max(22px, calc(env(safe-area-inset-right, 0px) + 12px))"
-  panel.style.bottom = "max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px))"
+  panel.style.left = "50%"
+  panel.style.bottom = "max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px))"
+  panel.style.transform = "translateX(-50%)"
   panel.style.zIndex = "1000001"
   panel.style.pointerEvents = "auto"
   panel.style.display = "flex"
   panel.style.flexDirection = "column"
   panel.style.alignItems = "stretch"
-  panel.style.gap = "14px"
-  panel.style.width = "min(320px, calc(100vw - 28px))"
-  panel.style.padding = "18px"
-  panel.style.borderRadius = "24px"
-  panel.style.background = "rgba(16,11,8,.82)"
-  panel.style.border = "2px solid rgba(255,255,255,.2)"
-  panel.style.boxShadow = "0 22px 54px rgba(0,0,0,.42)"
+  panel.style.gap = "16px"
+  panel.style.width = "min(560px, calc(100vw - 24px))"
+  panel.style.padding = "22px"
+  panel.style.borderRadius = "28px"
+  panel.style.background = "rgba(14,10,8,.9)"
+  panel.style.border = "2px solid rgba(255,255,255,.28)"
+  panel.style.boxShadow = "0 24px 64px rgba(0,0,0,.5)"
   panel.style.backdropFilter = "blur(10px)"
 
   const connectBtn = document.createElement("button")
