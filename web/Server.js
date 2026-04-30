@@ -2501,7 +2501,32 @@ function isMaintenanceSession(session) {
  return Boolean(session?.userId) && !isBannedSession(session) && !isAdminSession(session)
 }
 
-function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
+function shouldShowMaintenanceGate(session) {
+ return !isBannedSession(session) && !isAdminSession(session)
+}
+
+function buildAuthStartPath(returnTo = "/") {
+ const safeReturnTo = sanitizeReturnPath(returnTo) || "/"
+ return `/auth/discord?returnTo=${encodeURIComponent(safeReturnTo)}`
+}
+
+function buildLogoutPagePath(returnTo = "/") {
+ const safeReturnTo = sanitizeReturnPath(returnTo) || "/"
+ return `/auth/logout-page?returnTo=${encodeURIComponent(safeReturnTo)}`
+}
+
+function buildSwitchAccountPath(returnTo = "/") {
+ return buildLogoutPagePath(buildAuthStartPath(returnTo))
+}
+
+function buildGatePageHtml(title, imageSrc, imageAlt, actions = []) {
+ const actionItems = Array.isArray(actions)
+  ? actions.filter((item) => item && item.href && item.label)
+  : []
+ const actionsHtml = actionItems.map((action) => {
+  const tone = String(action.tone || "primary").toLowerCase() === "secondary" ? "secondary" : "primary"
+  return `<a class="gate-btn gate-btn-${tone}" href="${action.href}">${action.label}</a>`
+ }).join("")
  return `<!doctype html>
 <html lang="fr">
 <head>
@@ -2534,17 +2559,27 @@ function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
    -webkit-user-drag:none;
    pointer-events:none;
   }
-  .logout-shell{
+  .gate-actions{
    position:fixed;
    right:max(22px, calc(env(safe-area-inset-right, 0px) + 12px));
    bottom:max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px));
    z-index:3;
    pointer-events:auto;
+   display:flex;
+   flex-direction:column;
+   align-items:stretch;
+   gap:14px;
+   width:min(320px, calc(100vw - 28px));
+   padding:18px;
+   border-radius:24px;
+   background:rgba(16,11,8,.82);
+   border:2px solid rgba(255,255,255,.2);
+   box-shadow:0 22px 54px rgba(0,0,0,.42);
+   backdrop-filter:blur(10px);
   }
-  .logout-btn{
+  .gate-btn{
    display:block;
    appearance:none;
-   min-width:240px;
    min-height:68px;
    border:2px solid rgba(255,255,255,.42);
    border-radius:20px;
@@ -2560,16 +2595,24 @@ function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
    cursor:pointer;
    transition:transform .14s ease, opacity .14s ease, background .14s ease;
   }
-  .logout-btn:hover{transform:translateY(-2px);background:linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%);}
-  .logout-btn:active{transform:translateY(0);}
-  .logout-btn[disabled]{opacity:.7;cursor:wait;}
+  .gate-btn:hover{transform:translateY(-2px);}
+  .gate-btn:active{transform:translateY(0);}
+  .gate-btn-primary{background:linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%);}
+  .gate-btn-primary:hover{background:linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%);}
+  .gate-btn-secondary{
+   background:linear-gradient(180deg, rgba(40,46,61,.98) 0%, rgba(19,23,33,.98) 100%);
+   border-color:rgba(205,218,255,.34);
+  }
+  .gate-btn-secondary:hover{background:linear-gradient(180deg, rgba(59,67,87,.99) 0%, rgba(27,33,48,.99) 100%);}
   @media (max-width: 640px){
-   .logout-shell{
+   .gate-actions{
     right:max(14px, calc(env(safe-area-inset-right, 0px) + 8px));
     bottom:max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+    width:min(280px, calc(100vw - 20px));
+    padding:14px;
+    gap:10px;
    }
-   .logout-btn{
-    min-width:208px;
+   .gate-btn{
     min-height:60px;
     padding:16px 18px;
     font-size:19px;
@@ -2579,25 +2622,39 @@ function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
 </head>
 <body>
  <img src="${imageSrc}" alt="${imageAlt}" draggable="false">
- <div class="logout-shell">
-  <a id="gateLogoutBtn" class="logout-btn" href="/auth/logout-page">${logoutLabel}</a>
- </div>
+ ${actionsHtml ? `<div class="gate-actions">${actionsHtml}</div>` : ""}
 </body>
 </html>`
 }
 
-function buildBanPageHtml() {
- return buildGatePageHtml("Ban Krosmoz", BAN_KROSMOZ_IMAGE_PATH, "Ban Krosmoz", "Se déconnecter")
+function buildBanPageHtml(req, session) {
+ const returnTo = sanitizeReturnPath(req?.originalUrl || req?.url || "/") || "/"
+ const actions = []
+ if (session?.userId) {
+  actions.push({ label: "Se connecter", href: buildSwitchAccountPath(returnTo), tone: "primary" })
+  actions.push({ label: "Se déconnecter", href: buildLogoutPagePath("/"), tone: "secondary" })
+ } else {
+  actions.push({ label: "Se connecter", href: buildAuthStartPath(returnTo), tone: "primary" })
+ }
+ return buildGatePageHtml("Ban Krosmoz", BAN_KROSMOZ_IMAGE_PATH, "Ban Krosmoz", actions)
 }
 
-function buildMaintenancePageHtml() {
- return buildGatePageHtml("Site en construction", MAINTENANCE_KROSMOZ_IMAGE_PATH, "Site en construction", "Se déconnecter")
+function buildMaintenancePageHtml(req, session) {
+ const returnTo = sanitizeReturnPath(req?.originalUrl || req?.url || "/") || "/"
+ const actions = []
+ if (session?.userId) {
+  actions.push({ label: "Se connecter", href: buildSwitchAccountPath(returnTo), tone: "primary" })
+  actions.push({ label: "Se déconnecter", href: buildLogoutPagePath("/"), tone: "secondary" })
+ } else {
+  actions.push({ label: "Se connecter", href: buildAuthStartPath(returnTo), tone: "primary" })
+ }
+ return buildGatePageHtml("Site en construction", MAINTENANCE_KROSMOZ_IMAGE_PATH, "Site en construction", actions)
 }
 
-function sendBanPage(res) {
+function sendBanPage(req, res, session = null) {
  res.status(403)
  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
- return res.type("html").send(buildBanPageHtml())
+ return res.type("html").send(buildBanPageHtml(req, session))
 }
 
 function sendBanApiResponse(res) {
@@ -2609,10 +2666,10 @@ function sendBanApiResponse(res) {
  })
 }
 
-function sendMaintenancePage(res) {
+function sendMaintenancePage(req, res, session = null) {
  res.status(403)
  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
- return res.type("html").send(buildMaintenancePageHtml())
+ return res.type("html").send(buildMaintenancePageHtml(req, session))
 }
 
 function sendMaintenanceApiResponse(res) {
@@ -2632,8 +2689,7 @@ function shouldBypassBanGate(req) {
  } catch (_) {}
 
  if (pathName === "/health") return true
- if (pathName === "/auth/logout") return true
- if (pathName === "/auth/logout-page") return true
+ if (pathName.startsWith("/auth/")) return true
  if (pathName === "/api/oauth/status") return true
  if (pathName === "/assets/ui/ban krosmoz.png") return true
  return false
@@ -2647,8 +2703,7 @@ function shouldBypassMaintenanceGate(req) {
  } catch (_) {}
 
  if (pathName === "/health") return true
- if (pathName === "/auth/logout") return true
- if (pathName === "/auth/logout-page") return true
+ if (pathName.startsWith("/auth/")) return true
  if (pathName === "/api/oauth/status") return true
  if (pathName === "/assets/ui/site-construction.svg") return true
  return false
@@ -2696,11 +2751,11 @@ function requireSessionPage(req, res) {
   return session
  }
  if (session && isBannedSession(session)) {
-  sendBanPage(res)
+  sendBanPage(req, res, session)
   return null
  }
  if (session && isMaintenanceSession(session)) {
-  sendMaintenancePage(res)
+  sendMaintenancePage(req, res, session)
   return null
  }
 
@@ -4264,24 +4319,24 @@ function createWebApp() {
   const session = resolveSession(req)
   if (!session || !isBannedSession(session)) return next()
 
- if (String(req.path || "").startsWith("/api/")) {
-  return sendBanApiResponse(res)
- }
+  if (String(req.path || "").startsWith("/api/")) {
+   return sendBanApiResponse(res)
+  }
 
- return sendBanPage(res)
-})
+  return sendBanPage(req, res, session)
+ })
 
  app.use((req, res, next) => {
   if (shouldBypassMaintenanceGate(req)) return next()
 
   const session = resolveSession(req)
-  if (!isMaintenanceSession(session)) return next()
+  if (!shouldShowMaintenanceGate(session)) return next()
 
   if (String(req.path || "").startsWith("/api/")) {
    return sendMaintenanceApiResponse(res)
   }
 
-  return sendMaintenancePage(res)
+  return sendMaintenancePage(req, res, session)
  })
 
  /* Health check endpoint */

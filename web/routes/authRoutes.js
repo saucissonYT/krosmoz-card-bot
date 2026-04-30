@@ -113,8 +113,9 @@ module.exports = function mount(app, ctx) {
  })
 
  app.get("/auth/logout-page", (req, res) => {
+  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/"
   clearSession(req, res)
-  return res.redirect("/")
+  return res.redirect(returnTo)
  })
 
  app.post("/auth/logout", (req, res) => {

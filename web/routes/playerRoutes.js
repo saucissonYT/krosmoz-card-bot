@@ -60,7 +60,7 @@ module.exports = function mount(app, ctx) {
   const session = resolveSession(req)
   const banned = isBannedSession(session)
   const isAdmin = isAdminSession(session)
-  const maintenance = isMaintenanceSession(session)
+  const maintenance = !banned && !isAdmin
   const localAuthAvailable = canUseLocalAuth(req)
   const localAuthEnabled = Boolean(buildLocalSession(req))
   res.json({
