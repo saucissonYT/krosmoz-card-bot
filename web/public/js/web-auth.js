@@ -41,7 +41,10 @@
  const LOCAL_MODE_COOKIE_NAME = "kc_local_auth"
  const BAN_OVERLAY_ID = "kcBanOverlay"
  const BAN_IMAGE_FALLBACK = "/assets/ui/ban%20krosmoz.png"
+ const MAINTENANCE_OVERLAY_ID = "kcMaintenanceOverlay"
+ const MAINTENANCE_IMAGE_FALLBACK = "/assets/ui/site-construction.svg"
  let banOverlayActive = false
+ let maintenanceOverlayActive = false
  const DAILY_BUTTON_REFRESH_MS = 60000
  const DAILY_BUTTON_TICK_MS = 1000
  let dailyButtonRefreshHandle = null
@@ -70,7 +73,7 @@
  }
 
  function activateBanOverlay(options = {}) {
-  if (banOverlayActive) return
+  if (banOverlayActive || maintenanceOverlayActive) return
   banOverlayActive = true
 
   stopQuestToastPolling()
@@ -113,6 +116,82 @@
   overlay.style.userSelect = "none"
   overlay.style.cursor = "not-allowed"
   overlay.innerHTML = `<img src=\"${imagePath}\" alt=\"Ban Krosmoz\" draggable=\"false\" style=\"width:100vw;height:100vh;object-fit:cover;pointer-events:none;-webkit-user-drag:none;\">`
+
+  document.documentElement.style.overflow = "hidden"
+  document.body.style.overflow = "hidden"
+  document.body.appendChild(overlay)
+
+  const blockEvent = (event) => {
+   event.preventDefault()
+   event.stopPropagation()
+   if (typeof event.stopImmediatePropagation === "function") {
+    event.stopImmediatePropagation()
+   }
+  }
+
+  ;[
+   "click",
+   "dblclick",
+   "mousedown",
+   "mouseup",
+   "pointerdown",
+   "pointerup",
+   "touchstart",
+   "touchmove",
+   "keydown",
+   "keypress",
+   "keyup",
+   "submit",
+   "contextmenu"
+  ].forEach((eventName) => {
+   window.addEventListener(eventName, blockEvent, true)
+  })
+ }
+
+ function activateMaintenanceOverlay(options = {}) {
+  if (maintenanceOverlayActive || banOverlayActive) return
+  maintenanceOverlayActive = true
+
+  stopQuestToastPolling()
+  stopAchievementToastPolling()
+  stopEventRewardToastPolling()
+  stopPlayerProgressPolling()
+  setDailyButton(null)
+  setPlaySubnav(false)
+  setConnectedNavLink(false)
+  setTopMarketLinkVisibility(false)
+  setTopEventsLinkVisibility()
+  setAuthState("Site en construction")
+
+  if (btn) {
+   btn.textContent = "Maintenance"
+   btn.href = "#"
+   btn.setAttribute("aria-disabled", "true")
+   btn.style.pointerEvents = "none"
+   btn.style.opacity = "0.6"
+  }
+  if (heroPlayBtn) {
+   heroPlayBtn.textContent = "MAINTENANCE"
+   heroPlayBtn.href = "#"
+   heroPlayBtn.setAttribute("aria-disabled", "true")
+   heroPlayBtn.style.pointerEvents = "none"
+   heroPlayBtn.style.opacity = "0.6"
+  }
+
+  const imagePath = String(options?.image || MAINTENANCE_IMAGE_FALLBACK).trim() || MAINTENANCE_IMAGE_FALLBACK
+  const overlay = document.createElement("div")
+  overlay.id = MAINTENANCE_OVERLAY_ID
+  overlay.style.position = "fixed"
+  overlay.style.inset = "0"
+  overlay.style.zIndex = "999998"
+  overlay.style.background = "#000"
+  overlay.style.pointerEvents = "auto"
+  overlay.style.touchAction = "none"
+  overlay.style.display = "grid"
+  overlay.style.placeItems = "center"
+  overlay.style.userSelect = "none"
+  overlay.style.cursor = "progress"
+  overlay.innerHTML = `<img src=\"${imagePath}\" alt=\"Site en construction\" draggable=\"false\" style=\"width:100vw;height:100vh;object-fit:cover;pointer-events:none;-webkit-user-drag:none;\">`
 
   document.documentElement.style.overflow = "hidden"
   document.body.style.overflow = "hidden"
@@ -628,6 +707,8 @@ function drainProgressToastQueue() {
      const payload = await response.clone().json()
      if (payload?.banned) {
       activateBanOverlay({ image: payload?.banImage || payload?.image || BAN_IMAGE_FALLBACK })
+      } else if (payload?.maintenance) {
+       activateMaintenanceOverlay({ image: payload?.maintenanceImage || payload?.image || MAINTENANCE_IMAGE_FALLBACK })
      }
     } catch (_) {}
    }
@@ -1764,12 +1845,14 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   try {
    const res = await fetch("/api/oauth/status", { credentials: "same-origin" })
    if (res.ok) {
-    const status = await res.json()
-    if (status?.banned) {
-     activateBanOverlay({ image: status?.banImage || BAN_IMAGE_FALLBACK })
+   const status = await res.json()
+   if (status?.banned) {
+    activateBanOverlay({ image: status?.banImage || BAN_IMAGE_FALLBACK })
+    } else if (status?.maintenance) {
+     activateMaintenanceOverlay({ image: status?.maintenanceImage || MAINTENANCE_IMAGE_FALLBACK })
     }
    }
-  } catch (_) {}
+   } catch (_) {}
   return
  }
 
@@ -2096,6 +2179,10 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
 
  if (status?.banned) {
   activateBanOverlay({ image: status?.banImage || BAN_IMAGE_FALLBACK })
+  return
+ }
+ if (status?.maintenance) {
+  activateMaintenanceOverlay({ image: status?.maintenanceImage || MAINTENANCE_IMAGE_FALLBACK })
   return
  }
 

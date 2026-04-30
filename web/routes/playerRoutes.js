@@ -12,7 +12,8 @@ module.exports = function mount(app, ctx) {
   buildMePayload, buildDailyStatePayload, buildInventoryPayload,
   shouldTrackProfileView, computeProfile, countUnlockedAchievements,
   oauthConfigured, canUseLocalAuth, buildLocalSession,
-  BAN_KROSMOZ_IMAGE_PATH, isBannedSession, invalidateUserCaches
+  BAN_KROSMOZ_IMAGE_PATH, MAINTENANCE_KROSMOZ_IMAGE_PATH,
+  isBannedSession, isAdminSession, isMaintenanceSession, invalidateUserCaches
  } = ctx
 
  app.get("/api/profile/:id", async (req, res) => {
@@ -58,6 +59,8 @@ module.exports = function mount(app, ctx) {
  app.get("/api/oauth/status", (req, res) => {
   const session = resolveSession(req)
   const banned = isBannedSession(session)
+  const isAdmin = isAdminSession(session)
+  const maintenance = isMaintenanceSession(session)
   const localAuthAvailable = canUseLocalAuth(req)
   const localAuthEnabled = Boolean(buildLocalSession(req))
   res.json({
@@ -65,8 +68,11 @@ module.exports = function mount(app, ctx) {
    clientId: ctx.OAUTH_CLIENT_ID || null,
    connected: Boolean(session),
    userId: session?.userId || null,
+   isAdmin,
    banned,
    banImage: banned ? BAN_KROSMOZ_IMAGE_PATH : null,
+   maintenance,
+   maintenanceImage: maintenance ? MAINTENANCE_KROSMOZ_IMAGE_PATH : null,
    localAuthAvailable,
    localAuthEnabled,
    localAuthSession: Boolean(session?.local)

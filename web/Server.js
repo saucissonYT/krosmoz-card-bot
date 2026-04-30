@@ -6,6 +6,7 @@ let compression = null
 try { compression = require("compression") } catch (_) {}
 const { createLogger } = require("../systems/logger")
 const { isDiscordIdBanned } = require("../systems/banlistSystem")
+const { isDev } = require("../systems/devSystem")
 const { data: appData, save: saveAppData, markStaticDirty, markMarketDirty } = require("../systems/dataManager")
 const { resetRegistry: resetCardRegistry } = require("../systems/cardRegistry")
 
@@ -313,6 +314,7 @@ const OAUTH_CLIENT_SECRET = process.env.DISCORD_WEB_CLIENT_SECRET || ""
 const OAUTH_REDIRECT_URI = process.env.DISCORD_WEB_REDIRECT_URI || ""
 const OAUTH_SCOPE = process.env.DISCORD_WEB_SCOPE || "identify"
 const BAN_KROSMOZ_IMAGE_PATH = "/assets/ui/ban%20krosmoz.png"
+const MAINTENANCE_KROSMOZ_IMAGE_PATH = "/assets/ui/site-construction.svg"
 const WEB_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
 const webSessions = new Map()
 const WEB_LOCAL_AUTH_COOKIE = "kc_local_auth"
@@ -2489,6 +2491,16 @@ function isBannedSession(session) {
  return isDiscordIdBanned(session.userId)
 }
 
+function isAdminSession(session) {
+ if (!session?.userId) return false
+ if (session.local) return true
+ return isDev(String(session.userId))
+}
+
+function isMaintenanceSession(session) {
+ return Boolean(session?.userId) && !isBannedSession(session) && !isAdminSession(session)
+}
+
 function buildBanPageHtml() {
  const imageSrc = BAN_KROSMOZ_IMAGE_PATH
  return `<!doctype html>
@@ -2527,6 +2539,44 @@ function buildBanPageHtml() {
 </html>`
 }
 
+function buildMaintenancePageHtml() {
+ const imageSrc = MAINTENANCE_KROSMOZ_IMAGE_PATH
+ return `<!doctype html>
+<html lang="fr">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Site en construction</title>
+ <style>
+  html,body{
+   margin:0;
+   width:100%;
+   height:100%;
+   overflow:hidden;
+   background:#000;
+  }
+  body{
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   user-select:none;
+   touch-action:none;
+   pointer-events:none;
+  }
+  img{
+   width:100vw;
+   height:100vh;
+   object-fit:cover;
+   -webkit-user-drag:none;
+  }
+ </style>
+</head>
+<body>
+ <img src="${imageSrc}" alt="Site en construction" draggable="false">
+</body>
+</html>`
+}
+
 function sendBanPage(res) {
  res.status(403)
  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
@@ -2542,6 +2592,21 @@ function sendBanApiResponse(res) {
  })
 }
 
+function sendMaintenancePage(res) {
+ res.status(403)
+ res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private")
+ return res.type("html").send(buildMaintenancePageHtml())
+}
+
+function sendMaintenanceApiResponse(res) {
+ return res.status(403).json({
+  error: "Site en construction.",
+  code: "SITE_MAINTENANCE",
+  maintenance: true,
+  maintenanceImage: MAINTENANCE_KROSMOZ_IMAGE_PATH
+ })
+}
+
 function shouldBypassBanGate(req) {
  const rawPath = String(req.path || "")
  let pathName = rawPath
@@ -2553,6 +2618,20 @@ function shouldBypassBanGate(req) {
  if (pathName === "/auth/logout") return true
  if (pathName === "/api/oauth/status") return true
  if (pathName === "/assets/ui/ban krosmoz.png") return true
+ return false
+}
+
+function shouldBypassMaintenanceGate(req) {
+ const rawPath = String(req.path || "")
+ let pathName = rawPath
+ try {
+  pathName = decodeURIComponent(rawPath)
+ } catch (_) {}
+
+ if (pathName === "/health") return true
+ if (pathName === "/auth/logout") return true
+ if (pathName === "/api/oauth/status") return true
+ if (pathName === "/assets/ui/site-construction.svg") return true
  return false
 }
 
@@ -2579,12 +2658,16 @@ function requireSession(req, res) {
   sendBanApiResponse(res)
   return null
  }
+ if (isMaintenanceSession(session)) {
+  sendMaintenanceApiResponse(res)
+  return null
+ }
  return session
 }
 
 function requireSessionPage(req, res) {
  const session = resolveSession(req)
- if (session && !isBannedSession(session)) {
+ if (session && !isBannedSession(session) && !isMaintenanceSession(session)) {
   if (session.local) {
    const cookies = parseCookies(req)
    if (!isTruthyFlag(cookies[WEB_LOCAL_AUTH_COOKIE]) || isTruthyFlag(req.query?.local)) {
@@ -2595,6 +2678,10 @@ function requireSessionPage(req, res) {
  }
  if (session && isBannedSession(session)) {
   sendBanPage(res)
+  return null
+ }
+ if (session && isMaintenanceSession(session)) {
+  sendMaintenancePage(res)
   return null
  }
 
@@ -4158,11 +4245,24 @@ function createWebApp() {
   const session = resolveSession(req)
   if (!session || !isBannedSession(session)) return next()
 
+ if (String(req.path || "").startsWith("/api/")) {
+  return sendBanApiResponse(res)
+ }
+
+ return sendBanPage(res)
+})
+
+ app.use((req, res, next) => {
+  if (shouldBypassMaintenanceGate(req)) return next()
+
+  const session = resolveSession(req)
+  if (!isMaintenanceSession(session)) return next()
+
   if (String(req.path || "").startsWith("/api/")) {
-   return sendBanApiResponse(res)
+   return sendMaintenanceApiResponse(res)
   }
 
-  return sendBanPage(res)
+  return sendMaintenancePage(res)
  })
 
  /* Health check endpoint */
@@ -4253,7 +4353,7 @@ function createWebApp() {
   canUseLocalAuth, hasLocalAuthSignal, hasLocalAuthDisableSignal,
   buildLocalSession, parseCookies, sanitizeReturnPath,
   cookieStateOptions, isHttpsRequest, cookieSessionOptions,
-  isBannedSession,
+  isBannedSession, isAdminSession, isMaintenanceSession,
 
   // Data helpers
   getCards, getSets, getSetsWithCounts, getCardSetNameMap, getCardsByIdMap,
@@ -4305,7 +4405,7 @@ function createWebApp() {
   PUBLIC_DIR, CARD_IMAGES_RUNTIME_DIR,
   OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET,
   OAUTH_REDIRECT_URI, OAUTH_SCOPE,
-  BAN_KROSMOZ_IMAGE_PATH,
+  BAN_KROSMOZ_IMAGE_PATH, MAINTENANCE_KROSMOZ_IMAGE_PATH,
   WEB_LOCAL_AUTH_COOKIE, WEB_LOCAL_AUTH_USER_ID,
   WEB_PINATA_ALLOWED_EMOJIS,
   MAX_MEMBERS
