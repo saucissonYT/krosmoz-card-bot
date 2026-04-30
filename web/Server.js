@@ -2522,34 +2522,40 @@ function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
    justify-content:center;
    user-select:none;
    touch-action:none;
-   pointer-events:none;
+   position:relative;
+   pointer-events:auto;
   }
   img{
+   position:fixed;
+   inset:0;
    width:100vw;
    height:100vh;
    object-fit:cover;
    -webkit-user-drag:none;
+   pointer-events:none;
   }
   .logout-shell{
    position:fixed;
    right:20px;
    bottom:20px;
-   z-index:2;
+   z-index:3;
    pointer-events:auto;
   }
   .logout-btn{
+   display:block;
    appearance:none;
-   border:0;
+   border:1px solid rgba(255,255,255,.32);
    border-radius:999px;
    padding:14px 20px;
    font:700 15px/1.1 Arial,sans-serif;
-   color:#fff6dc;
-   background:rgba(30,16,8,.88);
-   box-shadow:0 12px 26px rgba(0,0,0,.28);
+   color:#fff9ea;
+   background:rgba(22,16,12,.94);
+   backdrop-filter:blur(6px);
+   box-shadow:0 12px 26px rgba(0,0,0,.34);
    cursor:pointer;
    transition:transform .14s ease, opacity .14s ease, background .14s ease;
   }
-  .logout-btn:hover{transform:translateY(-1px);background:rgba(56,28,10,.94);}
+  .logout-btn:hover{transform:translateY(-1px);background:rgba(52,34,20,.97);}
   .logout-btn:active{transform:translateY(0);}
   .logout-btn[disabled]{opacity:.7;cursor:wait;}
   @media (max-width: 640px){
