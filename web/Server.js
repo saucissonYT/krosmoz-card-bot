@@ -2516,7 +2516,8 @@ function buildLogoutPagePath(returnTo = "/") {
 }
 
 function buildSwitchAccountPath(returnTo = "/") {
- return buildLogoutPagePath(buildAuthStartPath(returnTo))
+ const safeReturnTo = sanitizeReturnPath(returnTo) || "/"
+ return `/auth/switch?returnTo=${encodeURIComponent(safeReturnTo)}`
 }
 
 function buildGatePageHtml(title, imageSrc, imageAlt, actions = []) {
@@ -2640,7 +2641,7 @@ function buildBanPageHtml(req, session) {
 }
 
 function buildMaintenancePageHtml(req, session) {
- const returnTo = sanitizeReturnPath(req?.originalUrl || req?.url || "/") || "/"
+ const returnTo = "/"
  const actions = []
  if (session?.userId) {
   actions.push({ label: "Se connecter", href: buildSwitchAccountPath(returnTo), tone: "primary" })

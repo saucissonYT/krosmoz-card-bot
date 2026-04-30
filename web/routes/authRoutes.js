@@ -118,6 +118,12 @@ module.exports = function mount(app, ctx) {
   return res.redirect(returnTo)
  })
 
+ app.get("/auth/switch", (req, res) => {
+  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/"
+  clearSession(req, res)
+  return res.redirect(`/auth/discord?returnTo=${encodeURIComponent(returnTo)}`)
+ })
+
  app.post("/auth/logout", (req, res) => {
   clearSession(req, res)
   return res.json({ ok: true })

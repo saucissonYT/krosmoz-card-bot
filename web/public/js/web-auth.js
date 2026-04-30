@@ -74,9 +74,7 @@
  }
 
  function buildGateConnectHref() {
-  const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}`
-  const authPath = `/auth/discord?returnTo=${encodeURIComponent(returnTo || "/")}`
-  return `/auth/logout-page?returnTo=${encodeURIComponent(authPath)}`
+  return "/auth/switch?returnTo=%2F"
  }
 
  async function performGateLogout(button) {
