@@ -112,6 +112,11 @@ module.exports = function mount(app, ctx) {
   }
  })
 
+ app.get("/auth/logout-page", (req, res) => {
+  clearSession(req, res)
+  return res.redirect("/")
+ })
+
  app.post("/auth/logout", (req, res) => {
   clearSession(req, res)
   return res.json({ ok: true })

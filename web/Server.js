@@ -2536,62 +2536,52 @@ function buildGatePageHtml(title, imageSrc, imageAlt, logoutLabel) {
   }
   .logout-shell{
    position:fixed;
-   right:20px;
-   bottom:20px;
+   right:max(22px, calc(env(safe-area-inset-right, 0px) + 12px));
+   bottom:max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px));
    z-index:3;
    pointer-events:auto;
   }
   .logout-btn{
    display:block;
    appearance:none;
-   border:1px solid rgba(255,255,255,.32);
-   border-radius:999px;
-   padding:14px 20px;
-   font:700 15px/1.1 Arial,sans-serif;
+   min-width:240px;
+   min-height:68px;
+   border:2px solid rgba(255,255,255,.42);
+   border-radius:20px;
+   padding:18px 24px;
+   font:800 22px/1.1 Arial,sans-serif;
+   letter-spacing:.02em;
    color:#fff9ea;
-   background:rgba(22,16,12,.94);
+   background:linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%);
    backdrop-filter:blur(6px);
-   box-shadow:0 12px 26px rgba(0,0,0,.34);
+   box-shadow:0 18px 40px rgba(0,0,0,.38);
+   text-decoration:none;
+   text-align:center;
    cursor:pointer;
    transition:transform .14s ease, opacity .14s ease, background .14s ease;
   }
-  .logout-btn:hover{transform:translateY(-1px);background:rgba(52,34,20,.97);}
+  .logout-btn:hover{transform:translateY(-2px);background:linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%);}
   .logout-btn:active{transform:translateY(0);}
   .logout-btn[disabled]{opacity:.7;cursor:wait;}
   @media (max-width: 640px){
-   .logout-shell{right:14px;bottom:14px;}
-   .logout-btn{padding:12px 16px;font-size:14px;}
+   .logout-shell{
+    right:max(14px, calc(env(safe-area-inset-right, 0px) + 8px));
+    bottom:max(14px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+   }
+   .logout-btn{
+    min-width:208px;
+    min-height:60px;
+    padding:16px 18px;
+    font-size:19px;
+   }
   }
  </style>
 </head>
 <body>
  <img src="${imageSrc}" alt="${imageAlt}" draggable="false">
  <div class="logout-shell">
-  <button id="gateLogoutBtn" class="logout-btn" type="button">${logoutLabel}</button>
+  <a id="gateLogoutBtn" class="logout-btn" href="/auth/logout-page">${logoutLabel}</a>
  </div>
- <script>
-  (function () {
-   const btn = document.getElementById("gateLogoutBtn")
-   if (!btn) return
-   btn.addEventListener("click", async function () {
-    if (btn.disabled) return
-    btn.disabled = true
-    const initialText = btn.textContent
-    btn.textContent = "Déconnexion..."
-    try {
-     await fetch("/auth/logout", {
-      method: "POST",
-      credentials: "same-origin"
-     })
-    } catch (_) {}
-    window.location.replace("/")
-    window.setTimeout(function () {
-     btn.disabled = false
-     btn.textContent = initialText
-    }, 1200)
-   })
-  })()
- </script>
 </body>
 </html>`
 }
@@ -2643,6 +2633,7 @@ function shouldBypassBanGate(req) {
 
  if (pathName === "/health") return true
  if (pathName === "/auth/logout") return true
+ if (pathName === "/auth/logout-page") return true
  if (pathName === "/api/oauth/status") return true
  if (pathName === "/assets/ui/ban krosmoz.png") return true
  return false
@@ -2657,6 +2648,7 @@ function shouldBypassMaintenanceGate(req) {
 
  if (pathName === "/health") return true
  if (pathName === "/auth/logout") return true
+ if (pathName === "/auth/logout-page") return true
  if (pathName === "/api/oauth/status") return true
  if (pathName === "/assets/ui/site-construction.svg") return true
  return false

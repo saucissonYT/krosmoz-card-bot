@@ -81,10 +81,7 @@
    btnEl.disabled = true
    btnEl.textContent = "Déconnexion..."
   }
-  try {
-   await fetch("/auth/logout", { method: "POST", credentials: "same-origin" })
-  } catch (_) {}
-  window.location.replace("/")
+  window.location.href = "/auth/logout-page"
   if (btnEl) {
    window.setTimeout(() => {
     btnEl.disabled = false
@@ -99,29 +96,34 @@
   button.textContent = "Se déconnecter"
   button.setAttribute(GATE_LOGOUT_ATTR, "1")
   button.style.position = "fixed"
-  button.style.right = "20px"
-  button.style.bottom = "20px"
+  button.style.right = "max(22px, calc(env(safe-area-inset-right, 0px) + 12px))"
+  button.style.bottom = "max(22px, calc(env(safe-area-inset-bottom, 0px) + 12px))"
   button.style.zIndex = "1000001"
   button.style.pointerEvents = "auto"
   button.style.appearance = "none"
-  button.style.border = "0"
-  button.style.borderRadius = "999px"
-  button.style.padding = "14px 20px"
-  button.style.font = "700 15px/1.1 Arial,sans-serif"
-  button.style.color = "#fff6dc"
-  button.style.background = "rgba(30,16,8,.88)"
-  button.style.boxShadow = "0 12px 26px rgba(0,0,0,.28)"
+  button.style.minWidth = "240px"
+  button.style.minHeight = "68px"
+  button.style.border = "2px solid rgba(255,255,255,.42)"
+  button.style.borderRadius = "20px"
+  button.style.padding = "18px 24px"
+  button.style.font = "800 22px/1.1 Arial,sans-serif"
+  button.style.letterSpacing = ".02em"
+  button.style.color = "#fff9ea"
+  button.style.background = "linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%)"
+  button.style.backdropFilter = "blur(6px)"
+  button.style.boxShadow = "0 18px 40px rgba(0,0,0,.38)"
   button.style.cursor = "pointer"
+  button.style.textAlign = "center"
   button.style.transition = "transform .14s ease, opacity .14s ease, background .14s ease"
   button.addEventListener("mouseenter", () => {
    if (!button.disabled) {
-    button.style.transform = "translateY(-1px)"
-    button.style.background = "rgba(56,28,10,.94)"
+    button.style.transform = "translateY(-2px)"
+    button.style.background = "linear-gradient(180deg, rgba(138,72,30,.99) 0%, rgba(78,34,12,.99) 100%)"
    }
   })
   button.addEventListener("mouseleave", () => {
    button.style.transform = "translateY(0)"
-   button.style.background = "rgba(30,16,8,.88)"
+   button.style.background = "linear-gradient(180deg, rgba(110,54,21,.98) 0%, rgba(66,28,10,.98) 100%)"
   })
   button.addEventListener("click", () => { performGateLogout(button) })
   return button
