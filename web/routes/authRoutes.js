@@ -18,7 +18,7 @@ module.exports = function mount(app, ctx) {
  app.get("/auth/discord", (req, res) => {
   const localAvailable = canUseLocalAuth(req)
   const localDisabled = hasLocalAuthDisableSignal(req)
-  const localFallback = localAvailable && !localDisabled && (hasLocalAuthSignal(req) || !oauthConfigured())
+  const localFallback = localAvailable && !localDisabled
   if (localFallback) {
    const returnTo = sanitizeReturnPath(req.query.returnTo) || "/"
    const localUser = getUser(String(WEB_LOCAL_AUTH_USER_ID))

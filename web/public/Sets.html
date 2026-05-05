@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sets | Krosmoz Card</title>
+    <meta
+      name="description"
+      content="Choisis un set Krosmoz Card et consulte les cartes classées par rareté."
+    />
+    <link rel="icon" type="image/png" href="/assets/ui/logo-carte.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/css/main.css" />
+    <script src="/js/web-auth.js" defer></script>
+  </head>
+  <body class="sets-page">
+    <header class="site-header">
+      <div class="site-topbar">
+        <a class="brand" href="/" aria-label="Krosmoz Card">
+          <img src="/assets/ui/logo-carte.png" alt="" />
+          <span>Krosmoz Card</span>
+        </a>
+
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="/">Accueil</a>
+          <a class="nav-link" href="/pages/classement.html">Classement</a>
+          <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+          <a class="nav-link is-active" href="/sets">Sets</a>
+        </nav>
+
+        <div class="header-actions" aria-label="Liens rapides">
+          <a class="header-action header-action-login" href="/auth/discord?returnTo=%2F">Connexion</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="sets-main">
+      <section class="home-section sets-landing" aria-labelledby="sets-page-title">
+        <div class="home-section-heading">
+          <h1 id="sets-page-title">Sets</h1>
+          <p>Choisis une tranche de niveau pour consulter sa liste de cartes par rareté.</p>
+          <div class="home-rule" aria-hidden="true"></div>
+        </div>
+
+        <div id="setsGrid" class="sets-grid" aria-live="polite">
+          <p class="completion-loading">Chargement des sets...</p>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers du <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
+        <p>Projet non affilié à Ankama Games</p>
+        <nav aria-label="Liens de bas de page">
+          <a href="/pages/a-propos.html#a-propos">À propos</a>
+          <a href="/pages/a-propos.html#contact">Contact</a>
+          <a href="/pages/a-propos.html#mentions-legales">Mentions légales</a>
+        </nav>
+      </footer>
+    </main>
+
+    <script>
+      function escapeHtml(value) {
+        const div = document.createElement("div")
+        div.textContent = String(value || "")
+        return div.innerHTML
+      }
+
+      function setCardTemplate(set) {
+        return `
+          <a class="set-card" href="/sets/${encodeURIComponent(set.id)}">
+            <span>${escapeHtml(set.icon || "S")}</span>
+            <h3>${escapeHtml(set.name)}</h3>
+            <p>${escapeHtml(set.levels || "")}, ${escapeHtml(set.description || "")}</p>
+            <strong>${Number(set.count || 0).toLocaleString("fr-FR")} cartes</strong>
+          </a>
+        `
+      }
+
+      async function initSetsPage() {
+        const grid = document.getElementById("setsGrid")
+        try {
+          const response = await fetch("/api/set-catalog", { credentials: "same-origin" })
+          const payload = await response.json().catch(() => null)
+          if (!response.ok || !payload || !Array.isArray(payload.sets)) {
+            throw new Error(payload?.error || "Sets introuvables")
+          }
+          grid.innerHTML = payload.sets.map(setCardTemplate).join("")
+        } catch (error) {
+          grid.innerHTML = `<p class="completion-error">Impossible de charger les sets.</p>`
+        }
+      }
+
+      initSetsPage()
+    </script>
+  </body>
+</html>

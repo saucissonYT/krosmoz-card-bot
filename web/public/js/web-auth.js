@@ -1,7 +1,8 @@
 ﻿(async function initGlobalAuthButton() {
- const btn = document.getElementById("globalAuthBtn")
+ const btn = document.getElementById("globalAuthBtn") || document.querySelector(".header-action-login")
  const right = btn ? btn.parentElement : null
  const navLinks = document.getElementById("navLinks")
+ const topNav = document.querySelector(".top-nav")
  const navbar = document.querySelector(".navbar")
  const heroPlayBtn = document.getElementById("heroPlayBtn")
  const EVENT_TOAST_DISMISS_STORAGE_KEY = "kc_event_toast_dismiss_until"
@@ -2028,23 +2029,72 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  }
 
  function setProfileLink(userId) {
-  if (!right) return
-  let profileEl = right.querySelector("#globalProfileBtn")
+  const legacyProfileEl = right?.querySelector("#globalProfileBtn")
+  if (legacyProfileEl) legacyProfileEl.remove()
+
+  const profileHref = userId ? `/profile/${encodeURIComponent(String(userId))}` : ""
+  const currentPath = String(window.location.pathname || "")
+
+  let topProfileEl = topNav?.querySelector("#globalProfileNavLink")
+  let profileLi = navLinks?.querySelector("#globalProfileNavItem")
 
   if (!userId) {
-   if (profileEl) profileEl.remove()
+   if (topProfileEl) topProfileEl.remove()
+   if (profileLi) profileLi.remove()
    return
   }
 
-  if (!profileEl) {
-   profileEl = document.createElement("a")
-   profileEl.id = "globalProfileBtn"
-   profileEl.className = "btn btn-outline btn-auth-top"
-   profileEl.textContent = "Profil"
-   right.insertBefore(profileEl, btn)
+  if (topNav) {
+   if (!topProfileEl) {
+    topProfileEl = document.createElement("a")
+    topProfileEl.id = "globalProfileNavLink"
+    topProfileEl.className = "nav-link"
+    topProfileEl.textContent = "Profil"
+   }
+   topProfileEl.href = profileHref
+   topProfileEl.classList.toggle("is-active", currentPath.startsWith("/profile/"))
+   const setsLink = topNav.querySelector('a[href="/sets"]')
+   if (setsLink && setsLink.nextSibling !== topProfileEl) {
+    setsLink.after(topProfileEl)
+   } else if (!topProfileEl.parentElement) {
+    topNav.appendChild(topProfileEl)
+   }
+   return
   }
 
-  profileEl.href = `/profile/${encodeURIComponent(String(userId))}`
+  if (navLinks) {
+   if (!profileLi) {
+    profileLi = document.createElement("li")
+    profileLi.id = "globalProfileNavItem"
+    const link = document.createElement("a")
+    link.textContent = "Profil"
+    profileLi.appendChild(link)
+   }
+   const link = profileLi.querySelector("a")
+   if (!link) return
+   link.href = profileHref
+   link.classList.toggle("active", currentPath.startsWith("/profile/"))
+   const setsLink = navLinks.querySelector('a[href="/sets"]')
+   const setsLi = setsLink?.parentElement
+   if (setsLi?.parentElement === navLinks && setsLi.nextSibling !== profileLi) {
+    navLinks.insertBefore(profileLi, setsLi.nextSibling)
+   } else if (!profileLi.parentElement) {
+    navLinks.appendChild(profileLi)
+   }
+   return
+  }
+
+  if (right) {
+   let fallbackProfileEl = right.querySelector("#globalProfileBtn")
+   if (!fallbackProfileEl) {
+    fallbackProfileEl = document.createElement("a")
+    fallbackProfileEl.id = "globalProfileBtn"
+    fallbackProfileEl.className = "btn btn-outline btn-auth-top"
+    fallbackProfileEl.textContent = "Profil"
+    right.insertBefore(fallbackProfileEl, btn)
+   }
+   fallbackProfileEl.href = profileHref
+  }
  }
 
  function formatDailyCountdown(ms) {
@@ -2132,7 +2182,6 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  function setDailyButton(userId) {
   if (!right) return
   let dailyEl = right.querySelector("#globalDailyBtn")
-  const profileEl = right.querySelector("#globalProfileBtn")
 
   if (!userId) {
    if (dailyEl) dailyEl.remove()
@@ -2145,10 +2194,8 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   if (!dailyEl) {
    dailyEl = document.createElement("a")
    dailyEl.id = "globalDailyBtn"
-   dailyEl.className = "btn btn-outline btn-auth-top btn-daily-top"
    dailyEl.href = "#"
    dailyEl.textContent = "🎁 Daily --:--:--"
-   right.insertBefore(dailyEl, profileEl || btn)
    dailyEl.addEventListener("click", async (event) => {
     event.preventDefault()
     if (dailyButtonBusy || !dailyState.canClaim) return
@@ -2195,9 +2242,9 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
       refreshDailyButtonState().catch(() => {})
     }
    })
-  } else {
-   right.insertBefore(dailyEl, profileEl || btn)
   }
+  dailyEl.className = `${String(btn?.className || "btn btn-outline btn-auth-top").trim()} btn-daily-top`
+  right.insertBefore(dailyEl, btn)
 
   stopDailyButtonTimers()
   renderDailyButton()
@@ -2338,8 +2385,8 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
     heroPlayBtn.style.pointerEvents = ""
     heroPlayBtn.style.opacity = ""
    }
-   btn.textContent = "Activer mode local"
-   btn.href = "/auth/discord?local=1&returnTo=%2F"
+   btn.textContent = "Connexion"
+   btn.href = `/auth/discord?local=1&returnTo=${encodeURIComponent(returnTo)}`
    return
   }
 
@@ -2362,8 +2409,8 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    heroPlayBtn.style.pointerEvents = ""
    heroPlayBtn.style.opacity = ""
   }
-  btn.textContent = "Connexion Discord"
-  btn.href = "/auth/discord?returnTo=%2F"
+  btn.textContent = "Connexion"
+  btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
   return
  }
 
@@ -2395,7 +2442,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   heroPlayBtn.style.opacity = ""
  }
 
- btn.textContent = localSessionActive ? "Quitter mode local" : "Deconnexion"
+ btn.textContent = "Déconnexion"
  btn.href = "#"
  btn.addEventListener("click", async (event) => {
   event.preventDefault()

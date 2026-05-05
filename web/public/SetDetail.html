@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sets | Krosmoz Card</title>
+    <meta
+      name="description"
+      content="Liste des cartes d'un set Krosmoz Card, classées par rareté."
+    />
+    <link rel="icon" type="image/png" href="/assets/ui/logo-carte.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/css/main.css" />
+    <script src="/js/web-auth.js" defer></script>
+    <style>
+      body.set-detail-page {
+        --set-background-image: none;
+        isolation: isolate;
+      }
+
+      body.set-detail-page::after {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        content: "";
+        pointer-events: none;
+        background-image: var(--set-background-image);
+        background-position: center;
+        background-size: cover;
+        background-repeat: no-repeat;
+        opacity: 0.28;
+      }
+
+      body.set-detail-page > .completion-main {
+        position: relative;
+        z-index: 1;
+      }
+
+      body.set-detail-page > .site-header {
+        position: sticky;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body class="set-detail-page">
+    <header class="site-header">
+      <div class="site-topbar">
+        <a class="brand" href="/" aria-label="Krosmoz Card">
+          <img src="/assets/ui/logo-carte.png" alt="" />
+          <span>Krosmoz Card</span>
+        </a>
+
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link" href="/">Accueil</a>
+          <a class="nav-link" href="/pages/classement.html">Classement</a>
+          <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+          <a class="nav-link is-active" href="/sets">Sets</a>
+        </nav>
+
+        <div class="header-actions" aria-label="Liens rapides">
+          <a class="header-action header-action-login" href="/auth/discord?returnTo=%2F">Connexion</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="completion-main">
+      <a class="completion-back" href="/sets">Retour aux sets</a>
+
+      <section class="completion-hero" aria-labelledby="completion-title">
+        <p id="completion-levels" class="completion-kicker">Chargement</p>
+        <h1 id="completion-title">Sets</h1>
+        <p id="completion-description" class="completion-description">
+          Recuperation des cartes du set.
+        </p>
+        <div class="completion-summary">
+          <span id="completion-total">0 cartes</span>
+          <div id="rarityFilters" class="completion-rarity-filters" aria-label="Filtres de rareté"></div>
+        </div>
+        <div id="completionActions" class="completion-actions" aria-label="Options de complétion" hidden></div>
+      </section>
+
+      <section id="completion-content" class="completion-content" aria-live="polite">
+        <p class="completion-loading">Chargement des cartes...</p>
+      </section>
+
+      <footer class="site-footer">
+        <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers du <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
+        <p>Projet non affilié à Ankama Games</p>
+        <nav aria-label="Liens de bas de page">
+          <a href="/pages/a-propos.html#a-propos">À propos</a>
+          <a href="/pages/a-propos.html#contact">Contact</a>
+          <a href="/pages/a-propos.html#mentions-legales">Mentions légales</a>
+        </nav>
+      </footer>
+    </main>
+
+    <script>
+      const RARITY_LABELS = {
+        C: "Commune",
+        U: "Peu commune",
+        R: "Rare",
+        SR: "Super Rare",
+        HR: "Heroique",
+        UR: "Ultra Rare",
+        S: "Speciale",
+        SSR: "Super Speciale Rare"
+      }
+      const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
+      const activeRarityFilters = new Set(RARITY_ORDER)
+      let ownedCardsById = new Map()
+      let completionHighlightEnabled = true
+      let hideCollectedEnabled = false
+
+      function getSetIdFromPath() {
+        const parts = String(window.location.pathname || "").split("/").filter(Boolean)
+        return decodeURIComponent(parts[1] || "")
+      }
+
+      function escapeHtml(value) {
+        const div = document.createElement("div")
+        div.textContent = String(value || "")
+        return div.innerHTML
+      }
+
+      function normalizeCardId(value) {
+        return String(value || "").trim()
+      }
+
+      function getOwnedQuantity(card) {
+        return Number(ownedCardsById.get(normalizeCardId(card?.id)) || 0)
+      }
+
+      function cardTemplate(card) {
+        const ownedQty = getOwnedQuantity(card)
+        const isCollected = ownedQty > 0
+        const meta = [card.level, card.category].filter(Boolean).map(escapeHtml).join(" · ")
+        const image = card.imageUrl
+          ? `<img src="${escapeHtml(card.imageUrl)}" alt="" loading="lazy">`
+          : `<span class="completion-card-placeholder" aria-hidden="true"></span>`
+
+        return `
+          <li
+            class="completion-card-row${completionHighlightEnabled && isCollected ? " is-collected" : ""}${hideCollectedEnabled && isCollected ? " is-hidden-collected" : ""}"
+            data-card-id="${escapeHtml(card.id)}"
+            data-collected="${isCollected ? "true" : "false"}"
+          >
+            <div class="completion-card-thumb">${image}</div>
+            <div class="completion-card-info">
+              <strong>${escapeHtml(card.name)}</strong>
+              ${meta ? `<span>${meta}</span>` : ""}
+            </div>
+          </li>
+        `
+      }
+
+      function rarityTemplate(group) {
+        const cards = Array.isArray(group.cards) ? group.cards : []
+        return `
+          <section class="completion-rarity completion-rarity-${escapeHtml(group.id)}" data-rarity="${escapeHtml(group.id)}" aria-labelledby="rarity-${escapeHtml(group.id)}">
+            <header class="completion-rarity-head">
+              <div>
+                <span class="completion-rarity-code">${escapeHtml(group.id)}</span>
+                <h2 id="rarity-${escapeHtml(group.id)}">${escapeHtml(RARITY_LABELS[group.id] || group.id)}</h2>
+              </div>
+              <strong>${cards.length} cartes</strong>
+            </header>
+            <ul class="completion-card-list">
+              ${cards.map(cardTemplate).join("")}
+            </ul>
+          </section>
+        `
+      }
+
+      function syncRarityFilters() {
+        document.querySelectorAll(".completion-rarity").forEach((section) => {
+          const rarity = String(section.getAttribute("data-rarity") || "")
+          section.hidden = !activeRarityFilters.has(rarity)
+        })
+
+        document.querySelectorAll(".completion-rarity-filter").forEach((button) => {
+          const rarity = String(button.getAttribute("data-rarity-filter") || "")
+          const isActive = activeRarityFilters.has(rarity)
+          button.classList.toggle("is-muted", !isActive)
+          button.setAttribute("aria-pressed", String(isActive))
+        })
+      }
+
+      function syncCompletionOptions() {
+        document.querySelectorAll(".completion-card-row").forEach((row) => {
+          const isCollected = row.getAttribute("data-collected") === "true"
+          row.classList.toggle("is-collected", completionHighlightEnabled && isCollected)
+          row.classList.toggle("is-hidden-collected", hideCollectedEnabled && isCollected)
+        })
+
+        const completionButton = document.querySelector("[data-completion-toggle]")
+        if (completionButton) {
+          completionButton.classList.toggle("is-muted", !completionHighlightEnabled)
+          completionButton.setAttribute("aria-pressed", String(completionHighlightEnabled))
+        }
+
+        const hideButton = document.querySelector("[data-hide-collected-toggle]")
+        if (hideButton) {
+          hideButton.classList.toggle("is-muted", !hideCollectedEnabled)
+          hideButton.setAttribute("aria-pressed", String(hideCollectedEnabled))
+        }
+      }
+
+      function renderCompletionActions() {
+        const root = document.getElementById("completionActions")
+        root.hidden = false
+        root.innerHTML = `
+          <button class="completion-option-button" type="button" data-completion-toggle aria-pressed="true">Complétion</button>
+          <button class="completion-option-button is-muted" type="button" data-hide-collected-toggle aria-pressed="false">Masquer collectés</button>
+        `
+
+        root.querySelector("[data-completion-toggle]").addEventListener("click", () => {
+          completionHighlightEnabled = !completionHighlightEnabled
+          syncCompletionOptions()
+        })
+
+        root.querySelector("[data-hide-collected-toggle]").addEventListener("click", () => {
+          hideCollectedEnabled = !hideCollectedEnabled
+          syncCompletionOptions()
+        })
+
+        syncCompletionOptions()
+      }
+
+      function renderRarityFilters(groups) {
+        const root = document.getElementById("rarityFilters")
+        const availableRarities = new Set((Array.isArray(groups) ? groups : []).map((group) => String(group.id || "")))
+
+        root.innerHTML = RARITY_ORDER.map((rarity) => {
+          const disabled = availableRarities.size > 0 && !availableRarities.has(rarity)
+          return `
+            <button
+              class="completion-rarity-filter"
+              type="button"
+              data-rarity-filter="${escapeHtml(rarity)}"
+              aria-pressed="true"
+              title="${escapeHtml(RARITY_LABELS[rarity] || rarity)}"
+              ${disabled ? "disabled" : ""}
+            >${escapeHtml(rarity)}</button>
+          `
+        }).join("")
+
+        root.querySelectorAll(".completion-rarity-filter").forEach((button) => {
+          button.addEventListener("click", () => {
+            const rarity = String(button.getAttribute("data-rarity-filter") || "")
+            if (!rarity) return
+            if (activeRarityFilters.has(rarity)) {
+              activeRarityFilters.delete(rarity)
+            } else {
+              activeRarityFilters.add(rarity)
+            }
+            syncRarityFilters()
+          })
+        })
+
+        syncRarityFilters()
+      }
+
+      async function fetchOwnedCards() {
+        try {
+          const response = await fetch("/api/me/inventory", {
+            credentials: "same-origin"
+          })
+          if (!response.ok) return new Map()
+          const payload = await response.json().catch(() => null)
+          const cards = Array.isArray(payload?.cards) ? payload.cards : []
+          const next = new Map()
+          cards.forEach((card) => {
+            const id = normalizeCardId(card?.cardId)
+            const qty = Number(card?.qty || 0)
+            if (id && qty > 0) next.set(id, qty)
+          })
+          return next
+        } catch (_) {
+          return new Map()
+        }
+      }
+
+      async function initCompletionPage() {
+        const setId = getSetIdFromPath()
+        const content = document.getElementById("completion-content")
+
+        if (!setId) {
+          content.innerHTML = `<p class="completion-error">Set introuvable.</p>`
+          return
+        }
+
+        try {
+          const response = await fetch(`/api/set-catalog/${encodeURIComponent(setId)}`, {
+            credentials: "same-origin"
+          })
+          const payload = await response.json().catch(() => null)
+
+          if (!response.ok || !payload) {
+            throw new Error(payload?.error || "Set introuvable")
+          }
+
+          document.title = `${payload.name} | Sets | Krosmoz Card`
+          document.body.style.setProperty("--set-background-image", `url("/assets/sets/${encodeURIComponent(payload.id)}.png")`)
+          document.getElementById("completion-title").textContent = payload.name
+          document.getElementById("completion-levels").textContent = payload.levels || "Set"
+          document.getElementById("completion-description").textContent = payload.description || ""
+          document.getElementById("completion-total").textContent = `${Number(payload.total || 0).toLocaleString("fr-FR")} cartes`
+
+          const groups = Array.isArray(payload.rarities) ? payload.rarities : []
+          ownedCardsById = await fetchOwnedCards()
+          renderRarityFilters(groups)
+          renderCompletionActions()
+          content.innerHTML = groups.map(rarityTemplate).join("")
+          syncRarityFilters()
+          syncCompletionOptions()
+        } catch (error) {
+          content.innerHTML = `<p class="completion-error">Impossible de charger ce set.</p>`
+        }
+      }
+
+      initCompletionPage()
+    </script>
+  </body>
+</html>

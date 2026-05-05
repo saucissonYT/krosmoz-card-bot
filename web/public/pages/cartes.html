@@ -3,15 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cartes | Krosmoz Card</title>
+    <title>Sets | Krosmoz Card</title>
+    <meta http-equiv="refresh" content="0; url=/sets" />
     <link rel="icon" type="image/png" href="../assets/ui/logo-carte.png" />
     <link
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="../assets/css/main.css" />
+    <script src="/js/web-auth.js" defer></script>
   </head>
-  <body class="cartes-page">
+  <body class="sets-page">
     <header class="site-header">
       <div class="site-topbar">
         <a class="brand" href="../index.html" aria-label="Krosmoz Card">
@@ -23,7 +25,7 @@
           <a class="nav-link" href="../index.html">Accueil</a>
           <a class="nav-link" href="classement.html">Classement</a>
           <a class="nav-link" href="tutoriel.html">Tutoriel</a>
-          <a class="nav-link is-active" href="cartes.html">Cartes</a>
+          <a class="nav-link is-active" href="/sets">Sets</a>
         </nav>
 
         <div class="header-actions" aria-label="Liens rapides">
@@ -54,7 +56,11 @@
       </div>
     </header>
 
-    <main class="blank-page" aria-label="Cartes">
+    <script>
+      window.location.replace("/sets")
+    </script>
+
+    <main class="blank-page" aria-label="Sets">
       <footer class="site-footer">
         <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers du <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
         <p>Projet non affilié à Ankama Games</p>

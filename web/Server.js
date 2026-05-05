@@ -279,6 +279,7 @@ const CARDS_PATH = path.join(BASE, "cards.json")
 const PUBLIC_DIR = path.join(__dirname, "public")
 const CARD_IMAGES_RUNTIME_DIR = path.join(BASE, "cards", "images")
 const CARD_IMAGES_REPO_DIR = path.join(process.cwd(), "cards", "images")
+const WAKFU_ENCYCLOPEDIE_DIR = path.join(process.cwd(), "data", "cards", "wakfu-encyclopedie")
 
 const DISCORD_USER_TTL_MS = 5 * 60 * 1000
 const discordUserCache = new Map()
@@ -1716,6 +1717,7 @@ function buildLocalSession(req, cookies = null) {
  if (hasLocalAuthDisableSignal(req, cookies)) return null
  const autoLocalWhenOauthMissing = !oauthConfigured()
  if (!hasLocalAuthSignal(req, cookies) && !autoLocalWhenOauthMissing) return null
+ ensureLocalDiscordProfiles(WEB_LOCAL_AUTH_USER_ID)
  return {
   token: `local:${WEB_LOCAL_AUTH_USER_ID}`,
   userId: WEB_LOCAL_AUTH_USER_ID,
@@ -4405,6 +4407,13 @@ function createWebApp() {
   maxAge: "30d",
   immutable: true
  }))
+ app.use("/assets/wakfu-encyclopedie", express.static(WAKFU_ENCYCLOPEDIE_DIR, {
+  index: false,
+  etag: true,
+  fallthrough: true,
+  maxAge: "30d",
+  immutable: true
+ }))
 
  /* ── Restore persisted sessions from SQLite ── */
  try {
@@ -4497,6 +4506,7 @@ function createWebApp() {
  require("./routes/achievementRoutes")(app, ctx)
  require("./routes/marketRoutes")(app, ctx)
  require("./routes/authRoutes")(app, ctx)
+ require("./routes/completionRoutes")(app, ctx)
  require("./routes/pageRoutes")(app, ctx)
 
  return app

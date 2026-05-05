@@ -9,7 +9,7 @@ module.exports = function mount(app, ctx) {
  app.get("/leaderboard", (req, res) => res.redirect("/pages/classement.html"))
  app.get("/profile/:id", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
  app.get("/profile", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Profile.html")))
- app.get("/cards", (req, res) => res.redirect("/pages/cartes.html"))
+ app.get("/cards", (req, res) => res.redirect("/sets"))
  app.get("/fusion", (req, res) => {
   if (!canUseLocalAuth(req)) return res.redirect("/play/fusion")
   const session = requireSessionPage(req, res)
