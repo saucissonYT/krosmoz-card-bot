@@ -9,7 +9,7 @@ module.exports = function mount(app, ctx) {
   getCards, canEditCards, sanitizeCardImageName,
   parseImageDataUrl, splitImageFileName,
   buildUniqueImageFileName, buildRandomImageFileName,
-  saveCards, CARD_IMAGES_RUNTIME_DIR, apiCache
+  saveCards, buildCardImageUrl, CARD_IMAGES_RUNTIME_DIR, apiCache
  } = ctx
 
  app.get("/api/cards", (req, res) => {
@@ -103,7 +103,7 @@ module.exports = function mount(app, ctx) {
      id: String(nextCards[index]?.id || cardId),
      set: String(nextCards[index]?.set || ""),
      image: String(nextCards[index]?.image || ""),
-     imageUrl: `/assets/cards/${encodeURIComponent(safeSetId)}/${encodeURIComponent(String(nextCards[index]?.image || ""))}`
+     imageUrl: buildCardImageUrl(safeSetId, nextCards[index]?.image)
      }
     })
   } catch (e) {

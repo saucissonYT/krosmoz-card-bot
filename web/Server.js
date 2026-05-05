@@ -487,6 +487,30 @@ function normalizeCardLookupName(rawName) {
   .toLowerCase()
 }
 
+function encodeAssetPath(value) {
+ return String(value || "")
+  .replace(/\\/g, "/")
+  .split("/")
+  .filter(Boolean)
+  .map((segment) => encodeURIComponent(segment))
+  .join("/")
+}
+
+function buildCardImageUrl(setId, imageName) {
+ const safeSetId = String(setId || "").trim()
+ const safeImageName = String(imageName || "").trim()
+ if (!safeSetId || !safeImageName) return null
+ return `/assets/cards/${encodeURIComponent(safeSetId)}/${encodeAssetPath(safeImageName)}`
+}
+
+function getSetRelativeImagePath(rootDir, setHint, fullPath, fallbackName) {
+ const safeSetHint = String(setHint || "").trim()
+ if (!safeSetHint) return String(fallbackName || "")
+ const setRoot = path.join(rootDir, safeSetHint)
+ const relative = path.relative(setRoot, fullPath).replace(/\\/g, "/")
+ return relative && !relative.startsWith("..") ? relative : String(fallbackName || "")
+}
+
 function getCardImageIndex() {
  const now = Date.now()
  if (_cardImageIndexCache && (now - _cardImageIndexCacheAt) < STATIC_CACHE_TTL) {
@@ -523,6 +547,7 @@ function getCardImageIndex() {
 
     const setId = String(setHint || "").trim().toLowerCase()
     if (!setId) continue
+    const imagePath = getSetRelativeImagePath(rootDir, setHint, fullPath, entry.name)
 
     const ext = path.extname(entry.name)
     const stem = entry.name.slice(0, -ext.length)
@@ -537,14 +562,14 @@ function getCardImageIndex() {
     const parsedId = Number.parseInt(String(parts[0] || ""), 10)
     if (Number.isInteger(parsedId)) {
      const idKey = `${setId}:${parsedId}`
-     if (!bySetAndId.has(idKey)) bySetAndId.set(idKey, entry.name)
+     if (!bySetAndId.has(idKey)) bySetAndId.set(idKey, imagePath)
      parts.shift()
     }
 
     const nameKey = normalizeCardLookupName(parts.join(" "))
     if (nameKey) {
      const lookupKey = `${setId}:${nameKey}`
-     if (!bySetAndName.has(lookupKey)) bySetAndName.set(lookupKey, entry.name)
+     if (!bySetAndName.has(lookupKey)) bySetAndName.set(lookupKey, imagePath)
     }
    }
   }
@@ -557,7 +582,7 @@ function getCardImageIndex() {
 
 function getResolvedCardImageName(card) {
  const explicitImage = String(card?.image || "").trim()
- if (explicitImage) return explicitImage
+ if (explicitImage) return explicitImage.replace(/\\/g, "/")
 
  const setId = String(card?.set || "").trim().toLowerCase()
  if (!setId) return ""
@@ -612,8 +637,10 @@ function buildLocalCardsFromImages() {
     const stem = entry.name.slice(0, -ext.length)
     const parts = stem.split("_").filter(Boolean)
     if (parts.length <= 0) continue
+    const imagePath = getSetRelativeImagePath(rootDir, setHint, fullPath, entry.name)
+    const rarityFromFolder = String(path.dirname(imagePath).split(/[\\/]/).pop() || "").toUpperCase()
 
-    let rarity = "C"
+    let rarity = raritySet.has(rarityFromFolder) ? rarityFromFolder : "C"
     const last = String(parts[parts.length - 1] || "").toUpperCase()
     if (raritySet.has(last)) {
      rarity = last
@@ -638,7 +665,7 @@ function buildLocalCardsFromImages() {
      name: cardName,
      rarity,
      set: setId,
-     image: entry.name
+     image: imagePath
     })
    }
   }
@@ -870,9 +897,7 @@ function buildKrosmoshopStatePayload(userId = null) {
    name: String(card?.name || `Carte ${cardId}`),
    setId: String(card?.set || "unknown"),
    setName: String(setNames.get(String(card?.set || "")) || card?.set || "Inconnu"),
-   imageUrl: card?.image && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-    : null,
+   imageUrl: buildCardImageUrl(card?.set, card?.image),
    basePrice: pricing.basePrice,
    finalPrice: pricing.finalPrice,
    totalDiscountPercent: pricing.totalDiscountPercent,
@@ -1237,9 +1262,7 @@ async function finalizeWebPinataRound() {
        cardId: String(ssrCard.id),
        cardName: String(ssrCard.name || `Carte ${ssrCard.id}`),
        rarity: String(ssrCard.rarity || "SSR"),
-       imageUrl: ssrCard?.image && ssrCard?.set
-        ? `/assets/cards/${encodeURIComponent(String(ssrCard.set))}/${encodeURIComponent(String(ssrCard.image))}`
-        : null
+       imageUrl: buildCardImageUrl(ssrCard?.set, ssrCard?.image)
       }
     }
    }
@@ -1251,9 +1274,7 @@ async function finalizeWebPinataRound() {
       cardId: String(card.id),
       cardName: String(card.name || `Carte ${card.id}`),
       rarity: String(card.rarity || "C"),
-      imageUrl: card?.image && card?.set
-       ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-       : null
+      imageUrl: buildCardImageUrl(card?.set, card?.image)
      }
     }
    }
@@ -3129,9 +3150,7 @@ function computeCardsCatalog(query) {
      set: card.set || "unknown",
      image: resolvedImage,
      setName: setNames.get(String(card.set || "")) || String(card.set || "Inconnu"),
-     imageUrl: resolvedImage && card?.set
-      ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
-      : null
+     imageUrl: buildCardImageUrl(card?.set, resolvedImage)
     }
    })
   }
@@ -3197,9 +3216,7 @@ async function computeMarket(query) {
    rarity: card?.rarity || "C",
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
-   imageUrl: card?.image && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-    : null,
+   imageUrl: buildCardImageUrl(card?.set, card?.image),
    seller: String(entry.seller || ""),
    fragmentNumber: itemType === "fragment" ? Number(entry.fragmentNumber || 0) : null,
    minimumPrice: itemType === "fragment"
@@ -3712,9 +3729,7 @@ function enrichListingWithCardMeta(listing, cardsById, setNames) {
   rarity: card?.rarity || "C",
   set: setId,
   setName: setNames.get(String(setId)) || String(setId),
-  imageUrl: card?.image && card?.set
-   ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-   : null,
+  imageUrl: buildCardImageUrl(card?.set, card?.image),
   seller: String(listing.seller || ""),
   fragmentNumber: listing.type === "fragment" ? Number(listing.fragmentNumber || 0) : null,
   timestamp: Number(listing.timestamp || 0)
@@ -3786,9 +3801,7 @@ function buildInventoryPayload(userId) {
    rarity,
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
-   imageUrl: resolvedImage && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
-    : null,
+   imageUrl: buildCardImageUrl(card?.set, resolvedImage),
    sellPrice: isSecret ? 0 : computeSellPrice(baseSellPrice, sellMultiplier),
    sellBonusPercent
   })
@@ -3813,9 +3826,7 @@ function buildInventoryPayload(userId) {
    rarity: card?.rarity || "SSR",
    set: setId,
    setName: setNames.get(String(setId)) || String(setId),
-   imageUrl: resolvedImage && card?.set
-    ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(resolvedImage))}`
-    : null
+   imageUrl: buildCardImageUrl(card?.set, resolvedImage)
   }
  })
  fragmentItems.sort((a, b) => {
@@ -4453,7 +4464,7 @@ function createWebApp() {
   // Build functions
   buildMePayload, buildDailyStatePayload, buildInventoryPayload,
   buildKrosmoshopStatePayload, buildQuestStatePayload, buildQuestPreviewPayload,
-  buildGuildStatePayload, buildRecruitHistoryPayload,
+  buildGuildStatePayload, buildRecruitHistoryPayload, buildCardImageUrl,
 
   // Card editing helpers
   canEditCards, sanitizeCardImageName, parseImageDataUrl,

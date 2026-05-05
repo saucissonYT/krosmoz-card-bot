@@ -41,6 +41,7 @@ module.exports = function mount(app, ctx) {
   stripDiscordMarkdownForWeb, buildEventVoiceLine,
   appendRecruitHistoryEntries, pushActivity,
   webPinataState, ensureWebPinataLifecycle, getWebPinataView,
+  buildCardImageUrl,
   WEB_PINATA_ALLOWED_EMOJIS, invalidateUserCaches
  } = ctx
 
@@ -273,9 +274,7 @@ module.exports = function mount(app, ctx) {
       recruitmentName: String(event?.name || "Event Pack"),
       rarity: String(card?.rarity || "C"),
       qty: 0,
-      imageUrl: card?.image && card?.set
-       ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-       : null
+      imageUrl: buildCardImageUrl(card?.set, card?.image)
      })
     }
     groupedHistory.get(key).qty += 1
@@ -315,9 +314,7 @@ module.exports = function mount(app, ctx) {
     cardName: String(card.name || `Carte ${card.id}`),
     rarity: String(card.rarity || "C"),
     set: String(card.set || ""),
-    imageUrl: card?.image && card?.set
-     ? `/assets/cards/${encodeURIComponent(String(card.set))}/${encodeURIComponent(String(card.image))}`
-     : null,
+    imageUrl: buildCardImageUrl(card?.set, card?.image),
     isNew: discoveredIds.has(String(card.id))
    }))
 

@@ -97,7 +97,7 @@ module.exports = function mount(app, ctx) {
   normalizeRarity, getNextRarity, countUnlockedAchievements,
   consumeDuplicatesForFusion, canUseLocalAuth,
   RARITY_ORDER, invalidateUserCaches,
-  PUBLIC_DIR
+  PUBLIC_DIR, buildCardImageUrl
  } = ctx
 
  app.post("/api/local/fusion/reset", (req, res) => {
@@ -469,7 +469,7 @@ module.exports = function mount(app, ctx) {
       cardName: String(card?.name || `Carte ${card?.id}`),
       rarity,
       set: String(card?.set || setId),
-      image: card?.image ? `/assets/cards/${encodeURIComponent(String(card.set || setId))}/${encodeURIComponent(String(card.image))}` : null,
+      image: buildCardImageUrl(card?.set || setId, card?.image),
       shiny: Boolean(card?.shiny),
       isNew: discoveredThisPull.has(cardId)
      })
@@ -479,7 +479,7 @@ module.exports = function mount(app, ctx) {
        cardName: String(card.name || `Carte ${card.id}`),
        rarity,
        set: String(card.set || setId),
-       image: card?.image ? `/assets/cards/${encodeURIComponent(String(card.set || setId))}/${encodeURIComponent(String(card.image))}` : null,
+       image: buildCardImageUrl(card?.set || setId, card?.image),
        shiny: Boolean(card?.shiny),
        isNew: false,
        qty: 0
@@ -631,7 +631,7 @@ module.exports = function mount(app, ctx) {
      cardName: String(reward.name || `Carte ${reward.id}`),
      rarity: String(reward.rarity || targetRarity),
      set: String(reward.set || setId),
-     imageUrl: reward?.image ? `/assets/cards/${encodeURIComponent(String(reward.set || setId))}/${encodeURIComponent(String(reward.image))}` : null,
+     imageUrl: buildCardImageUrl(reward?.set || setId, reward?.image),
      isNew: isNewReward
     },
     consumedCardIds: consumed.consumedCardIds || [],
@@ -678,7 +678,7 @@ module.exports = function mount(app, ctx) {
      cardName: String(crafted.name || `Carte ${cardId}`),
      rarity: String(crafted.rarity || "SSR"),
      set: String(crafted.set || "unknown"),
-     imageUrl: crafted?.image ? `/assets/cards/${encodeURIComponent(String(crafted.set || "unknown"))}/${encodeURIComponent(String(crafted.image))}` : null
+     imageUrl: buildCardImageUrl(crafted?.set || "unknown", crafted?.image)
     },
     titleUnlocked: result.titleUnlocked || null,
     unlockedAchievements: countUnlockedAchievements(unlocked)
