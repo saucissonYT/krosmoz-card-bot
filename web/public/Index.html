@@ -1,529 +1,295 @@
-﻿<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Krosmoz Card ? Collectionne les cartes du Krosmoz</title>
- <meta name="description" content="Bot Discord TCG inspiré de l'univers Krosmoz. Collectionne 2349 cartes, fusionne, échange, et deviens le meilleur collecteur !">
- <meta name="theme-color" content="#c9a84c">
- <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎴</text></svg>">
- <link rel="stylesheet" href="/css/style.css">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Accueil | Krosmoz Card</title>
+    <meta
+      name="description"
+      content="Krosmoz Card, jeu de collection de cartes inspire de l'univers du Krosmoz."
+    />
+    <link rel="icon" type="image/png" href="assets/ui/logo-carte.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/css/main.css" />
+  </head>
+  <body class="index-page">
+    <header class="site-header">
+      <div class="site-topbar">
+        <a class="brand" href="index.html" aria-label="Krosmoz Card">
+          <img src="assets/ui/logo-carte.png" alt="" />
+          <span>Krosmoz Card</span>
+        </a>
 
- <!-- Open Graph -->
- <meta property="og:title" content="Krosmoz Card">
- <meta property="og:description" content="Bot Discord TCG ? 2349 cartes, 7 sets, 19 events, 579 achievements">
- <meta property="og:type" content="website">
- <meta property="og:url" content="https://krosmozcard.fr">
-</head>
-<body class="index-page">
+        <nav class="top-nav" aria-label="Navigation principale">
+          <a class="nav-link is-active" href="index.html">Accueil</a>
+          <a class="nav-link" href="pages/classement.html">Classement</a>
+          <a class="nav-link" href="pages/tutoriel.html">Tutoriel</a>
+          <a class="nav-link" href="pages/cartes.html">Cartes</a>
+        </nav>
 
- <!-- NAVBAR -->
- <nav class="navbar" id="navbar">
-  <div class="navbar-inner">
-   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
-   <ul class="navbar-links" id="navLinks">
-    <li><a href="/" class="active">Accueil</a></li>
-    <li><a href="/leaderboard">Classement</a></li>
-    <li><a href="/tutorial">Tutoriel</a></li>
-    <li><a href="/cards">Cartes</a></li>
-   </ul>
-   <div class="navbar-right">
-    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
-    <a class="discord-mini" href="https://discord.com/invite/ekEkqhZwbZ" target="_blank" rel="noopener" aria-label="Discord">
-     <svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2h0C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z"/></svg>
-    </a>
-    <a class="github-mini" href="https://github.com/saucissonYT/krosmoz-card-bot" target="_blank" rel="noopener" aria-label="GitHub">
-     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64 7.64 0 0 1 8 4.77c.68 0 1.37.09 2.01.27 1.53-1.04 2.2-.82 2.2-.82.44 1.09.16 1.9.08 2.1.51.56.82 1.27.82 2.14 0 3.07-1.87 3.75-3.65 3.95.29.25.54.74.54 1.49l-.01 2.2c0 .21.14.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
-    </a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
-   </div>
-  </div>
- </nav>
-
- <div class="page">
-  <div class="container">
-
-   <!-- HERO -->
-   <section class="hero">
-   <div class="hero-badge">🌈 2349 cartes · 7 sets · 19 dieux</div>
-    <div class="hero-season" id="heroSeason">🟢 Saison Battle Pass en cours...</div>
-    <h1>Collectionne les cartes<br>du <span class="gold">Krosmoz</span></h1>
-    <p>
-     Ouvre des packs, fusionne tes doublons, échange sur le marché, 
-     et deviens le meilleur collecteur du Monde des Douze.
-    </p>
-    <div class="hero-buttons">
-     <div class="hero-buttons-main">
-      <a href="https://discord.com/invite/ekEkqhZwbZ" class="btn btn-outline" target="_blank" rel="noopener">
-       💬 Discord
-      </a>
-      <a href="/leaderboard" class="btn btn-outline">
-       🏆 Classement
-      </a>
-      <a href="/tutorial" class="btn btn-outline">
-       📘 Tutoriel
-      </a>
-     </div>
-     <div class="hero-buttons-cta">
-      <a id="heroPlayBtn" href="/auth/discord?returnTo=%2Fplay" class="btn btn-gold">
-       JOUER
-      </a>
-     </div>
-    </div>
-   </section>
-
-   <!-- STATS BAR -->
-   <section class="stats-bar" id="statsBar">
-    <div class="stat-item">
-     <div class="stat-value" id="stat-players">?</div>
-     <div class="stat-label">Joueurs</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-cards">?</div>
-     <div class="stat-label">Cartes existantes</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-packs">?</div>
-     <div class="stat-label">Packs ouverts</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-fusions">?</div>
-     <div class="stat-label">Fusions</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-roulettes">?</div>
-     <div class="stat-label">Roulettes</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-pinatas">?</div>
-     <div class="stat-label">Pinatas</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-ssr">?</div>
-     <div class="stat-label">SSR possédées</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-guilds">?</div>
-     <div class="stat-label">Guildes</div>
-    </div>
-    <div class="stat-item">
-     <div class="stat-value" id="stat-achievements">?</div>
-     <div class="stat-label">Succès débloqués</div>
-    </div>
-   </section>
-
-   <!-- FEATURES -->
-   <section class="section">
-    <h2 class="section-title">Le jeu de cartes du Krosmoz</h2>
-    <p class="section-subtitle index-features-subtitle">Tout ce que tu peux faire avec Krosmoz Card</p>
-
-    <div class="features-grid">
-
-     <div class="feature-card fade-in stagger-1">
-      <div class="feature-icon">🎴</div>
-      <h3>Ouvre des packs</h3>
-      <p>Tire des cartes parmi 8 raretés, de Commune à SSR. Système de pity garanti pour les plus malchanceux.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-2">
-      <div class="feature-icon">⚗️</div>
-      <h3>Fusionne tes doublons</h3>
-      <p>Sacrifie tes doublons pour obtenir des cartes de rareté supérieure. Fusions critiques, doubles et triples possibles.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-3">
-      <div class="feature-icon">🛒</div>
-      <h3>Marché entre joueurs</h3>
-      <p>Achète et vends sur le marché. Prix régulés par la moyenne historique pour éviter la manipulation.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-4">
-      <div class="feature-icon">🎟️</div>
-      <h3>19 Events des Dieux</h3>
-      <p>Ecaflip, Osamodas, Pandawa, Xelor⬦ Chaque Dieu modifie les packs avec son pouvoir unique.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-1">
-      <div class="feature-icon">🛡️</div>
-      <h3>Guildes & quêtes</h3>
-      <p>Crée ta guilde, recrute des membres, complète des quêtes collectives et débloquez des bonus permanents.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-2">
-      <div class="feature-icon">🏆</div>
-      <h3>579 Succès</h3>
-      <p>Débloque des badges, des titres et des récompenses en jouant. Certains sont secrets⬦</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-3">
-      <div class="feature-icon">🛡️</div>
-      <h3>Fragments & Craft</h3>
-      <p>Collecte les 5 fragments d'une carte SSR pour la crafter. La voie du collectionneur patient.</p>
-     </div>
-
-     <div class="feature-card fade-in stagger-4">
-      <div class="feature-icon">🎡</div>
-      <h3>Roulette d'Ecaflip</h3>
-      <p>Tente ta chance une fois par heure. 31 lots possibles, dont un jackpot secret légendaire.</p>
-     </div>
-
-    </div>
-   </section>
-
-   <!-- SETS -->
-   <section class="section">
-    <h2 class="section-title">7 Sets à compléter</h2>
-    <p class="section-subtitle index-sets-subtitle">Du village d'Incarnam aux terres glacées de Sberg</p>
-
-    <div class="features-grid" id="setsGrid">
-     <!-- Rempli dynamiquement -->
-    </div>
-   </section>
-
-   <!-- ACTIVITY -->
-   <section class="section section-activity">
-    <h2 class="section-title">Journal d'activité</h2>
-    <p class="section-subtitle index-activity-subtitle">Les derniers événements du Krosmoz</p>
-    <div id="activityFeed" class="activity-feed">
-     <div class="loading">Chargement des activités...</div>
-    </div>
-   </section>
-
-   <!-- FOOTER -->
-   <footer class="footer">
-    <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
-    <p style="margin-top:8px; font-size:0.8rem">Projet non affilié à Ankama Games</p>
-    <p style="margin-top:8px"><a href="/about">À propos · Contact · Mentions légales</a></p>
-   </footer>
-
-  </div>
- </div>
-
- <script src="/js/web-auth.js"></script>
- <script>
- /* -------- Navbar scroll -------- */
- const navbar = document.getElementById("navbar")
- window.addEventListener("scroll", () => {
-  navbar.classList.toggle("scrolled", window.scrollY > 40)
- })
-
- /* -------- Mobile nav -------- */
- document.getElementById("navToggle").addEventListener("click", () => {
-  document.getElementById("navLinks").classList.toggle("open")
- })
-
- /* -------- Animate numbers -------- */
- function animateValue(el, target, duration = 1200) {
-  const start = 0
-  const startTime = performance.now()
-  function update(currentTime) {
-   const elapsed = currentTime - startTime
-   const progress = Math.min(elapsed / duration, 1)
-   const eased = 1 - Math.pow(1 - progress, 3)
-   const current = Math.floor(start + (target - start) * eased)
-   el.textContent = current.toLocaleString("fr-FR")
-   if (progress < 1) requestAnimationFrame(update)
-  }
-  requestAnimationFrame(update)
- }
-
- function escapeHtml(value) {
-  return String(value ?? "")
-   .replace(/&/g, "&amp;")
-   .replace(/</g, "&lt;")
-   .replace(/>/g, "&gt;")
-   .replace(/"/g, "&quot;")
-   .replace(/'/g, "&#39;")
- }
-
- function rarityEmoji(rarity) {
-  switch (String(rarity || "").toUpperCase()) {
-   case "SSR": return "🌈"
-   case "S": return "⚪"
-   case "UR": return "🟡"
-   case "HR": return "🔴"
-   case "SR": return "🟣"
-   case "R": return "🔵"
-   case "U": return "🟢"
-   default: return "🟤"
-  }
- }
-
- let activityItemsCache = []
-
- function renderActivity() {
-  const feed = document.getElementById("activityFeed")
-  if (!feed) return
-
-  const items = activityItemsCache.slice(0, 10)
-  if (!items.length) {
-   feed.innerHTML = `<div class="activity-empty">Aucune activité récente pour le moment.</div>`
-   return
-  }
-
-  feed.innerHTML = items.map((item) => {
-   const ts = Number(item?.timestamp || 0)
-   const dateLabel = ts > 0
-    ? new Date(ts).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })
-    : "Date inconnue"
-   const kind = item?.kind || "unknown"
-
-   /* Market (achat carte / fragment) */
-   if (kind === "market_card" || kind === "market_fragment") {
-    const buyer = escapeHtml(item?.buyer?.name || "Joueur")
-    const seller = escapeHtml(item?.seller?.name || "Joueur")
-    const cardName = escapeHtml(item?.cardName || "Carte inconnue")
-    const price = Number(item?.price || 0).toLocaleString("fr-FR")
-    const isFragment = kind === "market_fragment"
-    const label = isFragment
-     ? `🧩 Fragment ${Number(item?.fragmentNumber || 0)}/5 · ${cardName}`
-     : `${rarityEmoji(item?.rarity)} ${cardName}`
-
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">${label}</div>
-       <div class="activity-meta"><strong>${buyer}</strong> a acheté à <strong>${seller}</strong></div>
+        <div class="header-actions" aria-label="Liens rapides">
+          <a class="header-action header-action-login" href="/auth/discord">Connexion</a>
+          <a
+            class="header-social header-social-discord"
+            href="https://discord.com/invite/ekEkqhZwbZ"
+            target="_blank"
+            rel="noopener"
+            aria-label="Discord"
+          >
+            <svg viewBox="0 0 127.14 96.36" aria-hidden="true">
+              <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z" />
+            </svg>
+          </a>
+          <a
+            class="header-social header-social-github"
+            href="https://github.com/saucissonYT/krosmoz-card-bot"
+            target="_blank"
+            rel="noopener"
+            aria-label="GitHub"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64,7.64,0,0,1,8,4.77c.68,0,1.37,.09,2.01,.27,1.53-1.04,2.2-.82,2.2-.82,.44,1.09,.16,1.9,.08,2.1,.51,.56,.82,1.27,.82,2.14,0,3.07-1.87,3.75-3.65,3.95,.29,.25,.54,.74,.54,1.49l-.01,2.2c0,.21,.14,.46,.55,.38A8,8,0,0,0,16,8C16,3.58,12.42,0,8,0Z" />
+            </svg>
+          </a>
+        </div>
       </div>
-      <div class="activity-side">
-       <div class="activity-price">${price} kamas</div>
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+    </header>
 
-   /* Event start */
-   if (kind === "event_start") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">🟢 Event des Dieux démarré</div>
-       <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+    <main class="home-main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-inner">
+          <p class="hero-kicker">Jeu de cartes du Krosmoz</p>
+          <h1 id="hero-title">KrosmozCard</h1>
+          <div class="hero-rule" aria-hidden="true"></div>
+          <p class="hero-copy">
+            Ouvre des packs, fusionne tes doublons, échange sur le marché, et deviens le meilleur
+            collecteur du Monde des Douze.
+          </p>
 
-   /* Event end */
-   if (kind === "event_end") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">🏁 Event des Dieux terminé</div>
-       <div class="activity-meta">${escapeHtml(item?.eventName || "Événement inconnu")}</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+          <div class="hero-actions">
+            <a class="button button-gold button-play" href="/auth/discord?returnTo=%2Fplay">Jouer</a>
+          </div>
+        </div>
+      </section>
 
-   /* Drop S */
-   if (kind === "drop_s") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">⚪ Drop S</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "Carte inconnue")}</strong></div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+      <section class="stats-bar" aria-label="Informations du jeu">
+        <div class="stat-item">
+          <strong>1 284</strong>
+          <span>Joueurs</span>
+        </div>
+        <div class="stat-item">
+          <strong>2 349</strong>
+          <span>Cartes existantes</span>
+        </div>
+        <div class="stat-item">
+          <strong>48 920</strong>
+          <span>Packs ouverts</span>
+        </div>
+        <div class="stat-item">
+          <strong>12 680</strong>
+          <span>Fusions</span>
+        </div>
+        <div class="stat-item">
+          <strong>31 404</strong>
+          <span>Roulettes</span>
+        </div>
+        <div class="stat-item">
+          <strong>2 918</strong>
+          <span>Piñatas</span>
+        </div>
+        <div class="stat-item">
+          <strong>386</strong>
+          <span>SSR possédées</span>
+        </div>
+        <div class="stat-item">
+          <strong>42</strong>
+          <span>Guildes</span>
+        </div>
+        <div class="stat-item">
+          <strong>579</strong>
+          <span>Succès débloqués</span>
+        </div>
+      </section>
 
-   /* Drop SSR */
-   if (kind === "drop_ssr") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">🌈 Drop SSR</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a obtenu <strong>${escapeHtml(item?.cardName || "Carte inconnue")}</strong>${item?.shiny ? " 🌈 SHINY" : ""}</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+      <section class="home-section" aria-labelledby="features-title">
+        <div class="home-section-heading">
+          <h2 id="features-title">Le jeu de cartes du Krosmoz</h2>
+          <p>Tout ce que tu peux faire avec Krosmoz Card</p>
+          <div class="home-rule" aria-hidden="true"></div>
+        </div>
 
-   /* Guild create */
-   if (kind === "guild_create") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">🛡️ Guilde créée</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.userName || "Joueur")}</strong> a fondé <strong>${escapeHtml(item?.guildName || "Guilde inconnue")}</strong></div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon">🎴</div>
+            <h3>Ouvre des packs</h3>
+            <p>Tire des cartes parmi 8 raretés, de Commune à SSR. Système de pity garanti pour les plus malchanceux.</p>
+          </article>
 
-   /* Guild disband */
-   if (kind === "guild_disband") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">💥 Guilde dissoute</div>
-       <div class="activity-meta"><strong>${escapeHtml(item?.guildName || "Guilde inconnue")}</strong> a été dissoute</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+          <article class="feature-card">
+            <div class="feature-icon">⚗️</div>
+            <h3>Fusionne tes doublons</h3>
+            <p>Sacrifie tes doublons pour obtenir des cartes de rareté supérieure. Fusions critiques, doubles et triples possibles.</p>
+          </article>
 
-   /* Piñata start */
-   if (kind === "pinata_start" || kind === "pinata_start_web") {
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">Piñata d'Ecaflip démarrée</div>
-       <div class="activity-meta">Une piñata a démarré.</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+          <article class="feature-card">
+            <div class="feature-icon">🛒</div>
+            <h3>Marché entre joueurs</h3>
+            <p>Achète et vends sur le marché. Prix régulés par la moyenne historique pour éviter la manipulation.</p>
+          </article>
 
-   /* Piñata end */
-   if (kind === "pinata" || kind === "pinata_end" || kind === "pinata_web") {
-    const participants = Number(item?.participants || 0)
-    const participantsLabel = participants <= 0
-     ? "Aucun participant"
-     : `${participants} participant${participants > 1 ? "s" : ""}`
-    return `
-     <article class="activity-item">
-      <div class="activity-main">
-       <div class="activity-title">Piñata d'Ecaflip terminée</div>
-       <div class="activity-meta">${participantsLabel}</div>
-      </div>
-      <div class="activity-side">
-       <div class="activity-time">${dateLabel}</div>
-      </div>
-     </article>
-    `
-   }
+          <article class="feature-card">
+            <div class="feature-icon">🎟️</div>
+            <h3>19 Events des Dieux</h3>
+            <p>Ecaflip, Osamodas, Pandawa, Xelor. Chaque Dieu modifie les packs avec son pouvoir unique.</p>
+          </article>
 
-   /* Fallback */
-   return `
-    <article class="activity-item">
-     <div class="activity-main">
-      <div class="activity-title">🔹 ${escapeHtml(kind)}</div>
-      <div class="activity-meta">${dateLabel}</div>
-     </div>
-    </article>
-   `
-  }).join("")
- }
+          <article class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h3>Guildes & quêtes</h3>
+            <p>Crée ta guilde, recrute des membres, complète des quêtes collectives et débloque des bonus permanents.</p>
+          </article>
 
- /* -------- Load stats -------- */
- async function loadStats() {
-  try {
-   const res = await fetch("/api/stats")
-   const data = await res.json()
+          <article class="feature-card">
+            <div class="feature-icon">🏆</div>
+            <h3>579 Succès</h3>
+            <p>Débloque des badges, des titres et des récompenses en jouant. Certains sont secrets.</p>
+          </article>
 
-   animateValue(document.getElementById("stat-players"), data.players)
-   animateValue(document.getElementById("stat-cards"), data.totalCards)
-   animateValue(document.getElementById("stat-packs"), data.packsOpened)
-   animateValue(document.getElementById("stat-fusions"), Number(data.fusions || 0))
-   animateValue(document.getElementById("stat-roulettes"), Number(data.rouletteSpins || 0))
-   animateValue(document.getElementById("stat-pinatas"), Number(data.pinataParticipations || 0))
-   animateValue(document.getElementById("stat-ssr"), data.ssrOwned)
-   animateValue(document.getElementById("stat-guilds"), data.guilds)
-   animateValue(document.getElementById("stat-achievements"), data.achievements)
-  } catch (err) {
-   console.error("Stats error:", err)
-  }
- }
+          <article class="feature-card">
+            <div class="feature-icon">✨</div>
+            <h3>Fragments & Craft</h3>
+            <p>Collecte les 5 fragments d'une carte SSR pour la crafter. La voie du collectionneur patient.</p>
+          </article>
 
- /* -------- Load battle pass season -------- */
- async function loadBattlePassSeason() {
-  const el = document.getElementById("heroSeason")
-  if (!el) return
-  try {
-   const res = await fetch("/api/battlepass/season")
-   const data = await res.json()
-   if (!res.ok) throw new Error(data?.error || "BP season failed")
+          <article class="feature-card">
+            <div class="feature-icon">🎡</div>
+            <h3>Roulette d'Ecaflip</h3>
+            <p>Tente ta chance une fois par heure. 31 lots possibles, dont un jackpot secret légendaire.</p>
+          </article>
+        </div>
+      </section>
 
-   const name = String(data?.name || "Saison")
-   const subtitle = String(data?.subtitle || "")
-   const emoji = String(data?.emoji || "🟢")
-   const remaining = Number.isFinite(data?.daysRemaining) ? ` · ${data.daysRemaining}j restants` : ""
-   el.textContent = `${emoji} ${name}${subtitle ? ` — ${subtitle}` : ""}${remaining}`
-  } catch (err) {
-   console.error("BattlePass season error:", err)
-   el.textContent = "🟢 Saison Battle Pass en cours"
-  }
- }
+      <section class="home-section" aria-labelledby="sets-title">
+        <div class="home-section-heading">
+          <h2 id="sets-title">16 Sets à compléter</h2>
+          <p>Des premiers niveaux d'Incarnam aux brumes des terres oubliées</p>
+          <div class="home-rule" aria-hidden="true"></div>
+        </div>
 
- /* -------- Load activity feed -------- */
- async function loadActivity() {
-  const feed = document.getElementById("activityFeed")
-  if (!feed) return
-  try {
-   const res = await fetch("/api/activity?limit=10")
-   const data = await res.json()
-   activityItemsCache = Array.isArray(data?.items) ? data.items : []
-   renderActivity()
-  } catch (err) {
-   console.error("Activity error:", err)
-   feed.innerHTML = `<div class="activity-empty">Impossible de charger le journal d'activité.</div>`
-  }
- }
+        <div class="sets-grid">
+          <article class="set-card">
+            <span>🌈</span>
+            <h3>Incarnam</h3>
+            <p>Niveaux 2 à 10, les premières cartes d'un collectionneur du Krosmoz.</p>
+            <strong>98 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🏛️</span>
+            <h3>Astrub</h3>
+            <p>Niveaux 11 à 35, la cité des aventuriers, des débuts et des rencontres.</p>
+            <strong>317 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🌾</span>
+            <h3>Amakna</h3>
+            <p>Niveaux 36 à 50, un set royal, agricole et plein de vieux secrets.</p>
+            <strong>257 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🌊</span>
+            <h3>Sufokia</h3>
+            <p>Niveaux 51 à 65, des cartes marines, mécaniques et lumineuses.</p>
+            <strong>335 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🎪</span>
+            <h3>Kelba</h3>
+            <p>Niveaux 66 à 80, marchands, affaires louches et trouvailles rares.</p>
+            <strong>323 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🔥</span>
+            <h3>Katrepat</h3>
+            <p>Niveaux 81 à 95, un set sombre, dangereux, et taillé pour les audacieux.</p>
+            <strong>307 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>❄️</span>
+            <h3>Sberg</h3>
+            <p>Niveaux 96 à 110, les terres glacées, les légendes froides et les cartes rares.</p>
+            <strong>294 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🜏</span>
+            <h3>Shukrute</h3>
+            <p>Niveaux 111 à 125, un set nerveux, infernal et chargé de reliques étranges.</p>
+            <strong>241 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🏜️</span>
+            <h3>Saharash</h3>
+            <p>Niveaux 126 à 140, poussière, mirages et trésors perdus dans le sable.</p>
+            <strong>272 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>💎</span>
+            <h3>Énutrosor</h3>
+            <p>Niveaux 141 à 155, richesses enfouies et artefacts de grands chasseurs de trésors.</p>
+            <strong>266 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>⏳</span>
+            <h3>Xélorium</h3>
+            <p>Niveaux 156 à 170, le temps se plie autour des cartes les plus instables.</p>
+            <strong>255 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🌙</span>
+            <h3>Moon</h3>
+            <p>Niveaux 171 à 185, jungle sacrée, masques anciens et trophées sauvages.</p>
+            <strong>208 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>⛰️</span>
+            <h3>Zinit</h3>
+            <p>Niveaux 186 à 200, l'ascension finale vers les cartes les plus convoitées.</p>
+            <strong>447 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🐉</span>
+            <h3>Osamosa</h3>
+            <p>Niveaux 201 à 215, une collection bestiale, sauvage et pleine de puissance.</p>
+            <strong>253 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🌋</span>
+            <h3>Éréboria</h3>
+            <p>Niveaux 216 à 230, terres hostiles, ressources rares et équipements de légende.</p>
+            <strong>344 cartes</strong>
+          </article>
+          <article class="set-card">
+            <span>🦖</span>
+            <h3>Brume</h3>
+            <p>Niveaux 231 à 245, le set le plus haut, entre mystère et collection d'élite.</p>
+            <strong>213 cartes</strong>
+          </article>
+        </div>
+      </section>
 
- /* -------- Load sets -------- */
- async function loadSets() {
-  try {
-   const res = await fetch("/api/sets")
-   const sets = await res.json()
-   const grid = document.getElementById("setsGrid")
-
-   const setEmojis = {
-    incarnam: "🌈", astrub: "🏛️", amakna: "🌾",
-    sufokia: "🌊", kelba: "🎪", katrepat: "🔥", sberg: "❄️"
-   }
-
-   grid.innerHTML = sets.map(set => `
-    <div class="feature-card">
-     <div class="feature-icon">${setEmojis[set.id] || "🧭"}</div>
-     <h3>${set.name}</h3>
-     <p>${set.description || "Set de cartes du Krosmoz"}</p>
-     <p><strong>${(set.totalCards || 0).toLocaleString("fr-FR")} cartes</strong></p>
-    </div>
-   `).join("") + `
-    <div class="feature-card">
-     <div class="feature-icon">✨</div>
-     <h3>À venir...</h3>
-     <p>Un nouveau set est en préparation.</p>
-     <p><strong>Nouvelles cartes bientôt</strong></p>
-    </div>
-   `
-  } catch (err) {
-   console.error("Sets error:", err)
-  }
- }
-
- loadStats()
- loadBattlePassSeason()
- loadSets()
- loadActivity()
- </script>
-
-</body>
+      <footer class="site-footer">
+        <p>🎴 Krosmoz Card · Bot Discord TCG inspiré de l'univers du <a href="https://www.wakfu.com" target="_blank" rel="noopener">Krosmoz</a></p>
+        <p>Projet non affilié à Ankama Games</p>
+        <nav aria-label="Liens de bas de page">
+          <a href="pages/a-propos.html#a-propos">À propos</a>
+          <a href="pages/a-propos.html#contact">Contact</a>
+          <a href="pages/a-propos.html#mentions-legales">Mentions légales</a>
+        </nav>
+      </footer>
+    </main>
+  </body>
 </html>
-
 
 
