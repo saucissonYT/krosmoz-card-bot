@@ -1,11 +1,9 @@
 /* Routes: set pages and API */
 
-const fs = require("fs")
 const path = require("path")
 
 const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-const WAKFU_DATA_DIR = path.join(process.cwd(), "data", "cards", "wakfu-encyclopedie")
-const WAKFU_MANIFEST_PATH = path.join(WAKFU_DATA_DIR, "manifest.json")
+const SET_ID_LEVEL_SUFFIX_RE = /-lvl-\d+-\d+$/
 
 const SET_META = [
  {
@@ -132,6 +130,27 @@ const SET_META = [
 
 const SET_BY_ID = new Map(SET_META.map((set) => [set.id, set]))
 const SET_BY_DIR = new Map(SET_META.map((set) => [set.dir, set]))
+const SET_ALIAS_FIXES = new Map([
+ ["saharach", "saharash"]
+])
+const SET_DESCRIPTION_BY_ALIAS = new Map([
+ ["incarnam", "Les premieres cartes du voyage, pensees pour poser les bases de la collection."],
+ ["astrub", "La cite des aventuriers rassemble les premieres cartes du voyage et ouvre la route du Krosmoz."],
+ ["amakna", "Un set royal, agricole et plein de vieux secrets, entre champs et premieres grandes explorations."],
+ ["sufokia", "Des cartes marines, mecaniques et lumineuses, faconnees par les profondeurs et les quais sufokiens."],
+ ["kelba", "Marchands, affaires louches et trouvailles rares composent une collection nerveuse."],
+ ["katrepat", "Un set sombre, dangereux et taille pour les expeditions risquees."],
+ ["sberg", "Les terres glacees et les legendes froides donnent a cette tranche une allure rude et majestueuse."],
+ ["shukrute", "Un set nerveux, infernal et charge de reliques etranges."],
+ ["saharash", "Poussiere, mirages et tresors perdus dans le sable composent une collection chaude et seche."],
+ ["enutrosor", "Richesses enfouies et artefacts de grands chasseurs de tresors brillent dans cette tranche."],
+ ["xelorium", "Le temps se plie autour des cartes les plus instables, entre mecanismes et paradoxes."],
+ ["moon", "Jungle sacree, masques anciens et trophees sauvages donnent a cette collection une energie tribale."],
+ ["zinit", "L'ascension finale vers les cartes les plus convoitees, avec des objets puissants et une collection dense."],
+ ["osamosa", "Une collection sauvage et pleine de puissance, marquee par les traces d'equipements vivants."],
+ ["ereboria", "Terres hostiles, ressources rares et equipements de legende nourrissent une tranche haute en tension."],
+ ["brume", "Le set le plus haut, entre mystere et collection d'elite."]
+])
 
 function normalizeSetId(value) {
  return String(value || "")
@@ -142,67 +161,70 @@ function normalizeSetId(value) {
   .replace(/[^a-z0-9-]/g, "")
 }
 
-function readManifestItems() {
- const raw = fs.readFileSync(WAKFU_MANIFEST_PATH, "utf8")
- const parsed = JSON.parse(raw)
- return Array.isArray(parsed.items) ? parsed.items : []
+function getSetAlias(value) {
+ const normalized = normalizeSetId(value).replace(SET_ID_LEVEL_SUFFIX_RE, "")
+ return SET_ALIAS_FIXES.get(normalized) || normalized
 }
 
-function rarityFromFile(file) {
- const match = String(file || "").match(/\/(C|U|R|SR|HR|UR|S|SSR)\/[^/]+$/)
- return match ? match[1] : ""
+function getSetIcon(set) {
+ const alias = getSetAlias(set?.id || set?.name)
+ const label = String(set?.name || alias || "Set").trim()
+ return label.charAt(0).toUpperCase() || "S"
 }
 
-function dirFromFile(file) {
- const match = String(file || "").match(/images\/([^/]+)\//)
- return match ? match[1] : ""
+function getSetLevels(set) {
+ const min = Number(set?.levelMin || 0)
+ const max = Number(set?.levelMax || 0)
+ if (min > 0 && max > 0) return `Niveaux ${min} a ${max}`
+ return String(set?.levels || "Set")
 }
 
-function publicImageUrl(file) {
- const normalized = String(file || "").replace(/\\/g, "/")
- return normalized.startsWith("/") ? normalized : `/${normalized}`
-}
-
-function getSetCounts(items) {
- const counts = new Map(SET_META.map((set) => [set.dir, 0]))
- for (const item of items) {
-  const dir = dirFromFile(item?.file)
-  if (counts.has(dir)) counts.set(dir, counts.get(dir) + 1)
- }
- return counts
-}
-
-function buildSetList() {
- const items = readManifestItems()
- const counts = getSetCounts(items)
- return SET_META.map((set) => ({
+function enrichSet(set) {
+ const alias = getSetAlias(set?.id || set?.name)
+ const legacy = SET_BY_ID.get(alias) || SET_BY_DIR.get(String(set?.id || ""))
+ return {
   id: set.id,
-  name: set.name,
-  icon: set.icon,
-  levels: set.levels,
-  description: set.description,
-  count: counts.get(set.dir) || 0
- }))
+  name: set.name || legacy?.name || set.id,
+  icon: getSetIcon(set),
+  levels: getSetLevels(set),
+  description: SET_DESCRIPTION_BY_ALIAS.get(alias) || legacy?.description || "",
+  count: Number(set.totalCards || set.count || 0)
+ }
 }
 
-function buildSetCompletion(set) {
+function buildSetList(ctx) {
+ return ctx.getSetsWithCounts().map(enrichSet)
+}
+
+function findSet(ctx, value) {
+ const wanted = normalizeSetId(value)
+ const wantedAlias = getSetAlias(wanted)
+ return ctx.getSets().find((set) => {
+  const id = normalizeSetId(set?.id)
+  if (id === wanted) return true
+  return getSetAlias(id) === wantedAlias
+ })
+}
+
+function buildSetCompletion(ctx, set) {
+ const enriched = enrichSet({
+  ...set,
+  totalCards: ctx.getSetsWithCounts().find((item) => String(item.id) === String(set.id))?.totalCards || 0
+ })
  const groups = Object.fromEntries(RARITY_ORDER.map((rarity) => [rarity, []]))
- const items = readManifestItems()
+ const items = ctx.computeCardsCatalog({ set: set.id, sort: "name", order: "asc" }).items
 
  for (const item of items) {
-  const file = String(item?.file || "")
-  if (dirFromFile(file) !== set.dir) continue
-
-  const rarity = rarityFromFile(file)
+  const rarity = String(item?.rarity || "").toUpperCase()
   if (!groups[rarity]) continue
 
   groups[rarity].push({
    id: String(item?.id || ""),
-   name: String(item?.name || path.basename(file)),
+   name: String(item?.name || `Carte ${item?.id || ""}`),
    level: String(item?.level || ""),
    category: String(item?.category || ""),
    rarity,
-   imageUrl: publicImageUrl(file),
+   imageUrl: String(item?.imageUrl || ""),
    pageUrl: String(item?.pageUrl || "")
   })
  }
@@ -215,11 +237,11 @@ function buildSetCompletion(set) {
  }
 
  return {
-  id: set.id,
-  name: set.name,
-  icon: set.icon,
-  levels: set.levels,
-  description: set.description,
+  id: enriched.id,
+  name: enriched.name,
+  icon: enriched.icon,
+  levels: enriched.levels,
+  description: enriched.description,
   total: RARITY_ORDER.reduce((sum, rarity) => sum + groups[rarity].length, 0),
   rarities: RARITY_ORDER.map((rarity) => ({
    id: rarity,
@@ -246,7 +268,7 @@ module.exports = function mount(app, ctx) {
 
  app.get("/api/set-catalog", (req, res) => {
   try {
-   return res.json({ sets: buildSetList() })
+   return res.json({ sets: buildSetList(ctx) })
   } catch (error) {
    console.error("[WEB] /api/set-catalog:", error)
    return res.status(500).json({ error: "Erreur serveur" })
@@ -256,9 +278,9 @@ module.exports = function mount(app, ctx) {
  app.get("/api/set-catalog/:set", (req, res) => {
   try {
    const id = normalizeSetId(req.params.set)
-   const set = SET_BY_ID.get(id) || SET_BY_DIR.get(id)
+   const set = findSet(ctx, id)
    if (!set) return res.status(404).json({ error: "Set introuvable" })
-   return res.json(buildSetCompletion(set))
+   return res.json(buildSetCompletion(ctx, set))
   } catch (error) {
    console.error("[WEB] /api/set-catalog/:set:", error)
    return res.status(500).json({ error: "Erreur serveur" })
@@ -267,7 +289,7 @@ module.exports = function mount(app, ctx) {
 
  app.get("/api/completion/sets", (req, res) => {
   try {
-   return res.json({ sets: buildSetList() })
+   return res.json({ sets: buildSetList(ctx) })
   } catch (error) {
    console.error("[WEB] /api/completion/sets:", error)
    return res.status(500).json({ error: "Erreur serveur" })
@@ -277,9 +299,9 @@ module.exports = function mount(app, ctx) {
  app.get("/api/completion/sets/:set", (req, res) => {
   try {
    const id = normalizeSetId(req.params.set)
-   const set = SET_BY_ID.get(id) || SET_BY_DIR.get(id)
+   const set = findSet(ctx, id)
    if (!set) return res.status(404).json({ error: "Set introuvable" })
-   return res.json(buildSetCompletion(set))
+   return res.json(buildSetCompletion(ctx, set))
   } catch (error) {
    console.error("[WEB] /api/completion/sets/:set:", error)
    return res.status(500).json({ error: "Erreur serveur" })
