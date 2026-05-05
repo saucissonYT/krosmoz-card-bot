@@ -84,7 +84,6 @@ async function gracefulShutdown(signal) {
   }
 
   /* Sauvegarder les données statiques (forcer le flush) */
-  dataManager.markStaticDirty()
   dataManager.markMarketDirty()
   dataManager.save()
 
@@ -126,7 +125,6 @@ process.on("uncaughtException", (err) => {
    const user = dataManager.data.users[id]
    if (user && user._dirty) dataManager.saveUser(id)
   }
-  dataManager.markStaticDirty()
   dataManager.markMarketDirty()
   dataManager.save()
   log.info("Sauvegarde d'urgence réussie")
