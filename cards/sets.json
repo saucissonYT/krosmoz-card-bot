@@ -1,9 +1,114 @@
 [
- { "id":"incarnam","name":"Incarnam","reward":20000},
- { "id":"astrub","name":"Astrub","reward":20000},
- { "id":"amakna","name":"Amakna","reward":20000},
- { "id":"sufokia","name":"Sufokia","reward":20000},
- { "id":"kelba","name":"Kelba","reward":20000},
- { "id":"katrepat","name":"Katrepat","reward":20000},
- { "id":"sberg","name":"Sberg","reward":20000}
+  {
+    "id": "incarnam-lvl-2-10",
+    "name": "Incarnam (2-10)",
+    "reward": 20000,
+    "levelMin": 2,
+    "levelMax": 10
+  },
+  {
+    "id": "astrub-lvl-11-35",
+    "name": "Astrub (11-35)",
+    "reward": 20000,
+    "levelMin": 11,
+    "levelMax": 35
+  },
+  {
+    "id": "amakna-lvl-36-50",
+    "name": "Amakna (36-50)",
+    "reward": 20000,
+    "levelMin": 36,
+    "levelMax": 50
+  },
+  {
+    "id": "sufokia-lvl-51-65",
+    "name": "Sufokia (51-65)",
+    "reward": 20000,
+    "levelMin": 51,
+    "levelMax": 65
+  },
+  {
+    "id": "kelba-lvl-66-80",
+    "name": "Kelba (66-80)",
+    "reward": 20000,
+    "levelMin": 66,
+    "levelMax": 80
+  },
+  {
+    "id": "katrepat-lvl-81-95",
+    "name": "Katrepat (81-95)",
+    "reward": 20000,
+    "levelMin": 81,
+    "levelMax": 95
+  },
+  {
+    "id": "sberg-lvl-96-110",
+    "name": "Sberg (96-110)",
+    "reward": 20000,
+    "levelMin": 96,
+    "levelMax": 110
+  },
+  {
+    "id": "shukrute-lvl-111-125",
+    "name": "Shukrute (111-125)",
+    "reward": 20000,
+    "levelMin": 111,
+    "levelMax": 125
+  },
+  {
+    "id": "saharash-lvl-126-140",
+    "name": "Saharash (126-140)",
+    "reward": 20000,
+    "levelMin": 126,
+    "levelMax": 140
+  },
+  {
+    "id": "enutrosor-lvl-141-155",
+    "name": "Enutrosor (141-155)",
+    "reward": 20000,
+    "levelMin": 141,
+    "levelMax": 155
+  },
+  {
+    "id": "xelorium-lvl-156-170",
+    "name": "Xelorium (156-170)",
+    "reward": 20000,
+    "levelMin": 156,
+    "levelMax": 170
+  },
+  {
+    "id": "moon-lvl-171-185",
+    "name": "Moon (171-185)",
+    "reward": 20000,
+    "levelMin": 171,
+    "levelMax": 185
+  },
+  {
+    "id": "zinit-lvl-186-200",
+    "name": "Zinit (186-200)",
+    "reward": 20000,
+    "levelMin": 186,
+    "levelMax": 200
+  },
+  {
+    "id": "osamosa-lvl-201-215",
+    "name": "Osamosa (201-215)",
+    "reward": 20000,
+    "levelMin": 201,
+    "levelMax": 215
+  },
+  {
+    "id": "ereboria-lvl-216-230",
+    "name": "Ereboria (216-230)",
+    "reward": 20000,
+    "levelMin": 216,
+    "levelMax": 230
+  },
+  {
+    "id": "brume-lvl-231-245",
+    "name": "Brume (231-245)",
+    "reward": 20000,
+    "levelMin": 231,
+    "levelMax": 245
+  }
 ]

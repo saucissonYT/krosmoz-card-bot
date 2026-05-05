@@ -17,15 +17,24 @@
 
 /* ================= CONFIG ================= */
 
-const SET_UNLOCK_CONFIG = [
- { id: "incarnam", levelRequired: 1,  prevSet: null,        name: "Incarnam"  },
- { id: "astrub",   levelRequired: 11, prevSet: "incarnam",  name: "Astrub"    },
- { id: "amakna",   levelRequired: 36, prevSet: "astrub",    name: "Amakna"    },
- { id: "sufokia",  levelRequired: 51, prevSet: "amakna",    name: "Sufokia"   },
- { id: "kelba",    levelRequired: 66, prevSet: "sufokia",   name: "Kelba"     },
- { id: "katrepat", levelRequired: 81, prevSet: "kelba",     name: "Katrepat"  },
- { id: "sberg",    levelRequired: 96, prevSet: "katrepat",  name: "Sberg"     },
-]
+const setsData = require("../cards/sets.json")
+
+const rawSets = Array.isArray(setsData) ? setsData : (setsData.sets || [])
+
+const SET_UNLOCK_CONFIG = rawSets
+ .slice()
+ .sort((a, b) => {
+  const aLevel = Number(a?.levelMin || 9999)
+  const bLevel = Number(b?.levelMin || 9999)
+  if (aLevel !== bLevel) return aLevel - bLevel
+  return String(a?.name || a?.id || "").localeCompare(String(b?.name || b?.id || ""), "fr")
+ })
+ .map((set, index, sets) => ({
+  id: set.id,
+  levelRequired: Number(set.levelMin || 1),
+  prevSet: index > 0 ? sets[index - 1].id : null,
+  name: set.name || set.id,
+ }))
 
 const COMPLETION_UNLOCK_THRESHOLD = 0.70
 

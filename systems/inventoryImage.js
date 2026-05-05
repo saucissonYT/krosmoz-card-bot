@@ -1,11 +1,13 @@
 const { createCanvas, loadImage } = require("canvas")
 const fs = require("fs")
+const path = require("path")
 
 /*
  * FIX: const cards = data.cards || [] au top-level créait un snapshot statique.
  * Remplacé par getCards() depuis cardRegistry, appelé dynamiquement dans generateInventory().
  */
 const { getCards } = require("./cardRegistry")
+const { CARDS_IMAGES_DIR } = require("./dataManager")
 
 async function generateInventory(cardsOwned){
 
@@ -27,12 +29,12 @@ async function generateInventory(cardsOwned){
 
   if(!card) continue
 
-  const path = `./cards/images/${card.set}/${card.image}`
+  const imagePath = path.join(CARDS_IMAGES_DIR, card.set, card.image)
 
-  if(!fs.existsSync(path))
+  if(!fs.existsSync(imagePath))
    continue
 
-  const img = await loadImage(path)
+  const img = await loadImage(imagePath)
 
   const x = (i % cols) * cardSize
   const y = Math.floor(i / cols) * cardSize
