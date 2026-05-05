@@ -2498,11 +2498,11 @@ function isAdminSession(session) {
 }
 
 function isMaintenanceSession(session) {
- return Boolean(session?.userId) && !isBannedSession(session) && !isAdminSession(session)
+ return false
 }
 
 function shouldShowMaintenanceGate(session) {
- return !isBannedSession(session) && !isAdminSession(session)
+ return false
 }
 
 function buildAuthStartPath(returnTo = "/") {
