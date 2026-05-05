@@ -33,7 +33,7 @@ if (__initialPlayTab === "fusion") {
     <li><a href="/">Accueil</a></li>
     <li><a href="/tutorial">Tutoriel</a></li>
     <li><a href="/leaderboard">Classement</a></li>
-    <li><a href="/cards">Cartes</a></li>
+    <li><a href="/sets">Sets</a></li>
    </ul>
    <div class="navbar-right">
     <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
@@ -246,7 +246,7 @@ const MODE_PATH = {
  quests: "/play/missions"
 }
 const IS_LOCAL_FUSION_TEST = String(window.location.pathname || "") === "/fusion"
-const INVENTORY_DEFAULT_SET_ID = "incarnam"
+const INVENTORY_DEFAULT_SET_ID = "incarnam-lvl-2-10"
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const state = {
@@ -320,22 +320,40 @@ const inventorySellConfirmState = {
  ]
  const SET_UNLOCK_THRESHOLD_PCT = 70
 const SET_UNLOCK_RULES = [
-  { id: "incarnam", name: "Incarnam", levelRequired: 1, prevSet: null },
-  { id: "astrub", name: "Astrub", levelRequired: 11, prevSet: "incarnam" },
-  { id: "amakna", name: "Amakna", levelRequired: 36, prevSet: "astrub" },
-  { id: "sufokia", name: "Sufokia", levelRequired: 51, prevSet: "amakna" },
-  { id: "kelba", name: "Kelba", levelRequired: 66, prevSet: "sufokia" },
-  { id: "katrepat", name: "Katrepat", levelRequired: 81, prevSet: "kelba" },
-  { id: "sberg", name: "Sberg", levelRequired: 96, prevSet: "katrepat" }
+  { id: "incarnam-lvl-2-10", name: "Incarnam (2-10)", levelRequired: 1, prevSet: null },
+  { id: "astrub-lvl-11-35", name: "Astrub (11-35)", levelRequired: 11, prevSet: "incarnam-lvl-2-10" },
+  { id: "amakna-lvl-36-50", name: "Amakna (36-50)", levelRequired: 36, prevSet: "astrub-lvl-11-35" },
+  { id: "sufokia-lvl-51-65", name: "Sufokia (51-65)", levelRequired: 51, prevSet: "amakna-lvl-36-50" },
+  { id: "kelba-lvl-66-80", name: "Kelba (66-80)", levelRequired: 66, prevSet: "sufokia-lvl-51-65" },
+  { id: "katrepat-lvl-81-95", name: "Katrepat (81-95)", levelRequired: 81, prevSet: "kelba-lvl-66-80" },
+  { id: "sberg-lvl-96-110", name: "Sberg (96-110)", levelRequired: 96, prevSet: "katrepat-lvl-81-95" },
+  { id: "shukrute-lvl-111-125", name: "Shukrute (111-125)", levelRequired: 111, prevSet: "sberg-lvl-96-110" },
+  { id: "saharash-lvl-126-140", name: "Saharash (126-140)", levelRequired: 126, prevSet: "shukrute-lvl-111-125" },
+  { id: "enutrosor-lvl-141-155", name: "Enutrosor (141-155)", levelRequired: 141, prevSet: "saharash-lvl-126-140" },
+  { id: "xelorium-lvl-156-170", name: "Xelorium (156-170)", levelRequired: 156, prevSet: "enutrosor-lvl-141-155" },
+  { id: "moon-lvl-171-185", name: "Moon (171-185)", levelRequired: 171, prevSet: "xelorium-lvl-156-170" },
+  { id: "zinit-lvl-186-200", name: "Zinit (186-200)", levelRequired: 186, prevSet: "moon-lvl-171-185" },
+  { id: "osamosa-lvl-201-215", name: "Osamosa (201-215)", levelRequired: 201, prevSet: "zinit-lvl-186-200" },
+  { id: "ereboria-lvl-216-230", name: "Ereboria (216-230)", levelRequired: 216, prevSet: "osamosa-lvl-201-215" },
+  { id: "brume-lvl-231-245", name: "Brume (231-245)", levelRequired: 231, prevSet: "ereboria-lvl-216-230" }
 ]
 const INVENTORY_SET_ICONS = [
- { id: "incarnam", name: "Incarnam", icon: "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png" },
- { id: "astrub", name: "Astrub", icon: "/assets/ui/icones%20set/icone%20astrub%20inventaire.png" },
- { id: "amakna", name: "Amakna", icon: "/assets/ui/icones%20set/icone%20amakna%20inventaire.png" },
- { id: "sufokia", name: "Sufokia", icon: "/assets/ui/icones%20set/icone%20sufokia%20inventaire.png" },
- { id: "kelba", name: "Kelba", icon: "/assets/ui/icones%20set/icone%20kelba%20inventaire.png" },
- { id: "katrepat", name: "Katrepat", icon: "/assets/ui/icones%20set/icone%20katrepat%20inventaire.png" },
- { id: "sberg", name: "Sberg", icon: "/assets/ui/icones%20set/icone%20sberg%20inventaire.png" }
+ { id: "incarnam-lvl-2-10", name: "Incarnam (2-10)", icon: "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png" },
+ { id: "astrub-lvl-11-35", name: "Astrub (11-35)", icon: "/assets/ui/icones%20set/icone%20astrub%20inventaire.png" },
+ { id: "amakna-lvl-36-50", name: "Amakna (36-50)", icon: "/assets/ui/icones%20set/icone%20amakna%20inventaire.png" },
+ { id: "sufokia-lvl-51-65", name: "Sufokia (51-65)", icon: "/assets/ui/icones%20set/icone%20sufokia%20inventaire.png" },
+ { id: "kelba-lvl-66-80", name: "Kelba (66-80)", icon: "/assets/ui/icones%20set/icone%20kelba%20inventaire.png" },
+ { id: "katrepat-lvl-81-95", name: "Katrepat (81-95)", icon: "/assets/ui/icones%20set/icone%20katrepat%20inventaire.png" },
+ { id: "sberg-lvl-96-110", name: "Sberg (96-110)", icon: "/assets/ui/icones%20set/icone%20sberg%20inventaire.png" },
+ { id: "shukrute-lvl-111-125", name: "Shukrute (111-125)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "saharash-lvl-126-140", name: "Saharash (126-140)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "enutrosor-lvl-141-155", name: "Enutrosor (141-155)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "xelorium-lvl-156-170", name: "Xelorium (156-170)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "moon-lvl-171-185", name: "Moon (171-185)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "zinit-lvl-186-200", name: "Zinit (186-200)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "osamosa-lvl-201-215", name: "Osamosa (201-215)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "ereboria-lvl-216-230", name: "Ereboria (216-230)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "brume-lvl-231-245", name: "Brume (231-245)", icon: "/assets/ui/set%20non%20deblock.png" }
 ]
 const CRAFT_COMING_SOON_SET = {
  id: "__coming_soon__",
@@ -587,9 +605,16 @@ function setInventoryView(view) {
   const setSelect = document.getElementById("setFilter")
   setSelect.innerHTML = '<option value="">Tous les sets</option>'
   const sets = new Map()
+  for (const item of ((state.gameMeta && state.gameMeta.allSets) || [])) sets.set(item.id, item.name || item.id)
   for (const item of ((state.inventory && state.inventory.cards) || [])) sets.set(item.set, item.setName || item.set)
   for (const item of state.groupedFragments) sets.set(item.set, item.setName || item.set)
-  const options = [...sets.entries()].sort((a, b) => String(a[1]).localeCompare(String(b[1]), "fr"))
+  const orderedSetIds = ((state.gameMeta && state.gameMeta.allSets) || []).map((set) => String(set.id))
+  const options = [...sets.entries()].sort((a, b) => {
+   const ai = orderedSetIds.indexOf(String(a[0]))
+   const bi = orderedSetIds.indexOf(String(b[0]))
+   if (ai !== -1 || bi !== -1) return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi)
+   return String(a[1]).localeCompare(String(b[1]), "fr")
+  })
   for (const [id, name] of options) {
    const opt = document.createElement("option")
    opt.value = id
@@ -1390,7 +1415,7 @@ function renderInventorySetRail() {
  const setFilter = document.getElementById("setFilter")
  if (!setFilter) return
  const activeSet = String(setFilter.value || "")
- rail.innerHTML = INVENTORY_SET_ICONS.map((set) => {
+ rail.innerHTML = getInventorySetRows().map((set) => {
   const active = activeSet === set.id
   return `
    <button
@@ -1434,6 +1459,18 @@ function applyInventorySetFilter(nextSetId) {
 function getFusionRows() {
  const rows = (state.gameMeta && state.gameMeta.fusion) || []
  return rows.slice().sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity))
+}
+
+function getInventorySetRows() {
+ const metaSets = Array.isArray(state.gameMeta?.allSets) ? state.gameMeta.allSets : []
+ const rows = metaSets.length
+  ? metaSets
+  : INVENTORY_SET_ICONS.map((set) => ({ id: set.id, name: set.name }))
+ return rows.map((set) => ({
+  id: String(set.id || ""),
+  name: String(set.name || set.id || "Set"),
+  icon: getSetIconForUi(set.id)
+ })).filter((set) => set.id)
 }
 
 function getCardsForSetAndRarity(setId, rarity) {
