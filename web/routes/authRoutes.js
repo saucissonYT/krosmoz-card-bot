@@ -20,7 +20,7 @@ module.exports = function mount(app, ctx) {
   const localDisabled = hasLocalAuthDisableSignal(req)
   const localFallback = localAvailable && !localDisabled && (hasLocalAuthSignal(req) || !oauthConfigured())
   if (localFallback) {
-   const returnTo = sanitizeReturnPath(req.query.returnTo) || "/play/inventory"
+   const returnTo = sanitizeReturnPath(req.query.returnTo) || "/"
    const localUser = getUser(String(WEB_LOCAL_AUTH_USER_ID))
    if (localUser) {
     recordWebLogin(localUser, Date.now())
@@ -35,7 +35,7 @@ module.exports = function mount(app, ctx) {
   }
 
   const state = crypto.randomBytes(24).toString("hex")
-  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/market?connected=1"
+  const returnTo = sanitizeReturnPath(req.query.returnTo) || "/"
   res.setHeader("Set-Cookie", [
    `kc_oauth_state=${encodeURIComponent(state)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`,
    `kc_oauth_return=${encodeURIComponent(returnTo)}; ${cookieStateOptions()}${isHttpsRequest(req) ? "; Secure" : ""}`
@@ -60,7 +60,7 @@ module.exports = function mount(app, ctx) {
 
    const cookies = parseCookies(req)
    const expectedState = cookies.kc_oauth_state
-   const returnTo = sanitizeReturnPath(cookies.kc_oauth_return) || "/market?connected=1"
+   const returnTo = sanitizeReturnPath(cookies.kc_oauth_return) || "/"
    const state = String(req.query.state || "")
    const code = String(req.query.code || "")
 

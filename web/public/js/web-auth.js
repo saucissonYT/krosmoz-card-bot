@@ -2339,7 +2339,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
     heroPlayBtn.style.opacity = ""
    }
    btn.textContent = "Activer mode local"
-   btn.href = `/auth/discord?local=1&returnTo=${encodeURIComponent(returnTo)}`
+   btn.href = "/auth/discord?local=1&returnTo=%2F"
    return
   }
 
@@ -2363,7 +2363,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    heroPlayBtn.style.opacity = ""
   }
   btn.textContent = "Connexion Discord"
-  btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
+  btn.href = "/auth/discord?returnTo=%2F"
   return
  }
 
