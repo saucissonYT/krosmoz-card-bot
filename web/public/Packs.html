@@ -3,10 +3,16 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Packs Test - Krosmoz Card</title>
- <meta name="theme-color" content="#173b9c">
+ <title>Packs | Krosmoz Card</title>
+ <meta name="theme-color" content="#080810">
+ <link rel="icon" type="image/png" href="/assets/ui/logo-carte.png">
+ <link
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+ >
+ <link rel="stylesheet" href="/assets/css/main.css">
  <link rel="stylesheet" href="/css/style.css">
- <script src="/js/web-auth.js"></script>
+ <script src="/js/web-auth.js" defer></script>
  <style>
   html,
   body {
@@ -21,7 +27,8 @@
    --pack-blue-3: #3ec6ff;
    --pack-gold: #f3d770;
    --pack-card-bg: rgba(7, 18, 57, 0.68);
-   --packs-bg-image: url("/assets/ui/fond%20pack%20incarnam.png");
+   --packs-bg-image: url("/assets/ui/fond%20pack%20astrub.png");
+   --packs-set-background-image: none;
    --packs-bg-size: cover;
    --packs-bg-position: center;
    --packs-center-bottom: -198px;
@@ -2172,15 +2179,1940 @@
     grid-template-columns: 40px 1fr 40px;
     padding: 14px;
    }
-   .packs-card-preview-nav {
-    width: 40px;
-    height: 40px;
-    font-size: 1.35rem;
+  .packs-card-preview-nav {
+   width: 40px;
+   height: 40px;
+   font-size: 1.35rem;
+  }
+  }
+
+  /* Nouvelle direction artistique: page raccordee au header global, plus calme et lisible. */
+  html,
+  body {
+   height: auto;
+   min-height: 100%;
+   overflow-x: hidden;
+  }
+
+  body.packs-page {
+   min-height: 100vh;
+   overflow-y: auto;
+   background:
+    linear-gradient(90deg, rgba(7, 7, 16, 0.96) 0%, rgba(7, 7, 16, 0.72) 52%, rgba(7, 7, 16, 0.94) 100%),
+    linear-gradient(180deg, rgba(201, 168, 76, 0.09), rgba(46, 207, 176, 0.06)),
+    #080810;
+   color: #f4eee0;
+   font-family: "Jost", sans-serif;
+  }
+
+  body.packs-page::before {
+   background: var(--packs-set-background-image) center / cover no-repeat fixed;
+   opacity: 0.3;
+  }
+
+  body.packs-page .site-header {
+   position: sticky;
+   top: 0;
+   z-index: 20000;
+  }
+
+  body.packs-page .packs-shell {
+   position: relative;
+   z-index: 1;
+   min-height: calc(100vh - 72px);
+   overflow: visible;
+   padding: clamp(18px, 3vw, 36px) clamp(14px, 4vw, 58px) clamp(22px, 4vw, 46px);
+  }
+
+  body.packs-page .packs-shell::before {
+   display: none;
+  }
+
+  body.packs-page .packs-topbar,
+  body.packs-page .packs-main {
+   width: min(1440px, 100%);
+   margin-right: auto;
+   margin-left: auto;
+  }
+
+  body.packs-page .packs-topbar {
+   align-items: center;
+   margin-bottom: clamp(16px, 2.4vw, 28px);
+  }
+
+  body.packs-page .packs-top-left {
+   gap: 12px;
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   font-size: clamp(1.28rem, 2.1vw, 2rem);
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-back-btn,
+  body.packs-page .packs-help-btn,
+  body.packs-page .packs-resource-buy-btn,
+  body.packs-page .packs-history-page-btn,
+  body.packs-page .packs-card-preview-nav {
+   border-radius: 10px;
+  }
+
+  body.packs-page .packs-back-btn,
+  body.packs-page .packs-help-btn {
+   border: 1px solid rgba(201, 168, 76, 0.34);
+   background: rgba(8, 13, 27, 0.74);
+   color: #f8f1df;
+   font-family: "Cinzel", serif;
+   transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+
+  body.packs-page .packs-back-btn:hover,
+  body.packs-page .packs-help-btn:hover {
+   border-color: rgba(232, 201, 122, 0.74);
+   color: #e8c97a;
+   transform: translateY(-1px);
+  }
+
+  body.packs-page .packs-resource {
+   min-height: 46px;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   border-radius: 8px;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    rgba(8, 13, 27, 0.76);
+   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
+   backdrop-filter: blur(12px);
+  }
+
+  body.packs-page .packs-resource img {
+   width: 31px;
+   height: 31px;
+  }
+
+  body.packs-page .packs-resource strong {
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   font-size: clamp(0.95rem, 1.45vw, 1.24rem);
+   letter-spacing: 0.04em;
+  }
+
+  body.packs-page .packs-resource-buy-btn {
+   width: 34px;
+   height: 34px;
+   border: 1px solid rgba(232, 201, 122, 0.72);
+   background: rgba(201, 168, 76, 0.16);
+   color: #e8c97a;
+   box-shadow: none;
+   font-size: 1.32rem;
+  }
+
+  body.packs-page .packs-main {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+   grid-template-areas:
+    "title side"
+    "visual status"
+    "sets sets"
+    "draw draw";
+   gap: clamp(16px, 2vw, 26px);
+   min-height: auto;
+   padding: 0;
+  }
+
+  body.packs-page .packs-title {
+   grid-area: title;
+   align-self: end;
+   margin: 0;
+  }
+
+  body.packs-page .packs-title h1 {
+   color: #fff8e8;
+   font-size: clamp(2.7rem, 8vw, 6.5rem);
+   letter-spacing: 0.08em;
+   line-height: 0.92;
+   text-shadow: 0 22px 58px rgba(0, 0, 0, 0.58);
+  }
+
+  body.packs-page .packs-set-completion {
+   min-height: 30px;
+   border-color: rgba(201, 168, 76, 0.28);
+   border-radius: 999px;
+   background: rgba(8, 13, 27, 0.72);
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-planet-wrap {
+   display: none;
+  }
+
+  body.packs-page .packs-focus-character {
+   position: relative;
+   grid-area: visual;
+   inset: auto;
+   justify-self: center;
+   align-self: center;
+   width: min(48vw, 640px);
+   max-width: 100%;
+   height: clamp(320px, 48vh, 560px);
+   margin: 0;
+   transform: none;
+   filter: drop-shadow(0 34px 56px rgba(0, 0, 0, 0.5));
+  }
+
+  body.packs-page .packs-focus-character img {
+   width: 100%;
+   height: 100%;
+   object-fit: contain;
+  }
+
+  body.packs-page .packs-focus-badge {
+   position: relative;
+   grid-area: visual;
+   align-self: end;
+   justify-self: center;
+   right: auto;
+   bottom: auto;
+   left: auto;
+   transform: none;
+   min-width: min(360px, 80%);
+   margin-bottom: 10px;
+   border: 1px solid rgba(201, 168, 76, 0.28);
+   border-radius: 8px;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 42%),
+    rgba(8, 13, 27, 0.82);
+   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.32);
+   backdrop-filter: blur(12px);
+  }
+
+  body.packs-page .packs-focus-badge span {
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-side-right,
+  body.packs-page .packs-status {
+   position: relative;
+   right: auto;
+   bottom: auto;
+   left: auto;
+   transform: none;
+   width: 100%;
+   min-width: 0;
+  }
+
+  body.packs-page .packs-side-right {
+   grid-area: side;
+   align-self: end;
+   display: grid;
+   gap: 12px;
+  }
+
+  body.packs-page .packs-side-right > div {
+   display: contents;
+  }
+
+  body.packs-page .packs-side-rate-btn,
+  body.packs-page .packs-side-history-btn,
+  body.packs-page .packs-draw-btn,
+  body.packs-page .packs-open-skip-btn,
+  body.packs-page .packs-open-close-main,
+  body.packs-page .packs-rate-close-main,
+  body.packs-page .packs-history-close-main,
+  body.packs-page .packs-buy-submit,
+  body.packs-page .packs-buy-qty-btn {
+   border-radius: 8px;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-side-rate-btn,
+  body.packs-page .packs-side-history-btn {
+   min-height: 48px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #f8f1df;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-side-rate-btn:hover,
+  body.packs-page .packs-side-history-btn:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-status {
+   grid-area: status;
+   align-self: start;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   border-radius: 8px;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    rgba(7, 8, 15, 0.78);
+   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(12px);
+  }
+
+  body.packs-page .packs-pity-title {
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-pity-grid {
+   gap: 10px;
+  }
+
+  body.packs-page .packs-pity-slot {
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-pity-slot-label,
+  body.packs-page .packs-pity-slot-value {
+   color: #fff8e8;
+  }
+
+  body.packs-page .packs-pity-slot-track {
+   background: rgba(255, 255, 255, 0.08);
+  }
+
+  body.packs-page .packs-pity-slot-fill {
+   background: linear-gradient(90deg, #c9a84c, #2ecfb0);
+  }
+
+  body.packs-page .packs-set-slider {
+   position: relative;
+   grid-area: sets;
+   inset: auto;
+   width: 100%;
+   margin: 0;
+   padding: 10px 0 4px;
+  }
+
+  body.packs-page .packs-set-slider-track {
+   gap: 12px;
+   padding: 2px 2px 12px;
+   overflow-x: auto;
+   scroll-snap-type: x proximity;
+  }
+
+  body.packs-page .packs-set-card {
+   flex: 0 0 clamp(150px, 15vw, 210px);
+   min-height: 112px;
+   border: 1px solid rgba(201, 168, 76, 0.2);
+   border-radius: 8px;
+   background-color: rgba(8, 13, 27, 0.75);
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
+   scroll-snap-align: start;
+  }
+
+  body.packs-page .packs-set-card.active {
+   border-color: rgba(232, 201, 122, 0.84);
+   box-shadow: 0 0 0 1px rgba(232, 201, 122, 0.2), 0 20px 52px rgba(0, 0, 0, 0.34);
+  }
+
+  body.packs-page .packs-set-card-name {
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-footer {
+   position: relative;
+   grid-area: draw;
+   inset: auto;
+   width: 100%;
+   margin: 0;
+  }
+
+  body.packs-page .packs-draw-stack {
+   width: 100%;
+   margin: 0 auto;
+  }
+
+  body.packs-page .packs-draw-controls {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   gap: 12px;
+  }
+
+  body.packs-page .packs-draw-btn {
+   min-height: 56px;
+   border: 1px solid rgba(232, 201, 122, 0.44);
+   background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.24), rgba(138, 114, 51, 0.18)),
+    rgba(8, 13, 27, 0.82);
+   color: #fff8e8;
+   box-shadow: 0 20px 44px rgba(0, 0, 0, 0.28);
+  }
+
+  body.packs-page .packs-draw-btn:hover:not(:disabled) {
+   border-color: rgba(232, 201, 122, 0.86);
+   color: #e8c97a;
+   transform: translateY(-1px);
+  }
+
+  body.packs-page .packs-draw-btn:disabled {
+   filter: grayscale(0.4);
+   opacity: 0.62;
+  }
+
+  body.packs-page .packs-draw-notice {
+   min-height: 24px;
+   color: #b7ab95;
+   font-family: "Jost", sans-serif;
+  }
+
+  body.packs-page .packs-rate-modal,
+  body.packs-page .packs-history-modal,
+  body.packs-page .packs-buy-modal,
+  body.packs-page .packs-open-dialog {
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 8px;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 32%),
+    rgba(7, 8, 15, 0.94);
+   color: #f4eee0;
+   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.55);
+   backdrop-filter: blur(14px);
+  }
+
+  body.packs-page .packs-rate-head h2,
+  body.packs-page .packs-history-head h2,
+  body.packs-page .packs-buy-head h2,
+  body.packs-page .packs-open-dialog h3 {
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-rate-row,
+  body.packs-page .packs-buy-item,
+  body.packs-page .packs-buy-balance,
+  body.packs-page .packs-summary-block {
+   border-radius: 8px;
+   border-color: rgba(201, 168, 76, 0.18);
+   background: rgba(255, 255, 255, 0.04);
+  }
+
+  body.packs-page .packs-rate-modal-overlay {
+   padding: clamp(14px, 2vw, 24px);
+  }
+
+  body.packs-page .packs-rate-modal-backdrop {
+   background:
+    radial-gradient(ellipse 70% 48% at 50% 22%, rgba(201, 168, 76, 0.1), transparent 64%),
+    rgba(3, 3, 8, 0.82);
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-rate-modal {
+   width: min(900px, calc(100vw - 32px));
+   max-height: min(84dvh, 760px);
+   border: 1px solid rgba(201, 168, 76, 0.26);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 34%, rgba(0, 0, 0, 0.2)),
+    rgba(7, 8, 15, 0.96);
+   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.62);
+   backdrop-filter: blur(14px);
+   grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  body.packs-page .packs-rate-head {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) 44px;
+   align-items: center;
+   gap: 8px 14px;
+   padding: 18px 20px 16px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+   background: transparent;
+  }
+
+  body.packs-page .packs-rate-head-badge {
+   justify-self: start;
+   padding: 6px 10px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 0.66rem;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-rate-head h2 {
+   grid-column: 1;
+   margin: 0;
+   text-align: left;
+   color: #fff8e8;
+   font-size: clamp(1.7rem, 4vw, 3.4rem);
+   line-height: 0.98;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-rate-close {
+   grid-column: 2;
+   grid-row: 1 / span 2;
+   align-self: start;
+   width: 44px;
+   height: 44px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  }
+
+  body.packs-page .packs-rate-close:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-rate-body {
+   padding: 18px 20px 20px;
+   scrollbar-color: rgba(201, 168, 76, 0.42) rgba(255, 255, 255, 0.04);
+  }
+
+  body.packs-page .packs-rate-title {
+   display: none;
+  }
+
+  body.packs-page .packs-rate-summary {
+   display: grid;
+   grid-template-columns: max-content max-content minmax(0, 1fr);
+   align-items: center;
+   gap: 10px;
+   margin: 0;
+   padding: 12px 14px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #b7ab95;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(8px);
+   font-family: "Jost", sans-serif;
+   font-size: 0.9rem;
+   font-weight: 600;
+  }
+
+  body.packs-page .packs-rate-summary .label {
+   color: #ff5c5c;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-rate-summary .value {
+   margin-left: 0;
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 1.5rem;
+   line-height: 1;
+  }
+
+  body.packs-page .packs-rate-grid {
+   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+   gap: 10px;
+   margin-top: 12px;
+  }
+
+  body.packs-page .packs-rate-row {
+   display: grid;
+   grid-template-columns: 64px minmax(0, 1fr) max-content;
+   align-items: center;
+   gap: 12px;
+   min-height: 84px;
+   padding: 10px;
+   border: 1px solid rgba(201, 168, 76, 0.18);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 30%, rgba(0, 0, 0, 0.2)),
+    rgba(8, 8, 16, 0.58);
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+  }
+
+  body.packs-page .packs-rate-row:hover {
+   border-color: rgba(232, 201, 122, 0.46);
+  }
+
+  body.packs-page .packs-rate-card-trigger {
+   width: 64px;
+   height: 64px;
+   border: 1px solid rgba(201, 168, 76, 0.18);
+   background: rgba(0, 0, 0, 0.18);
+   display: grid;
+   place-items: center;
+  }
+
+  body.packs-page .packs-rate-row img {
+   width: 58px;
+   height: 58px;
+  }
+
+  body.packs-page .packs-rate-card-tag {
+   margin: 0 0 4px;
+   color: #ff5c5c;
+   font-family: "Cinzel", serif;
+   font-size: 0.66rem;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-rate-card-name {
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   font-size: clamp(0.86rem, 1.6vw, 1.05rem);
+   line-height: 1.1;
+   letter-spacing: 0.03em;
+  }
+
+  body.packs-page .packs-rate-value {
+   min-width: 64px;
+   padding: 8px 9px;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 0.82rem;
+   line-height: 1;
+   text-align: center;
+   background: rgba(0, 0, 0, 0.18);
+  }
+
+  body.packs-page .packs-rate-state {
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   border-radius: 0;
+   background: rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+  }
+
+  body.packs-page .packs-rate-foot {
+   justify-content: flex-end;
+   padding: 14px 20px 18px;
+   border-top: 1px solid rgba(201, 168, 76, 0.18);
+   background: transparent;
+  }
+
+  body.packs-page .packs-rate-close-main {
+   min-width: 116px;
+   min-height: 46px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   font-size: 0.7rem;
+  }
+
+  body.packs-page .packs-rate-close-main:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-history-modal-overlay {
+   padding: clamp(14px, 2vw, 24px);
+  }
+
+  body.packs-page .packs-history-modal-backdrop {
+   background:
+    radial-gradient(ellipse 70% 48% at 50% 22%, rgba(201, 168, 76, 0.1), transparent 64%),
+    rgba(3, 3, 8, 0.84);
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-history-modal {
+   width: min(1040px, calc(100vw - 32px));
+   max-height: min(84dvh, 760px);
+   border: 1px solid rgba(201, 168, 76, 0.26);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 34%, rgba(0, 0, 0, 0.2)),
+    rgba(7, 8, 15, 0.96);
+   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.62);
+   backdrop-filter: blur(14px);
+   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+
+  body.packs-page .packs-history-head {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) 44px;
+   align-items: start;
+   gap: 14px;
+   padding: 18px 20px 16px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+   background: transparent;
+  }
+
+  body.packs-page .packs-history-head h2 {
+   margin: 0;
+   text-align: left;
+   color: #fff8e8;
+   font-size: clamp(1.55rem, 3.5vw, 3rem);
+   line-height: 0.98;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-history-close {
+   width: 44px;
+   height: 44px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  }
+
+  body.packs-page .packs-history-close:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-history-meta {
+   display: grid;
+   grid-template-columns: max-content minmax(0, 1fr);
+   margin: 14px 20px 0;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-history-meta .label {
+   padding: 11px 13px;
+   border-right: 1px solid rgba(201, 168, 76, 0.2);
+   background: transparent;
+   color: #b7ab95;
+   font-family: "Cinzel", serif;
+   font-size: 0.68rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-history-meta .set {
+   min-width: 0;
+   padding: 10px 13px;
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: clamp(0.88rem, 1.6vw, 1.12rem);
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-history-info {
+   margin: 10px 20px 0;
+   padding: 11px 13px;
+   border: 1px solid rgba(201, 168, 76, 0.16);
+   border-radius: 0;
+   background: rgba(8, 8, 16, 0.46);
+   color: #b7ab95;
+   font-size: 0.86rem;
+   font-weight: 500;
+   line-height: 1.35;
+  }
+
+  body.packs-page .packs-history-body {
+   margin: 12px 20px 0;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   border-radius: 0;
+   background: rgba(8, 8, 16, 0.62);
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+   scrollbar-color: rgba(201, 168, 76, 0.42) rgba(255, 255, 255, 0.04);
+  }
+
+  body.packs-page .packs-history-table {
+   min-width: 860px;
+   border-collapse: separate;
+   border-spacing: 0;
+  }
+
+  body.packs-page .packs-history-table thead th {
+   padding: 12px 12px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.24);
+   background: rgba(8, 8, 16, 0.96);
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 0.68rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-history-table tbody td {
+   padding: 12px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.12);
+   color: #fff8e8;
+   font-size: 0.86rem;
+   background: transparent;
+  }
+
+  body.packs-page .packs-history-table tbody tr:last-child td {
+   border-bottom: 0;
+  }
+
+  body.packs-page .packs-history-row.rarity-r td,
+  body.packs-page .packs-history-row.rarity-sr td,
+  body.packs-page .packs-history-row.rarity-ssr td {
+   background: linear-gradient(90deg, rgba(201, 168, 76, 0.055), transparent 38%);
+  }
+
+  body.packs-page .packs-history-tier-cell {
+   color: #ff5c5c;
+   font-family: "Cinzel", serif;
+   font-weight: 700;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-history-row.empty td {
+   padding: 18px 12px;
+   background: transparent;
+   color: #b7ab95;
+   font-style: normal;
+  }
+
+  body.packs-page .packs-history-foot {
+   display: grid;
+   grid-template-columns: 1fr auto;
+   align-items: center;
+   gap: 12px;
+   padding: 14px 20px 18px;
+   border-top: 1px solid rgba(201, 168, 76, 0.18);
+   background: transparent;
+  }
+
+  body.packs-page .packs-history-pager {
+   justify-self: start;
+  }
+
+  body.packs-page .packs-history-page-btn,
+  body.packs-page .packs-history-close-main {
+   min-height: 44px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   font-family: "Cinzel", serif;
+   font-size: 0.72rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-history-page-btn {
+   min-width: 56px;
+   font-size: 1rem;
+  }
+
+  body.packs-page .packs-history-close-main {
+   min-width: 116px;
+   justify-self: end;
+  }
+
+  body.packs-page .packs-history-page-btn:hover:not(:disabled),
+  body.packs-page .packs-history-close-main:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-history-page-btn:disabled {
+   opacity: 0.42;
+  }
+
+  body.packs-page .packs-history-page-value {
+   min-width: 88px;
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 0.9rem;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-open-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 82;
+   display: grid;
+   place-items: center;
+   padding: clamp(14px, 2vw, 24px);
+   background: transparent;
+  }
+
+  body.packs-page .packs-open-backdrop {
+   position: absolute;
+   inset: 0;
+   background:
+    radial-gradient(ellipse 70% 48% at 50% 48%, rgba(201, 168, 76, 0.09), transparent 64%),
+    rgba(3, 3, 8, 0.58);
+   backdrop-filter: blur(3px);
+  }
+
+  body.packs-page .packs-open-dialog {
+   position: relative;
+   width: min(920px, calc(100vw - 32px));
+   height: auto;
+   max-height: min(76dvh, 660px);
+   border: 1px solid rgba(201, 168, 76, 0.26);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 34%, rgba(0, 0, 0, 0.2)),
+    rgba(7, 8, 15, 0.96);
+   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.62);
+   backdrop-filter: blur(14px);
+   display: grid;
+   grid-template-rows: auto auto minmax(0, 1fr) auto;
+   overflow: hidden;
+  }
+
+  body.packs-page .packs-open-dialog::before {
+   display: none;
+  }
+
+  body.packs-page .packs-open-head {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) 44px;
+   align-items: start;
+   gap: 14px;
+   padding: 18px 20px 12px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+   background: transparent;
+  }
+
+  body.packs-page .packs-open-head h3 {
+   margin: 0;
+   color: #fff8e8;
+   font-size: clamp(1.45rem, 3.2vw, 2.7rem);
+   line-height: 0.98;
+   letter-spacing: 0.06em;
+  }
+
+  body.packs-page .packs-open-close {
+   width: 44px;
+   height: 44px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  }
+
+  body.packs-page .packs-open-close:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  body.packs-page .packs-open-meta {
+   margin: 0;
+   padding: 10px 20px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.12);
+   color: #b7ab95;
+   font-size: 0.86rem;
+   font-weight: 600;
+   background: transparent;
+  }
+
+  body.packs-page .packs-open-grid {
+   --pack-open-card-width: clamp(86px, 9vw, 126px);
+   min-height: 0;
+   padding: 18px 20px;
+   overflow: auto;
+   display: grid;
+   place-items: center;
+   scrollbar-color: rgba(201, 168, 76, 0.42) rgba(255, 255, 255, 0.04);
+  }
+
+  body.packs-page .packs-open-grid-body {
+   width: 100%;
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(var(--pack-open-card-width), var(--pack-open-card-width)));
+   justify-content: center;
+   align-items: start;
+   gap: 14px;
+  }
+
+  body.packs-page .packs-open-card {
+   width: var(--pack-open-card-width);
+   min-width: var(--pack-open-card-width);
+   height: calc(var(--pack-open-card-width) / var(--pack-open-card-ratio));
+   transform: none !important;
+   transition: none !important;
+  }
+
+  body.packs-page .packs-open-card-inner {
+   transition: none !important;
+  }
+
+  body.packs-page .packs-open-overlay.instant .packs-open-card .packs-open-card-inner {
+   transform: rotateY(180deg);
+  }
+
+  body.packs-page .packs-open-overlay.instant .packs-open-back {
+   display: none;
+  }
+
+  body.packs-page .packs-open-overlay.instant .packs-open-front {
+   transform: none;
+  }
+
+  body.packs-page .packs-open-foot {
+   padding: 12px 20px 16px;
+   border-top: 1px solid rgba(201, 168, 76, 0.18);
+   background: transparent;
+  }
+
+  body.packs-page .packs-open-summary {
+   color: #b7ab95;
+   font-size: 0.82rem;
+   font-weight: 600;
+  }
+
+  body.packs-page .packs-open-skip-btn {
+   display: none;
+  }
+
+  body.packs-page .packs-open-close-main {
+   min-width: 116px;
+   min-height: 44px;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   font-family: "Cinzel", serif;
+   font-size: 0.72rem;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  body.packs-page .packs-open-close-main:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+  }
+
+  @media (max-width: 1060px) {
+   body.packs-page .packs-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+     "title"
+     "visual"
+     "status"
+     "side"
+     "sets"
+     "draw";
+   }
+
+   body.packs-page .packs-focus-character {
+    width: min(82vw, 560px);
+    height: clamp(280px, 44vh, 470px);
+   }
+
+   body.packs-page .packs-side-right {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+   }
+  }
+
+  @media (max-width: 720px) {
+   body.packs-page .site-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 10px;
+    padding: 12px;
+   }
+
+   body.packs-page .brand {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.9rem;
+   }
+
+   body.packs-page .top-nav {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1px;
+    overflow: visible;
+    padding-bottom: 0;
+   }
+
+   body.packs-page .nav-link {
+    min-height: 30px;
+    padding: 5px 5px;
+    font-size: 0.5rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+   }
+
+   body.packs-page #globalInventoryNavLink {
+    flex-basis: 100%;
+    justify-content: center;
+   }
+
+   body.packs-page .header-actions {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+    flex-wrap: wrap;
+   }
+
+   body.packs-page .header-action {
+    min-height: 32px;
+    padding: 8px 12px;
+    font-size: 0.66rem;
+   }
+
+   body.packs-page .packs-shell {
+    padding-inline: 12px;
+   }
+
+   body.packs-page .packs-topbar,
+   body.packs-page .packs-top-right {
+    align-items: stretch;
+   }
+
+   body.packs-page .packs-topbar {
+    flex-direction: column;
+   }
+
+   body.packs-page .packs-top-left,
+   body.packs-page .packs-top-right {
+    width: 100%;
+    justify-content: space-between;
+   }
+
+   body.packs-page .packs-top-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 100%;
+    overflow: hidden;
+    gap: 8px;
+   }
+
+   body.packs-page .packs-top-left {
+    font-size: 1.08rem;
+   }
+
+   body.packs-page .packs-resource {
+    flex: initial;
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+    justify-content: center;
+   }
+
+   body.packs-page .packs-resource.packs-resource-packs {
+    gap: 6px;
+    padding-right: 6px;
+   }
+
+   body.packs-page .packs-resource strong {
+    font-size: 0.96rem;
+    white-space: nowrap;
+   }
+
+   body.packs-page .packs-resource-buy-btn {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+   }
+
+   body.packs-page .packs-title h1 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: clamp(2.2rem, 11.5vw, 3.25rem);
+    letter-spacing: 0.03em;
+   }
+
+   body.packs-page .packs-focus-character {
+    width: 100%;
+    height: clamp(230px, 38vh, 360px);
+   }
+
+   body.packs-page .packs-focus-badge {
+    min-width: min(320px, 92%);
+   }
+
+   body.packs-page .packs-side-right,
+   body.packs-page .packs-draw-controls {
+    grid-template-columns: 1fr;
+   }
+  }
+
+  /* Pack page final layout requested: no set backdrop, centered character, set picker bottom-left. */
+  body.packs-page {
+   background:
+    radial-gradient(ellipse 78% 52% at 50% 28%, rgba(46, 207, 176, 0.09), transparent 58%),
+    radial-gradient(ellipse 52% 36% at 14% 88%, rgba(201, 168, 76, 0.08), transparent 62%),
+    #080810;
+  }
+
+  body.packs-page .packs-topbar {
+   display: none;
+  }
+
+  body.packs-page .packs-shell {
+   min-height: calc(100dvh - 72px);
+   padding: clamp(18px, 2.2vw, 30px) clamp(16px, 3vw, 44px) clamp(16px, 2vw, 28px);
+   overflow: visible;
+  }
+
+  body.packs-page .packs-main {
+   position: relative;
+   display: grid;
+   width: 100%;
+   max-width: none;
+   margin-right: 0;
+   margin-left: 0;
+   grid-template-columns: minmax(0, 1fr);
+   grid-template-rows: auto minmax(250px, 1fr) auto;
+   grid-template-areas:
+    "title"
+    "character"
+    "sets";
+   gap: clamp(14px, 1.8vw, 24px);
+   min-height: calc(100dvh - 72px - clamp(36px, 4.4vw, 60px));
+  }
+
+  body.packs-page .packs-title {
+   grid-area: title;
+   align-self: start;
+   justify-self: center;
+   width: min(760px, 100%);
+   margin: 0 0 clamp(18px, 2.4vw, 34px);
+   text-align: center;
+  }
+
+  body.packs-page .packs-title h1 {
+   color: #fff8e8;
+   font-size: clamp(2.7rem, 6.8vw, 6rem);
+   line-height: 0.92;
+   letter-spacing: 0.08em;
+  }
+
+  body.packs-page .packs-set-completion {
+   justify-content: center;
+  }
+
+  body.packs-page .packs-status {
+   position: absolute;
+   top: -24px;
+   left: 0;
+   grid-area: auto;
+   width: min(360px, 100%);
+   margin: 0;
+   padding: 0;
+   border: 0;
+   background: transparent;
+   box-shadow: none;
+   backdrop-filter: none;
+   z-index: 7;
+  }
+
+  body.packs-page .packs-side-right {
+   position: absolute;
+   top: -24px;
+   right: 0;
+   grid-area: auto;
+   width: min(360px, 100%);
+   margin-top: 0;
+   z-index: 7;
+  }
+
+  body.packs-page .packs-focus-character {
+   display: none;
+   grid-area: character;
+   align-self: center;
+   justify-self: center;
+   width: min(48vw, 620px);
+   height: min(54vh, 590px);
+   min-height: 330px;
+  }
+
+  body.packs-page .packs-focus-character img {
+   object-position: center bottom;
+  }
+
+  body.packs-page .packs-focus-badge {
+   display: none;
+   grid-area: character;
+   align-self: end;
+   justify-self: center;
+   width: min(380px, 68%);
+   min-width: 0;
+   margin: 0 0 clamp(4px, 1.2vh, 18px);
+   justify-content: center;
+   z-index: 9;
+  }
+
+  body.packs-page .packs-inline-opening-result {
+   grid-area: character;
+   align-self: center;
+   justify-self: center;
+   width: min(1040px, 58vw);
+   max-height: min(52vh, 520px);
+   overflow: auto;
+   padding: 34px 10px 10px;
+   margin-top: -24px;
+   display: grid;
+   justify-items: center;
+   background: transparent;
+   border: 0;
+   box-shadow: none;
+   z-index: 7;
+   scrollbar-color: rgba(201, 168, 76, 0.42) transparent;
+   scrollbar-width: none;
+   -ms-overflow-style: none;
+  }
+
+  body.packs-page .packs-inline-opening-result::-webkit-scrollbar {
+   display: none;
+  }
+
+  body.packs-page .packs-inline-opening-result[hidden] {
+   display: none;
+  }
+
+  body.packs-page .packs-inline-opening-grid {
+   display: grid;
+   grid-template-columns: repeat(5, minmax(104px, 132px));
+   justify-content: center;
+   align-items: start;
+   gap: 22px;
+   padding-top: 2px;
+  }
+
+  body.packs-page .packs-inline-opening-card {
+   position: relative;
+   display: grid;
+   gap: 10px;
+   justify-items: center;
+   min-width: 0;
+   transform-origin: center bottom;
+   will-change: opacity, transform, filter;
+  }
+
+  body.packs-page .packs-inline-opening-result.is-opening .packs-inline-opening-card {
+   animation: packs-inline-card-open 680ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+   animation-delay: var(--inline-delay, 0ms);
+  }
+
+  body.packs-page .packs-inline-opening-card::before {
+   content: "";
+   position: absolute;
+   top: 0;
+   left: 0;
+   right: 0;
+   aspect-ratio: 0.714;
+   border: 1px solid rgba(232, 201, 122, 0.4);
+   background:
+    linear-gradient(140deg, rgba(255, 248, 220, 0.1), transparent 34%, rgba(201, 168, 76, 0.22)),
+    radial-gradient(circle at 50% 30%, rgba(201, 168, 76, 0.22), transparent 48%),
+    #080810;
+   box-shadow:
+    inset 0 1px 0 rgba(255, 244, 191, 0.32),
+    0 0 28px rgba(201, 168, 76, 0.16),
+    0 18px 34px rgba(0, 0, 0, 0.34);
+   pointer-events: none;
+   z-index: 2;
+   opacity: 0;
+   transform-origin: center;
+  }
+
+  body.packs-page .packs-inline-opening-result.is-opening .packs-inline-opening-card::before {
+   animation: packs-inline-card-back 680ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+   animation-delay: var(--inline-delay, 0ms);
+  }
+
+  body.packs-page .packs-inline-opening-card img {
+   width: 100%;
+   aspect-ratio: 0.714;
+   object-fit: cover;
+   border: 1px solid rgba(201, 168, 76, 0.2);
+   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.34);
+   background: rgba(8, 8, 16, 0.72);
+  }
+
+  body.packs-page .packs-inline-opening-result.is-opening .packs-inline-opening-card img {
+   animation: packs-inline-card-image 680ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
+   animation-delay: var(--inline-delay, 0ms);
+  }
+
+  body.packs-page .packs-inline-opening-card.rarity-s img,
+  body.packs-page .packs-inline-opening-card.rarity-ssr img {
+   border-color: rgba(232, 201, 122, 0.78);
+   box-shadow:
+    0 0 0 1px rgba(232, 201, 122, 0.24),
+    0 0 24px rgba(232, 201, 122, 0.16),
+    0 18px 34px rgba(0, 0, 0, 0.34);
+  }
+
+  body.packs-page .packs-inline-opening-meta {
+   display: grid;
+   gap: 8px;
+   justify-items: center;
+   width: 100%;
+   min-width: 0;
+   text-align: center;
+  }
+
+  body.packs-page .packs-inline-opening-rarity {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 28px;
+   min-height: 28px;
+   padding: 4px 9px;
+   border: 1px solid rgba(201, 168, 76, 0.25);
+   border-radius: 999px;
+   background: rgba(201, 168, 76, 0.12);
+   color: var(--gold, #c9a84c);
+   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+   font-family: "Jost", sans-serif;
+   font-size: 0.78rem;
+   font-weight: 700;
+   letter-spacing: 0;
+   line-height: 1.1;
+   text-align: center;
+  }
+
+  body.packs-page .packs-inline-opening-name {
+   max-width: 100%;
+   overflow: hidden;
+   color: #fff8e8;
+   font-family: "Cinzel", serif;
+   font-size: 0.58rem;
+   font-weight: 700;
+   line-height: 1.05;
+   text-overflow: ellipsis;
+   text-transform: uppercase;
+   white-space: nowrap;
+  }
+
+  body.packs-page .packs-inline-opening-next,
+  body.packs-page .packs-inline-opening-skip {
+   appearance: none;
+   display: inline-grid;
+   place-items: center;
+   min-width: clamp(150px, 9vw, 170px);
+   min-height: 69px;
+   margin: 34px auto 0;
+   padding: 12px 14px;
+   border: 1px solid rgba(201, 168, 76, 0.28);
+   border-radius: 0;
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.78);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   font-family: "Cinzel", serif;
+   font-size: 0.8rem;
+   font-weight: 700;
+   letter-spacing: 0.06em;
+   text-align: center;
+   text-transform: uppercase;
+   cursor: pointer;
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-inline-opening-skip {
+   min-width: clamp(126px, 7.4vw, 142px);
+   min-height: 54px;
+   margin-top: 16px;
+   padding: 10px 12px;
+   border-color: rgba(201, 168, 76, 0.2);
+   color: rgba(255, 248, 232, 0.78);
+   font-size: 0.7rem;
+  }
+
+  body.packs-page .packs-inline-opening-next:hover:not(:disabled),
+  body.packs-page .packs-inline-opening-skip:hover {
+   border-color: rgba(232, 201, 122, 0.72);
+   color: #e8c97a;
+   transform: translateY(-2px);
+  }
+
+  body.packs-page .packs-inline-opening-next:disabled {
+   cursor: default;
+   opacity: 0.72;
+   transform: none;
+  }
+
+  body.packs-page .packs-inline-opening-next[hidden],
+  body.packs-page .packs-inline-opening-skip[hidden] {
+   display: none;
+  }
+
+  @keyframes packs-inline-card-open {
+   0% {
+    opacity: 0;
+    filter: brightness(0.58) blur(1px);
+    transform: translateY(26px) scale(0.78) rotateX(20deg);
+   }
+   48% {
+   opacity: 1;
+    filter: brightness(1.2) blur(0);
+    transform: translateY(2px) scale(1.02) rotateX(0deg);
+   }
+   100% {
+    opacity: 1;
+    filter: brightness(1);
+    transform: translateY(0) scale(1) rotateX(0deg);
+   }
+  }
+
+  @keyframes packs-inline-card-back {
+   0% {
+    opacity: 1;
+    transform: scale(1) rotateY(0deg);
+   }
+   46% {
+   opacity: 1;
+    transform: scale(1.01) rotateY(0deg);
+   }
+   100% {
+    opacity: 0;
+    transform: scale(0.82) rotateY(86deg);
+   }
+  }
+
+  @keyframes packs-inline-card-image {
+   0%,
+   38% {
+    opacity: 0;
+    filter: brightness(0.72) saturate(0.82);
+   }
+   62% {
+    opacity: 1;
+    filter: brightness(1.22) saturate(1.12);
+   }
+   100% {
+    opacity: 1;
+    filter: brightness(1) saturate(1);
+   }
+  }
+
+  body.packs-page .packs-set-slider {
+   position: absolute;
+   left: 0;
+   bottom: 0;
+   grid-area: auto;
+   width: auto;
+   max-width: calc(100% - 420px);
+   margin-bottom: 0;
+   padding: 0;
+   border: 0;
+   background: transparent;
+   box-shadow: none;
+   z-index: 6;
+  }
+
+  body.packs-page .packs-set-slider-track {
+   display: grid;
+   grid-template-columns: repeat(5, 96px);
+   gap: 10px;
+   overflow: visible;
+   padding: 0;
+   cursor: default;
+   touch-action: auto;
+  }
+
+  body.packs-page .packs-set-card.set-card {
+   appearance: none;
+   display: inline-grid;
+   place-items: center;
+   flex: 0 0 96px;
+   width: 96px;
+   min-width: 0;
+   min-height: 46px;
+   height: auto;
+   padding: 8px 8px;
+   border-radius: 0;
+   border: 1px solid rgba(201, 168, 76, 0.24);
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   backdrop-filter: blur(8px);
+   color: inherit;
+   text-align: center;
+  }
+
+  body.packs-page .packs-set-card.set-card::before,
+  body.packs-page .packs-draw-btn.set-card::before {
+   opacity: 0;
+  }
+
+  body.packs-page .packs-set-card.set-card:hover::before,
+  body.packs-page .packs-set-card.set-card.active::before,
+  body.packs-page .packs-draw-btn.set-card:hover::before {
+   opacity: 1;
+  }
+
+  body.packs-page .packs-set-card.set-card span[aria-hidden="true"] {
+   display: none;
+  }
+
+  body.packs-page .packs-set-card.set-card h3 {
+   font-family: "Cinzel", serif;
+   font-size: 0.58rem;
+   line-height: 1;
+   letter-spacing: 0.03em;
+   overflow-wrap: normal;
+   word-break: normal;
+  }
+
+  body.packs-page .packs-set-card.set-card p {
+   display: none;
+  }
+
+  body.packs-page .packs-set-card.set-card strong {
+   display: none;
+  }
+
+  body.packs-page .packs-set-card-tag {
+   display: none;
+  }
+
+  body.packs-page .packs-set-card.active {
+   border-color: rgba(232, 201, 122, 0.78);
+   box-shadow: 0 0 0 1px rgba(232, 201, 122, 0.2), 0 18px 42px rgba(0, 0, 0, 0.28);
+   background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.13), transparent 34%, rgba(0, 0, 0, 0.24)),
+    rgba(10, 10, 18, 0.86);
+  }
+
+  body.packs-page .packs-set-card.locked {
+   opacity: 0.72;
+   filter: grayscale(0.35);
+  }
+
+  body.packs-page .packs-set-card.set-card.active {
+   z-index: 2;
+   border-color: rgba(232, 201, 122, 0.96);
+   color: #e8c97a;
+   box-shadow:
+    inset 0 1px 0 rgba(255, 244, 191, 0.78),
+    0 0 0 1px rgba(232, 201, 122, 0.34),
+    0 0 24px rgba(232, 201, 122, 0.16),
+    0 18px 42px rgba(0, 0, 0, 0.28);
+  }
+
+  body.packs-page .packs-set-card.set-card.active h3 {
+   color: #e8c97a;
+   text-shadow: 0 0 14px rgba(232, 201, 122, 0.32);
+  }
+
+  body.packs-page .packs-footer {
+   position: absolute;
+   right: 0;
+   bottom: 0;
+   grid-area: auto;
+   width: auto;
+   margin-bottom: 0;
+   z-index: 8;
+  }
+
+  body.packs-page .packs-draw-stack {
+   position: relative;
+   width: 100%;
+  }
+
+  body.packs-page .packs-draw-controls {
+   display: grid;
+   grid-template-columns: repeat(3, clamp(150px, 9vw, 170px));
+   gap: 10px;
+   align-items: stretch;
+   justify-content: end;
+  }
+
+  body.packs-page .packs-draw-btn.set-card {
+   display: inline-grid;
+   place-items: center;
+   min-width: 0;
+   min-height: 69px;
+   padding: 12px 14px;
+   border-radius: 0;
+   border-color: rgba(201, 168, 76, 0.24);
+   background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 30%, rgba(0, 0, 0, 0.24)),
+    rgba(8, 8, 16, 0.74);
+   color: #fff8e8;
+   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+   font-family: "Cinzel", serif;
+   font-size: 0.8rem;
+   font-weight: 700;
+   line-height: 1;
+   letter-spacing: 0.06em;
+   text-align: center;
+   text-transform: uppercase;
+   backdrop-filter: blur(8px);
+  }
+
+  body.packs-page .packs-draw-btn.set-card:hover:not(:disabled) {
+   border-color: rgba(232, 201, 122, 0.58);
+   color: #e8c97a;
+   transform: translateY(-3px);
+  }
+
+  body.packs-page .packs-draw-btn.set-card:disabled {
+   opacity: 0.62;
+   filter: grayscale(0.4);
+  }
+
+  body.packs-page .packs-draw-notice {
+   position: absolute;
+   right: 0;
+   bottom: calc(100% + 8px);
+   min-height: 0;
+   margin: 0;
+   text-align: right;
+  }
+
+  body.packs-page #packsDraw25Btn {
+   grid-column: auto;
+   min-width: 0;
+   flex-basis: auto;
+  }
+
+  @media (max-width: 1080px) {
+   body.packs-page .packs-main {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+     "title"
+     "character"
+     "pity"
+     "side"
+     "draw"
+     "sets";
+   }
+
+   body.packs-page .packs-status,
+   body.packs-page .packs-side-right,
+   body.packs-page .packs-set-slider,
+   body.packs-page .packs-footer {
+    position: relative;
+    inset: auto;
+   }
+
+   body.packs-page .packs-status {
+    grid-area: pity;
+    justify-self: start;
+   }
+
+   body.packs-page .packs-side-right {
+    grid-area: side;
+    justify-self: end;
+   }
+
+   body.packs-page .packs-set-slider {
+    grid-area: sets;
+    justify-self: start;
+    width: 100%;
+   }
+
+   body.packs-page .packs-footer {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    grid-area: draw;
+    justify-self: end;
+   }
+
+   body.packs-page .packs-focus-character {
+    width: min(58vw, 560px);
+   }
+
+   body.packs-page .packs-set-slider-track {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+   }
+  }
+
+  @media (max-width: 720px) {
+   body.packs-page #globalInventoryNavLink {
+    flex-basis: auto;
+   }
+
+   body.packs-page .top-nav {
+    display: grid;
+    grid-template-columns: repeat(4, max-content);
+    justify-content: center;
+    max-width: 100%;
+   }
+
+   body.packs-page .nav-link {
+    padding: 5px 4px;
+    font-size: 0.46rem;
+    letter-spacing: 0.01em;
+   }
+
+   body.packs-page .packs-shell {
+    overflow: visible;
+    padding: 14px 12px 18px;
+    overflow-x: hidden;
+   }
+
+   body.packs-page .packs-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto auto;
+    grid-template-areas:
+     "title"
+     "character"
+     "pity"
+     "draw"
+     "sets";
+    min-height: auto;
+   }
+
+   body.packs-page .packs-title h1 {
+    font-size: clamp(2rem, 11vw, 2.75rem);
+    letter-spacing: 0.03em;
+   }
+
+   body.packs-page .packs-focus-character {
+    width: min(100%, 420px);
+    height: 330px;
+    min-height: 280px;
+   }
+
+   body.packs-page .packs-focus-badge {
+    width: min(310px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+   }
+
+   body.packs-page .packs-inline-opening-result {
+    width: min(100%, 440px);
+    max-height: 360px;
+    padding: 26px 6px 6px;
+    margin-top: -20px;
+   }
+
+   body.packs-page .packs-inline-opening-grid {
+    grid-template-columns: repeat(5, minmax(54px, 1fr));
+    gap: 14px;
+   }
+
+   body.packs-page .packs-inline-opening-next,
+   body.packs-page .packs-inline-opening-skip {
+    min-width: 132px;
+    min-height: 52px;
+    margin-top: 24px;
+    font-size: 0.68rem;
+   }
+
+   body.packs-page .packs-inline-opening-skip {
+    min-width: 112px;
+    min-height: 42px;
+    margin-top: 12px;
+    font-size: 0.6rem;
+   }
+
+   body.packs-page .packs-side-right,
+   body.packs-page .packs-set-slider,
+   body.packs-page .packs-status,
+   body.packs-page .packs-footer {
+    justify-self: center;
+    width: min(330px, calc(100vw - 24px));
+    max-width: min(330px, calc(100vw - 24px));
+    box-sizing: border-box;
+   }
+
+   body.packs-page .packs-side-right {
+    display: none;
+   }
+
+   body.packs-page .packs-status {
+    overflow: hidden;
+   }
+
+   body.packs-page .packs-draw-btn.set-card {
+    min-height: 44px;
+    padding: 8px 6px;
+    font-size: 0.58rem;
+    letter-spacing: 0.03em;
+   }
+
+   body.packs-page .packs-pity-slot {
+    min-width: 0;
+    box-sizing: border-box;
+   }
+
+   body.packs-page .packs-pity-slot-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 8px;
+   }
+
+   body.packs-page .packs-pity-slot-value {
+    font-size: 1.06rem;
+    justify-self: end;
+    white-space: nowrap;
+   }
+
+   body.packs-page .packs-set-slider-track {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+   }
+
+   body.packs-page .packs-set-card.set-card {
+    flex-basis: auto;
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 6px;
+   }
+
+   body.packs-page .packs-set-card.set-card h3 {
+    font-size: 0.58rem;
    }
   }
  </style>
 </head>
 <body class="packs-page">
+ <header class="site-header">
+  <div class="site-topbar">
+   <a class="brand" href="/" aria-label="Krosmoz Card">
+    <img src="/assets/ui/logo-carte.png" alt="">
+    <span>Krosmoz Card</span>
+   </a>
+   <nav class="top-nav" aria-label="Navigation principale">
+    <a class="nav-link" href="/">Accueil</a>
+    <a class="nav-link" href="/pages/classement.html">Classement</a>
+    <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+    <a class="nav-link" href="/sets">Sets</a>
+   </nav>
+   <div class="header-actions" aria-label="Liens rapides">
+    <a class="header-action header-action-login" href="/auth/discord?returnTo=%2Fpacks">Connexion</a>
+   </div>
+  </div>
+ </header>
  <main class="packs-shell">
   <header class="packs-topbar">
    <div class="packs-top-left">
@@ -2203,7 +4135,7 @@
 
   <section class="packs-main">
    <div class="packs-title">
-    <h1 id="packsMainSetTitle">Incarnam</h1>
+    <h1 id="packsMainSetTitle">Astrub</h1>
     <div id="packsSetCompletion" class="packs-set-completion" hidden></div>
    </div>
 
@@ -2225,13 +4157,19 @@
     </button>
    </aside>
 
-   <figure id="packsFocusFigure" class="packs-focus-character" aria-label="Centre Incarnam">
-    <img id="packsFocusImage" src="/assets/ui/centre%20incarnam.png" alt="Centre Incarnam">
+   <figure id="packsFocusFigure" class="packs-focus-character" aria-label="Centre Astrub">
+    <img id="packsFocusImage" src="/assets/ui/centre%20astrub.png" alt="Centre Astrub">
    </figure>
-   <div class="packs-focus-badge" aria-label="Rarete SSR Gromulet">
-    <img src="/assets/ui/ssr.png" alt="SSR">
-    <span id="packsFocusName">gromulet</span>
-   </div>
+  <div class="packs-focus-badge" aria-label="Rarete SSR Gromulet">
+   <img src="/assets/ui/ssr.png" alt="SSR">
+   <span id="packsFocusName">gromulet</span>
+  </div>
+
+   <section id="packsInlineOpeningResult" class="packs-inline-opening-result" aria-live="polite" hidden>
+    <div id="packsInlineOpeningGrid" class="packs-inline-opening-grid"></div>
+    <button id="packsInlineOpeningNextBtn" class="packs-inline-opening-next" type="button" hidden>Suivant</button>
+    <button id="packsInlineOpeningSkipBtn" class="packs-inline-opening-skip" type="button" hidden>Skip</button>
+   </section>
 
    <div class="packs-status" id="packsStatusText">
     <p class="packs-pity-title">Pity du set</p>
@@ -2267,9 +4205,9 @@
    <footer class="packs-footer">
     <div class="packs-draw-stack">
      <div class="packs-draw-controls">
-      <button id="packsDraw1Btn" class="packs-draw-btn" type="button">Tirage x1</button>
-      <button id="packsDraw10Btn" class="packs-draw-btn advanced" type="button">x10 Tirages Consecutifs</button>
-      <button id="packsDraw25Btn" class="packs-draw-btn advanced" type="button">x25</button>
+      <button id="packsDraw1Btn" class="packs-draw-btn set-card" type="button">Tirage x1</button>
+      <button id="packsDraw10Btn" class="packs-draw-btn advanced set-card" type="button">Tirage x10</button>
+      <button id="packsDraw25Btn" class="packs-draw-btn advanced set-card" type="button">Tirage x25</button>
      </div>
      <p id="packsDrawNotice" class="packs-draw-notice" aria-live="polite"></p>
     </div>
@@ -2318,9 +4256,6 @@
     </div>
     <div id="packsRateGrid" class="packs-rate-grid"></div>
    </div>
-   <footer class="packs-rate-foot">
-    <button class="packs-rate-close-main" type="button" data-close-rate-modal>Fermer</button>
-   </footer>
   </section>
  </aside>
 
@@ -2367,7 +4302,6 @@
      <strong id="packsHistoryPageValue" class="packs-history-page-value">1</strong>
      <button id="packsHistoryNextBtn" class="packs-history-page-btn" type="button" aria-label="Page suivante">&gt;</button>
     </div>
-    <button class="packs-history-close-main" type="button" data-close-history-modal>Fermer</button>
    </footer>
  </section>
 </aside>
@@ -2423,20 +4357,6 @@
 
  <script>
   const setCatalog = {
-   incarnam: {
-    id: "incarnam",
-    name: "Incarnam",
-    backgroundImage: "/assets/ui/fond%20pack%20incarnam.png",
-    sliderImage: "/assets/ui/fond%20pack%20incarnam.png",
-    centerImage: "/assets/ui/centre%20incarnam.png",
-    focusName: "gromulet",
-    effectiveSSR: 1.2,
-    ssrCards: [
-     { name: "Mimi", rate: 0.6, image: "/assets/ui/mimi_incarnam_SSR.png" },
-     { name: "Gromulet", rate: 0.6, image: "/assets/ui/gromulet_incarnam_SSR.png" }
-    ],
-    pityStart: { ur: 4, s: 12, ssr: 9 }
-   },
    astrub: {
     id: "astrub",
     name: "Astrub",
@@ -2542,23 +4462,48 @@
    }
   }
 
-  const PACK_OPEN_RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
-  const LOCAL_TEST_CARD_IMAGES = [
-   "/assets/ui/cartes%20test/7316282e-bcd4-4313-bf43-60d2decf5846.png",
-   "/assets/ui/cartes%20test/839ed31e-fc34-4564-98c7-42e5618b24ca.png",
-   "/assets/ui/cartes%20test/930b8d3e-7702-4b01-97c9-f6fb223da56e.png",
-   "/assets/ui/cartes%20test/a0bda3eb-1777-4894-83cf-e63ef15381fd.png",
-   "/assets/ui/cartes%20test/b0cf1644-bcaf-4b4a-853d-83552ebda922.png",
-   "/assets/ui/cartes%20test/b90590a3-3251-4746-ae80-62ababe50d09.png",
-   "/assets/ui/cartes%20test/s54dq64dqs465d.png",
-   "/assets/ui/cartes%20test/sd4q5d4sqd54qd.png",
-   "/assets/ui/cartes%20test/sdqsdqsdqz8778787.png"
+  const PACK_SET_BUTTON_BASES = [
+   { id: "astrub-lvl-1-35", name: "Astrub", icon: "A", source: "astrub" },
+   { id: "amakna-lvl-36-50", name: "Amakna", icon: "A", source: "amakna" },
+   { id: "sufokia-lvl-51-65", name: "Sufokia", icon: "S", source: "sufokia" },
+   { id: "kelba-lvl-66-80", name: "Kelba", icon: "K", source: "kelba" },
+   { id: "katrepat-lvl-81-95", name: "Katrepat", icon: "K", source: "katrepat" },
+   { id: "sberg-lvl-96-110", name: "Sberg", icon: "S", source: "sberg" },
+   { id: "shukrute-lvl-111-125", name: "Shukrute", icon: "S", source: "sberg" },
+   { id: "saharach-lvl-126-140", name: "Saharach", icon: "S", source: "sberg" },
+   { id: "enutrosor-lvl-141-155", name: "Enutrosor", icon: "E", source: "sberg" },
+   { id: "xelorium-lvl-156-170", name: "Xelorium", icon: "X", source: "sberg" },
+   { id: "moon-lvl-171-185", name: "Moon", icon: "M", source: "sberg" },
+   { id: "zinit-lvl-186-200", name: "Zinit", icon: "Z", source: "sberg" },
+   { id: "osamosa-lvl-201-215", name: "Osamosa", icon: "O", source: "sberg" },
+   { id: "ereboria-lvl-216-230", name: "Ereboria", icon: "E", source: "sberg" },
+   { id: "brume-lvl-231-245", name: "Brume", icon: "B", source: "sberg" }
   ]
+
+  function createPackSetConfig(buttonData) {
+   const source = setCatalog[buttonData.source] || setCatalog.astrub
+   return {
+    ...source,
+    id: buttonData.id,
+    name: buttonData.name,
+    icon: buttonData.icon,
+    pityStart: { ...(source?.pityStart || { ur: 0, s: 0, ssr: 0 }) }
+   }
+  }
+
+  const PACK_SET_BUTTON_CATALOG = PACK_SET_BUTTON_BASES.map(createPackSetConfig)
+  PACK_SET_BUTTON_CATALOG.forEach((setData) => {
+   setCatalog[setData.id] = setData
+  })
+
+  const PACK_OPEN_RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
   const IS_LOCAL_PACKS_TEST =
    ["localhost", "127.0.0.1", "::1"].includes(String(window.location.hostname || "").toLowerCase()) ||
    String(window.location.search || "").includes("local=1")
+  const LOCAL_PACKS_TEST_STOCK = 1000
+  const localTestCardsCacheBySet = new Map()
 
- let activeSetId = "incarnam"
+ let activeSetId = "astrub-lvl-1-35"
   const PACK_BACK_IMAGE_DEFAULT = "/assets/ui/pack-back-normal.png"
   const PACK_BACK_IMAGE_BY_RARITY = {
    S: "/assets/ui/pack-back-s.png",
@@ -2575,7 +4520,7 @@
 
   const packsState = {
    kamas: 2465,
-   packs: 12,
+   packs: IS_LOCAL_PACKS_TEST ? LOCAL_PACKS_TEST_STOCK : 12,
    drawBusy: false,
    unlockedSetIds: new Set(Object.keys(setCatalog)),
    setProgressBySet: {},
@@ -2636,6 +4581,12 @@
    index: 0
   }
 
+  const inlineOpeningState = {
+   cards: [],
+   groupIndex: 0,
+   groupSize: 5
+  }
+
   const HISTORY_WINDOW_DAYS = 7
   const HISTORY_WINDOW_MS = HISTORY_WINDOW_DAYS * 24 * 60 * 60 * 1000
   const HISTORY_UTC_OFFSET_HOURS = 2
@@ -2659,8 +4610,12 @@
   packsOpenSpecialFx: document.getElementById("packsOpenSpecialFx"),
   packsOpenSummary: document.getElementById("packsOpenSummary"),
    packsOpenSkipBtn: document.getElementById("packsOpenSkipBtn"),
-   packsOpenAllBtn: document.getElementById("packsOpenAllBtn"),
-   packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
+  packsOpenAllBtn: document.getElementById("packsOpenAllBtn"),
+  packsOpenCloseMain: document.getElementById("packsOpenCloseMain"),
+  inlineOpeningResult: document.getElementById("packsInlineOpeningResult"),
+  inlineOpeningGrid: document.getElementById("packsInlineOpeningGrid"),
+  inlineOpeningNextBtn: document.getElementById("packsInlineOpeningNextBtn"),
+  inlineOpeningSkipBtn: document.getElementById("packsInlineOpeningSkipBtn"),
    mainSetTitle: document.getElementById("packsMainSetTitle"),
    focusFigure: document.getElementById("packsFocusFigure"),
    focusImage: document.getElementById("packsFocusImage"),
@@ -2711,6 +4666,37 @@
 
   function normalizeSetId(value) {
    return String(value || "").trim().toLowerCase()
+  }
+
+  const PACK_SET_BACKGROUND_BY_ALIAS = {
+   amakna: "/assets/ui/fonds%20sets/amakna.webp",
+   astrub: "/assets/ui/fonds%20sets/astrub.webp",
+   brume: "/assets/ui/fonds%20sets/brume.png",
+   enutrosor: "/assets/ui/fonds%20sets/enutrosor.webp",
+   ereboria: "/assets/ui/fonds%20sets/ereboria.png",
+   katrepat: "/assets/ui/fonds%20sets/katrepat.webp",
+   kelba: "/assets/ui/fonds%20sets/kelba.webp",
+   moon: "/assets/ui/fonds%20sets/moon.webp",
+   osamosa: "/assets/ui/fonds%20sets/osamosa.png",
+   saharach: "/assets/ui/fonds%20sets/saharach.png",
+   sberg: "/assets/ui/fonds%20sets/sberg.webp",
+   shukrute: "/assets/ui/fonds%20sets/shukrute.webp",
+   sufokia: "/assets/ui/fonds%20sets/sufokia.webp",
+   xelorium: "/assets/ui/fonds%20sets/xelorium.png",
+   zinit: "/assets/ui/fonds%20sets/zinit.png"
+  }
+
+  function getPackSetAlias(setId) {
+   const normalizedSetId = normalizeSetId(setId)
+   return normalizedSetId.replace(/-lvl-\d+-\d+$/, "")
+  }
+
+  function updatePackSetBackground(setId) {
+   const backgroundUrl = PACK_SET_BACKGROUND_BY_ALIAS[getPackSetAlias(setId)]
+   document.documentElement.style.setProperty(
+    "--packs-set-background-image",
+    backgroundUrl ? `url("${backgroundUrl}")` : "none"
+   )
   }
 
   function normalizePityCounters(raw) {
@@ -2795,7 +4781,7 @@
      buyMenuState.packPrice = Math.round(Number(payload.packPrice))
     }
     if (Number.isFinite(Number(payload?.packStock)) && Number(payload.packStock) >= 0) {
-     packsState.packs = Math.floor(Number(payload.packStock))
+     packsState.packs = IS_LOCAL_PACKS_TEST ? LOCAL_PACKS_TEST_STOCK : Math.floor(Number(payload.packStock))
     }
     if (Number.isFinite(Number(payload?.kamas)) && Number(payload.kamas) >= 0) {
      packsState.kamas = Math.floor(Number(payload.kamas))
@@ -2803,14 +4789,9 @@
     applyPityBySetPayload(payload?.pityBySet)
     const unlocked = Array.isArray(payload?.unlockedSets) ? payload.unlockedSets : []
     const ids = new Set(unlocked.map((set) => normalizeSetId(set?.id)).filter(Boolean))
-    if (ids.size) {
-     packsState.unlockedSetIds = ids
-     const firstUnlocked = Object.keys(setCatalog).find((setId) => ids.has(setId))
-     if (!isSetUnlockedForPlayer(activeSetId) && firstUnlocked) {
-      switchActiveSet(firstUnlocked)
-      return
-     }
-    }
+   if (ids.size) {
+    packsState.unlockedSetIds = ids
+   }
 
     renderSetSlider()
     updateUI()
@@ -3132,7 +5113,7 @@
    const activePity = getActivePity()
    el.mainSetTitle.textContent = activeSet.name
    el.focusName.textContent = activeSet.focusName
-   el.focusImage.src = activeSet.centerImage || "/assets/ui/centre%20incarnam.png"
+   el.focusImage.src = activeSet.centerImage || "/assets/ui/centre%20astrub.png"
    el.focusImage.alt = `Centre ${activeSet.name}`
    el.focusFigure.setAttribute("aria-label", `Centre ${activeSet.name}`)
    el.pityUrValue.textContent = formatPityValue(activePity.ur, setPityCaps.ur)
@@ -3145,15 +5126,16 @@
   }
 
   function renderSetSlider() {
-   const sets = Object.values(setCatalog)
-   el.setSliderTrack.innerHTML = sets.map((setData) => {
+   el.setSliderTrack.innerHTML = PACK_SET_BUTTON_CATALOG.map((setData) => {
     const unlocked = isSetUnlockedForPlayer(setData.id)
-    const sliderImage = unlocked ? setData.sliderImage : LOCKED_SET_SLIDER_IMAGE
-    const isActive = unlocked && setData.id === activeSetId
+    const isActive = setData.id === activeSetId
+    const icon = String(setData.icon || setData.name || "?").trim().charAt(0).toUpperCase()
     return `
-    <button class="packs-set-card ${isActive ? "active" : ""} ${unlocked ? "" : "locked"}" type="button" data-set-id="${setData.id}" style="background-image: linear-gradient(180deg, rgba(12,26,70,0.22), rgba(7,16,48,0.72)), url('${sliderImage}')"
-      ${unlocked ? "" : 'disabled aria-disabled="true"'}>
-     <span class="packs-set-card-name">${setData.name}</span>
+    <button class="packs-set-card set-card ${isActive ? "active" : ""}" type="button" data-set-id="${setData.id}" aria-pressed="${isActive ? "true" : "false"}">
+     <span aria-hidden="true">${sanitizeText(icon)}</span>
+     <h3>${sanitizeText(setData.name)}</h3>
+     <p>${unlocked ? "Set disponible pour l'ouverture de packs." : "Set verrouille pour les tirages, selection disponible."}</p>
+     <strong>${isActive ? "Actif" : "Selectionner"}</strong>
      <span class="packs-set-card-tag">${unlocked ? "Disponible" : "Non débloqué"}</span>
     </button>
    `
@@ -3205,15 +5187,14 @@
   }
 
   function switchActiveSet(setId) {
-   if (!setCatalog[setId]) return
-   if (!isSetUnlockedForPlayer(setId)) return
-   activeSetId = setId
+   const nextSetId = normalizeSetId(setId)
+   if (!setCatalog[nextSetId]) return
+   activeSetId = nextSetId
    const activeSet = getActiveSet()
    rateInfo.error = ""
-   refreshRateInfoForSet(setId)
-   document.documentElement.style.setProperty("--packs-bg-image", `url("${activeSet.backgroundImage}")`)
-   document.documentElement.style.setProperty("--packs-bg-size", activeSet.backgroundSize || "cover")
-   document.documentElement.style.setProperty("--packs-bg-position", activeSet.backgroundPosition || "center")
+   clearInlinePackOpeningResult()
+   updatePackSetBackground(nextSetId)
+   refreshRateInfoForSet(nextSetId)
    document.documentElement.style.setProperty("--packs-center-bottom", activeSet.centerBottom || "-198px")
    document.documentElement.style.setProperty("--packs-center-width", activeSet.centerWidth || "min(86vw, 1160px)")
    document.documentElement.style.setProperty("--packs-center-bottom-1180", activeSet.centerBottom1180 || "-168px")
@@ -3227,7 +5208,7 @@
     historyState.page = 1
     void loadHistoryPageForActiveSet()
    }
-   void ensureSSRRateDataForSet(setId)
+   void ensureSSRRateDataForSet(nextSetId)
    updateUI()
   }
 
@@ -3421,62 +5402,233 @@
    return String(rarity || "").toUpperCase()
   }
 
-  function getLocalTestCardImage(index = 0) {
-   if (!IS_LOCAL_PACKS_TEST || !LOCAL_TEST_CARD_IMAGES.length) return ""
-   const safeIndex = Math.abs(Number(index || 0)) % LOCAL_TEST_CARD_IMAGES.length
-   return String(LOCAL_TEST_CARD_IMAGES[safeIndex] || "")
+  function getRevealCardImage(card, setId) {
+   const directImage = String(card?.imageUrl || card?.image || "").trim()
+   if (!directImage) return ""
+   if (/^(https?:)?\/\//i.test(directImage) || directImage.startsWith("/")) return directImage
+   const safeSetId = normalizeSetId(setId || card?.set || activeSetId) || activeSetId
+   return `/assets/cards/${encodeURIComponent(safeSetId)}/${directImage.replace(/^\/+/, "")}`
   }
 
-  function applyLocalTestImagesToRevealCards(cards = []) {
-   if (!IS_LOCAL_PACKS_TEST || !Array.isArray(cards) || !cards.length) return cards
-   return cards.map((card, index) => ({
+  function normalizeRevealCard(card, index = 0, setId = activeSetId) {
+   const safeSetId = normalizeSetId(card?.set || setId || activeSetId) || activeSetId
+   const name = String(card?.cardName || card?.itemName || card?.name || `Carte ${index + 1}`)
+   return {
     ...card,
-    image: getLocalTestCardImage(index) || String(card?.image || "")
-   }))
+    cardId: String(card?.cardId || card?.id || `${safeSetId}-${index}`),
+    cardName: name,
+    itemName: name,
+    rarity: String(card?.rarity || "C").toUpperCase(),
+    set: safeSetId,
+    image: getRevealCardImage(card, safeSetId),
+    shiny: Boolean(card?.shiny),
+    isNew: Boolean(card?.isNew)
+   }
   }
 
-  function buildLocalFallbackRevealCards(payload = {}) {
-   if (!IS_LOCAL_PACKS_TEST) return []
-   const quantity = Math.max(1, Math.min(25, Number(payload?.quantity || 1)))
+  async function loadLocalCardsForReveal(setId, minimum = 25) {
+   const safeSetId = normalizeSetId(setId || activeSetId) || activeSetId
+   const requestedMinimum = Math.max(1, Number(minimum || 25))
+   const cachedCards = localTestCardsCacheBySet.get(safeSetId)
+   if (Array.isArray(cachedCards) && cachedCards.length) {
+    return cachedCards
+   }
+
    const cards = []
-   const baseRarities = ["C", "U", "R", "S", "SSR"]
-   for (let packIndex = 0; packIndex < quantity; packIndex++) {
-    for (let i = 0; i < 5; i++) {
-     cards.push({
-      cardId: `local-test-${packIndex}-${i}`,
-      cardName: `Carte test ${packIndex + 1}-${i + 1}`,
-      rarity: baseRarities[i] || "C",
-      set: String(payload?.setId || activeSetId || "incarnam"),
-      image: "",
-      shiny: false,
-      isNew: false
+   let page = 1
+   let pages = 1
+   while (page <= pages && cards.length < requestedMinimum) {
+    const response = await fetch(`/api/cards?set=${encodeURIComponent(safeSetId)}&sort=name&order=asc&page=${page}&limit=100`, {
+     credentials: "same-origin"
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const payload = await response.json().catch(() => ({}))
+    const items = Array.isArray(payload?.items) ? payload.items : []
+    cards.push(...items.map((card, index) => normalizeRevealCard(card, cards.length + index, safeSetId)))
+    pages = Math.max(1, Number(payload?.pages || pages || 1))
+    page += 1
+   }
+
+   localTestCardsCacheBySet.set(safeSetId, cards)
+   return cards
+  }
+
+  function repeatRevealCards(cards = [], quantity = 1, setId = activeSetId) {
+   const total = Math.max(1, Math.min(25, Number(quantity || 1))) * 5
+   if (!Array.isArray(cards) || !cards.length) return []
+   return Array.from({ length: total }, (_, index) => {
+    const source = cards[index % cards.length]
+    return {
+     ...source,
+     cardId: `${source.cardId || source.id || "card"}-local-${index}`,
+     set: normalizeSetId(source.set || setId || activeSetId) || activeSetId,
+     shiny: Boolean(index % 13 === 0 || source.shiny),
+     isNew: Boolean(index % 5 === 0 || source.isNew)
+    }
+   })
+  }
+
+  async function buildLocalCardsRevealPayload(payload = {}, options = {}) {
+   if (!IS_LOCAL_PACKS_TEST) return payload
+   const quantity = Math.max(1, Math.min(25, Number(options?.quantity || payload?.quantity || 1)))
+   const setId = normalizeSetId(options?.setId || payload?.setId || activeSetId) || activeSetId
+   const localCards = await loadLocalCardsForReveal(setId, quantity * 5)
+   if (!localCards.length) return payload
+   return {
+    ...payload,
+    quantity,
+    setId,
+    revealCards: repeatRevealCards(localCards, quantity, setId)
+   }
+  }
+
+  function buildLocalCardsSummary(revealCards = []) {
+   const grouped = new Map()
+   for (const card of revealCards) {
+    const key = [
+     String(card?.cardId || card?.id || card?.cardName || card?.itemName || "card"),
+     String(card?.rarity || "C").toUpperCase()
+    ].join("::")
+    const existing = grouped.get(key)
+    if (existing) {
+     existing.qty += 1
+    } else {
+     grouped.set(key, {
+      cardId: card?.cardId || card?.id || key,
+      cardName: String(card?.cardName || card?.itemName || card?.name || "Carte"),
+      itemName: String(card?.itemName || card?.cardName || card?.name || "Carte"),
+      rarity: String(card?.rarity || "C").toUpperCase(),
+      image: String(card?.image || card?.imageUrl || ""),
+      qty: 1
      })
     }
    }
-   return applyLocalTestImagesToRevealCards(cards)
+   return Array.from(grouped.values())
+  }
+
+  async function buildLocalOpenPacksPayload(quantity, setId) {
+   const safeQuantity = Math.max(1, Math.min(25, Number(quantity || 1)))
+   const safeSetId = normalizeSetId(setId || activeSetId) || activeSetId
+   const displayPayload = await buildLocalCardsRevealPayload({
+    ok: true,
+    quantity: safeQuantity,
+    setId: safeSetId,
+    kamas: packsState.kamas,
+    packStock: Math.max(0, Number(packsState.packs || 0) - safeQuantity),
+    totals: { kamasGain: 0 }
+   }, { quantity: safeQuantity, setId: safeSetId })
+   return {
+    ...displayPayload,
+    cards: buildLocalCardsSummary(displayPayload?.revealCards || [])
+   }
   }
 
   function getRevealCards(payload) {
    if (Array.isArray(payload?.revealCards) && payload.revealCards.length) {
-    return applyLocalTestImagesToRevealCards(payload.revealCards.slice())
+    return payload.revealCards.map((card, index) => normalizeRevealCard(card, index, payload?.setId || activeSetId))
    }
    const expanded = []
    for (const row of (Array.isArray(payload?.cards) ? payload.cards : [])) {
     const qty = Math.max(1, Number(row?.qty || 1))
     for (let i = 0; i < qty; i++) {
-     expanded.push({
-      cardName: row?.cardName || row?.itemName || "Carte",
+     expanded.push(normalizeRevealCard({
+      cardName: row?.cardName || row?.itemName || row?.name || "Carte",
       rarity: row?.rarity || "C",
-      image: row?.image || null,
+      image: row?.image || row?.imageUrl || null,
+      set: row?.set || payload?.setId || activeSetId,
       shiny: Boolean(row?.shiny),
-     isNew: Boolean(row?.isNew)
-     })
+      isNew: Boolean(row?.isNew)
+     }, expanded.length, payload?.setId || activeSetId))
     }
    }
    if (expanded.length > 0) {
-    return applyLocalTestImagesToRevealCards(expanded)
+    return expanded
    }
-   return buildLocalFallbackRevealCards(payload)
+   return []
+  }
+
+  function clearInlinePackOpeningResult() {
+   inlineOpeningState.cards = []
+   inlineOpeningState.groupIndex = 0
+   if (el.inlineOpeningGrid) el.inlineOpeningGrid.innerHTML = ""
+   if (el.inlineOpeningNextBtn) el.inlineOpeningNextBtn.hidden = true
+   if (el.inlineOpeningSkipBtn) el.inlineOpeningSkipBtn.hidden = true
+   if (el.inlineOpeningResult) {
+    el.inlineOpeningResult.classList.remove("is-opening")
+    el.inlineOpeningResult.hidden = true
+   }
+  }
+
+  function getInlineOpeningGroupsCount() {
+   return Math.max(1, Math.ceil(inlineOpeningState.cards.length / inlineOpeningState.groupSize))
+  }
+
+  function renderInlineOpeningGroup() {
+   if (!el.inlineOpeningResult || !el.inlineOpeningGrid) return
+   const totalGroups = getInlineOpeningGroupsCount()
+   const safeGroupIndex = Math.max(0, Math.min(totalGroups - 1, Number(inlineOpeningState.groupIndex || 0)))
+   inlineOpeningState.groupIndex = safeGroupIndex
+   const start = safeGroupIndex * inlineOpeningState.groupSize
+   const cards = inlineOpeningState.cards.slice(start, start + inlineOpeningState.groupSize)
+   if (!cards.length) {
+    clearInlinePackOpeningResult()
+    return
+   }
+   el.inlineOpeningGrid.innerHTML = cards.map((card, index) => {
+    const rarity = String(card?.rarity || "C").toUpperCase()
+    const rarityClass = sanitizeText(`rarity-${rarity.toLowerCase()}`)
+    const name = sanitizeText(String(card?.cardName || card?.itemName || "Carte"))
+    const image = sanitizeText(String(card?.image || "/assets/ui/ssr.png"))
+    const delay = Math.min(index, 34) * 58
+    return `
+     <article class="packs-inline-opening-card ${rarityClass}" style="--inline-delay: ${delay}ms;">
+      <img src="${image}" alt="${name}" loading="lazy">
+      <div class="packs-inline-opening-meta">
+       <span class="packs-inline-opening-rarity">${sanitizeText(rarity)}</span>
+       <span class="packs-inline-opening-name" title="${name}">${name}</span>
+      </div>
+     </article>
+    `
+   }).join("")
+   if (el.inlineOpeningNextBtn) {
+    const hasNext = safeGroupIndex < totalGroups - 1
+    const hasMultipleGroups = totalGroups > 1
+    el.inlineOpeningNextBtn.hidden = !hasMultipleGroups
+    el.inlineOpeningNextBtn.disabled = !hasNext
+    el.inlineOpeningNextBtn.textContent = hasNext ? `Suivant ${safeGroupIndex + 1}/${totalGroups}` : `${totalGroups}/${totalGroups}`
+   }
+   if (el.inlineOpeningSkipBtn) {
+    el.inlineOpeningSkipBtn.hidden = totalGroups <= 1 || safeGroupIndex >= totalGroups - 1
+   }
+   el.inlineOpeningResult.classList.remove("is-opening")
+   el.inlineOpeningResult.hidden = false
+   void el.inlineOpeningResult.offsetWidth
+   el.inlineOpeningResult.classList.add("is-opening")
+  }
+
+  function showInlinePackOpeningResult(payload) {
+   const cards = getRevealCards(payload)
+   if (!cards.length) {
+    clearInlinePackOpeningResult()
+    return
+   }
+   inlineOpeningState.cards = cards
+   inlineOpeningState.groupIndex = 0
+   renderInlineOpeningGroup()
+  }
+
+  function showNextInlineOpeningGroup() {
+   if (!inlineOpeningState.cards.length) return
+   const totalGroups = getInlineOpeningGroupsCount()
+   if (inlineOpeningState.groupIndex >= totalGroups - 1) return
+   inlineOpeningState.groupIndex += 1
+   renderInlineOpeningGroup()
+  }
+
+  function skipInlineOpeningGroups() {
+   if (!inlineOpeningState.cards.length) return
+   inlineOpeningState.groupIndex = getInlineOpeningGroupsCount() - 1
+   renderInlineOpeningGroup()
   }
 
   function getPackOpenRarityOrder(rarity) {
@@ -3666,7 +5818,7 @@ function handlePackOpenPrimaryAction() {
    el.packsOpenCloseMain.textContent = "Fermer"
    el.packsOpenCloseMain.disabled = false
   }
-   el.packsOpenOverlay.classList.remove("show")
+   el.packsOpenOverlay.classList.remove("show", "instant")
    syncModalBodyLock()
    window.setTimeout(() => {
     el.packsOpenOverlay.hidden = true
@@ -3932,9 +6084,10 @@ function handlePackOpenPrimaryAction() {
    }, revealStartDelay)
   }
 
-  function showPackOpeningAnimation(payload) {
+  function showPackOpeningAnimation(payload, options = {}) {
    const revealCards = getRevealCards(payload)
    if (!revealCards.length) return Promise.resolve()
+   const instant = Boolean(options?.instant)
    if (typeof window.__kcSetLevelUpAnimationsPaused === "function") {
     window.__kcSetLevelUpAnimationsPaused(true)
    }
@@ -3961,11 +6114,12 @@ function handlePackOpenPrimaryAction() {
     }
     updatePackOpenPrimaryAction()
 
+    el.packsOpenOverlay.classList.toggle("instant", instant)
     el.packsOpenOverlay.hidden = false
     requestAnimationFrame(() => {
      el.packsOpenOverlay.classList.add("show")
      syncModalBodyLock()
-     animatePackOpenGroup(0)
+     animatePackOpenGroup(0, { instant })
     })
 
    return new Promise((resolve) => {
@@ -4221,7 +6375,7 @@ function handlePackOpenPrimaryAction() {
     packsState.kamas = Math.floor(Number(payload.kamas))
    }
    if (Number.isFinite(Number(payload?.packStock)) && Number(payload.packStock) >= 0) {
-    packsState.packs = Math.floor(Number(payload.packStock))
+    packsState.packs = IS_LOCAL_PACKS_TEST ? Math.max(0, Math.floor(Number(payload.packStock))) : Math.floor(Number(payload.packStock))
    }
    const setId = normalizeSetId(payload?.setId || sourceSetId)
    if (setCatalog[setId] && payload?.pity?.counters) {
@@ -4308,30 +6462,37 @@ function handlePackOpenPrimaryAction() {
    }
 
    packsState.drawBusy = true
+   clearInlinePackOpeningResult()
    showDrawNotice(`Ouverture x${quantity} en cours...`)
    updateUI()
    try {
     const requestSetId = activeSetId
-    const response = await fetch("/api/game/open-packs", {
-     method: "POST",
-     credentials: "same-origin",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ quantity, setId: requestSetId })
-    })
-    const payload = await response.json().catch(() => ({}))
-    if (!response.ok || !payload?.ok) {
-     throw new Error(String(payload?.error || `HTTP ${response.status}`))
+    let payload
+    if (IS_LOCAL_PACKS_TEST) {
+     payload = await buildLocalOpenPacksPayload(quantity, requestSetId)
+    } else {
+     const response = await fetch("/api/game/open-packs", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity, setId: requestSetId })
+     })
+     payload = await response.json().catch(() => ({}))
+     if (!response.ok || !payload?.ok) {
+      throw new Error(String(payload?.error || `HTTP ${response.status}`))
+     }
     }
 
     syncOpenPacksPayload(payload, requestSetId)
     pushHistoryEntries(payload?.cards || [], requestSetId)
-    const totalCards = Array.isArray(payload?.revealCards) && payload.revealCards.length
-     ? payload.revealCards.length
-     : (Array.isArray(payload?.cards)
-      ? payload.cards.reduce((sum, row) => sum + Math.max(1, Number(row?.qty || 1)), 0)
+    const displayPayload = IS_LOCAL_PACKS_TEST ? payload : await buildLocalCardsRevealPayload(payload, { quantity, setId: requestSetId })
+    const totalCards = Array.isArray(displayPayload?.revealCards) && displayPayload.revealCards.length
+     ? displayPayload.revealCards.length
+     : (Array.isArray(displayPayload?.cards)
+      ? displayPayload.cards.reduce((sum, row) => sum + Math.max(1, Number(row?.qty || 1)), 0)
       : 0)
     const kamasGain = Math.max(0, Number(payload?.totals?.kamasGain || 0))
-    await showPackOpeningAnimation(payload)
+    showInlinePackOpeningResult(displayPayload)
     showDrawNotice(`Ouverture x${quantity} reussie - ${totalCards} cartes - +${formatInt(kamasGain)} kamas`)
     void loadSetProgressFromProfile()
     if (!el.historyModal.hidden) {
@@ -4349,6 +6510,12 @@ function handlePackOpenPrimaryAction() {
   el.draw1.addEventListener("click", () => { void drawMany(1) })
   el.draw10.addEventListener("click", () => { void drawMany(10) })
   el.draw25.addEventListener("click", () => { void drawMany(25) })
+  if (el.inlineOpeningNextBtn) {
+   el.inlineOpeningNextBtn.addEventListener("click", showNextInlineOpeningGroup)
+  }
+  if (el.inlineOpeningSkipBtn) {
+   el.inlineOpeningSkipBtn.addEventListener("click", skipInlineOpeningGroups)
+  }
   el.backBtn.addEventListener("click", () => {
    window.location.href = "/"
   })

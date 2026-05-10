@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Quêtes | Krosmoz Card</title>
+ <meta name="theme-color" content="#10182f">
+ <link rel="icon" type="image/png" href="/assets/ui/logo-carte.png">
+ <link
+  href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=Jost:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+ >
+ <link rel="stylesheet" href="/assets/css/main.css">
+ <script src="/js/web-auth.js?v=20260511-nav-dropdowns" defer></script>
+ <style>
+  :root {
+   --quest-ink: #f3efe4;
+   --quest-panel: rgba(8, 13, 27, 0.82);
+   --quest-panel-deep: rgba(23, 32, 62, 0.9);
+   --quest-line: rgba(255, 255, 255, 0.22);
+   --quest-gold: #f2c64f;
+   --quest-blue: #84d5ff;
+   --quest-good: #74d49a;
+  }
+
+  html,
+  body {
+   width: 100%;
+   height: 100%;
+   overflow: hidden;
+  }
+
+  *,
+  *::before,
+  *::after {
+   box-sizing: border-box;
+  }
+
+  body.quetes-page {
+   position: relative;
+   margin: 0;
+   color: #f7fbff;
+   font-family: "Jost", sans-serif;
+   background: #050918;
+  }
+
+  body.quetes-page::before {
+   content: "";
+   position: fixed;
+   inset: 0;
+   z-index: 0;
+   pointer-events: none;
+   background: url("/assets/ui/background%20quetes.webp") center / cover no-repeat;
+   opacity: 0.3;
+  }
+
+  body.quetes-page::after {
+   content: "";
+   position: fixed;
+   inset: 0;
+   z-index: 0;
+   pointer-events: none;
+   background: linear-gradient(180deg, rgba(5, 9, 24, 0.3), rgba(5, 9, 24, 0.52));
+  }
+
+  body.quetes-page > * {
+   position: relative;
+   z-index: 1;
+  }
+
+  .quetes-shell {
+   position: relative;
+   height: calc(100vh - 74px);
+   min-height: 0;
+   overflow: hidden;
+   padding: clamp(128px, 16vh, 174px) clamp(18px, 2.4vw, 34px) clamp(84px, 8vh, 108px);
+   display: grid;
+   grid-template-columns: minmax(0, 1fr);
+   grid-template-rows: auto minmax(0, 1fr);
+   justify-items: center;
+  }
+
+  .quetes-board {
+   display: contents;
+  }
+
+  .quetes-title {
+   position: absolute;
+   top: clamp(18px, 3vw, 34px);
+   left: 50%;
+   transform: translateX(-50%);
+   width: min(720px, calc(100vw - 32px));
+   margin: 0;
+   font-family: "Cinzel", serif;
+   font-size: clamp(2.1rem, 5vw, 4.8rem);
+   line-height: 0.98;
+   letter-spacing: 0.04em;
+   text-transform: uppercase;
+   text-align: center;
+   color: #ffe479;
+   text-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
+  }
+
+  .quetes-status {
+   position: absolute;
+   top: clamp(58px, 8vw, 82px);
+   left: 50%;
+   transform: translateX(-50%);
+   min-height: 36px;
+   color: #d9e7ff;
+   font-weight: 700;
+   text-align: center;
+  }
+
+  .quetes-status:empty {
+   display: none;
+  }
+
+  .quetes-menu {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 168px));
+   gap: 8px;
+   width: auto;
+   padding-left: 0;
+   justify-content: center;
+  }
+
+  .quetes-scope {
+   position: relative;
+   width: 168px;
+   min-height: 50px;
+   border: 1px solid rgba(201, 168, 76, 0.34);
+   border-radius: 4px;
+   background: linear-gradient(180deg, rgba(15, 17, 26, 0.88), rgba(7, 8, 14, 0.92));
+   color: #f3efe4;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0 14px 0 17px;
+   text-align: center;
+   font-family: "Cinzel", serif;
+   font-size: 0.84rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   cursor: pointer;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.22);
+  }
+
+  .quetes-scope:disabled {
+   opacity: 0.48;
+   cursor: not-allowed;
+  }
+
+  .quetes-alert {
+   position: absolute;
+   top: -8px;
+   right: -8px;
+   min-width: 24px;
+   height: 24px;
+   border-radius: 999px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   padding: 0 6px;
+   color: #fff;
+   background: #d63b39;
+   border: 2px solid rgba(255, 255, 255, 0.88);
+   font-size: 0.78rem;
+   font-weight: 800;
+  }
+
+  .quetes-scope.active {
+   border-color: rgba(232, 201, 122, 0.82);
+   color: #f6df92;
+   background: linear-gradient(180deg, rgba(31, 29, 20, 0.94), rgba(10, 10, 14, 0.96));
+  }
+
+  .quetes-tabs {
+   display: grid;
+   grid-template-columns: repeat(2, minmax(0, 168px));
+   gap: 8px;
+   margin-top: 0;
+   width: auto;
+   padding-left: 0;
+   justify-content: center;
+  }
+
+  .quetes-tab {
+   position: relative;
+   width: 168px;
+   min-height: 50px;
+   border-radius: 4px;
+   border: 1px solid rgba(201, 168, 76, 0.42);
+   background:
+    linear-gradient(180deg, rgba(15, 17, 26, 0.92), rgba(7, 8, 14, 0.94));
+   color: #f3efe4;
+   padding: 0 14px;
+   text-align: center;
+   font-size: 0.84rem;
+   font-weight: 800;
+   font-family: "Cinzel", serif;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   cursor: pointer;
+   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 18px rgba(0, 0, 0, 0.28);
+   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease;
+  }
+
+  .quetes-tab:hover,
+  .quetes-tab:focus-visible {
+   outline: none;
+   transform: translateY(-1px);
+   border-color: rgba(232, 201, 122, 0.72);
+   background:
+    linear-gradient(180deg, rgba(24, 25, 34, 0.96), rgba(9, 10, 16, 0.96));
+   color: #e8c97a;
+  }
+
+  .quetes-tab.active {
+   border-color: rgba(232, 201, 122, 0.86);
+   background:
+    linear-gradient(180deg, rgba(31, 29, 20, 0.96), rgba(10, 10, 14, 0.98));
+   color: #f6df92;
+   box-shadow:
+    inset 0 1px 0 rgba(255, 239, 174, 0.12),
+    0 0 0 2px rgba(201, 168, 76, 0.1),
+    0 10px 22px rgba(0, 0, 0, 0.34);
+  }
+
+  .quetes-main {
+   width: min(1040px, 100%);
+   min-width: 0;
+   min-height: 0;
+   display: grid;
+   grid-template-rows: auto minmax(0, 1fr) auto;
+   gap: 10px;
+   padding-top: 0;
+  }
+
+  .quetes-filterbar {
+   width: min(1040px, 100%);
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   gap: clamp(26px, 4vw, 56px);
+   margin-bottom: 12px;
+  }
+
+  .quetes-head {
+   display: flex;
+   justify-content: flex-end;
+   align-items: end;
+   gap: 16px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.28);
+   padding-bottom: 8px;
+  }
+
+  .quetes-head h2 {
+   display: none;
+  }
+
+  .quetes-head p {
+   margin: 6px 0 0;
+   color: rgba(243, 239, 228, 0.74);
+   font-weight: 700;
+  }
+
+  .quetes-reset {
+   min-height: 36px;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   white-space: nowrap;
+   border-radius: 999px;
+   border: 1px solid rgba(201, 168, 76, 0.36);
+   background: rgba(8, 13, 27, 0.72);
+   color: #e8c97a;
+   padding: 0 12px;
+   font-size: 0.92rem;
+   font-weight: 800;
+  }
+
+  .quetes-list {
+   min-height: 0;
+   overflow: visible;
+   display: grid;
+   grid-auto-rows: min-content;
+   gap: 10px;
+   padding-right: 0;
+   scrollbar-width: none;
+  }
+
+  .quetes-list::-webkit-scrollbar {
+   display: none;
+  }
+
+  .quete-row {
+   display: grid;
+   grid-template-columns: minmax(0, 1fr) auto;
+   gap: 10px;
+   border: 1px solid rgba(201, 168, 76, 0.28);
+   border-radius: 8px;
+   background: linear-gradient(180deg, rgba(12, 16, 30, 0.88), rgba(7, 9, 18, 0.9));
+   color: var(--quest-ink);
+   padding: 9px 10px;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 30px rgba(0, 0, 0, 0.24);
+  }
+
+  .quete-row.done {
+   border-color: rgba(232, 201, 122, 0.68);
+   background: linear-gradient(180deg, rgba(20, 20, 24, 0.9), rgba(9, 9, 14, 0.92));
+  }
+
+  .quete-row.claimed {
+   opacity: 0.72;
+  }
+
+  .quete-copy {
+   min-width: 0;
+   display: grid;
+   gap: 6px;
+  }
+
+  .quete-top {
+   display: flex;
+   justify-content: space-between;
+   align-items: baseline;
+   gap: 12px;
+  }
+
+  .quete-top strong {
+   color: #f8f1df;
+   font-size: clamp(0.96rem, 1.22vw, 1.22rem);
+   font-weight: 800;
+  }
+
+  .quete-top span {
+   color: #e8c97a;
+   font-size: 0.96rem;
+   font-weight: 800;
+   white-space: nowrap;
+  }
+
+  .quete-progress {
+   height: 9px;
+   border-radius: 999px;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   background: rgba(3, 5, 12, 0.62);
+   overflow: hidden;
+  }
+
+  .quete-progress span {
+   display: block;
+   height: 100%;
+   width: 0%;
+   border-radius: inherit;
+   background: linear-gradient(90deg, #8a7233, #e8c97a);
+   box-shadow: 0 0 14px rgba(201, 168, 76, 0.32);
+  }
+
+  .quete-copy small {
+   color: rgba(243, 239, 228, 0.72);
+   font-size: 0.84rem;
+   font-weight: 600;
+  }
+
+  .quete-side {
+   display: flex;
+   align-items: stretch;
+   justify-content: end;
+   gap: 10px;
+  }
+
+  .quete-rewards {
+   display: flex;
+   gap: 8px;
+   max-width: min(42vw, 430px);
+   overflow-x: auto;
+   scrollbar-width: none;
+  }
+
+  .quete-rewards::-webkit-scrollbar {
+   display: none;
+  }
+
+  .quete-reward {
+   flex: 0 0 72px;
+   min-height: 56px;
+   border-radius: 7px;
+   border: 1px solid rgba(201, 168, 76, 0.36);
+   background: linear-gradient(180deg, rgba(8, 13, 27, 0.88), rgba(5, 7, 13, 0.92));
+   color: #e8c97a;
+   display: grid;
+   place-items: center;
+   align-content: center;
+   gap: 3px;
+   padding: 6px;
+   text-align: center;
+   font-size: 0.64rem;
+   font-weight: 800;
+  }
+
+  .quete-reward img {
+   width: 24px;
+   height: 24px;
+   object-fit: contain;
+  }
+
+  .quete-action {
+   min-width: 140px;
+   border-radius: 8px;
+   border: 1px solid rgba(201, 168, 76, 0.36);
+   padding: 0 14px;
+   color: #f3efe4;
+   background: linear-gradient(180deg, rgba(18, 20, 29, 0.94), rgba(7, 8, 13, 0.96));
+   font-size: 0.92rem;
+   font-weight: 800;
+   cursor: pointer;
+  }
+
+  .quete-action.claim {
+   border-color: rgba(232, 201, 122, 0.78);
+   background: linear-gradient(180deg, rgba(31, 29, 20, 0.98), rgba(10, 10, 14, 0.98));
+   color: #f6df92;
+  }
+
+  .quete-action:disabled,
+  .quete-claimed {
+   min-width: 140px;
+   border-radius: 8px;
+   border: 1px solid rgba(201, 168, 76, 0.22);
+   background: rgba(8, 13, 27, 0.58);
+   color: rgba(243, 239, 228, 0.62);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   font-weight: 800;
+   cursor: default;
+  }
+
+  .quetes-footer {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 10px;
+  }
+
+  .quetes-toast {
+   min-height: 28px;
+   margin-right: auto;
+   color: #e7f1ff;
+   font-weight: 700;
+  }
+
+  .quetes-claim-all {
+   position: fixed;
+   right: clamp(18px, 3vw, 42px);
+   bottom: clamp(14px, 2.4vw, 30px);
+   z-index: 4;
+   width: min(220px, calc(100vw - 36px));
+   min-height: 48px;
+   border-radius: 6px;
+   border: 1px solid rgba(232, 201, 122, 0.74);
+   background:
+    linear-gradient(180deg, rgba(18, 20, 29, 0.96), rgba(7, 8, 13, 0.98));
+   color: #f6df92;
+   padding: 0 16px 0 22px;
+   font-family: "Cinzel", serif;
+   font-size: 0.82rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   cursor: pointer;
+   box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 22px rgba(0, 0, 0, 0.32);
+   transition: transform 0.14s ease, background 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+  }
+
+  .quetes-claim-all:hover:not(:disabled),
+  .quetes-claim-all:focus-visible:not(:disabled) {
+   outline: none;
+   transform: translateY(-1px);
+   border-color: rgba(246, 223, 146, 0.92);
+   background:
+    linear-gradient(180deg, rgba(31, 29, 20, 0.98), rgba(10, 10, 14, 0.98));
+   box-shadow:
+    inset 0 1px 0 rgba(255, 239, 174, 0.12),
+    0 15px 28px rgba(0, 0, 0, 0.38);
+  }
+
+  .quetes-claim-all:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+   filter: grayscale(0.2);
+  }
+
+  body.quetes-reward-open {
+   overflow: hidden;
+  }
+
+  .quetes-reward-overlay {
+   position: fixed;
+   inset: 0;
+   z-index: 9999;
+   display: grid;
+   place-items: center;
+   padding: 24px;
+   opacity: 0;
+   pointer-events: none;
+   transition: opacity 0.28s ease;
+  }
+
+  body.quetes-page > .quetes-reward-overlay {
+   position: fixed;
+   z-index: 9999;
+  }
+
+  .quetes-reward-overlay.show {
+   opacity: 1;
+   pointer-events: auto;
+  }
+
+  .quetes-reward-overlay[hidden] {
+   display: none;
+  }
+
+  .quetes-reward-backdrop {
+   position: absolute;
+   inset: 0;
+   background:
+    radial-gradient(circle at 50% 44%, rgba(232, 201, 122, 0.16), transparent 34%),
+    rgba(0, 0, 0, 0.68);
+   backdrop-filter: blur(5px);
+  }
+
+  .quetes-reward-dialog {
+   position: relative;
+   width: min(620px, calc(100vw - 32px));
+   border: 1px solid rgba(232, 201, 122, 0.62);
+   border-radius: 8px;
+   background:
+    linear-gradient(180deg, rgba(17, 18, 24, 0.98), rgba(6, 7, 12, 0.98));
+   color: #f3efe4;
+   padding: 22px;
+   box-shadow:
+    0 26px 80px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 239, 174, 0.12);
+   overflow: hidden;
+   transform: translateY(14px) scale(0.97);
+   transition: transform 0.34s cubic-bezier(0.2, 0.9, 0.22, 1.18);
+  }
+
+  .quetes-reward-overlay.show .quetes-reward-dialog {
+   animation: quetes-reward-dialog-pop 0.54s cubic-bezier(0.2, 0.9, 0.22, 1.18);
+   transform: translateY(0) scale(1);
+  }
+
+  .quetes-reward-dialog > * {
+   position: relative;
+   z-index: 1;
+  }
+
+  .quetes-reward-head {
+   display: flex;
+   justify-content: space-between;
+   align-items: start;
+   gap: 16px;
+   border-bottom: 1px solid rgba(201, 168, 76, 0.28);
+   padding-bottom: 14px;
+  }
+
+  .quetes-reward-kicker {
+   margin: 0 0 6px;
+   color: #e8c97a;
+   font-family: "Cinzel", serif;
+   font-size: 0.78rem;
+   font-weight: 800;
+   letter-spacing: 0.1em;
+   text-transform: uppercase;
+  }
+
+  .quetes-reward-title {
+   margin: 0;
+   color: #ffe479;
+   font-family: "Cinzel", serif;
+   font-size: clamp(1.7rem, 4vw, 2.75rem);
+   line-height: 1;
+   text-transform: uppercase;
+   text-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  .quetes-reward-close {
+   width: 38px;
+   height: 38px;
+   border-radius: 4px;
+   border: 1px solid rgba(232, 201, 122, 0.48);
+   background: rgba(8, 9, 14, 0.86);
+   color: #f6df92;
+   font-size: 1.35rem;
+   line-height: 1;
+   cursor: pointer;
+  }
+
+  .quetes-reward-grid {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+   gap: 10px;
+   margin-top: 18px;
+  }
+
+  .quetes-reward-card {
+   min-height: 132px;
+   border-radius: 8px;
+   border: 1px solid rgba(201, 168, 76, 0.42);
+   background: linear-gradient(180deg, rgba(9, 12, 22, 0.94), rgba(4, 5, 10, 0.96));
+   display: grid;
+   place-items: center;
+   align-content: center;
+   gap: 9px;
+   padding: 14px 10px;
+   text-align: center;
+   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 34px rgba(0, 0, 0, 0.28);
+   opacity: 0;
+   transform: translateY(18px) scale(0.92);
+  }
+
+  .quetes-reward-overlay.show .quetes-reward-card {
+   animation: quetes-reward-card-in 0.5s cubic-bezier(0.2, 0.9, 0.22, 1.18) forwards;
+   animation-delay: var(--reward-delay, 0ms);
+  }
+
+  .quetes-reward-card img {
+   width: 44px;
+   height: 44px;
+   object-fit: contain;
+   filter: drop-shadow(0 7px 14px rgba(0, 0, 0, 0.46));
+  }
+
+  .quetes-reward-amount {
+   color: #ffe479;
+   font-size: 1.38rem;
+   font-weight: 900;
+   line-height: 1;
+  }
+
+  .quetes-reward-label {
+   color: rgba(243, 239, 228, 0.76);
+   font-size: 0.74rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+  }
+
+  .quetes-reward-foot {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   gap: 14px;
+   margin-top: 18px;
+  }
+
+  .quetes-reward-summary {
+   margin: 0;
+   color: rgba(243, 239, 228, 0.76);
+   font-weight: 700;
+  }
+
+  .quetes-reward-main {
+   min-width: 148px;
+   min-height: 44px;
+   border-radius: 6px;
+   border: 1px solid rgba(232, 201, 122, 0.74);
+   background: linear-gradient(180deg, rgba(31, 29, 20, 0.98), rgba(10, 10, 14, 0.98));
+   color: #f6df92;
+   font-family: "Cinzel", serif;
+   font-size: 0.8rem;
+   font-weight: 800;
+   letter-spacing: 0.08em;
+   text-transform: uppercase;
+   cursor: pointer;
+  }
+
+  @keyframes quetes-reward-card-in {
+   0% { opacity: 0; transform: translateY(18px) scale(0.92) rotate(-1deg); }
+   70% { opacity: 1; transform: translateY(-4px) scale(1.04) rotate(0.5deg); }
+   100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+  }
+
+  @keyframes quetes-reward-dialog-pop {
+   0% { transform: translateY(24px) scale(0.88); filter: brightness(0.72); }
+   58% { transform: translateY(-7px) scale(1.04); filter: brightness(1.2); }
+   100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  }
+
+  .quetes-empty {
+   margin: 0;
+   border: 1px solid rgba(201, 168, 76, 0.28);
+   border-radius: 8px;
+   background: rgba(8, 13, 27, 0.78);
+   color: #f3efe4;
+   padding: 22px;
+   font-weight: 700;
+  }
+
+  @media (max-width: 860px) {
+   .quetes-shell {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 74px);
+    min-height: 0;
+    padding: 122px 16px 88px;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+   }
+
+   .quetes-board,
+   .quetes-main {
+    padding-top: 0;
+   }
+
+   .quetes-board {
+    align-content: start;
+    gap: 8px;
+   }
+
+   .quetes-menu {
+    grid-template-columns: 1fr 1fr;
+    width: min(344px, 100%);
+    padding-left: 0;
+   }
+
+   .quetes-tabs {
+    grid-template-columns: 1fr 1fr;
+    width: min(344px, 100%);
+    padding-left: 0;
+   }
+
+   .quetes-scope,
+   .quetes-tab {
+    width: 100%;
+   }
+
+   .quetes-filterbar {
+    flex-wrap: wrap;
+    column-gap: 18px;
+    row-gap: 8px;
+    margin-bottom: 8px;
+   }
+
+   .quetes-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+   }
+
+   .quetes-footer {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
+   }
+
+   .quetes-toast {
+    width: 100%;
+    margin-right: 0;
+   }
+
+   .quetes-claim-all {
+    right: 16px;
+    bottom: 14px;
+    width: min(208px, calc(100vw - 32px));
+   }
+
+   .quetes-reward-dialog {
+    padding: 18px;
+   }
+
+   .quetes-reward-foot {
+    align-items: stretch;
+    flex-direction: column;
+   }
+
+   .quete-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+   }
+
+   .quete-side {
+    justify-content: stretch;
+   }
+
+   .quete-rewards {
+    max-width: none;
+    flex: 1 1 auto;
+   }
+
+   .quete-action,
+   .quete-action:disabled,
+   .quete-claimed {
+    min-width: 124px;
+   }
+  }
+ </style>
+</head>
+<body class="quetes-page">
+ <header class="site-header">
+  <div class="site-topbar">
+   <a class="brand" href="/" aria-label="Krosmoz Card">
+    <img src="/assets/ui/logo-carte.png" alt="">
+    <span>Krosmoz Card</span>
+   </a>
+
+   <nav class="top-nav" aria-label="Navigation principale">
+    <a class="nav-link" href="/">Accueil</a>
+    <a class="nav-link" href="/pages/classement.html">Classement</a>
+    <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+    <a class="nav-link" href="/sets">Sets</a>
+   </nav>
+
+   <div class="header-actions" aria-label="Liens rapides">
+    <a class="header-action header-action-login" href="/auth/discord?returnTo=%2Fquetes">Connexion</a>
+   </div>
+  </div>
+ </header>
+
+ <main class="quetes-shell">
+  <aside class="quetes-board">
+   <h1 class="quetes-title">Quêtes</h1>
+   <div id="quetesStatus" class="quetes-status">Synchronisation...</div>
+  </aside>
+
+  <div class="quetes-filterbar" aria-label="Filtres des quêtes">
+   <div id="quetesMenu" class="quetes-menu" aria-label="Catégories de quêtes"></div>
+   <div class="quetes-tabs" aria-label="Type de quêtes">
+    <button id="quetesDailyTab" class="quetes-tab active" type="button" data-type="daily">Quotidien</button>
+    <button id="quetesWeeklyTab" class="quetes-tab" type="button" data-type="weekly">Hebdomadaire</button>
+   </div>
+  </div>
+
+  <section class="quetes-main" aria-live="polite">
+   <header class="quetes-head">
+    <div>
+     <h2 id="quetesPanelTitle">Quêtes</h2>
+     <p id="quetesPanelMeta">Objectifs à compléter</p>
+    </div>
+    <span id="quetesReset" class="quetes-reset">Temps restant --</span>
+   </header>
+
+   <div id="quetesList" class="quetes-list"></div>
+
+   <footer class="quetes-footer">
+    <div id="quetesToast" class="quetes-toast"></div>
+    <button id="quetesClaimAll" class="quetes-claim-all" type="button" disabled>Tout récupérer</button>
+   </footer>
+ </section>
+ </main>
+
+ <aside id="quetesRewardOverlay" class="quetes-reward-overlay" aria-hidden="true" hidden>
+  <div class="quetes-reward-backdrop" data-close-reward></div>
+  <section class="quetes-reward-dialog" role="dialog" aria-modal="true" aria-labelledby="quetesRewardTitle">
+   <header class="quetes-reward-head">
+    <div>
+     <p id="quetesRewardKicker" class="quetes-reward-kicker">Récompenses récupérées</p>
+     <h2 id="quetesRewardTitle" class="quetes-reward-title">Quêtes validées</h2>
+    </div>
+    <button class="quetes-reward-close" type="button" data-close-reward aria-label="Fermer">×</button>
+   </header>
+   <div id="quetesRewardGrid" class="quetes-reward-grid"></div>
+   <footer class="quetes-reward-foot">
+    <p id="quetesRewardSummary" class="quetes-reward-summary"></p>
+    <button class="quetes-reward-main" type="button" data-close-reward>Continuer</button>
+   </footer>
+  </section>
+ </aside>
+
+ <script>
+  const state = {
+   data: null,
+   scope: "player",
+   type: "daily",
+   busy: false
+  }
+
+  const ICONS = {
+   player: "/assets/ui/icones%20missions/missions-menu.png",
+   guild: "/assets/ui/icones%20missions/missions-guilde-menu.png",
+   kamas: "/assets/ui/gain%20kamas%20level%20up.png",
+   xp: "/assets/ui/gain%20badge%20exp%20guilde.png",
+   packs: "/assets/ui/gain%20packs%20level%20up.png",
+   fragments: "/assets/ui/gain%20fragments%20level%20up.png",
+   bpXp: "/assets/ui/gain%20badge%20level%20bp.png",
+   guildXp: "/assets/ui/icones%20missions/icone%20r%C3%A9compense.png"
+  }
+
+  const el = {
+   status: document.getElementById("quetesStatus"),
+   menu: document.getElementById("quetesMenu"),
+   dailyTab: document.getElementById("quetesDailyTab"),
+   weeklyTab: document.getElementById("quetesWeeklyTab"),
+   title: document.getElementById("quetesPanelTitle"),
+   meta: document.getElementById("quetesPanelMeta"),
+   reset: document.getElementById("quetesReset"),
+   list: document.getElementById("quetesList"),
+   toast: document.getElementById("quetesToast"),
+   claimAll: document.getElementById("quetesClaimAll"),
+   rewardOverlay: document.getElementById("quetesRewardOverlay"),
+   rewardKicker: document.getElementById("quetesRewardKicker"),
+   rewardTitle: document.getElementById("quetesRewardTitle"),
+   rewardGrid: document.getElementById("quetesRewardGrid"),
+   rewardSummary: document.getElementById("quetesRewardSummary")
+  }
+
+  function esc(value) {
+   return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+  }
+
+  function fmt(value) {
+   return Number(value || 0).toLocaleString("fr-FR")
+  }
+
+  function getSource(scope = state.scope) {
+   return scope === "guild" ? state.data?.guild : state.data?.player
+  }
+
+  function getGroup(scope = state.scope, type = state.type) {
+   const source = getSource(scope)
+   return source?.[type] || { summary: {}, quests: [], resetIn: "-" }
+  }
+
+  function claimableTotal(scope) {
+   const source = getSource(scope)
+   return Number(source?.daily?.summary?.claimable || 0) + Number(source?.weekly?.summary?.claimable || 0)
+  }
+
+  function rewardRows(reward = {}, scope = state.scope) {
+   const rows = []
+   const push = (key, label, amount) => {
+    const safeAmount = Number(amount || 0)
+    if (safeAmount > 0) rows.push({ key, label, amount: safeAmount })
+   }
+   if (scope === "guild") {
+    push("guildXp", "XP guilde", reward.guildXp)
+    return rows
+   }
+   push("kamas", "Kamas", reward.kamas)
+   push("xp", "XP", reward.xp)
+   push("packs", "Packs", reward.packs)
+   push("fragments", "Fragments", reward.fragments)
+   push("bpXp", "XP BP", reward.bpXp)
+   return rows
+  }
+
+  function setToast(message = "") {
+   el.toast.textContent = message
+  }
+
+  function closeRewardPopup() {
+   if (!el.rewardOverlay) return
+   el.rewardOverlay.classList.remove("show")
+   el.rewardOverlay.setAttribute("aria-hidden", "true")
+   document.body.classList.remove("quetes-reward-open")
+   window.setTimeout(() => {
+    if (!el.rewardOverlay.classList.contains("show")) el.rewardOverlay.hidden = true
+   }, 220)
+  }
+
+  function openRewardPopup(items = [], options = {}) {
+   if (!el.rewardOverlay || !el.rewardGrid) return
+   const safeItems = items.filter((item) => Number(item.amount || 0) > 0)
+   if (!safeItems.length) return
+   el.rewardKicker.textContent = options.kicker || "Récompenses récupérées"
+   el.rewardTitle.textContent = options.title || "Quêtes validées"
+   el.rewardSummary.textContent = options.summary || ""
+   el.rewardGrid.innerHTML = safeItems.map((item, index) => `
+    <article class="quetes-reward-card" style="--reward-delay:${index * 90}ms">
+     <img src="${esc(item.icon || ICONS.kamas)}" alt="">
+     <strong class="quetes-reward-amount">+${fmt(item.amount)}</strong>
+     <span class="quetes-reward-label">${esc(item.label)}</span>
+    </article>
+   `).join("")
+   el.rewardOverlay.hidden = false
+   el.rewardOverlay.setAttribute("aria-hidden", "false")
+   document.body.classList.add("quetes-reward-open")
+   requestAnimationFrame(() => {
+    el.rewardOverlay.classList.add("show")
+   })
+  }
+
+  function buildClaimRewardItems(result = {}, scope = state.scope) {
+   const items = []
+   const push = (key, label, amount) => {
+    const safeAmount = Number(amount || 0)
+    if (safeAmount > 0) items.push({ key, label, amount: safeAmount, icon: ICONS[key] || ICONS.kamas })
+   }
+   if (scope === "guild") {
+    push("guildXp", "XP guilde", result.totalXP)
+    return items
+   }
+   push("kamas", "Kamas", result.totalKamas)
+   push("xp", "XP", result.totalXp)
+   push("packs", "Packs", result.totalPacks)
+   push("fragments", "Fragments", result.totalFragments)
+   push("bpXp", "XP BP", result.totalBpXp)
+   return items
+  }
+
+  function renderMenu() {
+   const hasGuild = Boolean(state.data?.guild)
+   el.menu.innerHTML = ["player", "guild"].map((scope) => {
+    const disabled = scope === "guild" && !hasGuild
+    const total = disabled ? 0 : claimableTotal(scope)
+    const label = scope === "guild" ? "Guilde" : "Solo"
+    return `
+     <button class="quetes-scope ${state.scope === scope ? "active" : ""}" type="button" data-scope="${scope}" ${disabled ? "disabled" : ""}>
+      ${esc(label)}
+      ${total > 0 ? `<span class="quetes-alert">${fmt(total)}</span>` : ""}
+     </button>
+    `
+   }).join("")
+  }
+
+  function renderRows() {
+   const group = getGroup()
+   const quests = Array.isArray(group.quests) ? group.quests : []
+   const canClaim = state.scope === "guild"
+    ? Boolean(state.data?.connected && state.data?.guild?.canClaim)
+    : Boolean(state.data?.connected)
+
+   el.title.textContent = state.scope === "guild" ? "Quêtes de guilde" : "Quêtes"
+   el.meta.textContent = `${state.type === "weekly" ? "Hebdomadaires" : "Quotidiennes"} - ${fmt(group?.summary?.done || 0)}/${fmt(group?.summary?.total || quests.length)} terminées`
+   el.reset.textContent = `Temps restant ${String(group?.resetIn || "-")}`
+
+   const claimable = Number(group?.summary?.claimable || 0)
+   el.claimAll.disabled = state.busy || !canClaim || claimable <= 0
+   el.claimAll.textContent = `Tout récupérer (${fmt(claimable)})`
+
+   if (!quests.length) {
+    el.list.innerHTML = '<p class="quetes-empty">Aucune quête disponible.</p>'
+    return
+   }
+
+   el.list.innerHTML = quests.map((quest) => {
+    const goal = Math.max(1, Number(quest?.goal || 1))
+    const current = Math.max(0, Math.min(goal, Number(quest?.current || 0)))
+    const pct = Math.max(0, Math.min(100, Math.round((current / goal) * 100)))
+    const done = Boolean(quest?.done)
+    const claimed = Boolean(quest?.claimed)
+    const claimableQuest = Boolean(quest?.claimable) && canClaim
+    const rewards = rewardRows(quest?.reward || {}, state.scope)
+    let action = '<button class="quete-action" type="button" disabled>En cours</button>'
+    if (claimed) {
+     action = '<span class="quete-claimed">Récupéré</span>'
+    } else if (claimableQuest) {
+     action = `<button class="quete-action claim" type="button" data-claim-one="${esc(quest.id)}">Récupérer</button>`
+    } else if (done && !canClaim) {
+     action = `<span class="quete-claimed">${state.scope === "guild" ? "Officier requis" : "Connexion requise"}</span>`
+    }
+
+    return `
+     <article class="quete-row ${done ? "done" : ""} ${claimed ? "claimed" : ""}">
+      <div class="quete-copy">
+       <div class="quete-top">
+        <strong>${esc(quest?.name || "Quête")}</strong>
+        <span>${fmt(current)}/${fmt(goal)}</span>
+       </div>
+       <div class="quete-progress"><span style="width:${pct}%"></span></div>
+       <small>${esc(quest?.desc || "")}</small>
+      </div>
+      <div class="quete-side">
+       <div class="quete-rewards">
+        ${rewards.length ? rewards.map((reward) => `
+         <span class="quete-reward">
+          <img src="${ICONS[reward.key] || ICONS.guildXp}" alt="">
+          <span>+${fmt(reward.amount)}<br>${esc(reward.label)}</span>
+         </span>
+        `).join("") : '<span class="quete-reward">Récompense</span>'}
+       </div>
+       ${action}
+      </div>
+     </article>
+    `
+   }).join("")
+  }
+
+  function render() {
+   if (!state.data) return
+   if (state.scope === "guild" && !state.data.guild) state.scope = "player"
+   el.status.textContent = state.data.connected ? "" : "Aperçu hors connexion"
+   el.dailyTab.classList.toggle("active", state.type === "daily")
+   el.weeklyTab.classList.toggle("active", state.type === "weekly")
+   renderMenu()
+   renderRows()
+  }
+
+  async function loadState(forceToast = false) {
+   const response = await fetch("/api/quests/state", { credentials: "same-origin" })
+   const payload = await response.json().catch(() => null)
+   if (!response.ok || !payload) throw new Error(payload?.error || "Chargement impossible.")
+   state.data = payload
+   if (forceToast) setToast("Quêtes synchronisées.")
+   render()
+  }
+
+  async function claim(questId = "") {
+   if (state.busy) return
+   state.busy = true
+   setToast("Récupération en cours...")
+   render()
+   try {
+    const response = await fetch("/api/quests/claim", {
+     method: "POST",
+     credentials: "same-origin",
+     headers: { "Content-Type": "application/json" },
+     body: JSON.stringify({ scope: state.scope, type: state.type, questId })
+    })
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || !payload?.ok) throw new Error(payload?.error || "Récupération impossible.")
+    const result = payload.result || {}
+    const gained = []
+    if (Number(result.totalKamas || 0) > 0) gained.push(`+${fmt(result.totalKamas)} kamas`)
+    if (Number(result.totalXp || 0) > 0) gained.push(`+${fmt(result.totalXp)} XP`)
+    if (Number(result.totalPacks || 0) > 0) gained.push(`+${fmt(result.totalPacks)} packs`)
+    if (Number(result.totalFragments || 0) > 0) gained.push(`+${fmt(result.totalFragments)} fragments`)
+    if (Number(result.totalBpXp || 0) > 0) gained.push(`+${fmt(result.totalBpXp)} XP BP`)
+    if (Number(result.totalXP || 0) > 0) gained.push(`+${fmt(result.totalXP)} XP guilde`)
+    setToast(gained.length ? gained.join(" - ") : "Récompense récupérée.")
+    const claimedCount = Number(result.claimedCount || result.claimed || 1)
+    openRewardPopup(buildClaimRewardItems(result, state.scope), {
+     title: claimedCount > 1 ? "Quêtes validées" : "Quête validée",
+     summary: `${fmt(claimedCount)} quête${claimedCount > 1 ? "s" : ""} validée${claimedCount > 1 ? "s" : ""}.`
+    })
+    state.data = payload.state
+   } catch (error) {
+    setToast(String(error?.message || "Récupération impossible."))
+   } finally {
+    state.busy = false
+    render()
+   }
+  }
+
+  el.menu.addEventListener("click", (event) => {
+   const button = event.target.closest("[data-scope]")
+   if (!button || button.disabled) return
+   state.scope = button.dataset.scope === "guild" ? "guild" : "player"
+   setToast("")
+   render()
+  })
+
+  document.querySelectorAll("[data-type]").forEach((button) => {
+   button.addEventListener("click", () => {
+    state.type = button.dataset.type === "weekly" ? "weekly" : "daily"
+    setToast("")
+    render()
+   })
+  })
+
+  el.list.addEventListener("click", (event) => {
+   const button = event.target.closest("[data-claim-one]")
+   if (!button) return
+   claim(String(button.dataset.claimOne || "")).catch(() => {})
+  })
+
+  el.claimAll.addEventListener("click", () => {
+   claim("").catch(() => {})
+  })
+
+  if (el.rewardOverlay) {
+   el.rewardOverlay.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-reward]")) closeRewardPopup()
+   })
+  }
+
+  document.addEventListener("keydown", (event) => {
+   if (event.key === "Escape" && el.rewardOverlay && !el.rewardOverlay.hidden) closeRewardPopup()
+  })
+
+  loadState().catch((error) => {
+   el.status.textContent = "Erreur"
+   el.list.innerHTML = `<p class="quetes-empty">${esc(error?.message || "Impossible de charger les quêtes.")}</p>`
+  })
+ </script>
+</body>
+</html>

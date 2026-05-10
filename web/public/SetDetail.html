@@ -31,7 +31,7 @@
         background-position: center;
         background-size: cover;
         background-repeat: no-repeat;
-        opacity: 0.28;
+        opacity: 0.3;
       }
 
       body.set-detail-page > .completion-main {
@@ -41,7 +41,93 @@
 
       body.set-detail-page > .site-header {
         position: sticky;
-        z-index: 10;
+        z-index: 20000;
+      }
+
+      .completion-set-switcher {
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 0.55rem;
+        margin: 1.4rem 0 1rem;
+        max-width: 980px;
+      }
+
+      .completion-set-switcher[hidden] {
+        display: none;
+      }
+
+      .completion-set-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        min-height: 36px;
+        min-width: 0;
+        padding: 0.42rem 0.58rem;
+        border: 1px solid rgba(201, 168, 76, 0.26);
+        border-radius: 0;
+        background: rgba(10, 12, 22, 0.7);
+        color: #f8f1df;
+        font-family: "Jost", sans-serif;
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+      }
+
+      .completion-set-link span:last-child {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+      }
+
+      .completion-set-link span:first-child {
+        font-size: 0.9rem;
+        line-height: 1;
+      }
+
+      .completion-set-link:hover,
+      .completion-set-link:focus-visible {
+        border-color: rgba(225, 195, 91, 0.74);
+        background: rgba(201, 168, 76, 0.16);
+        color: #ffe68b;
+        outline: none;
+        transform: translateY(-1px);
+      }
+
+      .completion-set-link.is-active {
+        border-color: rgba(255, 225, 125, 0.86);
+        background: linear-gradient(180deg, rgba(201, 168, 76, 0.35), rgba(125, 89, 24, 0.34));
+        color: #ffe68b;
+        box-shadow: 0 0 0 1px rgba(255, 225, 125, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        pointer-events: none;
+      }
+
+      @media (max-width: 1180px) {
+        .completion-set-switcher {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 720px) {
+        .completion-set-switcher {
+          display: flex;
+          overflow-x: auto;
+          padding-bottom: 0.35rem;
+          scrollbar-width: none;
+        }
+
+        .completion-set-switcher::-webkit-scrollbar {
+          display: none;
+        }
+
+        .completion-set-link {
+          flex: 0 0 auto;
+        }
       }
     </style>
   </head>
@@ -75,6 +161,7 @@
         <p id="completion-description" class="completion-description">
           Recuperation des cartes du set.
         </p>
+        <nav id="setSwitchNav" class="completion-set-switcher" aria-label="Changer de set" hidden></nav>
         <div class="completion-summary">
           <span id="completion-total">0 cartes</span>
           <div id="rarityFilters" class="completion-rarity-filters" aria-label="Filtres de rareté"></div>
@@ -263,6 +350,106 @@
         syncRarityFilters()
       }
 
+      function getSetAlias(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9-]/g, "")
+          .replace(/-lvl-\d+-\d+$/, "")
+      }
+
+      const SET_BACKGROUND_BY_ALIAS = {
+        amakna: "/assets/ui/fonds%20sets/amakna.webp",
+        astrub: "/assets/ui/fonds%20sets/astrub.webp",
+        brume: "/assets/ui/fonds%20sets/brume.png",
+        enutrosor: "/assets/ui/fonds%20sets/enutrosor.webp",
+        ereboria: "/assets/ui/fonds%20sets/ereboria.png",
+        katrepat: "/assets/ui/fonds%20sets/katrepat.webp",
+        kelba: "/assets/ui/fonds%20sets/kelba.webp",
+        moon: "/assets/ui/fonds%20sets/moon.webp",
+        osamosa: "/assets/ui/fonds%20sets/osamosa.png",
+        saharach: "/assets/ui/fonds%20sets/saharach.png",
+        sberg: "/assets/ui/fonds%20sets/sberg.webp",
+        shukrute: "/assets/ui/fonds%20sets/shukrute.webp",
+        sufokia: "/assets/ui/fonds%20sets/sufokia.webp",
+        xelorium: "/assets/ui/fonds%20sets/xelorium.png",
+        zinit: "/assets/ui/fonds%20sets/zinit.png"
+      }
+
+      function getSetBackgroundImage(setId) {
+        const customBackground = SET_BACKGROUND_BY_ALIAS[getSetAlias(setId)]
+        if (customBackground) return customBackground
+        return `/assets/sets/${encodeURIComponent(setId)}.png`
+      }
+
+      const SET_EMOJI_BY_ALIAS = {
+        astrub: "\uD83C\uDFDB\uFE0F",
+        amakna: "\uD83C\uDF3E",
+        sufokia: "\uD83C\uDF0A",
+        kelba: "\uD83C\uDFAA",
+        katrepat: "\uD83E\uDD87",
+        sberg: "\u2744\uFE0F",
+        shukrute: "\uD83D\uDE08",
+        saharach: "\uD83C\uDFDC\uFE0F",
+        enutrosor: "\uD83D\uDC8E",
+        xelorium: "\u23F3",
+        moon: "\uD83C\uDF19",
+        zinit: "\u26F0\uFE0F",
+        osamosa: "\uD83D\uDC09",
+        ereboria: "\uD83C\uDF0B",
+        brume: "\uD83E\uDD96"
+      }
+
+      function getSetEmoji(set) {
+        return SET_EMOJI_BY_ALIAS[getSetAlias(set?.id || set?.name)] || "\u2726"
+      }
+
+      function getSetShortName(set) {
+        const alias = getSetAlias(set?.id || set?.name)
+        if (alias) return alias.charAt(0).toUpperCase() + alias.slice(1)
+        return String(set?.name || set?.id || "Set").replace(/\s*\([^)]*\)\s*/g, "").trim()
+      }
+
+      async function fetchSetSwitchItems() {
+        try {
+          const response = await fetch("/api/completion/sets", {
+            credentials: "same-origin"
+          })
+          if (!response.ok) return []
+          const payload = await response.json().catch(() => null)
+          return Array.isArray(payload?.sets) ? payload.sets : []
+        } catch (_) {
+          return []
+        }
+      }
+
+      function renderSetSwitcher(sets, currentSet) {
+        const root = document.getElementById("setSwitchNav")
+        if (!root) return
+        const currentId = String(currentSet?.id || getSetIdFromPath())
+        const currentAlias = getSetAlias(currentId)
+        const items = (Array.isArray(sets) ? sets : []).filter((set) => String(set?.id || ""))
+
+        root.hidden = items.length <= 0
+        root.innerHTML = items.map((set) => {
+          const id = String(set?.id || "")
+          const name = getSetShortName(set)
+          const isActive = id === currentId || getSetAlias(id) === currentAlias
+          return `
+            <a
+              class="completion-set-link${isActive ? " is-active" : ""}"
+              href="/sets/${encodeURIComponent(id)}"
+              ${isActive ? 'aria-current="page"' : ""}
+            >
+              <span aria-hidden="true">${escapeHtml(getSetEmoji(set))}</span>
+              <span>${escapeHtml(name)}</span>
+            </a>
+          `
+        }).join("")
+      }
+
       async function fetchOwnedCards() {
         try {
           const response = await fetch("/api/me/inventory", {
@@ -303,13 +490,14 @@
           }
 
           document.title = `${payload.name} | Sets | Krosmoz Card`
-          document.body.style.setProperty("--set-background-image", `url("/assets/sets/${encodeURIComponent(payload.id)}.png")`)
+          document.body.style.setProperty("--set-background-image", `url("${getSetBackgroundImage(payload.id)}")`)
           document.getElementById("completion-title").textContent = payload.name
           document.getElementById("completion-levels").textContent = payload.levels || "Set"
           document.getElementById("completion-description").textContent = payload.description || ""
           document.getElementById("completion-total").textContent = `${Number(payload.total || 0).toLocaleString("fr-FR")} cartes`
 
           const groups = Array.isArray(payload.rarities) ? payload.rarities : []
+          renderSetSwitcher(await fetchSetSwitchItems(), payload)
           ownedCardsById = await fetchOwnedCards()
           renderRarityFilters(groups)
           renderCompletionActions()

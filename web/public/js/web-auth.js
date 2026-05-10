@@ -2,10 +2,11 @@
  const btn = document.getElementById("globalAuthBtn") || document.querySelector(".header-action-login")
  const right = btn ? btn.parentElement : null
  const navLinks = document.getElementById("navLinks")
- const topNav = document.querySelector(".top-nav")
- const navbar = document.querySelector(".navbar")
- const heroPlayBtn = document.getElementById("heroPlayBtn")
- const EVENT_TOAST_DISMISS_STORAGE_KEY = "kc_event_toast_dismiss_until"
+const topNav = document.querySelector(".top-nav")
+const navbar = document.querySelector(".navbar")
+const heroPlayBtn = document.getElementById("heroPlayBtn")
+const indexPlayBtn = document.querySelector("body.index-page .button-play")
+const EVENT_TOAST_DISMISS_STORAGE_KEY = "kc_event_toast_dismiss_until"
  let eventToastDismissedUntil = (() => {
   try {
    const raw = Number(window.sessionStorage?.getItem(EVENT_TOAST_DISMISS_STORAGE_KEY) || 0)
@@ -559,9 +560,12 @@
 
  const localModeFromUrl = readLocalModeFromUrl()
  const localModeFromStorage = readLocalModeFromStorage()
- let localModeEnabled = localModeFromUrl !== null
-  ? Boolean(localModeFromUrl)
-  : (localModeFromStorage !== null ? Boolean(localModeFromStorage) : isLoopbackHost())
+ const shouldForceLocalMode = isLoopbackHost()
+ let localModeEnabled = shouldForceLocalMode
+  ? true
+  : (localModeFromUrl !== null
+   ? Boolean(localModeFromUrl)
+   : (localModeFromStorage !== null ? Boolean(localModeFromStorage) : false))
   writeLocalModeToStorage(localModeEnabled)
   syncLocalModeCookie(localModeEnabled)
 
@@ -652,7 +656,7 @@ function ensureEventToast() {
    toast.hidden = true
    return
   }
-  if (pagePath.startsWith("/events")) {
+  if (pagePath.startsWith("/events") || pagePath.startsWith("/packs")) {
    toast.hidden = true
    return
   }
@@ -1706,7 +1710,7 @@ function spawnRewardToast({
      toPct: 100,
      variant: "complete",
      rewardText,
-     actionHref: "/play/quests",
+      actionHref: "/quetes",
      actionLabel: "Récupérer la récompense"
     })
    }
@@ -1896,7 +1900,7 @@ window.__kcQuestToastPreview = function questToastPreview() {
    toPct: 100,
    variant: "complete",
    rewardText: "💰 +300 • ⭐ +50 XP • 🎟️ +80 XP BP",
-   actionHref: "/play/quests",
+    actionHref: "/quetes",
    actionLabel: "Récupérer la récompense"
   })
  }, 800)
@@ -1961,10 +1965,21 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
   return
  }
 
- function setAuthBodyClass(connected) {
-  if (!document || !document.body) return
-  document.body.classList.toggle("auth-connected", Boolean(connected))
- }
+function setAuthBodyClass(connected) {
+ if (!document || !document.body) return
+ document.body.classList.toggle("auth-connected", Boolean(connected))
+}
+
+function setIndexPlayButton(connected, options = {}) {
+ if (!indexPlayBtn || indexPlayBtn === heroPlayBtn) return
+ indexPlayBtn.textContent = "Jouer"
+ indexPlayBtn.href = connected
+  ? "/"
+  : `/auth/discord${options?.local ? "?local=1&returnTo=%2F" : "?returnTo=%2F"}`
+ indexPlayBtn.removeAttribute("aria-disabled")
+ indexPlayBtn.style.pointerEvents = ""
+ indexPlayBtn.style.opacity = ""
+}
 
  function setPlaySubnav(connected) {
   if (!navbar) return
@@ -1982,15 +1997,13 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    subnav.innerHTML = `
    <div class="navbar-subnav-inner">
      <ul class="navbar-subnav-links">
-      <li><a href="/play/inventory" data-play-mode="inventory">Inventaire</a></li>
+      <li><a href="/inventaire" data-play-mode="inventory">Inventaire</a></li>
       <li><a href="/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
       <li><a href="/play/fabrication" data-play-mode="craft">Fabrication</a></li>
-      <li><a href="/play/quests" data-play-mode="quests">Quêtes</a></li>
+      <li><a href="/shop">Shop</a></li>
       <li><a href="/events">Events</a></li>
       <li><a href="/battlepass">Battlepass</a></li>
-      <li><a href="/krosmoshop">KrosmoShop</a></li>
-      <li><a href="/market">Marché</a></li>
       <li><a href="/guild">Guildes</a></li>
       <li><a href="/achievements">Achievements</a></li>
       <li><a href="/profile/">Profil</a></li>
@@ -2029,71 +2042,174 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  }
 
  function setProfileLink(userId) {
-  const legacyProfileEl = right?.querySelector("#globalProfileBtn")
-  if (legacyProfileEl) legacyProfileEl.remove()
+  const cleanupIds = [
+   "globalProfileNavLink", "globalPacksNavLink", "globalQuestsNavLink", "globalShopNavLink", "globalInventoryNavLink",
+   "globalProfileNavItem", "globalPacksNavItem", "globalQuestsNavItem", "globalShopNavItem", "globalInventoryNavItem",
+   "globalCraftNavItem", "globalProfileMenu", "globalCraftMenu", "globalShopMenu", "globalProfileBtn", "globalPacksBtn", "globalQuestsBtn",
+   "globalShopBtn", "globalInventoryBtn", "globalCraftBtn"
+  ]
+  cleanupIds.forEach((id) => document.getElementById(id)?.remove())
 
-  const profileHref = userId ? `/profile/${encodeURIComponent(String(userId))}` : ""
+  if (!userId) return
+
+  const profileHref = `/profile/${encodeURIComponent(String(userId))}`
   const currentPath = String(window.location.pathname || "")
+  const isPath = (...paths) => paths.some((path) => currentPath === path || currentPath.startsWith(`${path}/`))
+  const isProfileArea = isPath("/profile", "/achievements", "/guild", "/battlepass", "/quetes")
+  const isCraftArea = currentPath.startsWith("/play/fusion") || currentPath.startsWith("/play/fabrication") || currentPath.startsWith("/play/craft")
+  const isShopArea = isPath("/shop", "/krosmoshop", "/market")
+  const isInventoryPath = currentPath === "/inventaire" || currentPath === "/inventory" || currentPath === "/play/inventory"
+  const isPacksPath = currentPath === "/packs" || currentPath === "/packs-test" || currentPath === "/play/packs"
 
-  let topProfileEl = topNav?.querySelector("#globalProfileNavLink")
-  let profileLi = navLinks?.querySelector("#globalProfileNavItem")
+  const dropdownItems = {
+   profile: [
+    { label: "Profil", href: profileHref },
+    { label: "Quêtes", href: "/quetes" },
+    { label: "Battlepass", href: "/battlepass" },
+    { label: "Achievements", href: "/achievements" },
+    { label: "Guilde", href: "/guild" }
+   ],
+   craft: [
+    { label: "Fusion", href: "/play/fusion" },
+    { label: "Fabrication", href: "/play/fabrication" }
+   ],
+   shop: [
+    { label: "KrosmoShop", href: "/shop" },
+    { label: "Marché", href: "/shop#market" }
+   ]
+  }
 
-  if (!userId) {
-   if (topProfileEl) topProfileEl.remove()
-   if (profileLi) profileLi.remove()
-   return
+  function makeTopDropdown(id, label, href, items, active) {
+   const wrap = document.createElement("div")
+   wrap.id = id
+   wrap.className = "nav-dropdown"
+   const trigger = document.createElement("a")
+   trigger.className = "nav-link nav-dropdown-trigger"
+   trigger.href = href
+   trigger.textContent = label
+   trigger.setAttribute("aria-haspopup", "true")
+   trigger.setAttribute("aria-expanded", "false")
+   trigger.classList.toggle("is-active", active)
+   const menu = document.createElement("div")
+   menu.className = "nav-dropdown-menu"
+   items.forEach((item) => {
+    const link = document.createElement("a")
+    link.href = item.href
+    link.textContent = item.label
+    link.classList.toggle("is-active", currentPath === item.href || (item.href !== "/" && currentPath.startsWith(`${item.href}/`)))
+    menu.appendChild(link)
+   })
+   wrap.appendChild(trigger)
+   wrap.appendChild(menu)
+   return wrap
+  }
+
+  function insertAfter(anchor, node) {
+   if (anchor?.parentElement) {
+    anchor.after(node)
+   } else if (!node.parentElement) {
+    topNav.appendChild(node)
+   }
+   return node
   }
 
   if (topNav) {
-   if (!topProfileEl) {
-    topProfileEl = document.createElement("a")
-    topProfileEl.id = "globalProfileNavLink"
-    topProfileEl.className = "nav-link"
-    topProfileEl.textContent = "Profil"
-   }
-   topProfileEl.href = profileHref
-   topProfileEl.classList.toggle("is-active", currentPath.startsWith("/profile/"))
-   const setsLink = topNav.querySelector('a[href="/sets"]')
-   if (setsLink && setsLink.nextSibling !== topProfileEl) {
-    setsLink.after(topProfileEl)
-   } else if (!topProfileEl.parentElement) {
-    topNav.appendChild(topProfileEl)
-   }
+   const profileMenu = makeTopDropdown("globalProfileMenu", "Profil", profileHref, dropdownItems.profile, isProfileArea)
+   const inventoryLink = document.createElement("a")
+   inventoryLink.id = "globalInventoryNavLink"
+   inventoryLink.className = "nav-link"
+   inventoryLink.href = "/inventaire"
+   inventoryLink.textContent = "Inventaire"
+   inventoryLink.classList.toggle("is-active", isInventoryPath)
+   const packsLink = document.createElement("a")
+   packsLink.id = "globalPacksNavLink"
+   packsLink.className = "nav-link"
+   packsLink.href = "/packs"
+   packsLink.textContent = "Packs"
+   packsLink.classList.toggle("is-active", isPacksPath)
+   const craftMenu = makeTopDropdown("globalCraftMenu", "Artisanat", "/play/fusion", dropdownItems.craft, isCraftArea)
+   const shopMenu = makeTopDropdown("globalShopMenu", "Shop", "/shop", dropdownItems.shop, isShopArea)
+
+   let cursor = topNav.querySelector('a[href="/sets"]')
+   cursor = insertAfter(cursor, profileMenu)
+   cursor = insertAfter(cursor, inventoryLink)
+   cursor = insertAfter(cursor, packsLink)
+   cursor = insertAfter(cursor, craftMenu)
+   insertAfter(cursor, shopMenu)
    return
   }
 
   if (navLinks) {
-   if (!profileLi) {
-    profileLi = document.createElement("li")
-    profileLi.id = "globalProfileNavItem"
-    const link = document.createElement("a")
-    link.textContent = "Profil"
-    profileLi.appendChild(link)
+   function makeLegacyLinkItem(id, label, href, active) {
+    const li = document.createElement("li")
+    li.id = id
+    const a = document.createElement("a")
+    a.href = href
+    a.textContent = label
+    a.classList.toggle("active", active)
+    li.appendChild(a)
+    return li
    }
-   const link = profileLi.querySelector("a")
-   if (!link) return
-   link.href = profileHref
-   link.classList.toggle("active", currentPath.startsWith("/profile/"))
-   const setsLink = navLinks.querySelector('a[href="/sets"]')
-   const setsLi = setsLink?.parentElement
-   if (setsLi?.parentElement === navLinks && setsLi.nextSibling !== profileLi) {
-    navLinks.insertBefore(profileLi, setsLi.nextSibling)
-   } else if (!profileLi.parentElement) {
-    navLinks.appendChild(profileLi)
+   function makeLegacyDropdownItem(id, label, href, items, active) {
+    const li = document.createElement("li")
+    li.id = id
+    li.className = "navbar-dropdown"
+    const a = document.createElement("a")
+    a.href = href
+    a.textContent = label
+    a.className = "navbar-dropdown-trigger"
+    a.classList.toggle("active", active)
+    const menu = document.createElement("div")
+    menu.className = "navbar-dropdown-menu"
+    items.forEach((item) => {
+     const link = document.createElement("a")
+     link.href = item.href
+     link.textContent = item.label
+     link.classList.toggle("active", currentPath === item.href || (item.href !== "/" && currentPath.startsWith(`${item.href}/`)))
+     menu.appendChild(link)
+    })
+    li.appendChild(a)
+    li.appendChild(menu)
+    return li
    }
+   const entries = [
+    makeLegacyDropdownItem("globalProfileNavItem", "Profil", profileHref, dropdownItems.profile, isProfileArea),
+    makeLegacyLinkItem("globalInventoryNavItem", "Inventaire", "/inventaire", isInventoryPath),
+    makeLegacyLinkItem("globalPacksNavItem", "Packs", "/packs", isPacksPath),
+    makeLegacyDropdownItem("globalCraftNavItem", "Artisanat", "/play/fusion", dropdownItems.craft, isCraftArea),
+    makeLegacyDropdownItem("globalShopNavItem", "Shop", "/shop", dropdownItems.shop, isShopArea)
+   ]
+   const setsLi = navLinks.querySelector('a[href="/sets"]')?.parentElement
+   let cursor = setsLi || null
+   entries.forEach((li) => {
+    if (cursor?.parentElement === navLinks) {
+     navLinks.insertBefore(li, cursor.nextSibling)
+    } else {
+     navLinks.appendChild(li)
+    }
+    cursor = li
+   })
    return
   }
 
   if (right) {
-   let fallbackProfileEl = right.querySelector("#globalProfileBtn")
-   if (!fallbackProfileEl) {
-    fallbackProfileEl = document.createElement("a")
-    fallbackProfileEl.id = "globalProfileBtn"
-    fallbackProfileEl.className = "btn btn-outline btn-auth-top"
-    fallbackProfileEl.textContent = "Profil"
-    right.insertBefore(fallbackProfileEl, btn)
-   }
-   fallbackProfileEl.href = profileHref
+   const fallback = [
+    { id: "globalProfileBtn", label: "Profil", href: profileHref },
+    { id: "globalInventoryBtn", label: "Inventaire", href: "/inventaire" },
+    { id: "globalPacksBtn", label: "Packs", href: "/packs" },
+    { id: "globalCraftBtn", label: "Artisanat", href: "/play/fusion" },
+    { id: "globalShopBtn", label: "Shop", href: "/shop" }
+   ]
+   let cursor = btn
+   fallback.forEach((item) => {
+    const a = document.createElement("a")
+    a.id = item.id
+    a.className = "btn btn-outline btn-auth-top"
+    a.textContent = item.label
+    a.href = item.href
+    right.insertBefore(a, cursor)
+    cursor = a.nextSibling
+   })
   }
  }
 
@@ -2281,6 +2397,11 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    return
   }
 
+  if (navLinks.querySelector("#globalPacksNavItem")) {
+   if (playLi) playLi.remove()
+   return
+  }
+
   if (!playLi) {
    playLi = document.createElement("li")
    playLi.id = "globalPlayNavItem"
@@ -2378,13 +2499,14 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    stopAchievementToastPolling()
    stopEventRewardToastPolling()
    stopPlayerProgressPolling()
-   if (heroPlayBtn) {
-    heroPlayBtn.textContent = "JOUER"
-    heroPlayBtn.href = "/auth/discord?local=1&returnTo=%2Fplay%2Finventory"
-    heroPlayBtn.removeAttribute("aria-disabled")
-    heroPlayBtn.style.pointerEvents = ""
-    heroPlayBtn.style.opacity = ""
-   }
+  if (heroPlayBtn) {
+   heroPlayBtn.textContent = "JOUER"
+   heroPlayBtn.href = "/auth/discord?local=1&returnTo=%2Finventaire"
+   heroPlayBtn.removeAttribute("aria-disabled")
+   heroPlayBtn.style.pointerEvents = ""
+   heroPlayBtn.style.opacity = ""
+  }
+   setIndexPlayButton(false, { local: true })
    btn.textContent = "Connexion"
    btn.href = `/auth/discord?local=1&returnTo=${encodeURIComponent(returnTo)}`
    return
@@ -2409,6 +2531,7 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
    heroPlayBtn.style.pointerEvents = ""
    heroPlayBtn.style.opacity = ""
   }
+  setIndexPlayButton(false)
   btn.textContent = "Connexion"
   btn.href = `/auth/discord?returnTo=${encodeURIComponent(returnTo)}`
   return
@@ -2434,15 +2557,16 @@ window.__kcPullEventRewardToasts = function pullEventRewardToasts() {
  startAchievementToastPolling()
  startEventRewardToastPolling()
  startPlayerProgressPolling()
- if (heroPlayBtn) {
-  heroPlayBtn.textContent = "JOUER"
-  heroPlayBtn.href = localSessionActive ? "/play/inventory?local=1" : "/play"
-  heroPlayBtn.removeAttribute("aria-disabled")
-  heroPlayBtn.style.pointerEvents = ""
-  heroPlayBtn.style.opacity = ""
- }
+if (heroPlayBtn) {
+ heroPlayBtn.textContent = "JOUER"
+ heroPlayBtn.href = localSessionActive ? "/inventaire?local=1" : "/play"
+ heroPlayBtn.removeAttribute("aria-disabled")
+ heroPlayBtn.style.pointerEvents = ""
+ heroPlayBtn.style.opacity = ""
+}
+setIndexPlayButton(true)
 
- btn.textContent = "Déconnexion"
+btn.textContent = "Déconnexion"
  btn.href = "#"
  btn.addEventListener("click", async (event) => {
   event.preventDefault()

@@ -243,7 +243,7 @@ body.auth-connected .hero {
 .navbar {
  position: fixed;
  top: 0; left: 0; right: 0;
- z-index: 100;
+ z-index: 50000 !important;
  background: rgba(7, 7, 15, 0.85);
  backdrop-filter: blur(20px);
  border-bottom: 1px solid rgba(201, 168, 76, 0.1);
@@ -264,6 +264,7 @@ body.auth-connected .hero {
  align-items: center;
  column-gap: 28px;
  height: 64px;
+ overflow: visible;
 }
 
 .navbar-right {
@@ -301,6 +302,7 @@ body.auth-connected .hero {
  justify-self: center;
  justify-content: center;
  flex-wrap: nowrap;
+ overflow: visible;
 }
 
 .navbar-links a {
@@ -329,6 +331,50 @@ body.auth-connected .hero {
 .navbar-links a:hover::after,
 .navbar-links a.active::after {
  width: 100%;
+}
+
+.navbar-dropdown {
+ position: relative;
+ z-index: 50001;
+}
+
+.navbar-links .navbar-dropdown-trigger::before {
+ content: "▾";
+ margin-right: 4px;
+ font-size: 0.72rem;
+}
+
+.navbar-dropdown-menu {
+ position: absolute;
+ top: 100%;
+ left: 0;
+ z-index: 50002 !important;
+ min-width: 190px;
+ display: grid;
+ gap: 2px;
+ padding: 8px;
+ border: 1px solid rgba(201, 168, 76, 0.32);
+ background: linear-gradient(180deg, rgba(12, 14, 24, 0.98), rgba(7, 8, 13, 0.98));
+ box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+ opacity: 0;
+ transform: translateY(0);
+ pointer-events: none;
+ transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.navbar-dropdown:hover .navbar-dropdown-menu,
+.navbar-dropdown:focus-within .navbar-dropdown-menu {
+ opacity: 1;
+ transform: translateY(0);
+ pointer-events: auto;
+}
+
+.navbar-links .navbar-dropdown-menu a {
+ display: flex;
+ min-height: 34px;
+ align-items: center;
+ padding: 0.55rem 0.72rem;
+ white-space: nowrap;
 }
 
 .navbar-subnav {

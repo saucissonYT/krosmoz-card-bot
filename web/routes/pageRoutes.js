@@ -29,8 +29,26 @@ module.exports = function mount(app, ctx) {
   }
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
+ app.get("/inventaire", (req, res) => {
+  const session = requireSessionPage(req, res)
+  if (!session) {
+   if (!res.headersSent && canUseLocalAuth(req)) {
+    return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+   }
+   return
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+ })
+ app.get("/inventory", (req, res) => {
+  const query = String(req.url || "").includes("?") ? String(req.url || "").slice(String(req.url || "").indexOf("?")) : ""
+  return res.redirect(301, `/inventaire${query}`)
+ })
  app.get("/play/:tab", (req, res) => {
   const tab = String(req.params.tab || "").toLowerCase()
+  if (tab === "inventory" || tab === "inventaire") {
+   const query = String(req.url || "").includes("?") ? String(req.url || "").slice(String(req.url || "").indexOf("?")) : ""
+   return res.redirect(302, `/inventaire${query}`)
+  }
   if (tab === "packs") {
    const session = requireSessionPage(req, res)
    if (!session) {
@@ -42,7 +60,8 @@ module.exports = function mount(app, ctx) {
    return res.sendFile(path.join(PUBLIC_DIR, "Packs.html"))
   }
   if (tab === "quests" || tab === "missions") {
-   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
+   const query = String(req.url || "").includes("?") ? String(req.url || "").slice(String(req.url || "").indexOf("?")) : ""
+   return res.redirect(301, `/quetes${query}`)
   }
   const session = requireSessionPage(req, res)
   if (!session) {
@@ -53,10 +72,22 @@ module.exports = function mount(app, ctx) {
   }
   return res.sendFile(path.join(PUBLIC_DIR, "Play.html"))
  })
+ app.get("/shop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))
  app.get("/krosmoshop", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Krosmoshop.html")))
  app.get("/packs", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Packs.html")))
  app.get("/packs-test", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Packs.html")))
- app.get("/market", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Market.html")))
+ app.get("/quetes", (req, res) => {
+  const session = requireSessionPage(req, res)
+  if (!session) {
+   if (!res.headersSent && canUseLocalAuth(req)) {
+    return res.sendFile(path.join(PUBLIC_DIR, "Quetes.html"))
+   }
+   return
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, "Quetes.html"))
+ })
+ app.get("/quests", (req, res) => res.status(404).send("Route supprimée. Utilise /quetes."))
+ app.get("/market", (req, res) => res.status(404).send("Route supprim?e. Utilise /shop."))
  app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/battlepass", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Battlepass.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))

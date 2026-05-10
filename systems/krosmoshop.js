@@ -11,6 +11,8 @@ if(!fs.existsSync(DATA_DIR)){
  DATA_DIR = path.join(process.cwd(), "data")
 }
 const SHOP_PATH = path.join(DATA_DIR, "krosmoshop.json")
+const CARDS_PATH = path.join(DATA_DIR, "cards.json")
+const LOCAL_CARDS_PATH = path.join(process.cwd(), "data", "cards.json")
 
 /*
  * v0.29 — Prix rééquilibrés
@@ -32,6 +34,7 @@ const DISTRIBUTION = {
  HR:4,
  SR:5
 }
+const SHOP_SIZE = Object.values(DISTRIBUTION).reduce((sum,count)=>sum+Number(count||0),0)
 
 /* ---------------- DATE FR ---------------- */
 
@@ -78,9 +81,34 @@ function randomFrom(array){
  return array[Math.floor(Math.random()*array.length)]
 }
 
+function getShopCardsById(){
+ try{
+  const cardsPath = fs.existsSync(LOCAL_CARDS_PATH) ? LOCAL_CARDS_PATH : CARDS_PATH
+  if(fs.existsSync(cardsPath)){
+   const cards = JSON.parse(fs.readFileSync(cardsPath,"utf8"))
+   if(Array.isArray(cards)){
+    const byId = Object.fromEntries(
+     cards
+      .filter(c=>c && c.id !== undefined && c.id !== null)
+      .map(c=>[String(c.id),c])
+    )
+    if(Object.keys(byId).length > 0) return byId
+   }
+  }
+ }catch(_){}
+
+ const registryCards = getCardsById()
+ const registryValues = registryCards && typeof registryCards === "object" ? Object.values(registryCards) : []
+ const hasValidRegistryCards = registryValues.some(c=>c && c.id !== undefined && c.id !== null && c.rarity)
+ if(hasValidRegistryCards)
+  return registryCards
+
+ return {}
+}
+
 function getCardsByRarity(rarity){
- const cardsById = getCardsById()
- return Object.values(cardsById).filter(c=>c.rarity===rarity)
+ const cardsById = getShopCardsById()
+ return Object.values(cardsById).filter(c=>c && c.id !== undefined && c.id !== null && c.rarity===rarity)
 }
 
 /* ---------------- GENERATE ---------------- */
@@ -98,7 +126,11 @@ function generateShop(){
 
  Object.entries(DISTRIBUTION).forEach(([rarity,count])=>{
 
-  const pool=getCardsByRarity(rarity)
+ const pool=getCardsByRarity(rarity)
+  if(!pool.length){
+   console.warn(`[KROSMOSHOP] Aucun pool disponible pour la rarete ${rarity}`)
+   return
+  }
 
   for(let i=0;i<count;i++){
 
@@ -108,7 +140,12 @@ function generateShop(){
    do{
     card = randomFrom(pool)
     attempts++
-   }while(used.has(card.id) && attempts < 50)
+   }while(card && used.has(card.id) && attempts < 50)
+
+   if(!card || card.id === undefined || card.id === null){
+    console.warn(`[KROSMOSHOP] Carte invalide ignoree pour ${rarity}`)
+    continue
+   }
 
    used.add(card.id)
 
@@ -135,8 +172,11 @@ function getShop(){
 
  const today = getTodayFR()
 
- // 🔥 CRUCIAL : seulement si jour différent
- if(!shop.lastReset || shop.lastReset !== today){
+ const shopCards = Array.isArray(shop.cards) ? shop.cards : []
+ const invalidShop = shopCards.length < SHOP_SIZE || shopCards.some(entry=>!entry || entry.card === undefined || entry.card === null)
+
+ // Regenerer si jour different ou shop incomplet
+ if(!shop.lastReset || shop.lastReset !== today || invalidShop){
 
   console.log("[KROSMOSHOP] RESET JOURNALIER")
 
