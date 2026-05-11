@@ -8,21 +8,23 @@
  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="guild-page">
- <nav class="navbar scrolled">
-  <div class="navbar-inner">
-   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
-   <ul class="navbar-links" id="navLinks">
-    <li><a href="/">Accueil</a></li>
-    <li><a href="/leaderboard">Classement</a></li>
-    <li><a href="/tutorial">Tutoriel</a></li>
-    <li><a href="/cards">Cartes</a></li>
-   </ul>
-   <div class="navbar-right">
-    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">?</button>
+ <header class="site-header">
+  <div class="site-topbar">
+   <a class="brand" href="/" aria-label="Krosmoz Card">
+    <img src="/assets/ui/logo-carte.png" alt="">
+    <span>Krosmoz Card</span>
+   </a>
+   <nav class="top-nav" aria-label="Navigation principale">
+    <a class="nav-link" href="/">Accueil</a>
+    <a class="nav-link" href="/pages/classement.html">Classement</a>
+    <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+    <a class="nav-link" href="/sets">Sets</a>
+   </nav>
+   <div class="header-actions" aria-label="Liens rapides">
+    <a class="header-action header-action-login" href="/auth/discord?returnTo=%2Fguild">Connexion</a>
    </div>
   </div>
- </nav>
+ </header>
 
  <div class="page">
   <div class="container">
@@ -43,12 +45,8 @@
   </div>
  </div>
 
- <script src="/js/web-auth.js"></script>
+ <script src="/js/web-auth.js?v=20260511-nav-dropdowns"></script>
  <script>
- document.getElementById("navToggle").addEventListener("click", () => {
-  document.getElementById("navLinks").classList.toggle("open")
- })
-
  function esc(value) {
   const node = document.createElement("div")
   node.textContent = String(value || "")

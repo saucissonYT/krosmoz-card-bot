@@ -279,6 +279,7 @@ const CARDS_PATH = path.join(BASE, "cards.json")
 const PUBLIC_DIR = path.join(__dirname, "public")
 const CARD_IMAGES_RUNTIME_DIR = path.join(BASE, "cards", "images")
 const CARD_IMAGES_REPO_DIR = path.join(process.cwd(), "cards", "images")
+const CARD_IMAGE_CATALOG_PATH = path.join(process.cwd(), "cards", "catalog.generated.json")
 const WAKFU_ENCYCLOPEDIE_DIR = path.join(process.cwd(), "data", "cards", "wakfu-encyclopedie")
 
 const DISCORD_USER_TTL_MS = 5 * 60 * 1000
@@ -323,6 +324,7 @@ const WEB_LOCAL_AUTH_FORCE = String(process.env.WEB_LOCAL_AUTH || "").trim().toL
 const WEB_LOCAL_AUTH_USER_ID = String(process.env.WEB_LOCAL_AUTH_USER_ID || "999999999999999999").trim() || "999999999999999999"
 const WEB_LOCAL_DEMO_WORLD = String(process.env.WEB_LOCAL_DEMO_WORLD || "0").trim().toLowerCase()
 const WEB_BOOTSTRAP_CARDS_FROM_IMAGES = String(process.env.WEB_BOOTSTRAP_CARDS_FROM_IMAGES || "0").trim().toLowerCase()
+const WEB_USE_CARDS_IMAGE_CATALOG = String(process.env.WEB_USE_CARDS_IMAGE_CATALOG || "").trim().toLowerCase()
 const WEB_LOCAL_DEMO_SEED_VERSION = 5
 const WEB_LOCAL_DEMO_BOT_COUNT = 34
 const WEB_LOCAL_DEMO_ID_BASE = 980000000000000000n
@@ -353,6 +355,28 @@ function readJSON(filePath, fallback) {
  } catch (_) {
   return fallback
  }
+}
+
+function shouldUseCardsImageCatalog() {
+ if (isFalsyFlag(WEB_USE_CARDS_IMAGE_CATALOG)) return false
+ if (isTruthyFlag(WEB_USE_CARDS_IMAGE_CATALOG)) return true
+ return process.env.NODE_ENV !== "production" && fs.existsSync(CARD_IMAGE_CATALOG_PATH)
+}
+
+function readCardsImageCatalog() {
+ if (!shouldUseCardsImageCatalog()) return null
+ const catalog = readJSON(CARD_IMAGE_CATALOG_PATH, null)
+ const cards = Array.isArray(catalog?.cards) ? catalog.cards : []
+ if (!cards.length) return null
+
+ return cards.map((card) => ({
+  ...card,
+  id: card?.id,
+  name: String(card?.name || `Carte ${card?.id || ""}`),
+  set: String(card?.set || "").trim().toLowerCase(),
+  rarity: String(card?.rarity || "C").trim().toUpperCase(),
+  image: String(card?.image || "").trim()
+ })).filter((card) => card.id !== undefined && card.id !== null && card.set)
 }
 
 function saveCards(cards = []) {
@@ -511,6 +535,26 @@ function getSetRelativeImagePath(rootDir, setHint, fullPath, fallbackName) {
  return relative && !relative.startsWith("..") ? relative : String(fallbackName || "")
 }
 
+function normalizeCardImagePathForSet(setId, imagePath) {
+ const safeSetId = String(setId || "").trim().toLowerCase()
+ let safeImagePath = String(imagePath || "").trim().replace(/\\/g, "/").replace(/^\/+/, "")
+ if (!safeSetId || !safeImagePath) return ""
+ if (safeImagePath.toLowerCase().startsWith(`${safeSetId}/`)) {
+  safeImagePath = safeImagePath.slice(safeSetId.length + 1)
+ }
+ return safeImagePath
+}
+
+function cardImageExists(setId, imagePath) {
+ const safeSetId = String(setId || "").trim()
+ const safeImagePath = normalizeCardImagePathForSet(safeSetId, imagePath)
+ if (!safeSetId || !safeImagePath) return false
+ for (const rootDir of [CARD_IMAGES_RUNTIME_DIR, CARD_IMAGES_REPO_DIR]) {
+  if (fs.existsSync(path.join(rootDir, safeSetId, safeImagePath))) return true
+ }
+ return false
+}
+
 function getCardImageIndex() {
  const now = Date.now()
  if (_cardImageIndexCache && (now - _cardImageIndexCacheAt) < STATIC_CACHE_TTL) {
@@ -582,10 +626,19 @@ function getCardImageIndex() {
 
 function getResolvedCardImageName(card) {
  const explicitImage = String(card?.image || "").trim()
- if (explicitImage) return explicitImage.replace(/\\/g, "/")
-
  const setId = String(card?.set || "").trim().toLowerCase()
  if (!setId) return ""
+
+ const normalizedExplicitImage = normalizeCardImagePathForSet(setId, explicitImage)
+ if (normalizedExplicitImage && cardImageExists(setId, normalizedExplicitImage)) {
+  return normalizedExplicitImage
+ }
+
+ const rarity = String(card?.rarity || "").trim().toUpperCase()
+ if (normalizedExplicitImage && rarity) {
+  const rarityImagePath = `${rarity}/${normalizedExplicitImage}`
+  if (cardImageExists(setId, rarityImagePath)) return rarityImagePath
+ }
 
  const imageIndex = getCardImageIndex()
  const cardId = Number.parseInt(String(card?.id || ""), 10)
@@ -596,7 +649,9 @@ function getResolvedCardImageName(card) {
 
  const nameKey = normalizeCardLookupName(card?.name || "")
  if (!nameKey) return ""
- return imageIndex.bySetAndName.get(`${setId}:${nameKey}`) || ""
+ const indexedImage = imageIndex.bySetAndName.get(`${setId}:${nameKey}`)
+ if (indexedImage) return indexedImage
+ return normalizedExplicitImage
 }
 
 function buildLocalCardsFromImages() {
@@ -701,6 +756,12 @@ function bootstrapCardsFromImagesIfNeeded() {
 function getCards() {
  bootstrapCardsFromImagesIfNeeded()
  const now = Date.now()
+ const imageCatalogCards = readCardsImageCatalog()
+ if (imageCatalogCards) {
+  _cardsCache = imageCatalogCards
+  _cardsCacheAt = now
+  return _cardsCache
+ }
  if (_cardsCache && (now - _cardsCacheAt) < STATIC_CACHE_TTL) return _cardsCache
  _cardsCache = readJSON(CARDS_PATH, [])
  _cardsCacheAt = now
@@ -1730,6 +1791,7 @@ function hasLocalAuthDisableSignal(req, cookies = null) {
  const hasQuery = queryFlag !== undefined && queryFlag !== null && String(queryFlag).trim() !== ""
  if (hasHeader) return isFalsyFlag(headerFlag)
  if (hasQuery) return isFalsyFlag(queryFlag)
+ if (isLoopbackHost(req)) return false
  return isFalsyFlag(cookieFlag)
 }
 
@@ -2351,11 +2413,17 @@ function ensureLocalDevUserSeed(userId) {
   const baseline = Number(user.quests?.weekly?.snapshot?.[quest.stat] || 0)
   ensureQuestStatValue(user, quest.stat, baseline + Number(quest.goal || 1) + 5)
  }
- if (user.quests?.daily && Array.isArray(user.quests.daily.claimed) && user.quests.daily.claimed.length <= 0 && daily[0]) {
-  user.quests.daily.claimed.push(String(daily[0].id))
+ if (user.quests?.daily && daily[0]) {
+  user.quests.daily.claimed = forceReset
+   ? [String(daily[0].id)]
+   : (Array.isArray(user.quests.daily.claimed) ? user.quests.daily.claimed : [])
+  if (!forceReset && user.quests.daily.claimed.length <= 0) user.quests.daily.claimed.push(String(daily[0].id))
  }
- if (user.quests?.weekly && Array.isArray(user.quests.weekly.claimed) && user.quests.weekly.claimed.length <= 0 && weekly[0]) {
-  user.quests.weekly.claimed.push(String(weekly[0].id))
+ if (user.quests?.weekly && weekly[0]) {
+  user.quests.weekly.claimed = forceReset
+   ? [String(weekly[0].id)]
+   : (Array.isArray(user.quests.weekly.claimed) ? user.quests.weekly.claimed : [])
+  if (!forceReset && user.quests.weekly.claimed.length <= 0) user.quests.weekly.claimed.push(String(weekly[0].id))
  }
 
  ensureLocalBattlePassProgress(safeUserId, 36, true, 0.45)

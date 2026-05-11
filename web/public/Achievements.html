@@ -8,12 +8,30 @@
  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="achievements-page">
+ <header class="site-header">
+  <div class="site-topbar">
+   <a class="brand" href="/" aria-label="Krosmoz Card">
+    <img src="/assets/ui/logo-carte.png" alt="">
+    <span>Krosmoz Card</span>
+   </a>
+   <nav class="top-nav" aria-label="Navigation principale">
+    <a class="nav-link" href="/">Accueil</a>
+    <a class="nav-link" href="/pages/classement.html">Classement</a>
+    <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+    <a class="nav-link" href="/sets">Sets</a>
+   </nav>
+   <div class="header-actions" aria-label="Liens rapides">
+    <a class="header-action header-action-login" href="/auth/discord?returnTo=%2Fachievements">Connexion</a>
+   </div>
+  </div>
+ </header>
+
  <div class="page">
   <div class="container">
    <section class="achievements-hub">
     <header class="achievements-topbar fade-in">
      <div class="achievements-top-left">
-      <a href="/play/quests" class="achievements-top-btn" aria-label="Retour">&#x2039;</a>
+      <a href="/quetes" class="achievements-top-btn" aria-label="Retour">&#x2039;</a>
       <span class="achievements-top-title">achievements</span>
      </div>
      <div class="achievements-top-right">
@@ -116,6 +134,7 @@
   </section>
  </aside>
 
+ <script src="/js/web-auth.js?v=20260511-nav-dropdowns"></script>
  <script>
  const CATEGORY_TILES = [
   { id: "collection", label: "COLLECTION", icon: "achievement collection icone.png" },

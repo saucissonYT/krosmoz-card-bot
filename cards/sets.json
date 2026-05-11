@@ -1,16 +1,9 @@
 [
   {
-    "id": "incarnam-lvl-2-10",
-    "name": "Incarnam (2-10)",
+    "id": "astrub-lvl-1-35",
+    "name": "Astrub (1-35)",
     "reward": 20000,
-    "levelMin": 2,
-    "levelMax": 10
-  },
-  {
-    "id": "astrub-lvl-11-35",
-    "name": "Astrub (11-35)",
-    "reward": 20000,
-    "levelMin": 11,
+    "levelMin": 1,
     "levelMax": 35
   },
   {
@@ -56,8 +49,8 @@
     "levelMax": 125
   },
   {
-    "id": "saharash-lvl-126-140",
-    "name": "Saharash (126-140)",
+    "id": "saharach-lvl-126-140",
+    "name": "Saharach (126-140)",
     "reward": 20000,
     "levelMin": 126,
     "levelMax": 140

@@ -6,12 +6,16 @@
  <title>Mon Jeu - Krosmoz Card</title>
  <meta name="theme-color" content="#0b0b18">
  <link rel="stylesheet" href="/css/style.css">
- <link rel="stylesheet" href="/Play.css?v=20260429-fusion-float1">
+<link rel="stylesheet" href="/Play.css?v=20260509-inventory-hover-select">
 </head>
 <body class="play-page">
 <script>
 const __initialPlayPath = String(window.location.pathname || "")
-const __initialPlayTab = __initialPlayPath === "/fusion" ? "fusion" : (String(window.location.pathname || "").split("/")[2] || "")
+const __initialPlayTab = __initialPlayPath === "/fusion"
+ ? "fusion"
+ : ((__initialPlayPath === "/inventaire" || __initialPlayPath === "/inventory")
+  ? "inventory"
+  : (String(window.location.pathname || "").split("/")[2] || ""))
 if (__initialPlayTab === "fusion") {
  document.body.classList.add("route-fusion-bg", "fusion-bg-active", "fusion-mode-active", "craft-header-active")
 } else if (__initialPlayTab === "craft" || __initialPlayTab === "fabrication") {
@@ -20,62 +24,55 @@ if (__initialPlayTab === "fusion") {
  document.body.classList.add("route-pack-bg", "pack-bg-active", "packs-mode-active")
 } else if (__initialPlayTab === "inventory") {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
-} else if (__initialPlayTab === "quests" || __initialPlayTab === "missions") {
+} else if (__initialPlayPath === "/quetes" || __initialPlayTab === "quests" || __initialPlayTab === "missions") {
  document.body.classList.add("route-quests-bg", "quests-bg-active")
 } else {
  document.body.classList.add("route-inventory-bg", "inventory-bg-active")
 }
 </script>
-<nav class="navbar scrolled">
-  <div class="navbar-inner">
-   <a href="/" class="navbar-brand">KROSMOZ CARD</a>
-   <ul class="navbar-links" id="navLinks">
-    <li><a href="/">Accueil</a></li>
-    <li><a href="/tutorial">Tutoriel</a></li>
-    <li><a href="/leaderboard">Classement</a></li>
-    <li><a href="/sets">Sets</a></li>
-   </ul>
-   <div class="navbar-right">
-    <a id="globalAuthBtn" class="btn btn-outline btn-auth-top" href="/auth/discord">Connexion</a>
-    <button class="nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
-   </div>
+<header class="site-header">
+ <div class="site-topbar">
+  <a class="brand" href="/" aria-label="Krosmoz Card">
+   <img src="/assets/ui/logo-carte.png" alt="">
+   <span>Krosmoz Card</span>
+  </a>
+
+  <nav class="top-nav" aria-label="Navigation principale">
+   <a class="nav-link" href="/">Accueil</a>
+   <a class="nav-link" href="/pages/classement.html">Classement</a>
+   <a class="nav-link" href="/pages/tutoriel.html">Tutoriel</a>
+   <a class="nav-link" href="/sets">Sets</a>
+  </nav>
+
+  <div class="header-actions" aria-label="Liens rapides">
+   <a class="header-action header-action-login" href="/auth/discord?returnTo=%2Finventaire">Connexion</a>
+   <a
+    class="header-social header-social-discord"
+    href="https://discord.com/invite/ekEkqhZwbZ"
+    target="_blank"
+    rel="noopener"
+    aria-label="Discord">
+    <svg viewBox="0 0 127.14 96.36" aria-hidden="true">
+     <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21A105.73,105.73,0,0,0,32.71,96.36a77.7,77.7,0,0,0,6.89-11.27,68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2.05,20.4,9.45,42.54,9.45,62.69,0,.87,.71,1.76,1.39,2.67,2.05a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.26A105.25,105.25,0,0,0,126.94,80.2C129.67,52.84,122.27,29.11,107.7,8.07ZM42.45,65.69c-6.27,0-11.41-5.74-11.41-12.82S36.07,40.05,42.45,40.05,53.8,45.8,53.8,52.87,48.82,65.69,42.45,65.69Zm42.24,0c-6.27,0-11.4-5.74-11.4-12.82S78.32,40.05,84.69,40.05,96,45.8,96,52.87,91.07,65.69,84.69,65.69Z"></path>
+    </svg>
+   </a>
+   <a
+    class="header-social header-social-github"
+    href="https://github.com/saucissonYT/krosmoz-card-bot"
+    target="_blank"
+    rel="noopener"
+    aria-label="GitHub">
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+     <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38l-.01-1.34c-2.22.48-2.69-1.07-2.69-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.81.06 1.23.83 1.23.83.72 1.23 1.9.88 2.36.67.07-.52.28-.88.51-1.08-1.77-.2-3.64-.89-3.64-3.95 0-.87.31-1.58.82-2.14-.08-.2-.36-1.01.08-2.1 0 0 .67-.22 2.2.82A7.64,7.64,0,0,1,8,4.77c.68,0,1.37,.09,2.01,.27,1.53-1.04,2.2-.82,2.2-.82,.44,1.09,.16,1.9,.08,2.1,.51,.56,.82,1.27,.82,2.14,0,3.07-1.87,3.75-3.65,3.95,.29,.25,.54,.74,.54,1.49l-.01,2.2c0,.21,.14,.46,.55,.38A8,8,0,0,0,16,8C16,3.58,12.42,0,8,0Z"></path>
+    </svg>
+   </a>
   </div>
-</nav>
+ </div>
+</header>
 
 <div class="page">
   <div class="container">
    <section class="play-shell">
-    <header id="inventoryTopbar" class="inventory-topbar" hidden>
-     <div class="inventory-top-left">
-      <a href="/" class="inventory-back-btn" aria-label="Retour a l'accueil">&lt;</a>
-      <span id="inventoryTopTitle" class="inventory-top-title">inventaire</span>
-      <span id="inventoryTopSetInfo" class="inventory-top-set-info" hidden></span>
-      <select id="inventoryTopRarityFilter" class="inventory-top-rarity-filter" aria-label="Filtrer par rareté" hidden>
-       <option value="">Rareté : Toutes</option>
-       <option value="C">C</option>
-       <option value="U">U</option>
-       <option value="R">R</option>
-       <option value="SR">SR</option>
-       <option value="HR">HR</option>
-       <option value="UR">UR</option>
-       <option value="S">S</option>
-       <option value="SSR">SSR</option>
-      </select>
-      <span id="fusionTopSetInfo" class="inventory-top-set-info fusion-top-set-info" hidden></span>
-     </div>
-     <div class="inventory-top-right">
-      <div class="inventory-resource" aria-label="Kamas">
-       <img src="/assets/ui/gain%20kamas%20level%20up.png" alt="Kamas">
-       <strong id="inventoryTopKamas">--</strong>
-      </div>
-     <div class="inventory-resource" aria-label="Packs">
-       <img src="/assets/ui/gain%20packs%20level%20up.png" alt="Packs">
-       <strong>x<span id="inventoryTopPacks">--</span></strong>
-       <button id="inventoryTopBuyPacksBtn" class="inventory-resource-buy-btn" type="button" aria-label="Acheter des packs" title="Acheter des packs">+</button>
-      </div>
-     </div>
-    </header>
-
     <header class="play-head mode-hero">
       <h1 id="playTitle">Inventaire</h1>
       <p id="playSubtitle" class="play-subtitle">Consulte ton inventaire et fait le tri dans ton inventaire.</p>
@@ -112,6 +109,18 @@ if (__initialPlayTab === "fusion") {
       </aside>
 
       <div class="play-content inventory-center-panel">
+       <section id="inventorySummaryBar" class="inventory-summary-bar" aria-label="Filtres de rarete">
+        <div class="inventory-rarity-menu" aria-label="Activer ou desactiver les raretes">
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="C" aria-pressed="true" title="Desactiver C">C</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="U" aria-pressed="true" title="Desactiver U">U</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="R" aria-pressed="true" title="Desactiver R">R</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="SR" aria-pressed="true" title="Desactiver SR">SR</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="HR" aria-pressed="true" title="Desactiver HR">HR</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="UR" aria-pressed="true" title="Desactiver UR">UR</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="S" aria-pressed="true" title="Desactiver S">S</button>
+         <button type="button" class="inventory-rarity-filter active" data-inventory-rarity-filter="SSR" aria-pressed="true" title="Desactiver SSR">SSR</button>
+        </div>
+       </section>
        <div id="playGrid" class="play-grid"></div>
        <div id="playPacks" class="play-panel-alt" style="display:none"></div>
        <div id="playFusion" class="play-panel-alt" style="display:none"></div>
@@ -236,17 +245,17 @@ if (__initialPlayTab === "fusion") {
  </section>
 </aside>
 
-<script src="/js/web-auth.js"></script>
+<script src="/js/web-auth.js?v=20260511-nav-dropdowns"></script>
 <script>
 const MODE_PATH = {
- inventory: "/play/inventory",
+ inventory: "/inventaire",
   packs: "/packs",
  fusion: "/play/fusion",
  craft: "/play/fabrication",
- quests: "/play/missions"
+ quests: "/quetes"
 }
 const IS_LOCAL_FUSION_TEST = String(window.location.pathname || "") === "/fusion"
-const INVENTORY_DEFAULT_SET_ID = "incarnam-lvl-2-10"
+const INVENTORY_DEFAULT_SET_ID = "astrub-lvl-1-35"
 
  const RARITY_ORDER = ["C", "U", "R", "SR", "HR", "UR", "S", "SSR"]
 const state = {
@@ -255,7 +264,8 @@ const state = {
  localFusionResetDone: false,
  inventoryView: "cards",
  inventoryUi: {
-  setId: INVENTORY_DEFAULT_SET_ID
+  setId: INVENTORY_DEFAULT_SET_ID,
+  rarityFilters: RARITY_ORDER.slice()
  },
  sortDesc: true,
   me: null,
@@ -320,16 +330,15 @@ const inventorySellConfirmState = {
  ]
  const SET_UNLOCK_THRESHOLD_PCT = 70
 const SET_UNLOCK_RULES = [
-  { id: "incarnam-lvl-2-10", name: "Incarnam (2-10)", levelRequired: 1, prevSet: null },
-  { id: "astrub-lvl-11-35", name: "Astrub (11-35)", levelRequired: 11, prevSet: "incarnam-lvl-2-10" },
-  { id: "amakna-lvl-36-50", name: "Amakna (36-50)", levelRequired: 36, prevSet: "astrub-lvl-11-35" },
+  { id: "astrub-lvl-1-35", name: "Astrub (1-35)", levelRequired: 1, prevSet: null },
+  { id: "amakna-lvl-36-50", name: "Amakna (36-50)", levelRequired: 36, prevSet: "astrub-lvl-1-35" },
   { id: "sufokia-lvl-51-65", name: "Sufokia (51-65)", levelRequired: 51, prevSet: "amakna-lvl-36-50" },
   { id: "kelba-lvl-66-80", name: "Kelba (66-80)", levelRequired: 66, prevSet: "sufokia-lvl-51-65" },
   { id: "katrepat-lvl-81-95", name: "Katrepat (81-95)", levelRequired: 81, prevSet: "kelba-lvl-66-80" },
   { id: "sberg-lvl-96-110", name: "Sberg (96-110)", levelRequired: 96, prevSet: "katrepat-lvl-81-95" },
   { id: "shukrute-lvl-111-125", name: "Shukrute (111-125)", levelRequired: 111, prevSet: "sberg-lvl-96-110" },
-  { id: "saharash-lvl-126-140", name: "Saharash (126-140)", levelRequired: 126, prevSet: "shukrute-lvl-111-125" },
-  { id: "enutrosor-lvl-141-155", name: "Enutrosor (141-155)", levelRequired: 141, prevSet: "saharash-lvl-126-140" },
+  { id: "saharach-lvl-126-140", name: "Saharach (126-140)", levelRequired: 126, prevSet: "shukrute-lvl-111-125" },
+  { id: "enutrosor-lvl-141-155", name: "Enutrosor (141-155)", levelRequired: 141, prevSet: "saharach-lvl-126-140" },
   { id: "xelorium-lvl-156-170", name: "Xelorium (156-170)", levelRequired: 156, prevSet: "enutrosor-lvl-141-155" },
   { id: "moon-lvl-171-185", name: "Moon (171-185)", levelRequired: 171, prevSet: "xelorium-lvl-156-170" },
   { id: "zinit-lvl-186-200", name: "Zinit (186-200)", levelRequired: 186, prevSet: "moon-lvl-171-185" },
@@ -337,16 +346,32 @@ const SET_UNLOCK_RULES = [
   { id: "ereboria-lvl-216-230", name: "Ereboria (216-230)", levelRequired: 216, prevSet: "osamosa-lvl-201-215" },
   { id: "brume-lvl-231-245", name: "Brume (231-245)", levelRequired: 231, prevSet: "ereboria-lvl-216-230" }
 ]
+const INVENTORY_SET_EMOJI = {
+ "astrub-lvl-1-35": "\uD83C\uDFDB\uFE0F",
+ "amakna-lvl-36-50": "\uD83C\uDF3E",
+ "sufokia-lvl-51-65": "\uD83C\uDF0A",
+ "kelba-lvl-66-80": "\uD83C\uDFAA",
+ "katrepat-lvl-81-95": "\uD83E\uDD87",
+ "sberg-lvl-96-110": "\u2744\uFE0F",
+ "shukrute-lvl-111-125": "\uD83D\uDE08",
+ "saharach-lvl-126-140": "\uD83C\uDFDC\uFE0F",
+ "enutrosor-lvl-141-155": "\uD83D\uDC8E",
+ "xelorium-lvl-156-170": "\u23F3",
+ "moon-lvl-171-185": "\uD83C\uDF19",
+ "zinit-lvl-186-200": "\u26F0\uFE0F",
+ "osamosa-lvl-201-215": "\uD83D\uDC09",
+ "ereboria-lvl-216-230": "\uD83C\uDF0B",
+ "brume-lvl-231-245": "\uD83E\uDD96"
+}
 const INVENTORY_SET_ICONS = [
- { id: "incarnam-lvl-2-10", name: "Incarnam (2-10)", icon: "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png" },
- { id: "astrub-lvl-11-35", name: "Astrub (11-35)", icon: "/assets/ui/icones%20set/icone%20astrub%20inventaire.png" },
+ { id: "astrub-lvl-1-35", name: "Astrub (1-35)", icon: "/assets/ui/icones%20set/icone%20astrub%20inventaire.png" },
  { id: "amakna-lvl-36-50", name: "Amakna (36-50)", icon: "/assets/ui/icones%20set/icone%20amakna%20inventaire.png" },
  { id: "sufokia-lvl-51-65", name: "Sufokia (51-65)", icon: "/assets/ui/icones%20set/icone%20sufokia%20inventaire.png" },
  { id: "kelba-lvl-66-80", name: "Kelba (66-80)", icon: "/assets/ui/icones%20set/icone%20kelba%20inventaire.png" },
  { id: "katrepat-lvl-81-95", name: "Katrepat (81-95)", icon: "/assets/ui/icones%20set/icone%20katrepat%20inventaire.png" },
  { id: "sberg-lvl-96-110", name: "Sberg (96-110)", icon: "/assets/ui/icones%20set/icone%20sberg%20inventaire.png" },
  { id: "shukrute-lvl-111-125", name: "Shukrute (111-125)", icon: "/assets/ui/set%20non%20deblock.png" },
- { id: "saharash-lvl-126-140", name: "Saharash (126-140)", icon: "/assets/ui/set%20non%20deblock.png" },
+ { id: "saharach-lvl-126-140", name: "Saharach (126-140)", icon: "/assets/ui/set%20non%20deblock.png" },
  { id: "enutrosor-lvl-141-155", name: "Enutrosor (141-155)", icon: "/assets/ui/set%20non%20deblock.png" },
  { id: "xelorium-lvl-156-170", name: "Xelorium (156-170)", icon: "/assets/ui/set%20non%20deblock.png" },
  { id: "moon-lvl-171-185", name: "Moon (171-185)", icon: "/assets/ui/set%20non%20deblock.png" },
@@ -399,7 +424,6 @@ const CRAFT_ILLUSTRATION_IDS_AVAILABLE = [
 ]
 const CRAFT_ILLUSTRATION_IDS_AVAILABLE_SET = new Set(CRAFT_ILLUSTRATION_IDS_AVAILABLE)
 const CRAFT_ILLUSTRATION_TEST_POOL_BY_SET = {
- incarnam: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
  astrub: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
  amakna: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
  sufokia: CRAFT_ILLUSTRATION_IDS_AVAILABLE.slice(),
@@ -427,12 +451,16 @@ function fmt(n) { return Number(n || 0).toLocaleString("fr-FR") }
  }
 
 function parseModeFromPath() {
- if (String(window.location.pathname || "") === "/fusion") return "fusion"
- const tab = String(window.location.pathname || "").split("/")[2] || "inventory"
+ const path = String(window.location.pathname || "")
+ if (path === "/fusion") return "fusion"
+ if (path === "/inventaire" || path === "/inventory") return "inventory"
+ if (path === "/quetes") return "quests"
+ const tab = path.split("/")[2] || "inventory"
  if (tab === "fabrication") return "craft"
  if (tab === "missions") return "quests"
+ if (tab === "inventaire") return "inventory"
  return ["inventory", "packs", "fusion", "craft", "quests"].includes(tab) ? tab : "inventory"
- }
+}
 
  function isLoopbackHost() {
   const host = String(window.location.hostname || "").toLowerCase()
@@ -608,13 +636,10 @@ function setInventoryView(view) {
   for (const item of ((state.gameMeta && state.gameMeta.allSets) || [])) sets.set(item.id, item.name || item.id)
   for (const item of ((state.inventory && state.inventory.cards) || [])) sets.set(item.set, item.setName || item.set)
   for (const item of state.groupedFragments) sets.set(item.set, item.setName || item.set)
-  const orderedSetIds = ((state.gameMeta && state.gameMeta.allSets) || []).map((set) => String(set.id))
-  const options = [...sets.entries()].sort((a, b) => {
-   const ai = orderedSetIds.indexOf(String(a[0]))
-   const bi = orderedSetIds.indexOf(String(b[0]))
-   if (ai !== -1 || bi !== -1) return (ai === -1 ? 9999 : ai) - (bi === -1 ? 9999 : bi)
-   return String(a[1]).localeCompare(String(b[1]), "fr")
-  })
+  const options = [...sets.entries()].sort((a, b) => compareSetRowsByLevel(
+   { id: a[0], name: a[1] },
+   { id: b[0], name: b[1] }
+  ))
   for (const [id, name] of options) {
    const opt = document.createElement("option")
    opt.value = id
@@ -628,24 +653,51 @@ function getActiveSource() {
  return (state.inventory && state.inventory.cards) || []
 }
 
+function getInventoryActiveRarityFilters() {
+ const rawFilters = Array.isArray(state.inventoryUi?.rarityFilters)
+  ? state.inventoryUi.rarityFilters
+  : RARITY_ORDER
+ const active = rawFilters
+  .map((rarity) => String(rarity || "").trim().toUpperCase())
+  .filter((rarity) => RARITY_ORDER.includes(rarity))
+ return new Set(active)
+}
+
+function setInventoryActiveRarityFilters(filters = []) {
+ const next = [...new Set((filters || [])
+  .map((rarity) => String(rarity || "").trim().toUpperCase())
+  .filter((rarity) => RARITY_ORDER.includes(rarity)))]
+ state.inventoryUi.rarityFilters = next
+ const singleValue = next.length === 1 ? next[0] : ""
+ const rarityFilter = document.getElementById("rarityFilter")
+ const topRarityFilter = document.getElementById("inventoryTopRarityFilter")
+ if (rarityFilter) rarityFilter.value = singleValue
+ if (topRarityFilter) topRarityFilter.value = singleValue
+}
+
 function getInventoryRarityFilterValue() {
- const topRarity = document.getElementById("inventoryTopRarityFilter")
- const legacyRarity = document.getElementById("rarityFilter")
- return String(topRarity?.value || legacyRarity?.value || "").trim().toUpperCase()
+ const active = getInventoryActiveRarityFilters()
+ return active.size === 1 ? [...active][0] : ""
 }
 
 function getFilteredItems() {
  const set = String(document.getElementById("setFilter")?.value || "")
- const rarity = getInventoryRarityFilterValue()
+ const activeRarities = getInventoryActiveRarityFilters()
+ const shouldFilterRarity = activeRarities.size < RARITY_ORDER.length
 
  const items = getActiveSource().filter((item) => {
   if (set && String(item.set) !== String(set)) return false
-  if (rarity && String(item.rarity || "").toUpperCase() !== rarity) return false
+  if (shouldFilterRarity && !activeRarities.has(String(item.rarity || "").toUpperCase())) return false
   if (state.mode === "inventory" && Number(item.qty || 0) <= 0) return false
   return true
  })
 
  items.sort((a, b) => {
+  const setDelta = compareSetRowsByLevel(
+   { id: a.set, name: a.setName },
+   { id: b.set, name: b.setName }
+  )
+  if (setDelta !== 0) return setDelta
   const rarityDelta = rarityRank(a.rarity) - rarityRank(b.rarity)
   if (rarityDelta !== 0) return rarityDelta
   const aId = Number(a.cardId || 0)
@@ -656,6 +708,40 @@ function getFilteredItems() {
  return items
 }
 
+function renderInventorySummary(items = []) {
+ const bar = document.getElementById("inventorySummaryBar")
+ if (!bar) return
+ if (state.mode !== "inventory") {
+  bar.hidden = true
+  return
+ }
+
+ const activeRarities = getInventoryActiveRarityFilters()
+
+ bar.hidden = false
+ bar.querySelectorAll("[data-inventory-rarity-filter]").forEach((button) => {
+  const rarity = String(button.getAttribute("data-inventory-rarity-filter") || "").trim().toUpperCase()
+  const active = activeRarities.has(rarity)
+  button.classList.toggle("active", active)
+  button.classList.toggle("is-muted", !active)
+  button.setAttribute("aria-pressed", String(active))
+  button.setAttribute("title", `${active ? "Desactiver" : "Activer"} ${rarity}`)
+ })
+}
+
+function applyInventoryRarityFilter(nextRarity = "") {
+ const value = String(nextRarity || "").trim().toUpperCase()
+ if (!RARITY_ORDER.includes(value)) return
+ const active = getInventoryActiveRarityFilters()
+ if (active.has(value)) {
+  active.delete(value)
+ } else {
+  active.add(value)
+ }
+ setInventoryActiveRarityFilters([...active])
+ renderCurrentMode()
+}
+
 function getInventoryItemKey(item) {
  const isFragment = String(item?.itemType || "card") === "fragment"
  const cardId = String(item?.cardId || "")
@@ -664,7 +750,8 @@ function getInventoryItemKey(item) {
 }
 
 function getInventoryItemImage(item) {
- return String(item?.imageUrl || "/assets/ui/pack-back-normal.png")
+ const src = String(item?.imageUrl || "").trim()
+ return src.includes("/assets/cards/") ? src : ""
 }
 
 function getInventoryDisplayCardName(item) {
@@ -672,6 +759,22 @@ function getInventoryDisplayCardName(item) {
  if (cardName) return cardName
  const cardId = String(item?.cardId || "").trim()
  return cardId ? `Carte ${cardId}` : "Carte"
+}
+
+function renderInventoryCardImage(src, alt, className = "inventory-card-thumb") {
+ const safeAlt = escapeHtml(alt || "Carte")
+ if (!src) {
+  return `<div class="inventory-card-placeholder ${escapeHtml(className)}" aria-label="${safeAlt}"><span>Image indisponible</span></div>`
+ }
+ return `<img class="${escapeHtml(className)}" loading="lazy" src="${escapeHtml(src)}" alt="${safeAlt}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'inventory-card-placeholder ${escapeHtml(className)}',innerHTML:'<span>Image indisponible</span>'}))">`
+}
+
+function getInventorySetEmoji(setId) {
+ return INVENTORY_SET_EMOJI[String(setId || "")] || "\u2726"
+}
+
+function getInventorySetLabel(setId) {
+ return `${getInventorySetEmoji(setId)} ${getSetName(setId)}`
 }
 
 function getInventoryShopSellPrice(item) {
@@ -759,7 +862,7 @@ function renderInventoryDetailPanel(items = []) {
    <h3>${escapeHtml(cardName)}</h3>
    <p class="inventory-detail-meta">${escapeHtml(metaLine)}</p>
    <div class="inventory-detail-image-wrap">
-    <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(cardName)}" loading="lazy" onerror="this.src='/assets/ui/pack-back-normal.png'">
+    ${renderInventoryCardImage(imageSrc, cardName, "inventory-detail-image")}
    </div>
    <div class="inventory-detail-actions">
     <button type="button" class="inventory-detail-action-btn shop" data-inventory-detail-action="shop" ${canSell ? "" : "disabled"}>Vente shop</button>
@@ -789,6 +892,7 @@ function renderInventoryDetailPanel(items = []) {
 function renderInventoryGrid() {
  const grid = document.getElementById("playGrid")
  const items = getFilteredItems()
+ renderInventorySummary(items)
 
  if (!items.length) {
   grid.innerHTML = '<div class="play-empty"><h3>Vide</h3><p>Aucun résultat avec ces filtres.</p></div>'
@@ -801,9 +905,13 @@ function renderInventoryGrid() {
   const isActive = String(state.selected || "") === itemKey
   const cardName = getInventoryDisplayCardName(item)
   const miniThumbSrc = getInventoryItemImage(item)
+  const rarity = String(item.rarity || "C").toUpperCase()
+  const qty = Math.max(0, Number(item.qty || 0))
   return `
     <article class="play-card inventory-card-tile inventory-selectable ${isActive ? "active" : ""}" data-inventory-item-key="${escapeHtml(itemKey)}">
-     <img class="inventory-card-thumb" loading="lazy" src="${escapeHtml(miniThumbSrc)}" alt="${escapeHtml(cardName)}" onerror="this.src='/assets/ui/pack-back-normal.png'">
+     ${renderInventoryCardImage(miniThumbSrc, cardName)}
+     <span class="inventory-card-rarity">${escapeHtml(rarity)}</span>
+     <span class="inventory-card-qty">x${fmt(qty)}</span>
     </article>
    `
  }).join("")
@@ -865,16 +973,16 @@ function getCraftCandidates() {
    ...row,
    uniqueCount: row.numbers.size
   }))
-  .sort((a, b) =>
-   String(a.setName || a.set).localeCompare(String(b.setName || b.set), "fr")
-   || String(a.cardName).localeCompare(String(b.cardName), "fr")
-  )
+  .sort((a, b) => compareSetRowsByLevel(
+   { id: a.set, name: a.setName },
+   { id: b.set, name: b.setName }
+  ) || String(a.cardName).localeCompare(String(b.cardName), "fr"))
 }
 
 function getCraftSetIcon(setId) {
  const id = String(setId || "")
  const match = INVENTORY_SET_ICONS.find((item) => String(item.id) === id)
- return match?.icon || "/assets/ui/icones%20set/icone%20incarnam%20inventaire.png"
+ return match?.icon || "/assets/ui/icones%20set/icone%20astrub%20inventaire.png"
 }
 
 function getCraftSetRows(crafts = []) {
@@ -913,9 +1021,9 @@ function getCraftSetRows(crafts = []) {
 
  const extras = [...grouped.values()]
   .filter((row) => !seen.has(String(row.id)) && String(row.id || "") !== "unknown")
-  .sort((a, b) => String(a.name).localeCompare(String(b.name), "fr"))
+  .sort(compareSetRowsByLevel)
  ordered.push(...extras)
- return ordered
+ return ordered.sort(compareSetRowsByLevel)
 }
 
 function formatCraftNotifCount(count) {
@@ -1028,25 +1136,24 @@ function getTopbarPacks() {
 }
 
 function syncInventoryTopbar() {
- const bar = document.getElementById("inventoryTopbar")
- const titleEl = document.getElementById("inventoryTopTitle")
- const kamasEl = document.getElementById("inventoryTopKamas")
- const packsEl = document.getElementById("inventoryTopPacks")
- const fusionSetInfoEl = document.getElementById("fusionTopSetInfo")
- const rarityFilterEl = document.getElementById("inventoryTopRarityFilter")
- if (!bar || !kamasEl || !packsEl || !titleEl) return
-
   const isInventoryMode = state.mode === "inventory"
   const isFabricationMode = state.mode === "craft"
   const isFusionMode = state.mode === "fusion"
   const isMissionsMode = state.mode === "quests"
   const showTopbar = isInventoryMode || isFabricationMode || isFusionMode || isMissionsMode
-  bar.hidden = !showTopbar
   document.body.classList.toggle("inventory-layout-active", isInventoryMode)
   document.body.classList.toggle("craft-header-active", isFabricationMode || isFusionMode || isMissionsMode)
+  const bar = document.getElementById("inventoryTopbar")
+  const titleEl = document.getElementById("inventoryTopTitle")
+  const kamasEl = document.getElementById("inventoryTopKamas")
+  const packsEl = document.getElementById("inventoryTopPacks")
+  const fusionSetInfoEl = document.getElementById("fusionTopSetInfo")
+  const rarityFilterEl = document.getElementById("inventoryTopRarityFilter")
+  if (!bar || !kamasEl || !packsEl || !titleEl) return
+  bar.hidden = true
   if (!showTopbar) return
 
-  titleEl.textContent = isFusionMode ? "Fusion" : (isFabricationMode ? "fabrication" : (isMissionsMode ? "missions" : "inventaire"))
+   titleEl.textContent = isFusionMode ? "Fusion" : (isFabricationMode ? "fabrication" : (isMissionsMode ? "quêtes" : "inventaire"))
   updateInventoryTopSetInfo()
   updateFusionTopSetInfo()
   if (rarityFilterEl) {
@@ -1100,11 +1207,11 @@ function syncInventoryTopbar() {
    return
   }
 
-  const pct = getSetProgressPct(setId)
-  const setName = getSetName(setId)
+ const pct = getSetProgressPct(setId)
+  const setName = getInventorySetLabel(setId)
   el.textContent = pct === null
-   ? `Set : ${setName}`
-   : `Set : ${setName} - ${fmt(pct)}% complétion`
+   ? setName
+   : `${setName} - ${fmt(pct)}% complétion`
   el.hidden = false
  }
 
@@ -1417,14 +1524,15 @@ function renderInventorySetRail() {
  const activeSet = String(setFilter.value || "")
  rail.innerHTML = getInventorySetRows().map((set) => {
   const active = activeSet === set.id
+  const setEmoji = getInventorySetEmoji(set.id)
   return `
    <button
     type="button"
-    class="inventory-set-btn ${active ? "active" : ""}"
+    class="inventory-set-btn inventory-set-text-btn ${active ? "active" : ""}"
     data-inventory-set-id="${escapeHtml(set.id)}"
     aria-label="${escapeHtml(set.name)}"
     title="${escapeHtml(set.name)}">
-    <img src="${escapeHtml(set.icon)}" alt="${escapeHtml(set.name)}" loading="lazy" draggable="false">
+    <span class="inventory-set-emoji" aria-hidden="true">${escapeHtml(setEmoji)}</span>
     <span class="inventory-set-label">${escapeHtml(set.name)}</span>
    </button>
   `
@@ -1461,6 +1569,52 @@ function getFusionRows() {
  return rows.slice().sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity))
 }
 
+function getSetLevelBounds(setId, setName = "") {
+ const id = String(setId || "")
+ const rule = SET_UNLOCK_RULES.find((row) => String(row.id) === id)
+ if (rule) {
+  const nameMatch = String(rule.name || "").match(/(\d+)\s*-\s*(\d+)/)
+  return {
+   min: Number(rule.levelRequired || nameMatch?.[1] || 9999),
+   max: Number(nameMatch?.[2] || rule.levelRequired || 9999)
+  }
+ }
+
+ const meta = (state.gameMeta?.allSets || []).find((row) => String(row.id) === id)
+ const metaMin = Number(meta?.levelMin || meta?.levelRequired || 0)
+ const metaMax = Number(meta?.levelMax || 0)
+ if (metaMin > 0) return { min: metaMin, max: metaMax > 0 ? metaMax : metaMin }
+
+ const source = `${id} ${setName}`
+ const match = source.match(/(?:lvl-|\(|\s)(\d+)\s*-\s*(\d+)/i)
+ if (match) return { min: Number(match[1]), max: Number(match[2]) }
+
+ return { min: 9999, max: 9999 }
+}
+
+function compareSetRowsByLevel(a = {}, b = {}) {
+ const aBounds = getSetLevelBounds(a.id || a.set, a.name || a.setName)
+ const bBounds = getSetLevelBounds(b.id || b.set, b.name || b.setName)
+ if (aBounds.min !== bBounds.min) return aBounds.min - bBounds.min
+ if (aBounds.max !== bBounds.max) return aBounds.max - bBounds.max
+ return String(a.name || a.setName || a.id || a.set || "").localeCompare(String(b.name || b.setName || b.id || b.set || ""), "fr")
+}
+
+function getInventorySetLevelLabel(setId, setName = "") {
+ const bounds = getSetLevelBounds(setId, setName)
+ if (bounds.min >= 9999) return "Tranche inconnue"
+ if (bounds.min === bounds.max) return `Niveau ${fmt(bounds.min)}`
+ return `Niveaux ${fmt(bounds.min)} a ${fmt(bounds.max)}`
+}
+
+function getInventorySetOwnedCount(setId = "") {
+ const safeSetId = String(setId || "")
+ return (state.inventory?.cards || []).filter((item) => {
+  if (Number(item.qty || 0) <= 0) return false
+  return !safeSetId || String(item.set || "") === safeSetId
+ }).length
+}
+
 function getInventorySetRows() {
  const metaSets = Array.isArray(state.gameMeta?.allSets) ? state.gameMeta.allSets : []
  const rows = metaSets.length
@@ -1470,7 +1624,7 @@ function getInventorySetRows() {
   id: String(set.id || ""),
   name: String(set.name || set.id || "Set"),
   icon: getSetIconForUi(set.id)
- })).filter((set) => set.id)
+ })).filter((set) => set.id).sort(compareSetRowsByLevel)
 }
 
 function getCardsForSetAndRarity(setId, rarity) {
@@ -3261,7 +3415,7 @@ function showPackOpeningAnimation(payload) {
    id: String(set.id),
    name: String(set.name || set.id),
    pct: getSetProgressPct(set.id)
-  }))
+  })).sort(compareSetRowsByLevel)
   const unlockedSetIds = unlockedSetRows.map((set) => String(set.id))
   const nextUnlock = getNextSetUnlockInfo(unlockedSetIds)
   const hasSets = unlockedSets.length > 0
@@ -3358,9 +3512,10 @@ function renderFusion() {
  const panel = document.getElementById("playFusion")
  const meta = state.gameMeta || {}
  const unlockedSets = meta.unlockedSets || []
- const fusionSets = Array.isArray(meta.allSets) && meta.allSets.length
+ const fusionSets = (Array.isArray(meta.allSets) && meta.allSets.length
   ? meta.allSets
   : INVENTORY_SET_ICONS.map((set) => ({ id: set.id, name: set.name }))
+ ).slice().sort(compareSetRowsByLevel)
  const fusionRows = getFusionRows()
  const hasSets = fusionSets.length > 0
  const hasRows = fusionRows.length > 0
@@ -3803,7 +3958,7 @@ function getMissionsSelectionKey(scope = "player", type = "daily") {
 }
 
 function getMissionsScopeLabel(scope = "player") {
- return String(scope || "").toLowerCase() === "guild" ? "Missions de guilde" : "Missions"
+ return String(scope || "").toLowerCase() === "guild" ? "Quêtes de guilde" : "Quêtes"
 }
 
 function getMissionsTypeLabel(type = "daily") {
@@ -3902,7 +4057,7 @@ function restoreMissionsScroll(panel = null) {
 
 function renderMissionRows(quests = [], scope = "player", type = "daily", canClaim = true) {
  if (!Array.isArray(quests) || quests.length <= 0) {
-  return '<p class="mode-muted missions-empty">Aucune mission disponible.</p>'
+  return '<p class="mode-muted missions-empty">Aucune quête disponible.</p>'
  }
 
  const orderedQuests = quests
@@ -3980,7 +4135,8 @@ function isLocalMissionsMode() {
  ).trim()
  if (preview !== "1") return false
  const tab = String(window.location.pathname || "").split("/")[2] || ""
- return tab === "missions" || tab === "quests"
+ const path = String(window.location.pathname || "")
+ return path === "/quetes" || tab === "missions" || tab === "quests"
 }
 
 function makeLocalMissionQuest(id, name, desc, current, goal, reward = {}, claimed = false) {
@@ -4025,11 +4181,11 @@ function buildLocalMissionsState() {
  ]
  const playerWeeklyQuests = [
   makeLocalMissionQuest("m_p_w_1", "Objectif hebdo", "Récupère 12 cartes.", 12, 12, { kamas: 14000, xp: 620, packs: 2, fragments: 6 }),
-  makeLocalMissionQuest("m_p_w_2", "Régularité", "Termine 8 missions quotidiennes.", 5, 8, { kamas: 9000, xp: 420, packs: 1, fragments: 4 })
+  makeLocalMissionQuest("m_p_w_2", "Régularité", "Termine 8 quêtes quotidiennes.", 5, 8, { kamas: 9000, xp: 420, packs: 1, fragments: 4 })
  ]
  const guildDailyQuests = [
   makeLocalMissionQuest("m_g_d_1", "Don de guilde", "Fais 2 dons.", 2, 2, { guildXp: 250 }),
-  makeLocalMissionQuest("m_g_d_2", "Aide communautaire", "Valide 4 missions de membres.", 1, 4, { guildXp: 180 })
+  makeLocalMissionQuest("m_g_d_2", "Aide communautaire", "Valide 4 quêtes de membres.", 1, 4, { guildXp: 180 })
  ]
  const guildWeeklyQuests = [
   makeLocalMissionQuest("m_g_w_1", "XP de guilde", "Atteins 2000 XP guilde.", 1460, 2000, { guildXp: 900 }),
@@ -4115,12 +4271,12 @@ async function renderQuests(force = false) {
  if (!panel) return
 
  if (!state.questsState || force) {
-  panel.innerHTML = '<div class="play-empty"><h3>Chargement</h3><p>Synchronisation des missions...</p></div>'
+  panel.innerHTML = '<div class="play-empty"><h3>Chargement</h3><p>Synchronisation des quêtes...</p></div>'
  }
 
  const res = await fetchQuestsState(force)
  if (!res.ok || !res.data) {
-  panel.innerHTML = '<div class="play-empty"><h3>Erreur</h3><p>Impossible de charger les missions.</p></div>'
+  panel.innerHTML = '<div class="play-empty"><h3>Erreur</h3><p>Impossible de charger les quêtes.</p></div>'
   return
  }
 
@@ -4489,9 +4645,11 @@ function syncPanelVisibility() {
   const title = document.getElementById("playTitle")
   const subtitle = document.getElementById("playSubtitle")
   const inventoryActionBox = document.getElementById("inventoryActionBox")
+  const inventorySummaryBar = document.getElementById("inventorySummaryBar")
 
   controls.style.display = state.mode === "inventory" ? "none" : "grid"
   subtabs.style.display = "none"
+  if (inventorySummaryBar) inventorySummaryBar.hidden = state.mode !== "inventory"
   if (subtitle) subtitle.style.display = state.mode === "inventory" ? "block" : "none"
   if (inventoryActionBox) {
    if (state.mode !== "inventory") {
@@ -4539,7 +4697,7 @@ function syncPanelVisibility() {
    grid.style.display = "none"
    craftPanel.style.display = "block"
  } else if (state.mode === "quests") {
-   title.textContent = "Missions"
+   title.textContent = "Quêtes"
    if (subtitle) subtitle.textContent = ""
    controls.style.display = "none"
    grid.style.display = "none"
@@ -4565,10 +4723,6 @@ function syncPanelVisibility() {
  }
 
 function bindEvents() {
-  document.getElementById("navToggle").addEventListener("click", () => {
-   document.getElementById("navLinks").classList.toggle("open")
-  })
-
   document.addEventListener("click", (event) => {
    const link = event.target.closest("[data-play-mode]")
    if (!link) return
@@ -4596,13 +4750,15 @@ function bindEvents() {
   const inventoryTopRarityFilter = document.getElementById("inventoryTopRarityFilter")
   if (rarityFilter) {
    rarityFilter.addEventListener("change", () => {
-    if (inventoryTopRarityFilter) inventoryTopRarityFilter.value = rarityFilter.value
+    const value = String(rarityFilter.value || "").trim().toUpperCase()
+    setInventoryActiveRarityFilters(value ? [value] : RARITY_ORDER)
     renderCurrentMode()
    })
   }
   if (inventoryTopRarityFilter) {
    inventoryTopRarityFilter.addEventListener("change", () => {
-    if (rarityFilter) rarityFilter.value = inventoryTopRarityFilter.value
+    const value = String(inventoryTopRarityFilter.value || "").trim().toUpperCase()
+    setInventoryActiveRarityFilters(value ? [value] : RARITY_ORDER)
     renderCurrentMode()
    })
   }
@@ -4679,7 +4835,17 @@ function bindEvents() {
    inventorySetRail.addEventListener("click", (event) => {
     const btn = event.target.closest("[data-inventory-set-id]")
     if (!btn) return
+    event.preventDefault()
     applyInventorySetFilter(btn.getAttribute("data-inventory-set-id"))
+   })
+  }
+
+  const inventorySummaryBar = document.getElementById("inventorySummaryBar")
+  if (inventorySummaryBar) {
+   inventorySummaryBar.addEventListener("click", (event) => {
+    const btn = event.target.closest("[data-inventory-rarity-filter]")
+    if (!btn) return
+    applyInventoryRarityFilter(btn.getAttribute("data-inventory-rarity-filter"))
    })
   }
 

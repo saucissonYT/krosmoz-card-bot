@@ -5,6 +5,8 @@ const { achievementCheck } = require("../../systems/achievementCheck")
 const { addBattlePassXP } = require("../../systems/battlePassService")
 const {
  ensureUserQuests,
+ getDailyQuests,
+ getWeeklyQuests,
  claimQuest,
  claimAll,
  DAILY_BONUS,
@@ -16,6 +18,49 @@ const {
 const {
  claimGuildQuests
 } = require("../../systems/guildQuestSystem")
+
+function setQuestStatValue(user, stat, value) {
+ const safeStat = String(stat || "").trim()
+ const safeValue = Math.max(0, Number(value || 0))
+ if (!safeStat) return
+ if (!user.stats || typeof user.stats !== "object") user.stats = {}
+ if (safeStat === "_shopBought") {
+  user.krosmoshopStats = user.krosmoshopStats || {}
+  user.krosmoshopStats.cardsBought = safeValue
+  return
+ }
+ if (safeStat === "_shopKamasSpent") {
+  user.krosmoshopStats = user.krosmoshopStats || {}
+  user.krosmoshopStats.kamasSpent = safeValue
+  return
+ }
+ if (safeStat === "_kamasEarned") {
+  user.stats.kamasEarned = safeValue
+  return
+ }
+ user.stats[safeStat] = safeValue
+}
+
+function ensureLocalQuestClaimSimulation(user) {
+ if (!user || typeof user !== "object") return false
+
+ ensureUserQuests(user)
+ const daily = getDailyQuests().quests || []
+ const weekly = getWeeklyQuests().quests || []
+
+ for (const quest of daily) {
+  const baseline = Number(user.quests?.daily?.snapshot?.[quest.stat] || 0)
+  setQuestStatValue(user, quest.stat, baseline + Number(quest.goal || 1) + 1)
+ }
+ for (const quest of weekly) {
+  const baseline = Number(user.quests?.weekly?.snapshot?.[quest.stat] || 0)
+  setQuestStatValue(user, quest.stat, baseline + Number(quest.goal || 1) + 2)
+ }
+
+ if (user.quests?.daily && daily[0]) user.quests.daily.claimed = [String(daily[0].id)]
+ if (user.quests?.weekly && weekly[0]) user.quests.weekly.claimed = [String(weekly[0].id)]
+ return true
+}
 
 module.exports = function mount(app, ctx) {
  const {
@@ -33,6 +78,7 @@ module.exports = function mount(app, ctx) {
    }
 
    const user = getUser(session.userId)
+   const simulatedLocalClaims = session.local ? ensureLocalQuestClaimSimulation(user) : false
    const prevDailyId = String(user?.quests?.daily?.dayId || "")
    const prevWeeklyId = String(user?.quests?.weekly?.weekId || "")
 
@@ -40,7 +86,7 @@ module.exports = function mount(app, ctx) {
 
    const nextDailyId = String(user?.quests?.daily?.dayId || "")
    const nextWeeklyId = String(user?.quests?.weekly?.weekId || "")
-   if (prevDailyId !== nextDailyId || prevWeeklyId !== nextWeeklyId) {
+   if (simulatedLocalClaims || prevDailyId !== nextDailyId || prevWeeklyId !== nextWeeklyId) {
     save(session.userId)
     invalidateUserCaches([session.userId], { invalidateLeaderboard: false })
    }
