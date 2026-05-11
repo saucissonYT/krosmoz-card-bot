@@ -10,7 +10,6 @@ const SET_META = [
   id: "astrub",
   dir: "astrub-lvl-1-35",
   name: "Astrub",
-  icon: "🏛️",
   levels: "Niveaux 1 a 35",
   description: "La cite des aventuriers rassemble les premieres cartes du voyage, des reliques de debutant aux equipements qui ouvrent la route du Krosmoz."
  },
@@ -18,7 +17,6 @@ const SET_META = [
   id: "amakna",
   dir: "amakna-lvl-36-50",
   name: "Amakna",
-  icon: "🌾",
   levels: "Niveaux 36 a 50",
   description: "Un set royal, agricole et plein de vieux secrets, entre champs, bouftous et objets marques par les premieres grandes explorations."
  },
@@ -26,7 +24,6 @@ const SET_META = [
   id: "sufokia",
   dir: "sufokia-lvl-51-65",
   name: "Sufokia",
-  icon: "🌊",
   levels: "Niveaux 51 a 65",
   description: "Des cartes marines, mecaniques et lumineuses, faconnees par les profondeurs, les quais et les machines sufokiennes."
  },
@@ -34,7 +31,6 @@ const SET_META = [
   id: "kelba",
   dir: "kelba-lvl-66-80",
   name: "Kelba",
-  icon: "🎪",
   levels: "Niveaux 66 a 80",
   description: "Marchands, affaires louches et trouvailles rares composent une collection nerveuse, faite pour ceux qui aiment les bonnes occasions."
  },
@@ -42,7 +38,6 @@ const SET_META = [
   id: "katrepat",
   dir: "katrepat-lvl-81-95",
   name: "Katrepat",
-  icon: "🔥",
   levels: "Niveaux 81 a 95",
   description: "Un set sombre, dangereux et taille pour les audacieux, avec des pieces qui sentent la malediction et les expeditions risquees."
  },
@@ -50,7 +45,6 @@ const SET_META = [
   id: "sberg",
   dir: "sberg-lvl-96-110",
   name: "Sberg",
-  icon: "❄️",
   levels: "Niveaux 96 a 110",
   description: "Les terres glacees, les legendes froides et les cartes rares donnent a cette tranche une allure rude et majestueuse."
  },
@@ -58,15 +52,13 @@ const SET_META = [
   id: "shukrute",
   dir: "shukrute-lvl-111-125",
   name: "Shukrute",
-  icon: "🜏",
   levels: "Niveaux 111 a 125",
   description: "Un set nerveux, infernal et charge de reliques etranges, pour les collectionneurs qui aiment les artefacts instables."
  },
  {
   id: "saharach",
-  dir: "saharash-lvl-126-140",
+ dir: "saharach-lvl-126-140",
   name: "Saharach",
-  icon: "🏜️",
   levels: "Niveaux 126 a 140",
   description: "Poussiere, mirages et tresors perdus dans le sable composent une collection chaude, seche et pleine de surprises."
  },
@@ -74,7 +66,6 @@ const SET_META = [
   id: "enutrosor",
   dir: "enutrosor-lvl-141-155",
   name: "Enutrosor",
-  icon: "💎",
   levels: "Niveaux 141 a 155",
   description: "Richesses enfouies et artefacts de grands chasseurs de tresors brillent dans une tranche pensee pour les amoureux du butin."
  },
@@ -82,7 +73,6 @@ const SET_META = [
   id: "xelorium",
   dir: "xelorium-lvl-156-170",
   name: "Xelorium",
-  icon: "⏳",
   levels: "Niveaux 156 a 170",
   description: "Le temps se plie autour des cartes les plus instables, entre mecanismes, paradoxes et equipements d'une autre horloge."
  },
@@ -90,7 +80,6 @@ const SET_META = [
   id: "moon",
   dir: "moon-lvl-171-185",
   name: "Moon",
-  icon: "🌙",
   levels: "Niveaux 171 a 185",
   description: "Jungle sacree, masques anciens et trophees sauvages donnent a cette collection une energie tribale et precieuse."
  },
@@ -98,7 +87,6 @@ const SET_META = [
   id: "zinit",
   dir: "zinit-lvl-186-200",
   name: "Zinit",
-  icon: "⛰️",
   levels: "Niveaux 186 a 200",
   description: "L'ascension finale vers les cartes les plus convoitees, avec des objets puissants et une collection dense a maitriser."
  },
@@ -106,7 +94,6 @@ const SET_META = [
   id: "osamosa",
   dir: "osamosa-lvl-201-215",
   name: "Osamosa",
-  icon: "🐉",
   levels: "Niveaux 201 a 215",
   description: "Une collection bestiale, sauvage et pleine de puissance, marquee par les traces de creatures et d'equipements vivants."
  },
@@ -114,7 +101,6 @@ const SET_META = [
   id: "ereboria",
   dir: "ereboria-lvl-216-230",
   name: "Ereboria",
-  icon: "🌋",
   levels: "Niveaux 216 a 230",
   description: "Terres hostiles, ressources rares et equipements de legende nourrissent une tranche haute en tension et en recompenses."
  },
@@ -122,7 +108,6 @@ const SET_META = [
   id: "brume",
   dir: "brume-lvl-231-245",
   name: "Brume",
-  icon: "🦖",
   levels: "Niveaux 231 a 245",
   description: "Le set le plus haut, entre mystere et collection d'elite, pour les cartes qui se gagnent au bout de la progression."
  }
@@ -131,10 +116,27 @@ const SET_META = [
 const SET_BY_ID = new Map(SET_META.map((set) => [set.id, set]))
 const SET_BY_DIR = new Map(SET_META.map((set) => [set.dir, set]))
 const SET_ALIAS_FIXES = new Map([
- ["saharach", "saharash"]
+ ["incarnam", "astrub"],
+ ["saharash", "saharach"]
+])
+const SET_ICON_BY_ALIAS = new Map([
+ ["astrub", "\uD83C\uDFDB\uFE0F"],
+ ["amakna", "\uD83C\uDF3E"],
+ ["sufokia", "\uD83C\uDF0A"],
+ ["kelba", "\uD83C\uDFAA"],
+ ["katrepat", "\uD83E\uDD87"],
+ ["sberg", "\u2744\uFE0F"],
+ ["shukrute", "\uD83D\uDE08"],
+ ["saharach", "\uD83C\uDFDC\uFE0F"],
+ ["enutrosor", "\uD83D\uDC8E"],
+ ["xelorium", "\u23F3"],
+ ["moon", "\uD83C\uDF19"],
+ ["zinit", "\u26F0\uFE0F"],
+ ["osamosa", "\uD83D\uDC09"],
+ ["ereboria", "\uD83C\uDF0B"],
+ ["brume", "\uD83E\uDD96"]
 ])
 const SET_DESCRIPTION_BY_ALIAS = new Map([
- ["incarnam", "Les premieres cartes du voyage, pensees pour poser les bases de la collection."],
  ["astrub", "La cite des aventuriers rassemble les premieres cartes du voyage et ouvre la route du Krosmoz."],
  ["amakna", "Un set royal, agricole et plein de vieux secrets, entre champs et premieres grandes explorations."],
  ["sufokia", "Des cartes marines, mecaniques et lumineuses, faconnees par les profondeurs et les quais sufokiens."],
@@ -142,7 +144,7 @@ const SET_DESCRIPTION_BY_ALIAS = new Map([
  ["katrepat", "Un set sombre, dangereux et taille pour les expeditions risquees."],
  ["sberg", "Les terres glacees et les legendes froides donnent a cette tranche une allure rude et majestueuse."],
  ["shukrute", "Un set nerveux, infernal et charge de reliques etranges."],
- ["saharash", "Poussiere, mirages et tresors perdus dans le sable composent une collection chaude et seche."],
+ ["saharach", "Poussiere, mirages et tresors perdus dans le sable composent une collection chaude et seche."],
  ["enutrosor", "Richesses enfouies et artefacts de grands chasseurs de tresors brillent dans cette tranche."],
  ["xelorium", "Le temps se plie autour des cartes les plus instables, entre mecanismes et paradoxes."],
  ["moon", "Jungle sacree, masques anciens et trophees sauvages donnent a cette collection une energie tribale."],
@@ -168,6 +170,8 @@ function getSetAlias(value) {
 
 function getSetIcon(set) {
  const alias = getSetAlias(set?.id || set?.name)
+ const icon = SET_ICON_BY_ALIAS.get(alias)
+ if (icon) return icon
  const label = String(set?.name || alias || "Set").trim()
  return label.charAt(0).toUpperCase() || "S"
 }
@@ -177,6 +181,28 @@ function getSetLevels(set) {
  const max = Number(set?.levelMax || 0)
  if (min > 0 && max > 0) return `Niveaux ${min} a ${max}`
  return String(set?.levels || "Set")
+}
+
+function getSetLevelBounds(set) {
+ const alias = getSetAlias(set?.id || set?.name)
+ const legacy = SET_BY_ID.get(alias) || SET_BY_DIR.get(String(set?.id || ""))
+ const min = Number(set?.levelMin || legacy?.levelMin || 0)
+ const max = Number(set?.levelMax || legacy?.levelMax || 0)
+ if (min > 0) return { min, max: max > 0 ? max : min }
+
+ const source = `${set?.id || ""} ${set?.name || ""} ${set?.levels || legacy?.levels || ""}`
+ const match = source.match(/(?:lvl-|\s)(\d+)\s*(?:-|a)\s*(\d+)/i)
+ if (match) return { min: Number(match[1]), max: Number(match[2]) }
+
+ return { min: 9999, max: 9999 }
+}
+
+function compareSetsByLevel(a, b) {
+ const aBounds = getSetLevelBounds(a)
+ const bBounds = getSetLevelBounds(b)
+ if (aBounds.min !== bBounds.min) return aBounds.min - bBounds.min
+ if (aBounds.max !== bBounds.max) return aBounds.max - bBounds.max
+ return String(a?.name || a?.id || "").localeCompare(String(b?.name || b?.id || ""), "fr")
 }
 
 function enrichSet(set) {
@@ -193,7 +219,7 @@ function enrichSet(set) {
 }
 
 function buildSetList(ctx) {
- return ctx.getSetsWithCounts().map(enrichSet)
+ return ctx.getSetsWithCounts().map(enrichSet).sort(compareSetsByLevel)
 }
 
 function findSet(ctx, value) {
