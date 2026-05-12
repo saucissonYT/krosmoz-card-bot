@@ -1031,16 +1031,47 @@ body.index-page .stat-label {
 
 .section-title {
  font-family: 'Cinzel', serif;
- font-size: 2rem;
+ font-size: clamp(2.1rem, 5vw, 4.8rem);
  font-weight: 700;
  text-align: center;
- margin-bottom: 12px;
+ margin: 0;
+ line-height: 0.98;
+ letter-spacing: 0.04em;
+ text-transform: uppercase;
+ color: #fff8e8;
+ text-shadow: 0 22px 58px rgba(0, 0, 0, 0.58);
+}
+
+.section-title::after {
+ content: "✦";
+ position: relative;
+ display: block;
+ width: min(520px, 76vw);
+ height: 1px;
+ margin: 1.05rem auto 0.35rem;
+ background: linear-gradient(
+  to right,
+  transparent,
+  rgba(201, 168, 76, 0.84) 18%,
+  rgba(201, 168, 76, 0.84) calc(50% - 22px),
+  transparent calc(50% - 22px),
+  transparent calc(50% + 22px),
+  rgba(201, 168, 76, 0.84) calc(50% + 22px),
+  rgba(201, 168, 76, 0.84) 82%,
+  transparent
+ );
+ color: #e8c97a;
+ font-family: "Jost", sans-serif;
+ font-size: 0.86rem;
+ line-height: 1;
+ text-align: center;
+ text-shadow: 0 0 14px rgba(201, 168, 76, 0.42), 0 2px 10px rgba(0, 0, 0, 0.9);
 }
 
 .section-subtitle {
  text-align: center;
  color: var(--text-secondary);
- margin-bottom: 48px;
+ margin: 8px auto 48px;
  font-size: 1.05rem;
 }
 
@@ -6137,6 +6168,45 @@ body.achievements-page .ach-claim-row strong {
  font-size: 1.02rem;
  display: grid;
  gap: 1px;
+}
+
+body.events-page .events-hero,
+body.guild-page .guild-shell > header,
+body.battlepass-page .battlepass-hero {
+ width: min(760px, 100%);
+ margin: 0 auto clamp(18px, 2.4vw, 34px);
+ text-align: center;
+}
+
+body.events-page .events-hero .section-title,
+body.events-page .events-hero .section-subtitle,
+body.guild-page .section-title,
+body.guild-page .section-subtitle,
+body.battlepass-page .battlepass-hero .section-title,
+body.battlepass-page .battlepass-hero .section-subtitle {
+ text-align: center;
+}
+
+body.events-page .events-hero .section-title,
+body.guild-page .section-title,
+body.battlepass-page .battlepass-hero .section-title {
+ margin: 0;
+ color: #fff8e8;
+ font-size: clamp(2.1rem, 5vw, 4.8rem);
+ line-height: 0.98;
+ letter-spacing: 0.04em;
+ text-transform: uppercase;
+ text-shadow: 0 22px 58px rgba(0, 0, 0, 0.58);
+}
+
+body.events-page .events-hero .section-subtitle,
+body.guild-page .section-subtitle,
+body.battlepass-page .battlepass-hero .section-subtitle {
+ margin: 8px auto 48px;
+ color: var(--text-secondary);
+ font-size: 1.05rem;
+ font-weight: 400;
+ text-shadow: none;
 }
 
 body.achievements-page .ach-claim-empty {

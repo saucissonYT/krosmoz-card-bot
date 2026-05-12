@@ -1570,9 +1570,9 @@ body.play-page.fusion-bg-active .event-live-toast {
 .inventory-title-rule {
  display: none;
  position: relative;
- width: min(420px, 72%);
+ width: min(520px, 76%);
  height: 1px;
- margin: 0.7rem 0 0.45rem;
+ margin: 1.05rem auto 0.35rem;
  background: linear-gradient(
   to right,
   transparent,
