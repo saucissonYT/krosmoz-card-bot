@@ -89,6 +89,36 @@
    text-shadow: 0 10px 28px rgba(0, 0, 0, 0.48);
   }
 
+  .kshop-title-rule {
+   position: relative;
+   width: min(520px, 76%);
+   height: 1px;
+   margin: 1.05rem auto 0.35rem;
+   background: linear-gradient(
+    to right,
+    transparent,
+    rgba(201, 168, 76, 0.84) 18%,
+    rgba(201, 168, 76, 0.84) calc(50% - 22px),
+    transparent calc(50% - 22px),
+    transparent calc(50% + 22px),
+    rgba(201, 168, 76, 0.84) calc(50% + 22px),
+    rgba(201, 168, 76, 0.84) 82%,
+    transparent
+   );
+  }
+
+  .kshop-title-rule::after {
+   position: absolute;
+   left: 50%;
+   top: 50%;
+   content: "✦";
+   transform: translate(-50%, -50%);
+   color: var(--kshop-gold);
+   font-size: 0.86rem;
+   line-height: 1;
+   text-shadow: 0 0 14px rgba(201, 168, 76, 0.42), 0 2px 10px rgba(0, 0, 0, 0.9);
+  }
+
   .kshop-subtitle {
    margin: 8px 0 16px;
    color: #f7fbff;
@@ -396,6 +426,7 @@
 
  <main class="kshop-shell">
   <h1 class="kshop-title">KrosmoShop</h1>
+  <div class="kshop-title-rule" aria-hidden="true"></div>
   <p class="kshop-subtitle">Boutique quotidienne de cartes premium.</p>
 
   <section class="kshop-summary" aria-label="Resume du KrosmoShop">

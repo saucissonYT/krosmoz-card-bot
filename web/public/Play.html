@@ -6,7 +6,7 @@
  <title>Mon Jeu - Krosmoz Card</title>
  <meta name="theme-color" content="#0b0b18">
  <link rel="stylesheet" href="/css/style.css">
-<link rel="stylesheet" href="/Play.css?v=20260509-inventory-hover-select">
+<link rel="stylesheet" href="/Play.css?v=20260512-inventory-title">
 </head>
 <body class="play-page">
 <script>
@@ -74,7 +74,8 @@ if (__initialPlayTab === "fusion") {
   <div class="container">
    <section class="play-shell">
     <header class="play-head mode-hero">
-      <h1 id="playTitle">Inventaire</h1>
+      <h1 id="playTitle">INVENTAIRE</h1>
+      <div class="inventory-title-rule" aria-hidden="true"></div>
       <p id="playSubtitle" class="play-subtitle">Consulte ton inventaire et fait le tri dans ton inventaire.</p>
     </header>
     <main class="play-main">
@@ -4703,7 +4704,7 @@ function syncPanelVisibility() {
    grid.style.display = "none"
    questsPanel.style.display = "block"
   } else {
-   title.textContent = "Inventaire"
+   title.textContent = "INVENTAIRE"
    if (subtitle) {
     subtitle.textContent = "Consulte ton inventaire et fait le tri dans ton inventaire."
    }

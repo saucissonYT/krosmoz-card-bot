@@ -1567,6 +1567,82 @@ body.play-page.fusion-bg-active .event-live-toast {
  margin: 0;
 }
 
+.inventory-title-rule {
+ display: none;
+ position: relative;
+ width: min(420px, 72%);
+ height: 1px;
+ margin: 0.7rem 0 0.45rem;
+ background: linear-gradient(
+  to right,
+  transparent,
+  rgba(201, 168, 76, 0.84) 18%,
+  rgba(201, 168, 76, 0.84) calc(50% - 22px),
+  transparent calc(50% - 22px),
+  transparent calc(50% + 22px),
+  rgba(201, 168, 76, 0.84) calc(50% + 22px),
+  rgba(201, 168, 76, 0.84) 82%,
+  transparent
+ );
+}
+
+.inventory-title-rule::after {
+ position: absolute;
+ left: 50%;
+ top: 50%;
+ content: "✦";
+ transform: translate(-50%, -50%);
+ color: #e8c97a;
+ font-size: 0.86rem;
+ line-height: 1;
+ text-shadow: 0 0 14px rgba(201, 168, 76, 0.42), 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.play-page.inventory-layout-active .inventory-title-rule {
+ display: block;
+}
+
+body.play-page.route-inventory-bg .play-shell,
+body.play-page.inventory-bg-active .play-shell {
+ grid-template-rows: auto minmax(0, 1fr);
+}
+
+body.play-page.route-inventory-bg .play-head.mode-hero,
+body.play-page.inventory-bg-active .play-head.mode-hero,
+.play-page.inventory-layout-active .play-head.mode-hero {
+ display: grid !important;
+ justify-items: center;
+ gap: 0;
+ position: relative;
+ z-index: 2;
+ padding: 0 0 16px !important;
+ text-align: center;
+}
+
+body.play-page.route-inventory-bg .play-head.mode-hero h1,
+body.play-page.inventory-bg-active .play-head.mode-hero h1,
+.play-page.inventory-layout-active .play-head.mode-hero h1 {
+ color: #fff8e8;
+ font-size: clamp(2rem, 3vw, 3.1rem);
+ letter-spacing: 0.12em;
+ line-height: 1;
+ text-shadow: 0 14px 42px rgba(0, 0, 0, 0.82);
+}
+
+body.play-page.route-inventory-bg .inventory-title-rule,
+body.play-page.inventory-bg-active .inventory-title-rule {
+ display: block;
+}
+
+.play-page.inventory-layout-active .play-head.mode-hero .play-subtitle {
+ display: none !important;
+}
+
+body.play-page.route-inventory-bg .play-main,
+body.play-page.inventory-bg-active .play-main {
+ height: auto !important;
+}
+
 .play-head.mode-hero .play-subtitle {
  color: #bdc2df;
  margin-top: 0;
@@ -9229,4 +9305,35 @@ body.play-page.inventory-bg-active .inventory-set-rail {
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   grid-auto-rows: clamp(112px, 32vw, 148px) !important;
  }
+}
+
+/* Keep the inventory title visible above the card grid. */
+body.play-page.route-inventory-bg .play-shell,
+body.play-page.inventory-bg-active .play-shell,
+.play-page.inventory-layout-active .play-shell {
+ grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+body.play-page.route-inventory-bg .play-head.mode-hero,
+body.play-page.inventory-bg-active .play-head.mode-hero,
+.play-page.inventory-layout-active .play-head.mode-hero {
+ display: grid !important;
+ justify-items: center !important;
+ align-content: center !important;
+ padding: 0 0 18px !important;
+}
+
+body.play-page.route-inventory-bg .play-main,
+body.play-page.inventory-bg-active .play-main,
+.play-page.inventory-layout-active .play-main {
+ height: auto !important;
+ min-height: 0 !important;
+}
+
+body.play-page.route-inventory-bg .play-head.mode-hero h1,
+body.play-page.inventory-bg-active .play-head.mode-hero h1,
+.play-page.inventory-layout-active .play-head.mode-hero h1 {
+ font-size: clamp(2.1rem, 5vw, 4.8rem) !important;
+ line-height: 0.98 !important;
+ letter-spacing: 0.04em !important;
 }
