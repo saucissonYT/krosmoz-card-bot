@@ -86,8 +86,8 @@ module.exports = function mount(app, ctx) {
   }
   return res.sendFile(path.join(PUBLIC_DIR, "Quetes.html"))
  })
- app.get("/quests", (req, res) => res.status(404).send("Route supprimée. Utilise /quetes."))
- app.get("/market", (req, res) => res.redirect(302, "/shop#market"))
+ app.get("/quests", (req, res) => res.redirect(301, "/quetes"))
+ app.get("/market", (req, res) => res.redirect(301, "/krosmoshop"))
  app.get("/events", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Events.html")))
  app.get("/battlepass", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Battlepass.html")))
  app.get("/guild", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "Guild.html")))

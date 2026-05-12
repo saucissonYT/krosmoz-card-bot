@@ -2001,12 +2001,12 @@ function setIndexPlayButton(connected, options = {}) {
       <li><a href="/packs" data-play-mode="packs">Packs</a></li>
       <li><a href="/play/fusion" data-play-mode="fusion">Fusion</a></li>
       <li><a href="/play/fabrication" data-play-mode="craft">Fabrication</a></li>
-      <li><a href="/shop">Shop</a></li>
+      <li><a href="/krosmoshop">Shop</a></li>
       <li><a href="/events">Events</a></li>
       <li><a href="/battlepass">Battlepass</a></li>
       <li><a href="/guild">Guildes</a></li>
       <li><a href="/achievements">Achievements</a></li>
-      <li><a href="/profile/">Profil</a></li>
+      <li><a href="/profile">Profil</a></li>
      </ul>
     </div>
    `
@@ -2057,7 +2057,7 @@ function setIndexPlayButton(connected, options = {}) {
   const isPath = (...paths) => paths.some((path) => currentPath === path || currentPath.startsWith(`${path}/`))
   const isProfileArea = isPath("/profile", "/achievements", "/guild", "/battlepass", "/quetes")
   const isCraftArea = currentPath.startsWith("/play/fusion") || currentPath.startsWith("/play/fabrication") || currentPath.startsWith("/play/craft")
-  const isShopArea = isPath("/shop", "/krosmoshop", "/market")
+  const isShopArea = isPath("/krosmoshop", "/shop", "/market")
   const isInventoryPath = currentPath === "/inventaire" || currentPath === "/inventory" || currentPath === "/play/inventory"
   const isPacksPath = currentPath === "/packs" || currentPath === "/packs-test" || currentPath === "/play/packs"
 
@@ -2074,8 +2074,7 @@ function setIndexPlayButton(connected, options = {}) {
     { label: "Fabrication", href: "/play/fabrication" }
    ],
    shop: [
-    { label: "KrosmoShop", href: "/shop" },
-    { label: "Marché", href: "/shop#market" }
+    { label: "KrosmoShop", href: "/krosmoshop" }
    ]
   }
 
@@ -2128,7 +2127,7 @@ function setIndexPlayButton(connected, options = {}) {
    packsLink.textContent = "Packs"
    packsLink.classList.toggle("is-active", isPacksPath)
    const craftMenu = makeTopDropdown("globalCraftMenu", "Artisanat", "/play/fusion", dropdownItems.craft, isCraftArea)
-   const shopMenu = makeTopDropdown("globalShopMenu", "Shop", "/shop", dropdownItems.shop, isShopArea)
+   const shopMenu = makeTopDropdown("globalShopMenu", "Shop", "/krosmoshop", dropdownItems.shop, isShopArea)
 
    let cursor = topNav.querySelector('a[href="/sets"]')
    cursor = insertAfter(cursor, profileMenu)
@@ -2177,7 +2176,7 @@ function setIndexPlayButton(connected, options = {}) {
     makeLegacyLinkItem("globalInventoryNavItem", "Inventaire", "/inventaire", isInventoryPath),
     makeLegacyLinkItem("globalPacksNavItem", "Packs", "/packs", isPacksPath),
     makeLegacyDropdownItem("globalCraftNavItem", "Artisanat", "/play/fusion", dropdownItems.craft, isCraftArea),
-    makeLegacyDropdownItem("globalShopNavItem", "Shop", "/shop", dropdownItems.shop, isShopArea)
+     makeLegacyDropdownItem("globalShopNavItem", "Shop", "/krosmoshop", dropdownItems.shop, isShopArea)
    ]
    const setsLi = navLinks.querySelector('a[href="/sets"]')?.parentElement
    let cursor = setsLi || null
@@ -2198,7 +2197,7 @@ function setIndexPlayButton(connected, options = {}) {
     { id: "globalInventoryBtn", label: "Inventaire", href: "/inventaire" },
     { id: "globalPacksBtn", label: "Packs", href: "/packs" },
     { id: "globalCraftBtn", label: "Artisanat", href: "/play/fusion" },
-    { id: "globalShopBtn", label: "Shop", href: "/shop" }
+     { id: "globalShopBtn", label: "Shop", href: "/krosmoshop" }
    ]
    let cursor = btn
    fallback.forEach((item) => {
@@ -2377,67 +2376,14 @@ function setIndexPlayButton(connected, options = {}) {
  }
 
  function setConnectedNavLink(connected) {
-  if (!navLinks) return
-  const existingPlayLink = navLinks.querySelector('a[href="/play"]')
-  if (existingPlayLink && existingPlayLink.parentElement && existingPlayLink.parentElement.id !== "globalPlayNavItem") {
-   if (!connected) {
-    existingPlayLink.parentElement.style.display = "none"
-    existingPlayLink.classList.remove("active")
-    return
-   }
-   existingPlayLink.parentElement.style.display = ""
-   const p = String(window.location.pathname || "")
-   existingPlayLink.classList.toggle("active", p === "/play" || p.startsWith("/play/"))
-   return
-  }
-
-  let playLi = navLinks.querySelector("#globalPlayNavItem")
-  if (!connected) {
-   if (playLi) playLi.remove()
-   return
-  }
-
-  if (navLinks.querySelector("#globalPacksNavItem")) {
-   if (playLi) playLi.remove()
-   return
-  }
-
-  if (!playLi) {
-   playLi = document.createElement("li")
-   playLi.id = "globalPlayNavItem"
-   const a = document.createElement("a")
-   a.href = "/packs"
-   a.textContent = "Mon Jeu"
-   playLi.appendChild(a)
-   navLinks.appendChild(playLi)
-  }
-
-  const link = playLi.querySelector("a")
-  if (!link) return
-  const p = String(window.location.pathname || "")
-  link.classList.toggle("active", p === "/play" || p.startsWith("/play/"))
+  void connected
  }
 
  function setTopMarketLinkVisibility(connected) {
-  if (!navLinks) return
-  const marketLink = navLinks.querySelector('a[href="/market"]')
-  if (!marketLink || !marketLink.parentElement) return
-  if (connected) {
-   marketLink.parentElement.style.display = "none"
-   marketLink.classList.remove("active")
-   return
-  }
-  marketLink.parentElement.style.display = ""
-  const p = String(window.location.pathname || "")
-  marketLink.classList.toggle("active", p === "/market" || p.startsWith("/market/"))
+  void connected
  }
 
  function setTopEventsLinkVisibility() {
-  if (!navLinks) return
-  const eventsLink = navLinks.querySelector('a[href="/events"]')
-  if (!eventsLink || !eventsLink.parentElement) return
-  eventsLink.parentElement.style.display = "none"
-  eventsLink.classList.remove("active")
  }
 
  let status = null
