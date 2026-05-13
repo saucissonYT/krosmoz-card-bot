@@ -4726,6 +4726,19 @@
    return normalizedSetId.replace(/-lvl-\d+-\d+$/, "")
   }
 
+  function isCardFromPackSet(card, setId) {
+   const targetSetId = normalizeSetId(setId)
+   const targetAlias = getPackSetAlias(targetSetId)
+   const cardSetId = normalizeSetId(card?.set || card?.setId || "")
+   const cardAlias = getPackSetAlias(cardSetId)
+   return Boolean(targetSetId && (
+    cardSetId === targetSetId ||
+    cardSetId === targetAlias ||
+    cardAlias === targetSetId ||
+    cardAlias === targetAlias
+   ))
+  }
+
   function updatePackSetBackground(setId) {
    const backgroundUrl = PACK_SET_BACKGROUND_BY_ALIAS[getPackSetAlias(setId)]
    document.documentElement.style.setProperty(
@@ -4992,12 +5005,13 @@
   }
 
   async function fetchSSRCardsForSet(setId) {
+   const targetSetId = normalizeSetId(setId)
    let page = 1
    let pages = 1
    const cards = []
 
    while (page <= pages) {
-    const response = await fetch(`/api/cards?set=${encodeURIComponent(setId)}&rarity=SSR&sort=name&order=asc&page=${page}&limit=100`, {
+    const response = await fetch(`/api/cards?set=${encodeURIComponent(targetSetId)}&rarity=SSR&sort=name&order=asc&page=${page}&limit=100`, {
      credentials: "same-origin"
     })
     if (!response.ok) {
@@ -5010,9 +5024,28 @@
     page += 1
    }
 
+   if (!cards.length) {
+    page = 1
+    pages = 1
+    while (page <= pages) {
+     const response = await fetch(`/api/cards?rarity=SSR&sort=name&order=asc&page=${page}&limit=100`, {
+      credentials: "same-origin"
+     })
+     if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+     }
+     const payload = await response.json()
+     const items = Array.isArray(payload?.items) ? payload.items : []
+     cards.push(...items.filter((card) => isCardFromPackSet(card, targetSetId)))
+     pages = Math.max(1, Number(payload?.pages || 1))
+     page += 1
+    }
+   }
+
    const seenIds = new Set()
    return cards
     .filter((card) => String(card?.rarity || "").toUpperCase() === "SSR")
+    .filter((card) => isCardFromPackSet(card, targetSetId))
     .filter((card) => {
      const id = String(card?.id || "")
      if (!id) return true
