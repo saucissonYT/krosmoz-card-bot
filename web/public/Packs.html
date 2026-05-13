@@ -4703,6 +4703,10 @@
    return String(value || "").trim().toLowerCase()
   }
 
+  const PACK_SET_ALIAS_FIXES = {
+   saharash: "saharach"
+  }
+
   const PACK_SET_BACKGROUND_BY_ALIAS = {
    amakna: "/assets/ui/fonds%20sets/amakna.webp",
    astrub: "/assets/ui/fonds%20sets/astrub.webp",
@@ -4723,7 +4727,8 @@
 
   function getPackSetAlias(setId) {
    const normalizedSetId = normalizeSetId(setId)
-   return normalizedSetId.replace(/-lvl-\d+-\d+$/, "")
+   const alias = normalizedSetId.replace(/-lvl-\d+-\d+$/, "")
+   return PACK_SET_ALIAS_FIXES[alias] || alias
   }
 
   function isCardFromPackSet(card, setId) {
