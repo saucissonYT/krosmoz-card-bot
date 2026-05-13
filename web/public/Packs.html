@@ -4219,9 +4219,9 @@
    <figure id="packsFocusFigure" class="packs-focus-character" aria-label="Centre Astrub">
     <img id="packsFocusImage" src="/assets/ui/centre%20astrub.png" alt="Centre Astrub">
    </figure>
-  <div class="packs-focus-badge" aria-label="Rarete SSR Gromulet">
+  <div class="packs-focus-badge" aria-label="Rarete SSR">
    <img src="/assets/ui/ssr.png" alt="SSR">
-   <span id="packsFocusName">gromulet</span>
+   <span id="packsFocusName">bouftou royal</span>
   </div>
 
    <section id="packsInlineOpeningResult" class="packs-inline-opening-result" aria-live="polite" hidden>
@@ -4428,11 +4428,7 @@
     centerWidth1180: "min(94.3vw, 1127px)",
     centerWidthMobile: "min(101.2vw, 621px)",
     focusName: "bouftou royal",
-    effectiveSSR: 1.05,
-    ssrCards: [
-     { name: "Gromulet", rate: 0.58, image: "/assets/ui/gromulet_incarnam_SSR.png" },
-     { name: "Mimi", rate: 0.47, image: "/assets/ui/mimi_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 2, s: 8, ssr: 16 }
    },
    amakna: {
@@ -4445,11 +4441,7 @@
     centerWidth1180: "min(118.08vw, 1411px)",
     centerWidthMobile: "min(126.72vw, 778px)",
     focusName: "khan karkass",
-    effectiveSSR: 1.1,
-    ssrCards: [
-     { name: "Gromulet", rate: 0.56, image: "/assets/ui/gromulet_incarnam_SSR.png" },
-     { name: "Mimi", rate: 0.54, image: "/assets/ui/mimi_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 3, s: 10, ssr: 19 }
    },
    sufokia: {
@@ -4464,11 +4456,7 @@
     centerWidth1180: "min(180vw, 2520px)",
     centerWidthMobile: "min(186vw, 1584px)",
     focusName: "cire momore",
-    effectiveSSR: 1.15,
-    ssrCards: [
-     { name: "Mimi", rate: 0.52, image: "/assets/ui/mimi_incarnam_SSR.png" },
-     { name: "Gromulet", rate: 0.63, image: "/assets/ui/gromulet_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 5, s: 14, ssr: 22 }
    },
    kelba: {
@@ -4480,11 +4468,7 @@
     centerBottom: "-98px",
     centerBottom1180: "-68px",
     focusName: "excarnus",
-    effectiveSSR: 1.08,
-    ssrCards: [
-     { name: "Gromulet", rate: 0.55, image: "/assets/ui/gromulet_incarnam_SSR.png" },
-     { name: "Mimi", rate: 0.53, image: "/assets/ui/mimi_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 3, s: 11, ssr: 17 }
    },
    katrepat: {
@@ -4496,11 +4480,7 @@
     centerBottom: "-135px",
     centerBottom1180: "-115px",
     focusName: "vampyro",
-    effectiveSSR: 1.13,
-    ssrCards: [
-     { name: "Mimi", rate: 0.57, image: "/assets/ui/mimi_incarnam_SSR.png" },
-     { name: "Gromulet", rate: 0.56, image: "/assets/ui/gromulet_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 4, s: 13, ssr: 20 }
    },
    sberg: {
@@ -4512,11 +4492,7 @@
     centerBottom: "14px",
     centerBottom1180: "28px",
     focusName: "corbeau noir",
-    effectiveSSR: 1.18,
-    ssrCards: [
-     { name: "Gromulet", rate: 0.6, image: "/assets/ui/gromulet_incarnam_SSR.png" },
-     { name: "Mimi", rate: 0.58, image: "/assets/ui/mimi_incarnam_SSR.png" }
-    ],
+    ssrCards: [],
     pityStart: { ur: 5, s: 15, ssr: 24 }
    }
   }
@@ -4944,6 +4920,13 @@
    return 0.03
   }
 
+  function getPackSSRDropRate(pityValue) {
+   const pity = Math.max(0, Number(pityValue || 0))
+   if (pity >= setPityCaps.ssr - 1) return 1
+   const slotRate = getSSRSoftPityRate(pity)
+   return 1 - Math.pow(1 - slotRate, 5)
+  }
+
   function getFallbackSSRCardsForSet(setId) {
    const source = Array.isArray(setCatalog[setId]?.ssrCards) ? setCatalog[setId].ssrCards : []
    return source.map((card, index) => ({
@@ -4995,8 +4978,7 @@
   function getEffectiveSSRRatePercentForSet(setId) {
    const pityState = packsState.pityBySet[setId] || { ssr: 0 }
    const pitySsr = Math.max(0, Number(pityState.ssr || 0))
-   if (pitySsr >= setPityCaps.ssr - 1) return 100
-   return getSSRSoftPityRate(pitySsr) * 100
+   return getPackSSRDropRate(pitySsr) * 100
   }
 
   function refreshRateInfoForSet(setId) {
